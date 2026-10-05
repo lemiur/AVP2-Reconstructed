@@ -198,7 +198,7 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 	DWORD dwOldZFunc;
 	UnkType_PoolNode *pNode;
 
-	bEnvMap = ((Surface *)pPoly->m_pSurface)->m_pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_Unk00 != 0 && DAT_1005de2c != 0;
+	bEnvMap = ((Surface *)pPoly->m_pSurface)->m_pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0 && DAT_1005de2c != 0;
 
 	if (DAT_1005811c)
 	{
@@ -230,7 +230,7 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 		bClip = 0;
 	}
 
-	if (!g_CV_LMDynamic.m_Unk00)
+	if (!g_CV_LMDynamic.m_IntVal)
 		FUN_10019923(pPoly, pVerts, nVerts);
 
 	if (bClip && !bEnvMap)
@@ -265,12 +265,12 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZFUNC, D3DCMP_EQUAL);
 	}
 
-	if (!g_CV_LMFullBright.m_Unk00)
+	if (!g_CV_LMFullBright.m_IntVal)
 	{
 		DWORD dwFogColor = FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042);
 		StateSet ssFog(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_DisableTexture(g_NormalTextureStage);
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG2);
 		if (bEnvMap)
 			FUN_1000ad48(pDest, nVerts, &g_ViewParams, 0x1c4);
@@ -294,7 +294,7 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 		pNode->m_Unk08 = nVerts;
 		pNode->m_Unk0c = g_ClipFlags;
 		pNode->m_Unk14 = (bSaturate ? 2 : 0) | 1;
-		if (g_CV_FixSparkleys.m_Unk00)
+		if (g_CV_FixSparkleys.m_IntVal)
 			FUN_1000ac7b();
 	}
 
@@ -314,7 +314,7 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 // STUB: D3DREN 0x10022f85
 void FUN_10022f85(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 {
-	if (g_CV_LMDynamic.m_Unk00)
+	if (g_CV_LMDynamic.m_IntVal)
 	{
 		CountAdder cTimer(g_pSceneDesc->m_pTicks_Render_PolyGrids);
 		LTVector P, Q;
@@ -345,10 +345,10 @@ void FUN_10022f85(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 
 			if (lock.FUN_10034af0(pPoly, 1, 0, 0))
 			{
-				nBuild = FUN_100325e8((UnkType_DynLMSetup *)&lock, pPoly, pLight, g_CV_MultipassGouraud.m_Unk00 ? 1.0f : 2.0f);
+				nBuild = FUN_100325e8((UnkType_DynLMSetup *)&lock, pPoly, pLight, g_CV_MultipassGouraud.m_IntVal ? 1.0f : 2.0f);
 				if (lock.FUN_10034c7c(nBuild) && nBuild)
 				{
-					float fScale = 1.0f / (pLight->m_pLight->GetLightRadius((uint32)pLight->m_pLight) * g_CV_LMDynamicScale.m_Unk04);
+					float fScale = 1.0f / (pLight->m_pLight->GetLightRadius((uint32)pLight->m_pLight) * g_CV_LMDynamicScale.m_FloatVal);
 					TLVertex *pVert = pVerts;
 					int n;
 
@@ -383,7 +383,7 @@ void FUN_10023398(WorldPoly *pPoly)
 	UnkType_PolyVertex *pSrc;
 	RGBColor color;
 
-	if (WORLDPOLY_UNK30(pPoly) && g_CV_LMDynamic.m_Unk00)
+	if (WORLDPOLY_UNK30(pPoly) && g_CV_LMDynamic.m_IntVal)
 	{
 		FUN_10022c01(pPoly, 0);
 		return;
@@ -408,7 +408,7 @@ void FUN_10023398(WorldPoly *pPoly)
 
 	pVerts = aVerts;
 	FUN_1002329f(pVerts, pSrc, nVerts);
-	if (!g_CV_LMDynamic.m_Unk00)
+	if (!g_CV_LMDynamic.m_IntVal)
 		FUN_10019923(pPoly, pVerts, nVerts);
 	if (!FUN_1000af16(&pVerts, &nVerts, &g_ViewParams, 0))
 		return;
@@ -500,7 +500,7 @@ void FUN_1002362a(UnkType_PoolNode *pNode)
 
 			pNext = pNode->m_Unk10;
 			g_ClipFlags = pNode->m_Unk0c;
-			if (g_CV_MultipassGouraud.m_Unk00)
+			if (g_CV_MultipassGouraud.m_IntVal)
 			{
 				FUN_10022c01((WorldPoly *)pNode->m_Unk00, 1);
 			}
@@ -532,13 +532,13 @@ void FUN_100236ae(WorldPoly *pPoly)
 	TLVertex *pDest;
 	UnkType_PoolNode *pNode;
 
-	if (WORLDPOLY_UNK30(pPoly) && g_CV_LMDynamic.m_Unk00)
+	if (WORLDPOLY_UNK30(pPoly) && g_CV_LMDynamic.m_IntVal)
 	{
 		FUN_10022c01(pPoly, 0);
 		return;
 	}
 
-	if (!g_CV_EnvMapWorld.m_Unk00)
+	if (!g_CV_EnvMapWorld.m_IntVal)
 		FUN_10023398(pPoly);
 
 	if (DAT_1005811c)
@@ -556,7 +556,7 @@ void FUN_100236ae(WorldPoly *pPoly)
 	if (pDest)
 	{
 		FUN_1002329f(pDest, pSrc, nVerts);
-		if (!g_CV_LMDynamic.m_Unk00)
+		if (!g_CV_LMDynamic.m_IntVal)
 			FUN_10019923(pPoly, pDest, nVerts);
 		pNode = FUN_10007ddb(pPoly, &DAT_1005a308, 0);
 		pNode->m_Unk04 = DAT_100587e4;
@@ -580,7 +580,7 @@ void FUN_10023763(WorldPoly *pPoly)
 	TLVertex *pDest;
 	UnkType_PoolNode *pNode;
 
-	if (WORLDPOLY_UNK30(pPoly) && g_CV_LMDynamic.m_Unk00)
+	if (WORLDPOLY_UNK30(pPoly) && g_CV_LMDynamic.m_IntVal)
 	{
 		FUN_10022c01(pPoly, 0);
 		return;
@@ -599,7 +599,7 @@ void FUN_10023763(WorldPoly *pPoly)
 
 	FUN_1002329f(aVerts, pSrc, nVerts);
 	pVerts = aVerts;
-	if (!g_CV_LMDynamic.m_Unk00)
+	if (!g_CV_LMDynamic.m_IntVal)
 		FUN_10019923(pPoly, pVerts, nVerts);
 	if (!FUN_1000af16(&pVerts, &nVerts, &g_ViewParams, 0))
 		return;

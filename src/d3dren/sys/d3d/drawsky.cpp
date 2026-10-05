@@ -85,14 +85,14 @@ int FUN_1002d0d0();
 // guess: Jupiter polyclip.h's clipper dispatch as an inline function of the original (the exe expands it in several of this unit's
 // functions; unit unk/100098d0 has the out-of-line copy ClipPoly): the polygon *ppVerts / *pnVerts is clipped against the planes
 // of nFlags; with the UseD3DClip console variable set only the near plane is.
-static inline int ClipPoly_Inline(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
+static inline int ClipPoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
 {
 	TLVertex *pOut;
 	TLVertex *pVerts;
 	int nVerts;
 	char c0, c1, c2, c3, c4, c5;
 
-	if (g_CV_UseD3DClip.m_Unk00)
+	if (g_CV_UseD3DClip.m_IntVal)
 	{
 		nFlags &= 1;
 		if (!nFlags)
@@ -135,7 +135,7 @@ int FUN_1002d0d0()
 	g_SkyMaxY = -10000.0f;
 	g_SkyMaxX = -10000.0f;
 
-	if (g_CV_AllSkyPortals.m_Unk00 && DAT_10056770)
+	if (g_CV_AllSkyPortals.m_IntVal && DAT_10056770)
 	{
 		ppPolys = DAT_10056770->m_SkyPolies.GetArray();
 		nPolys = DAT_10056770->m_SkyPolies.GetSize();
@@ -164,7 +164,7 @@ int FUN_1002d0d0()
 
 		TLVertex *pVerts = aVerts;
 		int nVerts = pPoly->m_nVertices;
-		if (ClipPoly_Inline(nClipFlags, &pVerts, &nVerts))
+		if (ClipPoly(nClipFlags, &pVerts, &nVerts))
 		{
 			for (i = 0; i < nVerts; i++)
 			{

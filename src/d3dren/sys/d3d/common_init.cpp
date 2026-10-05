@@ -555,7 +555,7 @@ extern "C" void RenderDLLSetup(RenderStruct *pStruct)
 	RS_SET(RenderCommand, d3d_RenderCommand);
 	RS_SET(GetHook, d3d_GetHook);
 	RS_SET(SwapBuffers, d3d_SwapBuffers);
-	RS_SET_PAD(0xc8, d3d_GetInfoFlags);
+	RS_SET_PAD(0xc8, FUN_1001bd70);
 	RS_SET(GetScreenFormat, d3d_GetScreenFormat);
 	RS_SET(CreateSurface, d3d_CreateSurface);
 	RS_SET(DeleteSurface, d3d_DeleteSurface);

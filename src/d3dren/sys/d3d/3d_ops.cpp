@@ -32,22 +32,22 @@ extern float g_fInvVFogHeightRange;		// guess: same
 // FUNCTION: D3DREN 0x1000f1a0
 void ViewParams::SetupFogViewPosition(LTVector vPos)
 {
-	float fFog;
+	float fDensity;
 	int nZone;
 
 	m_FogViewPos = vPos;
 
-	if (g_ViewParams.m_Pos.y <= g_CV_VFogMinY.m_Unk04)
-		fFog = g_CV_VFogMinYVal.m_Unk04;
-	else if (g_ViewParams.m_Pos.y >= g_CV_VFogMaxY.m_Unk04)
-		fFog = g_CV_VFogMaxYVal.m_Unk04;
+	if (g_ViewParams.m_Pos.y <= g_CV_VFogMinY.m_FloatVal)
+		fDensity = g_CV_VFogMinYVal.m_FloatVal;
+	else if (g_ViewParams.m_Pos.y >= g_CV_VFogMaxY.m_FloatVal)
+		fDensity = g_CV_VFogMaxYVal.m_FloatVal;
 	else
-		fFog = (g_ViewParams.m_Pos.y - g_CV_VFogMinY.m_Unk04) * g_fVFogValueRange * g_fInvVFogHeightRange + g_CV_VFogMinYVal.m_Unk04;
-	m_fVFogViewDensity = fFog;
+		fDensity = (g_ViewParams.m_Pos.y - g_CV_VFogMinY.m_FloatVal) * g_fVFogValueRange * g_fInvVFogHeightRange + g_CV_VFogMinYVal.m_FloatVal;
+	m_fVFogViewDensity = fDensity;
 
-	if (g_ViewParams.m_Pos.y >= g_CV_VFogMaxY.m_Unk04)
+	if (g_ViewParams.m_Pos.y >= g_CV_VFogMaxY.m_FloatVal)
 		nZone = 1;
-	else if (g_ViewParams.m_Pos.y <= g_CV_VFogMinY.m_Unk04)
+	else if (g_ViewParams.m_Pos.y <= g_CV_VFogMinY.m_FloatVal)
 		nZone = 0;
 	else
 		nZone = 2;

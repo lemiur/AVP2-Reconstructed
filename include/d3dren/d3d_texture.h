@@ -45,7 +45,7 @@ extern uint16 DAT_100577b8;		// guess: current texture frame code (stored into S
 // Finds or creates the RTexture of pTexture for the stage, binds it and sets its LOD; returns 0 when there is no texture.
 // dwMaxLOD: the argument of IDirectDrawSurface7::SetLOD, which is the only thing the third argument is used for.
 //
-// A unit whose currently matching functions change when the plain inline is expanded (unk/100098d0: ClipPolyNear, ClipPolyLeft; d3d_draw:
+// A unit whose currently matching functions change when the plain inline is expanded (unk/100098d0: FUN_1000b0cd, FUN_1000b20c; d3d_draw:
 // the STLport node allocator copies) defines D3DREN_SETTEXTURE_EXTERN before including this header and keeps calling the out-of-line copy.
 #ifdef D3DREN_SETTEXTURE_EXTERN
 int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLOD);		// 0x100079e4

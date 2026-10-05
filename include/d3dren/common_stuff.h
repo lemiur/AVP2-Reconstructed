@@ -22,9 +22,9 @@ struct LightmapPage;		// d3dren/lightmap.h
 class MainWorld;
 struct RenderContext
 {
-	LightmapPage	*m_Unk00;			// 0x00 guess: first lightmap page of the list (0 = none) (W9, lightmap.h)
-	uint32			m_Unk04;			// 0x04 guess: number of lightmap pages
-	MainWorld		*m_Unk08;			// 0x08 guess: the world (RenderContextInit::m_pWorld)
+	LightmapPage	*m_pLightmapPages;			// 0x00 guess: first lightmap page of the list (0 = none) (W9, lightmap.h)
+	uint32			m_nLightmapPages;			// 0x04 guess: number of lightmap pages
+	MainWorld		*m_pWorld;			// 0x08 guess: the world (RenderContextInit::m_pWorld)
 	uint16			m_CurFrameCode;		// 0x0c
 	uint8			m_Pad0E[0x10 - 0x0e];	// the object is 0x10 bytes (d3d_CreateContext 0x1001b700 allocates 0x10)
 };

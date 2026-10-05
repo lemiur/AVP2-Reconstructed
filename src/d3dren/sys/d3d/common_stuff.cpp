@@ -55,11 +55,11 @@ ConVar g_CV_TableFog("TableFog", 0.0f);
 // FUNCTION: D3DREN 0x100111b5
 ConVar::ConVar(char *pName, float fDefault, int *pIntLink, float *pFloatLink)
 {
-	m_Unk00 = 0;
-	m_Unk04 = 0.0f;
+	m_IntVal = 0;
+	m_FloatVal = 0.0f;
 	m_DefaultVal = fDefault;
-	m_Unk0c = pIntLink;
-	m_Unk10 = pFloatLink;
+	m_pIntLink = pIntLink;
+	m_pFloatLink = pFloatLink;
 	m_pName = pName;
 	m_hParam = 0;
 	m_pNext = g_pConVars;
@@ -520,12 +520,12 @@ void d3d_ReadConsoleVariables()
 
 	for (pCur = g_pConVars; pCur; pCur = pCur->m_pNext)
 	{
-		pCur->m_Unk04 = g_pStruct->GetParameterValueFloat(pCur->m_hParam);
-		pCur->m_Unk00 = RoundFloatToInt(pCur->m_Unk04);
-		if (pCur->m_Unk10)
-			*pCur->m_Unk10 = pCur->m_Unk04;
-		if (pCur->m_Unk0c)
-			*pCur->m_Unk0c = pCur->m_Unk00;
+		pCur->m_FloatVal = g_pStruct->GetParameterValueFloat(pCur->m_hParam);
+		pCur->m_IntVal = RoundFloatToInt(pCur->m_FloatVal);
+		if (pCur->m_pFloatLink)
+			*pCur->m_pFloatLink = pCur->m_FloatVal;
+		if (pCur->m_pIntLink)
+			*pCur->m_pIntLink = pCur->m_IntVal;
 	}
 
 	d3d_ReadExtraConsoleVariables();

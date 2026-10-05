@@ -199,7 +199,7 @@ void d3d_InitViewBox2(ViewBoxDef *pDef,
 void FUN_1000f6de(ViewParams *pParams)
 {
 	pParams->m_fProjXScale = pParams->m_DeviceTimesProjection.m[0][0];
-	pParams->m_fProjXOffset = pParams->m_DeviceTimesProjection.m[0][2];
+	pParams->m_Unk320 = pParams->m_DeviceTimesProjection.m[0][2];
 	pParams->m_fProjYScale = pParams->m_DeviceTimesProjection.m[1][1];
 	pParams->m_fProjYOffset = pParams->m_DeviceTimesProjection.m[1][2];
 	pParams->m_fProjZScale = pParams->m_DeviceTimesProjection.m[2][2];
@@ -215,7 +215,7 @@ void d3d_SetupPerspectiveMatrix(LTMatrix *pMatrix, float nearZ, float farZ);
 // pMat is the viewer matrix and vScale an extra scale that scales all the coordinates up.
 // STUB: D3DREN 0x1000f72b
 // Remaining difference (21 of 952 instructions, same size 2766): instruction scheduling at statement boundaries only.
-// (1) The copies of the matrix products into pParams (rep movsd of m_mShearView/m_mClipTransform) are emitted right after the MatMul
+// (1) The copies of the matrix products into pParams (rep movsd of m_Unk29c/m_Unk15c) are emitted right after the MatMul
 // call by us, the exe delays each one past the pushes of the next MatMul call; (2) the store of mDevice.m[1][1] and the
 // store of fRange are placed after a push by us and before it in the exe.  Statement order of the device matrix stores,
 // explicit MatMul temporaries and nested assignments were tried (worse).  The frame slots then differ by constant offsets
@@ -255,14 +255,14 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 	pParams->m_Rect.top = (int)RoundFloatToInt(screenMinY);
 	pParams->m_Rect.right = (int)RoundFloatToInt(screenMaxX);
 	pParams->m_Rect.bottom = (int)RoundFloatToInt(screenMaxY);
-	pParams->m_Unk2c = screenMinX;
-	pParams->m_Unk34 = screenMinY;
-	pParams->m_Unk30 = screenMaxX - 1.0f;
-	pParams->m_Unk38 = screenMaxY - 1.0f;
-	pParams->m_Unk3c = pParams->m_Rect.left;
-	pParams->m_Unk40 = pParams->m_Rect.top;
-	pParams->m_Unk44 = pParams->m_Rect.right - 1;
-	pParams->m_Unk48 = pParams->m_Rect.bottom - 1;
+	pParams->m_fScreenMinX = screenMinX;
+	pParams->m_fScreenMinY = screenMinY;
+	pParams->m_fScreenMaxX = screenMaxX - 1.0f;
+	pParams->m_fScreenMaxY = screenMaxY - 1.0f;
+	pParams->m_nScreenMinX = pParams->m_Rect.left;
+	pParams->m_nScreenMinY = pParams->m_Rect.top;
+	pParams->m_nScreenMaxX = pParams->m_Rect.right - 1;
+	pParams->m_nScreenMaxY = pParams->m_Rect.bottom - 1;
 
 	/////// Setup all the matrices.
 
@@ -296,15 +296,15 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 		0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Figure out X and Y scale to get frustum into unit slopes.
-	pParams->m_Unk94 = pViewBox->m_COP.z / pViewBox->m_WindowSize[0];
+	pParams->m_fFovXScale = pViewBox->m_COP.z / pViewBox->m_WindowSize[0];
 	pParams->m_fFovYScale = pViewBox->m_COP.z / pViewBox->m_WindowSize[1];
 
-	pParams->m_Unk4c = MATH_PI - 2.0f * (float)atan(pParams->m_Unk94);
-	pParams->m_Unk50 = MATH_PI - 2.0f * (float)atan(pParams->m_fFovYScale);
+	pParams->m_fFovX = MATH_PI - 2.0f * (float)atan(pParams->m_fFovXScale);
+	pParams->m_fFovY = MATH_PI - 2.0f * (float)atan(pParams->m_fFovYScale);
 
 	// Squash the sides to 45 degree angles.
 	mFOVScale.Init(
-		pParams->m_Unk94, 0.0f, 0.0f, 0.0f,
+		pParams->m_fFovXScale, 0.0f, 0.0f, 0.0f,
 		0.0f, pParams->m_fFovYScale, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f);
@@ -319,14 +319,14 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 	// Setup the projection space (-1<x<1) to device space transformation.
 	pParams->m_fScreenWidth = (screenMaxX - screenMinX);
 	pParams->m_fScreenHeight = (screenMaxY - screenMinY);
-	pParams->m_Unk5c = pParams->m_fScreenWidth * 0.5f;
-	pParams->m_Unk60 = pParams->m_fScreenHeight * 0.5f;
-	pParams->m_Unk64 = 1.0f / pParams->m_Unk5c;
-	pParams->m_Unk68 = 1.0f / pParams->m_Unk60;
-	pParams->m_fScreenCenterX = pParams->m_Unk5c + screenMinX;
-	pParams->m_fScreenCenterY = pParams->m_Unk60 + screenMinY;
-	pParams->m_fProjectionScaleX = pParams->m_Unk5c * pParams->m_Unk94;
-	pParams->m_fProjectionScaleY = pParams->m_Unk60 * pParams->m_fFovYScale;
+	pParams->m_fHalfScreenWidth = pParams->m_fScreenWidth * 0.5f;
+	pParams->m_fHalfScreenHeight = pParams->m_fScreenHeight * 0.5f;
+	pParams->m_fInvHalfScreenWidth = 1.0f / pParams->m_fHalfScreenWidth;
+	pParams->m_fInvHalfScreenHeight = 1.0f / pParams->m_fHalfScreenHeight;
+	pParams->m_fScreenCenterX = pParams->m_fHalfScreenWidth + screenMinX;
+	pParams->m_fScreenCenterY = pParams->m_fHalfScreenHeight + screenMinY;
+	pParams->m_fProjectionScaleX = pParams->m_fHalfScreenWidth * pParams->m_fFovXScale;
+	pParams->m_fProjectionScaleY = pParams->m_fHalfScreenHeight * pParams->m_fFovYScale;
 	pParams->m_fInvProjectionScaleX = 1.0f / pParams->m_fProjectionScaleX;
 	pParams->m_fInvProjectionScaleY = 1.0f / pParams->m_fProjectionScaleY;
 	pParams->m_fProjectionScaleProduct = pParams->m_fProjectionScaleY * pParams->m_fProjectionScaleX;
@@ -334,9 +334,9 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 	// Setup the device transform.  It subtracts a little to account for the FP tendency
 	// to slip above and below 0.5.
 	mDevice.Identity();
-	mDevice.m[0][0] = pParams->m_Unk5c - 0.0001f;
+	mDevice.m[0][0] = pParams->m_fHalfScreenWidth - 0.0001f;
 	mDevice.m[0][3] = pParams->m_fScreenCenterX;
-	mDevice.m[1][1] = -(pParams->m_Unk60 - 0.0001f);
+	mDevice.m[1][1] = -(pParams->m_fHalfScreenHeight - 0.0001f);
 	mDevice.m[1][3] = pParams->m_fScreenCenterY;
 
 	// Precalculate useful matrices.
@@ -438,9 +438,9 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 		pParams->m_ClipPlanes[1].m_Normal.Dot(zPlanePos);
 
 	memcpy(pParams->m_ReallyCloseClipPlanes, pParams->m_CSClipPlanes, sizeof(pParams->m_CSClipPlanes));
-	pParams->m_ReallyCloseClipPlanes[0].m_Dist = g_CV_ReallyCloseNearZ.m_Unk04;
-	pParams->m_Unk4cc = 0;
-	pParams->m_Unk4d0 = 1.0f;
+	pParams->m_ReallyCloseClipPlanes[0].m_Dist = g_CV_ReallyCloseNearZ.m_FloatVal;
+	pParams->m_bCullFlip = 0;
+	pParams->m_fCullSign = 1.0f;
 
 	d3d_SetupSkyStuff();
 	return LTTRUE;
@@ -607,7 +607,7 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 		if (!pContext)
 			return 0;
 
-		DAT_10056770 = pContext->m_Unk08;
+		DAT_10056770 = pContext->m_pWorld;
 		DAT_10056284 = pContext;
 		d3d_IncrementFrameCode(pContext);
 		g_CurFrameCode = pContext->m_CurFrameCode;
@@ -670,7 +670,7 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 	quat_ConvertToMatrix(pDesc->m_Rotation.m_Quat, mat.m);
 	mat.SetTranslation(pDesc->m_Pos);
 
-	d3d_InitViewBox(&viewBox, g_CV_NearZ.m_Unk04, pDesc->m_FarZ, pDesc->m_xFov, pDesc->m_yFov);
+	d3d_InitViewBox(&viewBox, g_CV_NearZ.m_FloatVal, pDesc->m_FarZ, pDesc->m_xFov, pDesc->m_yFov);
 
 	// Note: since the numbers are truncated when converted to integers, it takes a little
 	// off the right and bottom to make sure it never exceeds those.

@@ -39,9 +39,8 @@ The game draws through a separate renderer DLL, `d3d.ren` (348,160 bytes, linked
 is the engine's **DirectDraw 7 / Direct3D 7** renderer, not a Direct3D 8 one. The repository decompiles it as a
 second module next to the engine, with the same tools: `--module d3dren` (or `DECOMP_MODULE=d3dren`) points the build,
 checker, permuter and helpers at `src/d3dren/`, `include/d3dren/`, `config/d3dren/` and `build/d3dren/`
-(`tools/modcfg.py` holds everything module-specific). The engine module is the default. The renderer compiles
-against the engine's headers in `include/`, so a change to a shared structure can break either module's matches;
-`tools/gate.py` checks both against recorded baselines.
+(`tools/modcfg.py` holds everything module-specific). The engine module is the default and is unaffected;
+`tools/gate.py` checks that.
 
 The DLL was built with a different compiler from the engine: the VC6 RTM front ends and optimising back end
 (12.00.8168, as its Rich header records), not the SP5 + Processor Pack compiler used for `lithtech.exe`.
@@ -119,7 +118,7 @@ python tools/source_eh.py          # verify source EH helpers against the origin
 python tools/library_data.py       # verify native library data separately from function-code coverage
 python -m unittest discover -s tools/tests -v # run verifier regression tests
 python tools/build.py --module d3dren          # the same build for the renderer (build/d3dren/)
-python tools/gate.py                           # check that neither module's numbers changed (after editing include/ or tools/)
+python tools/gate.py                           # check that the engine module's numbers are unchanged
 ```
 
 Requires Python 3 with `capstone` and `pefile`, and `objdiff-cli`.

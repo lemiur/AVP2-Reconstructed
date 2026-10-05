@@ -130,7 +130,7 @@ TestRight: \
 		} \
 		if (g_ClipFlags & 2) \
 		{ \
-			nIn = (pV2[2] <= g_ViewParams.m_ClipFarZ) + (pV1[2] <= g_ViewParams.m_ClipFarZ) + (pV0[2] <= g_ViewParams.m_ClipFarZ); \
+			nIn = (pV2[2] <= g_ViewParams.m_Unk90) + (pV1[2] <= g_ViewParams.m_Unk90) + (pV0[2] <= g_ViewParams.m_Unk90); \
 			if (nIn == 0) \
 				goto Skip; \
 			if (nIn != 3) \
@@ -470,7 +470,7 @@ int ClipPolyBottom(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **p
 	return 1;
 }
 
-// guess: far plane (inside: z <= g_ViewParams.m_ClipFarZ), flag 2
+// guess: far plane (inside: z <= g_ViewParams.m_Unk90), flag 2
 // FUNCTION: D3DREN 0x10006ba0
 int ClipPolyFar(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut)
 {
@@ -706,7 +706,7 @@ int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 	return 1;
 }
 
-// guess: far plane (inside: z <= g_ViewParams.m_ClipFarZ), flag 2 (0x28-byte vertices)
+// guess: far plane (inside: z <= g_ViewParams.m_Unk90), flag 2 (0x28-byte vertices)
 // Not matching (11/704 bytes): identical except for the tail of the inlined ClipExtra: the exe schedules `xor ecx,ecx` (the zero
 // extension for `mov cl,[pCur->specular_rgb.a]`) before the store of rgb.b, ours after it.  The same function for the top and
 // right planes (FUN_10006e40/10007100) and the 0x20-byte twins match with this source shape; 4000 permuter candidates found nothing.

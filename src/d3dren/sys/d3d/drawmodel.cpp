@@ -108,7 +108,7 @@ inline DWORD F2DW(FLOAT f) { return *((DWORD *)&f); }
 // FUNCTION: D3DREN 0x1002421e
 void ModelDraw::FUN_1002421e()
 {
-	FUN_1000a27b(g_NormalTextureStage);
+	d3d_DisableTexture(g_NormalTextureStage);
 
 	ModelInstance *pInstance = m_pInstance;
 	const LTVector &Pos = pInstance->m_Pos;
@@ -170,7 +170,7 @@ void ModelDraw::FUN_100244b3(uint32 *pbResult)
 	if (DAT_10048750 && (m_ModelHookData.m_Flags & MHF_USETEXTURE))
 		m_Unk4c8 = 1;
 	else
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_DisableTexture(g_NormalTextureStage);
 
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FILLMODE, (unsigned long *)&DAT_10068030);
 	if (m_ModelHookData.m_ObjectFlags & FLAG_MODELWIREFRAME)
@@ -187,7 +187,7 @@ void ModelDraw::FUN_100244b3(uint32 *pbResult)
 		if (DAT_100584a8)
 		{
 			bResult = 0;
-			FUN_1000a27b(g_NormalTextureStage);
+			d3d_DisableTexture(g_NormalTextureStage);
 		}
 	}
 	*pbResult = bResult;
@@ -209,7 +209,7 @@ void ModelDraw::FUN_10024589(uint32 iSkin)
 	{
 		SharedTexture *pSkin = m_pInstance->m_pSkins[iSkin];
 
-		if (g_CV_ModelTexture.m_Unk00 && d3d_SetTexture(pSkin, m_Unk34, m_Unk8a4))
+		if (g_CV_ModelTexture.m_IntVal && d3d_SetTexture(pSkin, m_Unk34, m_Unk8a4))
 		{
 			// (written `DAT_1005de1c * scale`: that gives the exe's fld c / fld uv / fmul st(1); `scale * DAT_1005de1c` came out as fld c / fld st(0) / fmul uv)
 			DAT_1004eb40 = DAT_1005de1c * DAT_10061810[0].m_Unk00;
@@ -217,7 +217,7 @@ void ModelDraw::FUN_10024589(uint32 iSkin)
 		}
 		else
 		{
-			FUN_1000a27b(g_NormalTextureStage);
+			d3d_DisableTexture(g_NormalTextureStage);
 		}
 
 		if (m_Unk38 != -1)
@@ -232,14 +232,14 @@ void ModelDraw::FUN_10024589(uint32 iSkin)
 		{
 			g_pD3DDevice->GetTextureStageState(1, D3DTSS_COLOROP, (unsigned long *)&DAT_10067be8);
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, 1);
-			FUN_1000a27b(1);
+			d3d_DisableTexture(1);
 		}
 
 		m_Unk4cc = iSkin;
 	}
 	else
 	{
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_DisableTexture(g_NormalTextureStage);
 	}
 }
 
@@ -354,7 +354,7 @@ void ModelDraw::FUN_1002476b()
 		}
 		else
 		{
-			if (g_CV_ModelSpecular.m_Unk00 && DAT_1005c80c && m_pModel->m_bSpecularEnable && g_pSpecularTexture)
+			if (g_CV_ModelSpecular.m_Unk00 && DAT_1005c80c && m_pModel->m_bSpecularEnable && DAT_10062880)
 			{
 				m_Unk5e8 = 2;
 					g_pD3DDevice->GetTexture(1, &pOldTex);
@@ -393,7 +393,7 @@ void ModelDraw::FUN_1002476b()
 		FUN_1002421e();
 
 	if (m_ModelHookData.m_ObjectFlags & FLAG_REALLYCLOSE)
-		g_ViewParams.m_NearZ = g_CV_NearZ.m_Unk04;
+		g_ViewParams.m_NearZ = g_CV_NearZ.m_FloatVal;
 }
 
 // ---- FUN_10024c8b / FUN_10024cd7 -----------------------------------------------------------------------------------------

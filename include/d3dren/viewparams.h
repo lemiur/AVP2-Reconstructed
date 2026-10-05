@@ -39,22 +39,22 @@ public:
 
 	ViewBoxDef		m_ViewBox;				// 0x00 copy of the input of d3d_InitFrustum2
 	LTRect			m_Rect;					// 0x1c rounded screen rectangle (the inline constructor zeroes it)
-	float			m_Unk2c;				// 0x2c screenMinX
-	float			m_Unk30;				// 0x30 screenMaxX - 1.0 (_DAT_100461cc)
-	float			m_Unk34;				// 0x34 screenMinY
-	float			m_Unk38;				// 0x38 screenMaxY - 1.0
-	int				m_Unk3c;				// 0x3c m_Rect.left
-	int				m_Unk40;				// 0x40 m_Rect.top
-	int				m_Unk44;				// 0x44 m_Rect.right - 1
-	int				m_Unk48;				// 0x48 m_Rect.bottom - 1
-	float			m_Unk4c;				// 0x4c (derived from the view box, see d3d_InitFrustum2)
-	float			m_Unk50;				// 0x50
+	float			m_fScreenMinX;				// 0x2c screenMinX
+	float			m_fScreenMaxX;				// 0x30 screenMaxX - 1.0 (_DAT_100461cc)
+	float			m_fScreenMinY;				// 0x34 screenMinY
+	float			m_fScreenMaxY;				// 0x38 screenMaxY - 1.0
+	int				m_nScreenMinX;				// 0x3c m_Rect.left
+	int				m_nScreenMinY;				// 0x40 m_Rect.top
+	int				m_nScreenMaxX;				// 0x44 m_Rect.right - 1
+	int				m_nScreenMaxY;				// 0x48 m_Rect.bottom - 1
+	float			m_fFovX;				// 0x4c (derived from the view box, see d3d_InitFrustum2)
+	float			m_fFovY;				// 0x50
 	float			m_fScreenWidth;			// 0x54 screenMaxX - screenMinX (Jupiter m_fScreenWidth)
 	float			m_fScreenHeight;		// 0x58 screenMaxY - screenMinY (Jupiter m_fScreenHeight)
-	float			m_Unk5c;				// 0x5c
-	float			m_Unk60;				// 0x60
-	float			m_Unk64;				// 0x64
-	float			m_Unk68;				// 0x68
+	float			m_fHalfScreenWidth;				// 0x5c
+	float			m_fHalfScreenHeight;				// 0x60
+	float			m_fInvHalfScreenWidth;				// 0x64
+	float			m_fInvHalfScreenHeight;				// 0x68
 	float			m_fScreenCenterX;				// 0x6c
 	float			m_fScreenCenterY;				// 0x70
 	float			m_fProjectionScaleX;				// 0x74
@@ -65,7 +65,7 @@ public:
 	float			m_NearZ;				// 0x88 Near clip Z
 	float			m_FarZ;					// 0x8c clamped far Z
 	float			m_ClipFarZ;				// 0x90 copy of m_FarZ
-	float			m_Unk94;				// 0x94 COP.z / WindowSize[0]
+	float			m_fFovXScale;				// 0x94 COP.z / WindowSize[0]
 	float			m_fFovYScale;				// 0x98 COP.z / WindowSize[1]
 	LTMatrix		m_mInvView;				// 0x9c the viewer matrix passed in (view to world transform)
 	LTMatrix		m_mView;				// 0xdc world space to camera space
@@ -92,11 +92,11 @@ public:
 	LTVector		m_Forward;				// 0x4a8
 	LTVector		m_Pos;					// 0x4b4 viewer position
 	LTVector		m_SkyViewPos;			// 0x4c0 (guess: written by d3d_SetupSkyStuff)
-	uint32			m_Unk4cc;				// 0x4cc 0 (d3d_InitFrustum2)
-	float			m_Unk4d0;				// 0x4d0 1.0f (d3d_InitFrustum2)
+	uint32			m_bCullFlip;				// 0x4cc 0 (d3d_InitFrustum2)
+	float			m_fCullSign	;				// 0x4d0 1.0f (d3d_InitFrustum2)
 	int				m_bPortalView;				// 0x4d4: 0 at the start of d3d_InitFrustum2, tested by the object queues
-	uint8			m_Pad4d8[0x4e4 - 0x4d8];
-	LTVector		m_FogViewPos;				// 0x4e4 (DAT_100561dc) the position the vertical fog values below were computed for (W2 SetupFogViewPosition)
+	uint8			m_PortalCenter[0x4e4 - 0x4d8];
+	LTVector		m_FogViewPos;				// 0x4e4 (DAT_100561dc) the position the vertical fog values below were computed for (W2 FUN_1000f1a0)
 	float			m_fVFogViewDensity;				// 0x4f0 (DAT_100561e8) vertical fog value at that height (VFogMinYVal..VFogMaxYVal)
 	int				m_nVFogViewZone;				// 0x4f4 (DAT_100561ec) vertical fog zone: 0 below VFogMinY, 1 above VFogMaxY, 2 in between
 

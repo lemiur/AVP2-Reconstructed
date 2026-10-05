@@ -24,7 +24,7 @@
 #include "counter.h"
 #include "../../build/proj/LT2/lithshared/stdlith/object_bank.h"
 
-int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat);
+int FUN_10020ab0(UnkType_RTextureBuild *pBuild, RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat);
 void FUN_10032a30();	// 0x10032a30 (lightmap unit unk/100329b0)
 int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit);	// 0x10032c40 (unit unk/100329b0)
 // guess: counters of the dynamic lightmap refresh (FUN_10020ff0): staging lightmaps locked, and lightmaps where no light changed a texel
@@ -97,28 +97,28 @@ RTexture::RTexture()
 }
 
 // FUNCTION: D3DREN 0x1001e6d0 ??_GUnkType_RTextureData@@UAEPAXI@Z
-// (the scalar deleting destructors of RTexture's data class and of RTextureBase are the same code: folded by the linker)
+// (the scalar deleting destructors of RTexture's data class and of UnkType_RTextureBase are the same code: folded by the linker)
 
-// FUNCTION: D3DREN 0x1001e6f0 ?IsRTexture@UnkType_RTextureData@@UAEHXZ
-int UnkType_RTextureData::IsRTexture()
+// FUNCTION: D3DREN 0x1001e6f0 ?FUN_vslot1@UnkType_RTextureData@@UAEHXZ
+int RTextureData::IsRTexture()
 {
 	return 1;
 }
 
 // FUNCTION: D3DREN 0x1001e700 ?IsFullbrite@UnkType_RTextureData@@UAEHXZ
-int UnkType_RTextureData::IsFullbrite()
+int RTextureData::IsFullbrite()
 {
 	return m_pOwner->m_Flags;
 }
 
 // FUNCTION: D3DREN 0x1001e710 ?GetBaseWidth@UnkType_RTextureData@@UAEHXZ
-int UnkType_RTextureData::GetBaseWidth()
+int RTextureData::GetBaseWidth()
 {
 	return m_pOwner->m_BaseWidth;
 }
 
 // FUNCTION: D3DREN 0x1001e720 ?GetBaseHeight@UnkType_RTextureData@@UAEHXZ
-int UnkType_RTextureData::GetBaseHeight()
+int RTextureData::GetBaseHeight()
 {
 	return m_pOwner->m_BaseHeight;
 }
@@ -177,8 +177,8 @@ RTexture *FUN_1001e750(uint32 width, uint32 height, uint32 flags)
 		pRTexture->m_Flags = 0;
 		pRTexture->m_BaseWidth = width;
 		pRTexture->m_Data.m_nTextureFrameCode = 0;
-		pRTexture->m_Data.m_Unk04 = 1.0f / (float)width;
-		pRTexture->m_Data.m_Unk08 = 1.0f / (float)height;
+		pRTexture->m_Data.m_fUScale = 1.0f / (float)width;
+		pRTexture->m_Data.m_fVScale = 1.0f / (float)height;
 		return pRTexture;
 	}
 	pSurface->Release();
@@ -241,8 +241,8 @@ IDirectDrawSurface7 *d3d_CreateTextureFromPixels(uint32 *pPixels, uint32 width, 
 		ddsd.ddsCaps.dwCaps2 = 0x40090;
 		ddsd.dwWidth = width;
 		ddsd.dwHeight = height;
-		ddsd.ddpfPixelFormat = pFormat->m_PF;
-		if (g_pDD->CreateSurface(&ddsd, &pSurface, 0) == 0)
+		ddsd.ddpfPixelFormat = pFormat->m_DDPF;
+		if (DAT_10057810->CreateSurface(&ddsd, &pSurface, 0) == 0)
 		{
 			memset(&ddsdLock, 0, sizeof(ddsdLock));
 			ddsdLock.dwSize = sizeof(ddsdLock);
@@ -294,8 +294,8 @@ void d3d_ReinitLightmapTextureSupport()
 		ddsd.dwSize = sizeof(ddsd);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-		ddsd.ddpfPixelFormat = pFormat->m_PF;
-		g_pDD->CreateSurface(&ddsd, &DAT_10062878, 0);
+		ddsd.ddpfPixelFormat = pFormat->m_DDPF;
+		DAT_10057810->CreateSurface(&ddsd, &DAT_10062878, 0);
 	}
 }
 
@@ -392,8 +392,8 @@ int FUN_1001ec50()
 			ddsd.dwSize = sizeof(ddsd);
 			ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
 			ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-			ddsd.ddpfPixelFormat = pLightmapFormat->m_PF;
-			g_pDD->CreateSurface(&ddsd, &DAT_10062878, 0);
+			ddsd.ddpfPixelFormat = pLightmapFormat->m_DDPF;
+			DAT_10057810->CreateSurface(&ddsd, &DAT_10062878, 0);
 		}
 	}
 	FUN_10032a30();
@@ -590,6 +590,7 @@ void FUN_1001f670()
 }
 
 // NAME: names_proposal.csv CTextureManager::Term (medium, Jupiter): a global function in d3d.ren
+// I don't think this was a real member of CTextureManager; it's just a global function in d3d.ren
 // FUNCTION: D3DREN 0x1001f770
 void d3d_TermTextureManager()
 {
@@ -699,13 +700,13 @@ void d3d_FreeAllTextures()
 // FUNCTION: D3DREN 0x1001f9b0
 void d3d_ListTextureFormats()
 {
-	for (LTLink *pCur = g_TextureFormatList.m_pNext; pCur != &g_TextureFormatList; pCur = pCur->m_pNext)
-		d3d_PrintFormatInfo("", (TextureFormat *)pCur->m_pData);
-	d3d_PrintFormatInfo("[FULLBRITE] - ", g_TextureFormats[FORMAT_FULLBRITE]);
-	d3d_PrintFormatInfo("[4444] - ", g_TextureFormats[FORMAT_4444]);
-	d3d_PrintFormatInfo("[NORMAL] - ", g_TextureFormats[FORMAT_NORMAL]);
-	d3d_PrintFormatInfo("[INTERFACE] - ", g_TextureFormats[FORMAT_INTERFACE]);
-	d3d_PrintFormatInfo("[LIGHTMAP] - ", g_TextureFormats[FORMAT_LIGHTMAP]);
+	for (LTLink *pCur = DAT_10062858.m_pNext; pCur != &DAT_10062858; pCur = pCur->m_pNext)
+		FUN_1001fa40("", (UnkType_TextureFormat *)pCur->m_pData);
+	FUN_1001fa40("[FULLBRITE] - ", DAT_10062830[FORMAT_FULLBRITE]);
+	FUN_1001fa40("[4444] - ", DAT_10062830[FORMAT_4444]);
+	FUN_1001fa40("[NORMAL] - ", DAT_10062830[FORMAT_NORMAL]);
+	FUN_1001fa40("[INTERFACE] - ", DAT_10062830[FORMAT_INTERFACE]);
+	FUN_1001fa40("[LIGHTMAP] - ", DAT_10062830[FORMAT_LIGHTMAP]);
 }
 
 // d3d_AddToString (0x1001ff80, defined below the printer): appends the text and a space to pStr and returns the end of the string.
@@ -826,7 +827,7 @@ RTexture *FUN_1001fff0(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 
 		return 0;
 
 	UnkType_RTextureBuild build;
-	UnkType_RTextureData data;
+	RTextureData data;
 	int iFormat;
 	int iStartMipmap, nMipmaps, nAvailable, i;
 
@@ -860,7 +861,7 @@ RTexture *FUN_1001fff0(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 
 		if (iGroup > 9)
 			iGroup = 9;
 		iStartMipmap = (&DAT_10057d44)[iGroup] + pTextureData->m_Header.m_Extra[4] + DAT_100584ac;
-		if (g_CV_S3TCEnable.m_Unk00 == 0)
+		if (g_CV_S3TCEnable.m_IntVal == 0)
 			iStartMipmap += pTextureData->m_Header.m_Extra[3];
 		if (iStartMipmap < 0)
 			iStartMipmap = 0;
@@ -925,7 +926,7 @@ RTexture *FUN_1001fff0(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 
 	pRTexture->m_Link.m_pData = pRTexture;
 	g_Textures.AddAfter(&pRTexture->m_Link);
 	RENDERSTRUCT_TEXMEM(g_pStruct) += pRTexture->m_Data.m_nMemory;
-	data.~UnkType_RTextureData();
+	data.~RTextureData();
 	if (!r_TransferTexture(pRTexture, pTextureData))
 	{
 		AddDebugMessage(4, "Unable to transfer texture data to video memory.");
@@ -1226,7 +1227,7 @@ static inline int InlineIsS3TCSupported(uint32 bpp)
 // jne, with ebp = bpp; ours emits the DXT path first and jumps to the shared one.  Tried: `if (bpp == 0) bpp = 3; else if (...)`
 // against two separate ifs, nesting the DXT test inside `if (bpp != 0)`.
 // STUB: D3DREN 0x10020ab0
-int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
+int FUN_10020ab0(UnkType_RTextureBuild *pBuild, RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
 {
 	TextureData *pTextureData = pBuild->m_pTextureData;
 	DDSURFACEDESC2 ddsd;
@@ -1252,7 +1253,7 @@ int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uin
 	{
 		bpp = 3;
 	}
-	else if (bpp != 3 && g_CV_S3TCEnable.m_Unk00 && InlineIsS3TCSupported(bpp))
+	else if (bpp != 3 && g_CV_S3TCEnable.m_IntVal && InlineIsS3TCSupported(bpp))
 	{
 		bSupported = 1;
 		memset(&ddsd.ddpfPixelFormat, 0, sizeof(ddsd.ddpfPixelFormat));
@@ -1270,7 +1271,7 @@ int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uin
 	}
 
 	bSupported = 0;
-	ddsd.ddpfPixelFormat = g_TextureFormats[iFormat]->m_PF;
+	ddsd.ddpfPixelFormat = DAT_10062830[iFormat]->m_DDPF;
 	width = ddsd.dwWidth;
 	height = ddsd.dwHeight;
 	if (DAT_1005c984 & D3DPTEXTURECAPS_SQUAREONLY)
@@ -1512,7 +1513,7 @@ RTexture *FUN_10021290(UnkType_RTextureBuild *pBuild, int bAdditional)
 		if (iGroup > 9)
 			iGroup = 9;
 		iStart = (&DAT_10057d44)[iGroup] + pTextureData->m_Header.m_Extra[4] + DAT_100584ac;
-		if (g_CV_S3TCEnable.m_Unk00 == 0)
+		if (g_CV_S3TCEnable.m_IntVal == 0)
 			iStart += pTextureData->m_Header.m_Extra[3];
 		if (iStart < 0)
 			iStart = 0;
@@ -1564,7 +1565,7 @@ RTexture *FUN_10021290(UnkType_RTextureBuild *pBuild, int bAdditional)
 			return 0;
 		goto ParseColorKey;
 	}
-	ddsd.ddpfPixelFormat = g_TextureFormats[iFormat]->m_PF;
+	ddsd.ddpfPixelFormat = DAT_10062830[iFormat]->m_DDPF;
 	AdjustAspectRatio(ddsd.dwWidth, ddsd.dwHeight, &ddsd.dwWidth, &ddsd.dwHeight);
 
 ParseColorKey:
@@ -1629,7 +1630,7 @@ ParseColorKey:
 	}
 	pRTexture->m_Data.m_nMemory = 0;
 	for (i = iStartMipmap; i < iStartMipmap + nMipmaps; i++)
-		pRTexture->m_Data.m_nMemory += (pTextureData->m_Mips[i].m_Width * pTextureData->m_Mips[i].m_Height) << g_TextureFormats[iFormat]->m_BytesPPShift;
+		pRTexture->m_Data.m_nMemory += (pTextureData->m_Mips[i].m_Width * pTextureData->m_Mips[i].m_Height) << DAT_10062830[iFormat]->m_nBytesPP;
 	pRTexture->m_pSharedTexture = pBuild->m_pSharedTexture;
 	if (!(bAdditional & 1))
 		pBuild->m_pSharedTexture->m_pRenderData = pRTexture;
@@ -1731,8 +1732,8 @@ int FUN_10021a80(SharedTexture *pSharedTexture, uint32 nStageFlags, float *pU, f
 	}
 done:
 	RTexture *pRTexture = (RTexture *)pSharedTexture->m_pRenderData;
-	*pU = pRTexture->m_Data.m_Unk04;
-	*pV = pRTexture->m_Data.m_Unk08;
+	*pU = pRTexture->m_Data.m_fUScale;
+	*pV = pRTexture->m_Data.m_fVScale;
 	return 1;
 }
 

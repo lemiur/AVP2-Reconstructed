@@ -208,7 +208,7 @@ PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int n
 	fGreen = (float)pSystem->m_ColorG * DAT_1004ffc4;
 	fBlue = (float)pSystem->m_ColorB * DAT_1004ffc8;
 	fAlpha = (float)pSystem->m_ColorA;
-	fHalfSizeBase = (float)(g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left) * g_ViewParams.m_Unk94;
+	fHalfSizeBase = (float)(g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left) * g_ViewParams.m_fFovXScale;
 	fHalfSize = fHalfSizeBase * fSize;
 
 	if (nMode == 1 && nCount)
@@ -247,26 +247,26 @@ PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int n
 				v0 = DAT_1004ffd8;
 				u1 = DAT_1004ffd0;
 				v1 = DAT_100513dc;
-				if (x0 < g_ViewParams.m_Unk2c)
+				if (x0 < g_ViewParams.m_fScreenMinX)
 				{
-					u0 = (DAT_1004ffd0 - DAT_1004ffcc) * ((g_ViewParams.m_Unk2c - x0) / (x1 - x0)) + DAT_1004ffcc;
-					x0 = g_ViewParams.m_Unk2c;
+					u0 = (DAT_1004ffd0 - DAT_1004ffcc) * ((g_ViewParams.m_fScreenMinX - x0) / (x1 - x0)) + DAT_1004ffcc;
+					x0 = g_ViewParams.m_fScreenMinX;
 				}
-				if (y0 < g_ViewParams.m_Unk34)
+				if (y0 < g_ViewParams.m_fScreenMinY)
 				{
-					v0 = (DAT_100513dc - DAT_1004ffd8) * ((g_ViewParams.m_Unk34 - y0) / (y1 - y0)) + DAT_1004ffd8;
-					y0 = g_ViewParams.m_Unk34;
+					v0 = (DAT_100513dc - DAT_1004ffd8) * ((g_ViewParams.m_fScreenMinY - y0) / (y1 - y0)) + DAT_1004ffd8;
+					y0 = g_ViewParams.m_fScreenMinY;
 				}
 				u1 = DAT_1004ffd0;
-				if (g_ViewParams.m_Unk30 < x1)
+				if (g_ViewParams.m_fScreenMaxX < x1)
 				{
-					u1 = (DAT_1004ffd0 - u0) * ((g_ViewParams.m_Unk30 - x0) / (x1 - x0)) + u0;
-					x1 = g_ViewParams.m_Unk30;
+					u1 = (DAT_1004ffd0 - u0) * ((g_ViewParams.m_fScreenMaxX - x0) / (x1 - x0)) + u0;
+					x1 = g_ViewParams.m_fScreenMaxX;
 				}
-				if (g_ViewParams.m_Unk38 < y1)
+				if (g_ViewParams.m_fScreenMaxY < y1)
 				{
-					v1 = (DAT_100513dc - v0) * ((g_ViewParams.m_Unk38 - y0) / (y1 - y0)) + v0;
-					y1 = g_ViewParams.m_Unk38;
+					v1 = (DAT_100513dc - v0) * ((g_ViewParams.m_fScreenMaxY - y0) / (y1 - y0)) + v0;
+					y1 = g_ViewParams.m_fScreenMaxY;
 				}
 
 				pOut[0].m_Vec.x = x0; pOut[0].m_Vec.y = y0; pOut[0].m_Vec.z = sz; pOut[0].rhw = fW; pOut[0].color = dwColor; pOut[0].specular = (uint32)DAT_1004ffd4; pOut[0].tu = u0; pOut[0].tv = v0;

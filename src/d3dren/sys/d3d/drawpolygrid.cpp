@@ -312,7 +312,7 @@ void d3d_DrawPolyGrid(ViewParams *pParams, LTObject *pObj)
 
 			// The linked texture of the base texture is the environment map.
 			if (DAT_1005de2c && g_pBoundTextures[0] && pTex->m_pLinkedTexture && pTex->m_eTexType &&
-				g_CV_EnvMapPolyGrids.m_Unk00 && d3d_SetTexture(pTex->m_pLinkedTexture, 0, 0))
+				g_CV_EnvMapPolyGrids.m_IntVal && d3d_SetTexture(pTex->m_pLinkedTexture, 0, 0))
 			{
 				bEnvMap = 1;
 			}
@@ -459,7 +459,7 @@ Textured:
 					aVerts[2] = *(UnkType_PGVertex *)&pVerts[pIndex[2]];
 
 					// The clip of FUN_10008779 written out in place (when Direct3D clips the sides only the near plane is done here).
-					if (g_CV_UseD3DClip.m_Unk00 == 0 || (nFlags &= 1) != 0)
+					if (g_CV_UseD3DClip.m_IntVal == 0 || (nFlags &= 1) != 0)
 					{
 						if (((nFlags & 1) && !FUN_100088ec(&bUnused0, &pIn, &nVerts, &pClipOut)) ||
 							((nFlags & 4) && !FUN_10008a23(&bUnused1, &pIn, &nVerts, &pClipOut)) ||

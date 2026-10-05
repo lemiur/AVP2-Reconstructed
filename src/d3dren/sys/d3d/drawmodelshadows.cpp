@@ -143,7 +143,7 @@ void ModelDraw::FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 	for (iVert = 0; iVert < nVerts; iVert++)
 	{
 		aVerts[iVert].m_Vec = *pSrc->m_Vec;
-		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_Unk04;
+		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
 		pSrc++;
 	}
 
@@ -255,7 +255,7 @@ void ModelDraw::DrawModelShadows()
 	if (!DAT_1005c810 || !g_pShadowBlobTexture || !m_pModel->m_bShadowEnable)
 		return;
 
-	if (g_CV_ModelShadowProj.m_Unk00)
+	if (g_CV_ModelShadowProj.m_IntVal)
 	{
 		FUN_1002701e(nShadows);
 		return;
@@ -509,7 +509,7 @@ int FUN_100264ad(uint32 flags, UnkType_Vertex36 **ppVerts, int *pnVerts)
 	UnkType_Vertex36 *pVerts, *pOut;
 	int nVerts;
 
-	if (g_CV_UseD3DClip.m_Unk00 && !(flags &= 1))
+	if (g_CV_UseD3DClip.m_IntVal && !(flags &= 1))
 		return 1;
 
 	pOut = (UnkType_Vertex36 *)g_pClipScratchVerts;
@@ -784,7 +784,7 @@ int FUN_10026a9c(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 	return 1;
 }
 
-// far plane z <= g_ViewParams.m_ClipFarZ (flag bit 2)
+// far plane z <= g_ViewParams.m_Unk90 (flag bit 2)
 // FUNCTION: D3DREN 0x10026bd2
 int FUN_10026bd2(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
@@ -891,7 +891,7 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 	for (iVert = 0; iVert < nVerts; iVert++)
 	{
 		aVerts[iVert].m_Vec = *pCur->m_Vec;
-		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_Unk04;
+		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
 		pCur++;
 	}
 
@@ -931,7 +931,7 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 		if (fFactor < 0.0f)
 			fFactor = 0.0f;
 		pVert->color = 0xffffffff;
-		pVert->rgb.a = (uint8)(int)(g_CV_ModelShadowAlpha.m_Unk04 * fFactor);
+		pVert->rgb.a = (uint8)(int)(g_CV_ModelShadowAlpha.m_FloatVal * fFactor);
 		pVert->tu = pInfo->m_Unk60.m[0][0] * pVert->m_Vec.x + pInfo->m_Unk60.m[0][1] * pVert->m_Vec.y + pInfo->m_Unk60.m[0][2] * pVert->m_Vec.z + pInfo->m_Unk60.m[0][3];
 		pVert->tv = pInfo->m_Unk60.m[1][0] * pVert->m_Vec.x + pInfo->m_Unk60.m[1][1] * pVert->m_Vec.y + pInfo->m_Unk60.m[1][2] * pVert->m_Vec.z + pInfo->m_Unk60.m[1][3];
 		pVert->m_Unk20 = pInfo->m_Unk60.m[3][0] * pVert->m_Vec.x + pInfo->m_Unk60.m[3][1] * pVert->m_Vec.y + pInfo->m_Unk60.m[3][2] * pVert->m_Vec.z + pInfo->m_Unk60.m[3][3];
@@ -995,7 +995,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 			UnkType_ModelLight *pLight = &m_Unk3c[i];
 			LTVector vLight = pLight->m_Unk00;
 			LTVector vLightW;
-			MatVMul(&vLightW, &m_Unk4d0, &vLight);
+			MatVMul(&vLightW, &m_ModelTransform, &vLight);
 			LTVector vDelta = vModelPos - vLightW;
 			float fDist = vDelta.Mag();
 			LTVector vDir = vDelta;
@@ -1029,15 +1029,15 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 	if (nLights == 0)
 		return;
 
-	int nRes = LTCLAMP(g_CV_ModelShadowProjRes.m_Unk00, 8, 256);
+	int nRes = LTCLAMP(g_CV_ModelShadowProjRes.m_IntVal, 8, 256);
 	if (nRes & (nRes - 1))
 	{
 		g_pStruct->ConsolePrint("Invalid texture size for shadows -- must be power of 2...");
-		g_CV_ModelShadowProjRes.m_Unk00 = nRes = 128;
-		g_CV_ModelShadowProjRes.m_Unk04 = 128.0f;
+		g_CV_ModelShadowProjRes.m_IntVal = nRes = 128;
+		g_CV_ModelShadowProjRes.m_FloatVal = 128.0f;
 	}
 
-	uint32 nLOD = LTMIN(m_Unk60c + g_CV_ModelShadowProjLOD.m_Unk00, m_pModel->m_LODDists.GetSize() - 1);
+	uint32 nLOD = LTMIN(m_nLOD + g_CV_ModelShadowProjLOD.m_Unk00, m_pModel->m_LODDists.GetSize() - 1);
 
 	float fRadius = vDims.Mag();
 	float fDiam = fRadius * 2.0f;
@@ -1141,7 +1141,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 		float fMaxX = 0.0f;
 		float fMaxY = 0.0f;
 		TLVertex *pVerts = m_Unk82c;
-		LTMatrix mInvView = g_ViewParams.m_mClipTransform.MakeInverse();
+		LTMatrix mInvView = g_ViewParams.m_Unk15c.MakeInverse();
 
 		uint32 iPiece;
 		for (iPiece = 0; iPiece < m_pModel->NumPieces(); iPiece++)
@@ -1228,7 +1228,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 		IShadowTexture *pTexA = FUN_100323ff(nRes, nRes);
 		pTexA->FUN_1001d836(0, 0);
 		pTexB->FUN_1001d7e6(0, 0);
-		if (g_CV_ModelShadowProjShow.m_Unk00)
+		if (g_CV_ModelShadowProjShow.m_IntVal)
 			pTexA->FUN_1001d5b5(nRes, (nLights - i - 1) * nRes, 0xffffffff, 0);
 
 		// how the shadow is projected onto the world

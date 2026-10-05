@@ -1,2 +1,6 @@
 # Function starts that Ghidra merged into the preceding extent. Sync to Ghidra, then delete rows.
 addr,name,evidence
+10029ad0,DrawPolyMgr::~DrawPolyMgr,"atexit stub 10029ac6 (mov ecx,&g_DrawPolyMgr; jmp 10029ad0) falls through into the inline destructor copy that Ghidra merged into it (W6)"
+1000f3af,ViewParams::ViewParams,"atexit stub 1000f3a5 _$E17 (mov ecx,&g_ViewParams; jmp 1000f3af, 10 bytes) falls through into the out-of-line ViewParams constructor (mov eax,ecx; zero [eax+1c..28]; ret) that Ghidra merged into it (extent 27 = 10 + 17)"
+10034d92,UnkType_LMTexturePools::UnkType_LMTexturePools,"atexit stub 10034d88 _$E8 (mov ecx,DAT_1007abe4; jmp 10034d92, 10 bytes) falls through into the constructor (zero DAT_1007abd0, thread the free list at DAT_1007bfe8) that Ghidra merged into it (extent 48 = 10 + 38)"
+10035cf1,UnkType_AddClampTable::UnkType_AddClampTable,"atexit stub 10035ce7 _$E13 (mov ecx,DAT_10092168; jmp 10035cf1, 10 bytes) falls through into the constructor (byte table 0..255 then 64 dwords of -1) that Ghidra merged into it (extent 44 = 10 + 34)"

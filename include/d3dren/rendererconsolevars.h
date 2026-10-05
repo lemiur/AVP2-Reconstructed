@@ -19,11 +19,11 @@ class ConVar
 public:
 	ConVar(char *pName, float fDefault, int *pIntLink = 0, float *pFloatLink = 0);
 
-	int		m_Unk00;		// 0x00  guess: int copy of the value (Jupiter ConVar<int>::m_Val), set to ROUND(float) by FUN_10012e4c
-	float	m_Unk04;		// 0x04  guess: float copy of the value (Jupiter ConVar<float>::m_Val), read from the engine variable
+	int		m_IntVal;		// 0x00  guess: int copy of the value (Jupiter ConVar<int>::m_Val), set to ROUND(float) by FUN_10012e4c
+	float	m_FloatVal;		// 0x04  guess: float copy of the value (Jupiter ConVar<float>::m_Val), read from the engine variable
 	float	m_DefaultVal;	// 0x08
-	int		*m_Unk0c;		// 0x0c  guess: optional mirror variable receiving m_Unk00
-	float	*m_Unk10;		// 0x10  guess: optional mirror variable receiving m_Unk04
+	int		*m_pIntLink;	// 0x0c  guess: optional mirror variable receiving m_Unk00
+	float	*m_pFloatLink;	// 0x10  guess: optional mirror variable receiving m_Unk04
 	char	*m_pName;		// 0x14
 	void	*m_hParam;		// 0x18  engine console variable handle (FUN_10012dd2(name, default))
 	ConVar	*m_pNext;		// 0x1c

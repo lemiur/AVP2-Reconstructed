@@ -10,31 +10,32 @@
 
 #include "d3dren/d3ddevice.h"	// the DirectDraw/Direct3D 7 globals (g_pD3DDevice = IDirect3DDevice7 *, ...) and the DX headers
 
-// GLOBAL: D3DREN 0x100528d8
-extern int g_bChromaKeyPass;	// guess: set by d3d_SetChromaKeyPass (flag read by the world polygon draw code)
+//MAY WANT TO MOVE THIS TO SHARED TEXTURE HEADER OR A COMMON HEADER FOR TEXTURE TYPES
+enum ESharedTexType
+{
+	eSharedTexType_Detail		= 0,
+	eSharedTexType_EnvMap		= 1,
+	eSharedTexType_EnvMapAlpha	= 2
+};
 
-// The texture binding code binds RTextures (d3dtexture.h) and lightmap pages (lightmap.h), both RTextureBase; a world poly
-// holds its lightmap page at 0x48 (WORLDPOLY_LMPAGE, lightmap.h).  Only declared here: including lightmap.h in every
-// drawing unit changes the inline budget of some (unit unk/10007930).
-class RTextureBase;
-struct LightmapPage;
-struct WorldPoly;
+// GLOBAL: D3DREN 0x100528d8
+extern int g_bChromaKeyPass;	// guess: set by FUN_100099a9 (flag read by the world polygon draw code)
 
 // GLOBAL: D3DREN 0x100617d8
-extern RTextureBase *g_pBoundTextures[8];	// the texture (RTexture or lightmap page) currently bound on each device stage
+extern RTextureBase *g_pBoundTextures[8];	// guess: the texture data currently bound on each device stage
 // GLOBAL: D3DREN 0x100577a0
 // NAME: g_CurFrameCode: Jupiter common_draw.cpp / names_proposal high (defined in sys/d3d/common_draw)
 extern uint16 g_CurFrameCode;	// the current texture frame code (RenderStruct::IncCurTextureFrameCode)
 
-// Binds pPoly's lightmap page on device stage nStage unless it is already there; returns 0 when the poly has no page.
-int d3d_SetLightmapTexture(WorldPoly *pPoly, int nStage);
+// Binds the texture data of pTex on device stage nStage unless it is already there (FUN_10009ea5); returns 0 when pTex has none.
+int d3d_SetLightmapTexture(WorldPoly *pTex, int nStage);
 
 // d3d_DisableTexture (d3d_texture.h): unbinds the texture of device stage nStage.  FUN_1000a27b is the exe's out-of-line copy of it, which
 // d3d_FullDrawScene calls (unit unk/100098d0 defines it as a wrapper of the inline).
-void FUN_1000a27b(int nStage);
+void d3d_DisableTexture(int nStage);
 
 // Second (detail) texture stage helpers.
-void d3d_SetEnvMapTextureStates(int nMode);	// guess: set up stage 1 for the detail pass (1 = modulate/add-signed, 2 = modulate alpha + add colour)
+void d3d_SetEnvMapTextureStates(ESharedTexType eEnvMapType);	// guess: set up stage 1 for the detail pass (1 = modulate/add-signed, 2 = modulate alpha + add colour)
 void d3d_UnsetEnvMapTextureStates(void);		// guess: disable stage 1 colour and alpha
 void d3d_SetDetailTextureStates(void);		// guess: stage 1 colour op = add-signed / modulate (DetailTextureAdd)
 void d3d_UnsetDetailTexture(void);		// guess: disable stage 1 colour op and unbind its texture

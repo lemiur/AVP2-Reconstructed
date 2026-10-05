@@ -86,7 +86,7 @@ void FUN_10013ef0(WorldPoly *pPoly);
 // guess: uploads / refreshes the lightmap of the poly into its page (bFirst: the page record was just set up); returns 0 when the poly has none.
 int FUN_10020ff0(WorldPoly *pPoly, int bFirst);
 
-// ---- the lightmap page of a world polygon (WorldPoly +0x48, LightmapPage of d3dren/lightmap.h) and the queued polys ------------
+// ---- the lightmap page of a world polygon (WorldPoly +0x48, UnkType_LMPage of d3dren/lightmap.h) and the queued polys ------------
 // Members of the lightmap page that lightmap.h (W9) leaves untyped (m_Unk04 / m_Unk08 / m_Unk20), seen by the world poly queue:
 //   +0x04 the next page in the list of pages that have polys waiting (DAT_100528d4)
 //   +0x08 the polys waiting for this page (nodes of the pool at 0x10058758, linked through m_Unk10)

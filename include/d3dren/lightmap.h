@@ -39,7 +39,7 @@
 int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn);
 
 // ---- renderer data inside the engine's WorldPoly / SPolyVertex (padding there) --------------------------------------------
-// WorldPoly 0x48: the lightmap page the poly's lightmap lives in (LightmapPage*, 0 = none); 0x4c/0x4d are the engine's
+// WorldPoly 0x48: the lightmap page the poly's lightmap lives in (UnkType_LMPage*, 0 = none); 0x4c/0x4d are the engine's
 // m_LMWidth/m_LMHeight (texels), 0x4e/0x4f the position of the lightmap inside the page (texels).
 #define WORLDPOLY_LMPAGE(p)		(*(LightmapPage **)((uint8 *)(p) + 0x48))
 #define WORLDPOLY_UNK4E(p)		(*((uint8 *)(p) + 0x4e))
@@ -56,7 +56,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn);
 class RTextureBase
 {
 public:
-	virtual ~RTextureBase() {}								// 0x00
+	virtual ~RTextureBase() {}										// 0x00
 	virtual int		IsRTexture() = 0;								// 0x04
 	virtual int		IsFullbrite() = 0;								// 0x08
 	virtual int		GetBaseWidth() = 0;								// 0x0c
@@ -67,7 +67,7 @@ public:
 // surface and the 0x80 byte occupancy bitmap).  The occupancy bitmap has one bit per 4x4 texel cell, 0x40 cells per row.
 struct LightmapPage : public RTextureBase
 {
-	LightmapPage();												// 0x1003424d
+	LightmapPage();													// 0x1003424d
 	virtual int		IsRTexture();									// 0x10034277
 	virtual int		IsFullbrite();									// 0x10034277 (same code)
 	virtual int		GetBaseWidth();									// 0x1003427a: 64
@@ -75,13 +75,13 @@ struct LightmapPage : public RTextureBase
 
 	uint32					m_Unk04;			// 0x04 next page of the list of pages that have polys waiting (world poly queue, unit unk/100098d0)
 	uint32					m_Unk08;			// 0x08 the polys waiting for this page (pool nodes)
-	uint8					*m_Unk0c;			// 0x0c occupancy bitmap (dalloc_z(0x80)), freed by FreeLightmapPageBitmaps
-	uint32					m_Unk10;			// 0x10 texels of the page assigned so far (FUN_1003429b adds w*h)
-	uint32					m_Unk14;			// 0x14 size of the surface in bytes (FUN_10034142: bytes per pixel << 12)
+	uint8					*m_pOccupancyMap;	// 0x0c occupancy bitmap (dalloc_z(0x80)), freed by FreeLightmapPageBitmaps
+	uint32					m_nUsedTexels;		// 0x10 texels of the page assigned so far (FUN_1003429b adds w*h)
+	uint32					m_nMemoryUse;		// 0x14 size of the surface in bytes (FUN_10034142: bytes per pixel << 12)
 	uint32					m_Unk18;			// 0x18
-	IDirectDrawSurface7		*m_Unk1c;			// 0x1c the page's texture surface
+	IDirectDrawSurface7		*m_pSurface;		// 0x1c the page's texture surface
 	uint32					m_Unk20;			// 0x20 (set to 1 by the constructor; non-zero once the first draw has set the page up)
-	LightmapPage			*m_Unk24;			// 0x24 next page of the RenderContext list
+	LightmapPage			*m_pNext;			// 0x24 next page of the RenderContext list
 };
 
 // ---- the lightmap staging textures and the lock helper ---------------------------------------------------------------------------

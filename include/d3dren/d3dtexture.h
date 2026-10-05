@@ -20,7 +20,7 @@
 #include "pixelformat.h"
 #include "de_world.h"		// SharedTexture
 #include "dtxmgr.h"			// TextureData
-#include "d3dren/lightmap.h"	// RTextureBase (the abstract interface of RTexture and of the lightmap pages)
+#include "d3dren/lightmap.h"	// UnkType_RTextureBase (the abstract interface of RTexture and of the lightmap pages)
 
 // Indices into the texture format table (Jupiter CTextureManager::ETEXTURE_FORMATS; the strings of the Talon code agree:
 // "FORMAT_FULLBRITE texture format missing.", "FORMAT_4444 ...", "FORMAT_NORMAL ...", "FORMAT_INTERFACE ...",
@@ -42,7 +42,7 @@ struct TextureFormat
 	DDPIXELFORMAT	m_PF;				// 0x0c copy of the enumerated pixel format (dwSize 0x20 at 0x0c, dwFlags 0x10, dwFourCC 0x14,
 										//      dwRGBBitCount 0x18, R/G/B/A masks 0x1c/0x20/0x24/0x28)
 	int				m_BytesPPShift;			// 0x2c log2 of the bytes per pixel (1 = 16 bit, 2 = 32 bit, 0 = palettized/other)
-	int				m_BytesPP;			// 0x30 1 << m_BytesPPShift
+	int				m_BytesPP;			// 0x30 1 << m_nBytesPP
 	int				m_RBits;			// 0x34 number of bits in the red mask
 	int				m_GBits;			// 0x38 ... green mask
 	int				m_BBits;			// 0x3c ... blue mask
@@ -51,7 +51,7 @@ struct TextureFormat
 										//      R, G, B, A of an 8888 pixel (0x44-0x60), R, G, B of a 565 pixel (0x64-0x78), R, G, B of a 555 pixel (0x7c-0x90)
 	uint16			m_rgbaMask[4];			// 0x94 the low 16 bits of the R, G, B, A masks
 	int				m_b1555;			// 0x9c the format is 1555 (masks 7c00 03e0 001f 8000)
-	int				m_b565;			// 0xa0 the format is 565 (masks f800 07e0 001f 0000)
+	int				m_b565;			// the format is 565 (masks f800 07e0 001f 0000)
 };
 
 // One row of the table of wanted formats that the texture manager Init matches against the enumerated ones (0x18 bytes):
@@ -72,21 +72,21 @@ class RTexture;
 // The vtable and 0x1001e900 (constructor: vptr only) belong to this class; RTexture holds it as its first member and the
 // virtuals reach the rest of the RTexture through m_pOwner.  1001fff0/10021290 build one on the stack (a 0x1c byte
 // object whose vptr is wiped by the zero fill and whose members 10020fb0 copies into the new RTexture).
-class UnkType_RTextureData : public RTextureBase
+class RTextureData : public RTextureBase
 {
 public:
-	UnkType_RTextureData() {}										// 0x1001e900 (out of line copy: vptr only)
+	RTextureData() {}										// 0x1001e900 (out of line copy: vptr only)
 
-	virtual int		IsRTexture();									// 0x1001e6f0: returns 1
-	virtual int		IsFullbrite();									// 0x1001e700
-	virtual int		GetBaseWidth();									// 0x1001e710
-	virtual int		GetBaseHeight();								// 0x1001e720
+	virtual int		IsRTexture();							// 0x1001e6f0: returns 1
+	virtual int		IsFullbrite();							// 0x1001e700
+	virtual int		GetBaseWidth();							// 0x1001e710
+	virtual int		GetBaseHeight();						// 0x1001e720
 
-	float				m_Unk04;			// 0x04 1/width of the texture (u multiplier)
-	float				m_Unk08;			// 0x08 1/height (v multiplier)
+	float				m_fUScale;			// 0x04 1/width of the texture (u multiplier)
+	float				m_fVScale;			// 0x08 1/height (v multiplier)
 	IDirectDrawSurface7	*m_pSurface;		// 0x0c
 	int					m_nMemory;			// 0x10 bytes of texture memory (RenderStruct+0x50 total, +0x48 per frame counter)
-	uint16				m_nTextureFrameCode;	// 0x14 frame code of the last use
+	uint16				m_nTextureFrameCode;// 0x14 frame code of the last use
 	uint16				m_AlphaRef;			// 0x16 alpha reference (0 = none)
 	RTexture			*m_pOwner;			// 0x18 the RTexture holding this object (the RTexture itself for the embedded one)
 };
@@ -100,11 +100,11 @@ public:
 	// vtable 0x10046390): slot 2 of it, called through the pointer (virtual dispatch), as the callers in the drawing code do.
 	int IsFullbrite()
 	{
-		UnkType_RTextureData *pData = &m_Data;
+		RTextureData *pData = &m_Data;
 		return pData->IsFullbrite();
 	}
 
-	UnkType_RTextureData	m_Data;				// 0x00 vtable 0x10046390 + surface etc.
+	RTextureData	m_Data;				// 0x00 vtable 0x10046390 + surface etc.
 	LTLink					m_Link;				// 0x1c in g_Textures (0x10062868)
 	uint16					m_BaseWidth;		// 0x28 first usable mipmap width
 	uint16					m_BaseHeight;		// 0x2a

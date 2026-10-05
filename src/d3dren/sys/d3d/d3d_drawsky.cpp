@@ -131,7 +131,7 @@ void FUN_10019351(WorldPoly *pPoly)
 	{
 		SharedTexture *pTexture;
 		if (DAT_10058038 || !(pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture) || !d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
-			FUN_1000a27b(g_NormalTextureStage);
+			d3d_DisableTexture(g_NormalTextureStage);
 
 		pDest = pVerts;
 		for (int n = nVerts; n != 0; n--)

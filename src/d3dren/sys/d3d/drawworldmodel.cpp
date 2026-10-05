@@ -63,7 +63,7 @@ void d3d_ProcessWorldModel(LTObject *pObject)
 // FUNCTION: D3DREN 0x1002fa50
 void FUN_1002fa50()
 {
-	if (g_CV_DrawWorldModels.m_Unk00)
+	if (g_CV_DrawWorldModels.m_IntVal)
 	{
 		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_SolidWorldModels;
 		if (pSet->m_nObjects != 0)
@@ -75,7 +75,7 @@ void FUN_1002fa50()
 // FUNCTION: D3DREN 0x1002fed0
 void FUN_1002fed0()
 {
-	if (g_CV_DrawWorldModels.m_Unk00)
+	if (g_CV_DrawWorldModels.m_IntVal)
 	{
 		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_Unk224;
 		if (pSet->m_nObjects != 0)
@@ -105,7 +105,7 @@ void FUN_1002ff00()
 {
 	LTObject *aAdditive[0x400];
 	UnkType_LocalObjectSet cAdditive(aAdditive, 0x400);
-	if (g_CV_DrawWorldModels.m_Unk00)
+	if (g_CV_DrawWorldModels.m_IntVal)
 	{
 		VisibleSet *pVisibleSet = d3d_GetVisibleSet();
 		BaseObjectSet *pSet = &pVisibleSet->m_TranslucentWorldModels;
@@ -534,7 +534,7 @@ void FUN_10030370(WorldPoly *pPoly);
 // the far side of every node first, then the node's own poly (FUN_10030370, or the visible set's sorted poly list), then the near side
 // STUB diagnosis (W6): 784 vs 768 bytes: the frame is 0x20a4 against 0x20a0 (one extra local), the BSP stack index lives in ebp where the
 // exe uses edi and the constant 3 of the leaf test is kept in bl (`test [ecx+0x16],bl`) where the exe has the immediate; the zero
-// vector for SetupFogViewPosition is built in a different order.  Control flow and calls are the exe's (WMSetColor expansion is what keeps
+// vector for FUN_1000f1a0 is built in a different order.  Control flow and calls are the exe's (WMSetColor expansion is what keeps
 // MatMul out of line).  Permuter best 38 mismatches.
 // STUB: D3DREN 0x10030070
 void FUN_10030070(ViewParams *pParams, LTObject *pObject)
@@ -732,7 +732,7 @@ void FUN_10030370(WorldPoly *pPoly)
 
 	if (POLY_SURFACE(pPoly)->m_pTexture)
 	{
-		if (POLY_SURFACE(pPoly)->m_pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_Unk00)
+		if (POLY_SURFACE(pPoly)->m_pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal)
 			bEnvMap = 1;
 		else
 			bEnvMap = 0;
@@ -928,8 +928,8 @@ void FUN_10030370(WorldPoly *pPoly)
 			if (POLY_SURFACE(pPoly)->m_pTexture->m_pStateChange)
 				DAT_10063c90.FUN_10021db7(POLY_SURFACE(pPoly)->m_pTexture->m_pStateChange, g_NormalTextureStage);
 
-			if (DAT_1005de2c && g_CV_DetailTextures.m_Unk00 && g_pBoundTextures[0] && POLY_SURFACE(pPoly)->m_pTexture->m_pLinkedTexture &&
-				(!POLY_SURFACE(pPoly)->m_pTexture->m_eTexType || g_CV_EnvMapWorld.m_Unk00) &&
+			if (DAT_1005de2c && g_CV_DetailTextures.m_IntVal && g_pBoundTextures[0] && POLY_SURFACE(pPoly)->m_pTexture->m_pLinkedTexture &&
+				(!POLY_SURFACE(pPoly)->m_pTexture->m_eTexType || g_CV_EnvMapWorld.m_IntVal) &&
 				d3d_SetTexture(POLY_SURFACE(pPoly)->m_pTexture->m_pLinkedTexture, 1, 0))
 			{
 				d3d_SetDetailTextureStates();

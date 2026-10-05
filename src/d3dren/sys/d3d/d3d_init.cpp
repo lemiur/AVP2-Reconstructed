@@ -11,9 +11,9 @@
 #include "pixelformat.h"			// PFormat
 
 // ---- callees in other units (prototypes until their owners publish headers) -------------------------------------------------
-int PageInLightmaps(RenderContext *pContext);		// W9 (lightmap): page the lightmaps in, 0 = failed
-void FreeLightmapPages(RenderContext *pContext);		// W9: free the lightmap pages of the context
-void d3d_ReinitLightmapTextureSupport();							// W8 (d3d_texture): guess_ReinitLightmapTextureSupport
+int PageInLightmaps(RenderContext *pContext);	// W9 (lightmap): page the lightmaps in, 0 = failed
+void FreeLightmapPages(RenderContext *pContext);// W9: free the lightmap pages of the context
+void d3d_ReinitLightmapTextureSupport();		// W8 (d3d_texture): guess_ReinitLightmapTextureSupport
 void d3d_TermTextureManager();							// W8: CTextureManager::Term
 void d3d_FreeAllTextures();							// W8: CTextureManager::FreeAllTextures
 void d3d_ListTextureFormats();							// W8: CTextureManager::ListTextureFormats
@@ -98,7 +98,7 @@ void d3d_ReadExtraConsoleVariables()
 
 		if (!DAT_100584e8 || DAT_10057ac8 != DAT_1005849c || DAT_10058044 != DAT_10048738 || DAT_10058048 != DAT_1004873c ||
 			DAT_1005804c != DAT_10048740 || fabs(DAT_100580d0 - DAT_100584a0) > 0.001f || fabs(DAT_100578e8 - DAT_10048744) > 0.001f ||
-			DAT_100582e0 != g_CV_TableFog.m_Unk00)
+			DAT_100582e0 != g_CV_TableFog.m_IntVal)
 		{
 			if (DAT_10048738 < 0)
 				DAT_10058040 = 0;
@@ -113,11 +113,11 @@ void d3d_ReadExtraConsoleVariables()
 			else
 				DAT_10058042 = (DAT_10048740 > 255) ? 255 : DAT_10048740;
 
-			if (g_CV_TableFog.m_Unk00)
+			if (g_CV_TableFog.m_IntVal)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGTABLEMODE, D3DFOG_LINEAR);
 			else
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGTABLEMODE, D3DFOG_NONE);
-			DAT_100582e0 = g_CV_TableFog.m_Unk00;
+			DAT_100582e0 = g_CV_TableFog.m_IntVal;
 
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, (((DAT_10058040 << 8) | DAT_10058041) << 8) | DAT_10058042);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&DAT_100584a0);
@@ -147,14 +147,14 @@ void d3d_ReadExtraConsoleVariables()
 
 		if (g_pD3DDevice)
 		{
-			if (g_CV_Anisotropic.m_Unk00)
+			if (g_CV_Anisotropic.m_IntVal)
 			{
 				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, 3);
 				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MAGFILTER, 3);
-				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MAXANISOTROPY, g_CV_Anisotropic.m_Unk00);
+				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MAXANISOTROPY, g_CV_Anisotropic.m_IntVal);
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MINFILTER, 3);
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MAGFILTER, 3);
-				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MAXANISOTROPY, g_CV_Anisotropic.m_Unk00);
+				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MAXANISOTROPY, g_CV_Anisotropic.m_IntVal);
 			}
 			else
 			{
@@ -163,10 +163,10 @@ void d3d_ReadExtraConsoleVariables()
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MINFILTER, (DAT_1005782c != 0) + 1);
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MAGFILTER, (DAT_1005782c != 0) + 1);
 			}
-			g_pD3DDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, (g_CV_Trilinear.m_Unk00 != 0) + 2);
-			g_pD3DDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS, *(DWORD *)&g_CV_MipMapBias.m_Unk04);
-			g_pD3DDevice->SetTextureStageState(1, D3DTSS_MIPFILTER, (g_CV_Trilinear.m_Unk00 != 0) + 2);
-			g_pD3DDevice->SetTextureStageState(1, D3DTSS_MIPMAPLODBIAS, *(DWORD *)&g_CV_MipMapBias.m_Unk04);
+			g_pD3DDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, (g_CV_Trilinear.m_IntVal != 0) + 2);
+			g_pD3DDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS, *(DWORD *)&g_CV_MipMapBias.m_FloatVal);
+			g_pD3DDevice->SetTextureStageState(1, D3DTSS_MIPFILTER, (g_CV_Trilinear.m_IntVal != 0) + 2);
+			g_pD3DDevice->SetTextureStageState(1, D3DTSS_MIPMAPLODBIAS, *(DWORD *)&g_CV_MipMapBias.m_FloatVal);
 			DAT_100584f0 = 1;
 			DAT_100579ec = DAT_1005782c;
 		}
@@ -218,7 +218,7 @@ HRENDERCONTEXT d3d_CreateContext(RenderContextInit *pInit)
 	if (!pContext)
 		return NULL;
 
-	pContext->m_Unk08 = pInit->m_pWorld;
+	pContext->m_pWorld = pInit->m_pWorld;
 	pContext->m_CurFrameCode = 0xFFFF;
 	if (DAT_10057994)
 	{
@@ -827,7 +827,7 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DITHERENABLE, 1);
 	FUN_100139f0();
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID);
-	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_CLIPPING, g_CV_UseD3DClip.m_Unk00 != 0);
+	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_CLIPPING, g_CV_UseD3DClip.m_IntVal != 0);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_LIGHTING, 0);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_EXTENTS, 0);
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);

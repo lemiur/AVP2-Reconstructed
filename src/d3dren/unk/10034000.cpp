@@ -60,19 +60,19 @@ int FUN_10034000(RenderContext *pContext, uint32 w, uint32 h, uint32 *pX, uint32
 	int bFree;
 	nTexels = h * w;
 
-	pPage = pContext->m_Unk00;
+	pPage = pContext->m_pLightmapPages;
 	for (;;)
 	{
 		if (pPage)
 		{
-			if (pPage->m_Unk10 >= nTexels)
+			if (pPage->m_nUsedTexels >= nTexels)
 			{
 				for (y = 0; y < 0x41 - h; y += 4)
 				{
 					for (x = 0; x < 0x41 - w; x += 4)
 					{
 						iCell = (y >> 2) * 0x40 + (x >> 2);
-						if (!(pPage->m_Unk0c[iCell >> 3] & (1 << (iCell & 7))))
+						if (!(pPage->m_pOccupancyMap[iCell >> 3] & (1 << (iCell & 7))))
 						{
 							bFree = 1;
 							for (dx = 0; dx < w; dx += 4)
@@ -80,7 +80,7 @@ int FUN_10034000(RenderContext *pContext, uint32 w, uint32 h, uint32 *pX, uint32
 								for (dy = 0; dy < h; dy += 4)
 								{
 									iCell = ((dy + y) >> 2) * 0x40 + ((dx + x) >> 2);
-									if (pPage->m_Unk0c[iCell >> 3] & (1 << (iCell & 7)))
+									if (pPage->m_pOccupancyMap[iCell >> 3] & (1 << (iCell & 7)))
 									{
 										bFree = 0;
 										break;
@@ -101,7 +101,7 @@ int FUN_10034000(RenderContext *pContext, uint32 w, uint32 h, uint32 *pX, uint32
 					}
 				}
 			}
-			pPage = pPage->m_Unk24;
+			pPage = pPage->m_pNext;
 		}
 		else
 			break;
@@ -118,8 +118,8 @@ LightmapPage *FUN_10034142(RenderContext *pContext)
 	if (!pPage)
 		return 0;
 
-	pPage->m_Unk0c = (uint8 *)dalloc_z(0x80);
-	if (!pPage->m_Unk0c)
+	pPage->m_pOccupancyMap = (uint8 *)dalloc_z(0x80);
+	if (!pPage->m_pOccupancyMap)
 	{
 		dfree(pPage);
 		return 0;
@@ -132,7 +132,7 @@ LightmapPage *FUN_10034142(RenderContext *pContext)
 		return 0;
 	}
 
-	pPage->m_Unk14 = pFormat->m_BytesPP << 12;
+	pPage->m_nMemoryUse = pFormat->m_BytesPP << 12;
 
 	DDSURFACEDESC2 ddsd;
 	memset(&ddsd, 0, sizeof(ddsd));
@@ -145,19 +145,19 @@ LightmapPage *FUN_10034142(RenderContext *pContext)
 	ddsd.dwHeight = 0x40;
 	memcpy(&ddsd.ddpfPixelFormat, &pFormat->m_PF, sizeof(DDPIXELFORMAT));
 
-	if (g_pDD->CreateSurface(&ddsd, (LPDIRECTDRAWSURFACE7 *)&pPage->m_Unk1c, NULL) != DD_OK)
+	if (g_pDD->CreateSurface(&ddsd, (LPDIRECTDRAWSURFACE7 *)&pPage->m_pSurface, NULL) != DD_OK)
 	{
-		dfree(pPage->m_Unk0c);
+		dfree(pPage->m_pOccupancyMap);
 		dfree(pPage);
 		AddDebugMessage(4, "Unable to create (%dx%d) lightmap page.", 0x40, 0x40);
 		return 0;
 	}
 
-	pPage->m_Unk24 = pContext->m_Unk00;
-	pContext->m_Unk04++;
-	pContext->m_Unk00 = pPage;
+	pPage->m_pNext = pContext->m_pLightmapPages;
+	pContext->m_nLightmapPages++;
+	pContext->m_pLightmapPages = pPage;
 	DAT_100796e8 += 0x2000;
-	*(int *)((uint8 *)g_pStruct + 0x50) += pPage->m_Unk14;
+	*(int *)((uint8 *)g_pStruct + 0x50) += pPage->m_nMemoryUse;
 	return pPage;
 }
 
@@ -166,12 +166,12 @@ LightmapPage::LightmapPage()
 {
 	m_Unk04 = 0;
 	m_Unk08 = 0;
-	m_Unk0c = 0;
-	m_Unk10 = 0;
-	m_Unk14 = 0;
+	m_pOccupancyMap = 0;
+	m_nUsedTexels = 0;
+	m_nMemoryUse = 0;
 	m_Unk18 = 0;
-	m_Unk1c = 0;
-	m_Unk24 = 0;
+	m_pSurface = 0;
+	m_pNext = 0;
 	m_Unk20 = 1;
 }
 
@@ -197,7 +197,7 @@ int LightmapPage::GetBaseHeight()
 	return 0x40;
 }
 
-// FUNCTION: D3DREN 0x1003427e ??_GLightmapPage@@UAEPAXI@Z
+// FUNCTION: D3DREN 0x1003427e ??_GUnkType_LMPage@@UAEPAXI@Z
 
 // guess: gives the polygon a place in a lightmap page (marks the cells of the page's bitmap, sets the polygon's
 // lightmap texture coordinates in the page and its page pointer); polygons of unlit surfaces and polygons that are
@@ -248,9 +248,9 @@ int FUN_1003429b(RenderContext *pContext, WorldPoly *pPoly)
 			for (i = 0; i < pPoly->m_LMWidth; i++)
 			{
 				iCell = ((j + y) >> 2) * 0x40 + ((x + i) >> 2);
-				pCell = &pPage->m_Unk0c[iCell >> 3];
+				pCell = &pPage->m_pOccupancyMap[iCell >> 3];
 				*pCell |= 1 << (iCell & 7);
-				pPage->m_Unk10++;
+				pPage->m_nUsedTexels++;
 			}
 		}
 
@@ -262,10 +262,10 @@ int FUN_1003429b(RenderContext *pContext, WorldPoly *pPoly)
 		while (pVert != pEnd)
 		{
 			LTVector d = *pVert->m_Vec - pPoly->m_Unknown38;
-			float fU = (P.y * d.y + P.x * d.x + P.z * d.z) / pContext->m_Unk08->m_LMGridSize + 0.5f;
+			float fU = (P.y * d.y + P.x * d.x + P.z * d.z) / pContext->m_pWorld->m_LMGridSize + 0.5f;
 			SPOLYVERTEX_UNK0C(pVert) = fU;
 			SPOLYVERTEX_UNK0C(pVert) = (fU + (float)(int)x) * fScale;
-			SPOLYVERTEX_UNK10(pVert) = ((Q.z * d.z + Q.y * d.y + Q.x * d.x) / pContext->m_Unk08->m_LMGridSize + (float)(int)y) * fScale + 0.0078125f;
+			SPOLYVERTEX_UNK10(pVert) = ((Q.z * d.z + Q.y * d.y + Q.x * d.x) / pContext->m_pWorld->m_LMGridSize + (float)(int)y) * fScale + 0.0078125f;
 			pVert++;
 		}
 
@@ -336,12 +336,12 @@ void FreeLightmapPageBitmaps(RenderContext *pContext)
 {
 	LightmapPage *pPage;
 
-	for (pPage = pContext->m_Unk00; pPage; pPage = pPage->m_Unk24)
+	for (pPage = pContext->m_pLightmapPages; pPage; pPage = pPage->m_pNext)
 	{
-		if (pPage->m_Unk0c)
+		if (pPage->m_pOccupancyMap)
 		{
-			dfree(pPage->m_Unk0c);
-			pPage->m_Unk0c = 0;
+			dfree(pPage->m_pOccupancyMap);
+			pPage->m_pOccupancyMap = 0;
 		}
 	}
 }
@@ -369,7 +369,7 @@ void FUN_10034543(WorldBsp *pBsp)
 // STUB: D3DREN 0x10034597
 int PageInLightmaps(RenderContext *pContext)
 {
-	MainWorld *pWorld = pContext->m_Unk08;
+	MainWorld *pWorld = pContext->m_pWorld;
 	uint32 i, j;
 	WorldBsp *pBsp;
 	LightAnim *pAnim;
@@ -465,22 +465,22 @@ void FreeLightmapPages(RenderContext *pContext)
 
 	FreeLightmapPageBitmaps(pContext);
 
-	for (pPage = pContext->m_Unk00; pPage; pPage = pNext)
+	for (pPage = pContext->m_pLightmapPages; pPage; pPage = pNext)
 	{
-		IDirectDrawSurface7 *pSurface = pPage->m_Unk1c;
-		pNext = pPage->m_Unk24;
+		IDirectDrawSurface7 *pSurface = pPage->m_pSurface;
+		pNext = pPage->m_pNext;
 		if (pSurface)
 		{
 			pSurface->Release();
-			*(int *)((uint8 *)g_pStruct + 0x50) -= pPage->m_Unk14;
+			*(int *)((uint8 *)g_pStruct + 0x50) -= pPage->m_nMemoryUse;
 		}
 		delete pPage;
 	}
 
-	pContext->m_Unk00 = 0;
+	pContext->m_pLightmapPages = 0;
 
-	for (i = 0; i < pContext->m_Unk08->m_WorldModels.GetSize(); i++)
-		ClearPolyLightmapPages(pContext->m_Unk08->m_WorldModels[i]->m_pOriginalBsp);
+	for (i = 0; i < pContext->m_pWorld->m_WorldModels.GetSize(); i++)
+		ClearPolyLightmapPages(pContext->m_pWorld->m_WorldModels[i]->m_pOriginalBsp);
 }
 
 // ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by FUN_100356b8) --------------

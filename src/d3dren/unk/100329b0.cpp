@@ -192,7 +192,7 @@ int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, 
 		FUN_10032a60(pWorld, pPoly, &pNode->m_Unk08, pBits, pitch, w, h, pLight->m_LightRadius,
 			pLight->m_ColorR, pLight->m_ColorG, pLight->m_ColorB, &ctx);
 
-		if (g_CV_FastLight.m_Unk00 == 0 && !(pLight->m_Flags & 0x10) && ctx.m_Unk3c != 0)
+		if (g_CV_FastLight.m_IntVal == 0 && !(pLight->m_Flags & 0x10) && ctx.m_Unk3c != 0)
 		{
 			if (!bNot32Bit)
 			{
@@ -285,7 +285,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 	FMConvertRequest request;
 	uint32 accum[0x400];
 	uint32 temp[0x400];
-	LightmapPage *pPage;
+	UnkType_LMPage *pPage;
 	int bStatic;
 	int bMulti;
 	int nLayers;

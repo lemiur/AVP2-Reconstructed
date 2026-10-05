@@ -87,8 +87,8 @@ public:
 		m_ModelHookData.m_hObject = 0;
 		m_ModelHookData.m_Flags = 0;
 		m_ModelHookData.m_ObjectFlags = 0;
-		m_ModelHookData.m_LightAdd = &m_Unk850;
-		m_ModelHookData.m_ObjectColor = &m_Unk85c;
+		m_ModelHookData.m_LightAdd = &m_LightAdd;
+		m_ModelHookData.m_ObjectColor = &m_ObjectColor;
 		m_ShadowLights[0].Init(0.0f, -1.0f, 0.0f);
 		m_ShadowLights[1].Init(-2.0f, -2.0f, -2.0f);
 		m_ShadowLights[2].Init(2.0f, -2.0f, -1.0f);
@@ -115,7 +115,7 @@ public:
 	void	FUN_1000ccd9(ModelInstance *pInstance, uint8 nAlpha);	// guess: draws the fade sprite of a far away model as a lit quad
 	int		FUN_1000d35f();						// guess: 3 * the triangle count of the current LOD of every piece
 	void	FUN_1000d3a7(ModelInstance *pInstance);	// guess: the per-model entry: setup, LOD, cache lookup, lighting, draw
-	void	FUN_1000de56();						// guess: picks the LOD (m_Unk60c) from m_fModelDist and the blend (m_bLODBlend/m_fLODBlend)
+	void	FUN_1000de56();						// guess: picks the LOD (m_nLOD) from m_fModelDist and the blend (m_bLODBlend/m_fLODBlend)
 	void	FUN_1000df7a(LTMatrix *pMat);		// guess: m_Unk840[i] = *pMat * model node transform i
 	int		FUN_1000ba1c();						// guess: grows the vertex and node transform arrays to the size of m_pModel; 1 on success
 
@@ -185,17 +185,17 @@ public:
 	uint32			m_Unk34;				// 0x034 guess: stage / skin index argument of the state-change saver (FUN_10021db7)
 	int				m_Unk38;				// 0x038 (-1 after the constructor)
 	UnkType_ModelLight	m_Unk3c[16];		// 0x03c the model lights (16 x 0x28; constructor loop of 0x1000b7af)
-	int				m_nModelLights;				// 0x2bc number of lights in use
-	uint32			m_nMaxModelLights;				// 0x2c0 maximum number of model lights (min(MaxModelLights, 16))
+	int				m_nModelLights;			// 0x2bc number of lights in use
+	uint32			m_nMaxModelLights;		// 0x2c0 maximum number of model lights (min(MaxModelLights, 16))
 	uint8			m_Unk2c4[0x100];		// 0x2c4 guess: per piece flag, set when the piece is completely outside a clip plane (not drawn)
 	uint8			m_Unk3c4[0x100];		// 0x3c4 guess: per piece flag, set when the piece crosses a clip plane (needs the clipping callback)
 	int				m_Unk4c4;				// 0x4c4 guess: set to 1 by FUN_10024c8b while it draws, 0 by the env map pass of FUN_1002476b (FUN_10024589 does nothing while it is 0)
 	int				m_Unk4c8;				// 0x4c8 guess: the model is drawn textured (FUN_100244b3: TextureModels && MHF_USETEXTURE)
 	int				m_Unk4cc;				// 0x4cc guess: texture currently bound (-1 after the model draw starts)
-	LTMatrix		m_Unk4d0;				// 0x4d0 guess: matrix MatVMul'ed with the light positions (0x1002701e: model lights to world space; W7)
-	LTMatrix		m_Unk510;				// 0x510
-	LTMatrix		m_InvTransform;				// 0x550
-	LTMatrix		m_EnvMapTransform;				// 0x590
+	LTMatrix		m_ModelTransform;		// 0x4d0 guess: matrix MatVMul'ed with the light positions (0x1002701e: model lights to world space; W7)
+	LTMatrix		m_Transform;			// 0x510
+	LTMatrix		m_InvTransform;			// 0x550
+	LTMatrix		m_EnvMapTransform;		// 0x590
 	LTVector		m_Unk5d0;				// 0x5d0 guess: the instance position (really close: transformed by the inverse view)
 	void			(*m_Unk5dc)();			// 0x5dc guess: begins the warble of the vertex projection (FUN_1000ddb4 / empty FUN_1000dd18)
 	void			(__fastcall *m_Unk5e0)(ModelVert *pVert, TLVertex *pOut, LTMatrix *pMatrix);	// 0x5e0 guess: projects one model vertex into the TL vertex pOut (FUN_1000ddc5 warbling / FUN_1000dd19)
@@ -209,9 +209,9 @@ public:
 	PFN_ClipPolygon	m_Unk600;				// 0x600 guess: polygon clipper (FUN_10001530 / FUN_10001b30)
 	int				m_Unk604;				// 0x604 guess: FVF of the current vertex format (0x1c4 / 0x2c4)
 	UnkType_VertexBufferPool	*m_Unk608;	// 0x608 the vertex buffer pool of the current vertex format
-	uint32			m_Unk60c;				// 0x60c guess: level of detail (0 = piece itself, n = m_LODs[n-1])
-	int				m_bLODBlend;				// 0x610 guess: LOD blend enabled
-	float			m_fLODBlend;				// 0x614 guess: LOD blend amount
+	uint32			m_nLOD;					// 0x60c guess: level of detail (0 = piece itself, n = m_LODs[n-1])
+	int				m_bLODBlend;			// 0x610 guess: LOD blend enabled
+	float			m_fLODBlend;			// 0x614 guess: LOD blend amount
 	int				m_Unk618;				// 0x618 guess: draw an environment map pass (tested with the EnvMapAll mirror in FUN_1002476b)
 	float			m_Unk61c, m_Unk620;		// 0x61c guess: environment map u/v offsets
 	float			m_Unk624, m_Unk628;		// 0x624 guess: u/v scales
@@ -219,20 +219,20 @@ public:
 	float			m_Unk630;				// 0x630 guess: specular scale of the piece
 	float			m_Unk634;				// 0x634 guess: bounding sphere radius of the instance (Model::m_GlobalRadius * the largest scale), 0x1000b584
 	int				m_Unk638;				// 0x638 guess: FLAG_MODELTINT on an opaque (alpha 255) instance and the DAT_10048788 console mirror set (0x1000d3a7)
-	float			m_fModelDist;				// 0x63c guess: distance from the viewer to the instance (divided by ModelZoomScale)
+	float			m_fModelDist;			// 0x63c guess: distance from the viewer to the instance (divided by ModelZoomScale)
 	uint32			m_Unk640;				// 0x640 guess: specular colour word written into every vertex
 	LTVector		m_ShadowLights[8];		// 0x644 NAME: Jupiter ModelDraw::m_ShadowLights[NUM_MODEL_SHADOWS] (DrawModelShadows reads and sets element 0; 0x1000b7af fills the first three)
 	UnkType_StateCache	m_Unk6a4;			// 0x6a4 guess: draw state cache (constructor FUN_1000b891)
 	CMoArray<uint16>	m_Unk814;			// 0x814 guess: (unknown use; set up by the constructor, freed by the destructor)
-	CMoArray<TLVertex>	m_TransformedVerts;			// 0x828 guess: the transformed vertices of the current model (data pointer = m_Unk82c)
-	CMoArray<LTMatrix>	m_NodeTransforms;			// 0x83c guess: the node transforms of the current model (data pointer = m_Unk840)
-	LTVector		m_Unk850;				// 0x850 guess: light add (ModelHookData::m_LightAdd points here)
-	LTVector		m_Unk85c;				// 0x85c guess: object colour (ModelHookData::m_ObjectColor points here)
-	LTVector		m_DirLightColor;				// 0x868 guess: colour scale in full light
-	LTVector		m_Unk874;				// 0x874 guess: light direction
-	float			m_DirLightAmount;				// 0x880 guess: directional light amount
-	LTVector		m_Unk884;				// 0x884 guess: colour scale in shadow
-	ModelHookData	m_ModelHookData;				// 0x890 the model hook data (m_ObjectFlags at 0x898, m_LightAdd 0x89c, m_ObjectColor 0x8a0)
+	CMoArray<TLVertex>	m_TransformedVerts;	// 0x828 guess: the transformed vertices of the current model (data pointer = m_Unk82c)
+	CMoArray<LTMatrix>	m_NodeTransforms;	// 0x83c guess: the node transforms of the current model (data pointer = m_Unk840)
+	LTVector		m_LightAdd;				// 0x850 guess: light add (ModelHookData::m_LightAdd points here)
+	LTVector		m_ObjectColor;			// 0x85c guess: object colour (ModelHookData::m_ObjectColor points here)
+	LTVector		m_DirLightColor;		// 0x868 guess: colour scale in full light
+	LTVector		m_DirLightDir;			// 0x874 guess: light direction
+	float			m_DirLightAmount;		// 0x880 guess: directional light amount
+	LTVector		m_AmbientLight;			// 0x884 guess: colour scale in shadow
+	ModelHookData	m_ModelHookData;		// 0x890 the model hook data (m_ObjectFlags at 0x898, m_LightAdd 0x89c, m_ObjectColor 0x8a0)
 	uint32			m_Unk8a4;				// 0x8a4 guess: third argument (dwMaxLOD) of d3d_SetTexture in FUN_10024589
 	uint8			m_Unk8a8;				// 0x8a8 guess: alpha written into every vertex colour
 	uint8			m_Pad8a9[0x8ac - 0x8a9];
@@ -250,7 +250,7 @@ public:
 MD_CHECKOFFSET(m_Unk814, 0x814)
 MD_CHECKOFFSET(m_TransformedVerts, 0x828)
 MD_CHECKOFFSET(m_NodeTransforms, 0x83c)
-MD_CHECKOFFSET(m_Unk850, 0x850)
+MD_CHECKOFFSET(m_LightAdd, 0x850)
 MD_CHECKOFFSET(m_ModelHookData, 0x890)
 typedef char MD_CheckSize[(sizeof(ModelDraw) == 0x8b8) ? 1 : -1];
 

@@ -297,7 +297,7 @@ void ObjectDrawList::FUN_100289b0(ViewParams *pParams)
 // FUNCTION: D3DREN 0x10028ba0
 void ObjectDrawList::Add(LTObject *pObject, DrawObjectFn fn)
 {
-	if (!g_CV_DrawSorted.m_Unk00)
+	if (!g_CV_DrawSorted.m_IntVal)
 	{
 		fn(&g_ViewParams, pObject);
 		return;

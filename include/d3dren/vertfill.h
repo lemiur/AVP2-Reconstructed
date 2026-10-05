@@ -39,7 +39,7 @@ struct UnkType_ModelDrawerVertexView
 	uint8	m_Pad62c[4];
 	float	m_Unk630;						// 0x630  guess: specular scale
 	uint8	m_Pad634[0x874 - 0x634];
-	UnkType_Vec3	m_Unk874;				// 0x874  guess: light direction
+	UnkType_Vec3	m_DirLightDir;				// 0x874  guess: light direction
 };
 
 // GLOBAL: D3DREN 0x1004eb40

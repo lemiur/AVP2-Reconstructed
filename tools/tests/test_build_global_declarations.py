@@ -9,7 +9,7 @@ import build
 class GlobalDeclarationTests(unittest.TestCase):
     def test_function_pointer_globals_keep_the_variable_name(self):
         declarations = [
-            ('extern void (__fastcall *DAT_1005872c)(int);', 'DAT_1005872c'),
+            ('extern void (__fastcall *g_pfnCalcFogAlpha)(int);', 'g_pfnCalcFogAlpha'),
             ('extern void (*DAT_1006cd70)();', 'DAT_1006cd70'),
             ('int (__cdecl * const callbacks[4])(int) = {0};', 'callbacks'),
             ('void (Widget::*callback)(int);', 'callback'),

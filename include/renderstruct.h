@@ -107,7 +107,7 @@ struct RenderStruct
 	void			(*RenderCommand)(int argc, char *argv[]);	// 0xbc (console RenderCommand)
 	void*			(*GetHook)(char *pName);			// 0xc0 renderer objects by name ("LPDIRECTDRAW", "BACKBUFFER")
 	void			(*SwapBuffers)(uint32 flags);		// 0xc4
-	uint32			(*GetInfoFlags)();					// 0xc8 (d3d.ren d3d_GetInfoFlags)
+	uint8			m_PadC8[0xcc - 0xc8];
 	LTBOOL			(*GetScreenFormat)(PFormat *pFormat);			// 0xcc
 	HLTBUFFER		(*CreateSurface)(int width, int height);		// 0xd0
 	void			(*DeleteSurface)(HLTBUFFER hSurf);				// 0xd4

@@ -15,7 +15,7 @@
 #include "d3dren/scenedesc.h"
 #include "d3dren/visibleset.h"
 #include "d3dren/drawobjects.h"
-#include "d3dren/d3dstate.h"		// g_pD3DDevice (the device), g_pBoundTextures (the textures bound per stage)
+#include "d3dren/d3dstate.h"		// DAT_1005de30 (the device), g_pBoundTextures (the textures bound per stage)
 #include "d3dren/tlvertex.h"
 #include "d3dren/pool.h"			// ProjectVertexToScreen (projects a TL vertex)
 #include "d3dren/3d_ops.h"

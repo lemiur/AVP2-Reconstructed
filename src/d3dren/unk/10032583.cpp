@@ -147,7 +147,7 @@ int FUN_100325e8(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, UnkType_PolyLight
 	TLRGB color;
 	uint8 *pPixels;
 
-	if (!g_CV_LMDynamic.m_Unk00)
+	if (!g_CV_LMDynamic.m_IntVal)
 		return 0;
 
 	fDist = pPoly->m_pPlane->DistTo(pLight->m_Pos);

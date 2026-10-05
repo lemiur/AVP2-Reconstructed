@@ -130,7 +130,7 @@ void CanvasDrawMgr::FUN_100224ae(Canvas *pCanvas)
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	m_States[LTRSTATE_ALPHAOP] = LTOP_SELECTDIFFUSE;
 	m_Unk28 = (pCanvas->m_Flags >> 6) & 1;
-	FUN_1000a27b(g_NormalTextureStage);
+	d3d_DisableTexture(g_NormalTextureStage);
 }
 
 // FUNCTION: D3DREN 0x10022645
@@ -170,13 +170,13 @@ LTRESULT CanvasDrawMgr::DrawPrimitive(LTVertex *pVerts, uint32 nVerts, uint32 fl
 	else
 	{
 		float fOldNearZ = g_ViewParams.m_NearZ;
-		g_ViewParams.m_NearZ = g_CV_ReallyCloseNearZ.m_Unk04;
+		g_ViewParams.m_NearZ = g_CV_ReallyCloseNearZ.m_FloatVal;
 		for (i = 0; i < nVertices; i++)
 			FUN_10008719((float *)((uint8 *)pVertices + i * 0x20), &g_ViewParams.m_mReallyCloseClipTransform.m[0][0]);
 		if (ClipPoly(g_ClipFlags, &pVertices, &nVertices))
 		{
 			for (i = 0; i < nVertices; i++)
-				FUN_100062e0((float *)((uint8 *)pVertices + i * 0x20), (float *)((uint8 *)pVertices + i * 0x20), g_CV_NearZ.m_Unk04);
+				FUN_100062e0((float *)((uint8 *)pVertices + i * 0x20), (float *)((uint8 *)pVertices + i * 0x20), g_CV_NearZ.m_FloatVal);
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, D3DFVF_TLVERTEX, pVertices, nVertices, 0);
 			g_ViewParams.m_NearZ = fOldNearZ;
 		}
@@ -299,16 +299,16 @@ LTRESULT CanvasDrawMgr::GetState(LTRState state, uint32 &val)
 LTRESULT CanvasDrawMgr::SetTexture(const char *pTexture)
 {
 	if (!pTexture) {
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_DisableTexture(g_NormalTextureStage);
 		return 0;
 	}
 	SharedTexture *pShared = g_pStruct->GetSharedTexture(pTexture);
 	if (!pShared) {
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_DisableTexture(g_NormalTextureStage);
 		return 1;
 	}
 	if (!d3d_SetTexture(pShared, g_NormalTextureStage, 0)) {
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_DisableTexture(g_NormalTextureStage);
 		return 1;
 	}
 	DAT_10063c90.FUN_10021da6();
@@ -341,7 +341,7 @@ void d3d_ProcessCanvas(LTObject *pObject)
 void d3d_DrawSolidCanvases()
 {
 	char dummy;
-	if (g_CV_DrawCanvases.m_Unk00)
+	if (g_CV_DrawCanvases.m_IntVal)
 	{
 		VisibleSet *pSet = d3d_GetVisibleSet();
 		pSet->m_SolidCanvases.FUN_10022b50(&g_ViewParams, d3d_DrawCanvasCB, &dummy, &pSet->m_TranslucentCanvases);
@@ -358,7 +358,7 @@ static void FUN_10022b3b(ViewParams *pParams, LTObject *pObject)
 // FUNCTION: D3DREN 0x10022b15
 void d3d_QueueTranslucentCanvases()
 {
-	if (g_CV_DrawCanvases.m_Unk00)
+	if (g_CV_DrawCanvases.m_IntVal)
 		d3d_GetVisibleSet()->m_TranslucentCanvases.Draw(&g_ViewParams, FUN_10022b3b);
 }
 

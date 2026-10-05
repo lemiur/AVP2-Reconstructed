@@ -115,7 +115,7 @@ void FUN_100134a0()
 // FUNCTION: D3DREN 0x100134b0
 void __fastcall FUN_100134b0(LTVector *pPos, uint32 *pSpecular)
 {
-	float fDist = (*pPos - g_ViewParams.m_FogViewPos).Mag();
+	float fDist = (*pPos - g_ViewParams.m_Unk4e4).Mag();
 
 	if (fDist < DAT_100584a0)
 	{
@@ -161,7 +161,7 @@ float g_fVFogDensityScale;				// guess: 255 / VFogDensity (set by RenderScene wh
 
 // guess: Jupiter has no counterpart.  The vertical ("height") fog hook RenderScene installs in g_pfnCalcFogAlpha when the VFog console variable is on:
 // integrates a fog density that is VFogMinYVal below VFogMinY, VFogMaxYVal above VFogMaxY and linear in between along the ray from the viewer to the vertex
-// (the viewer's own density and zone are cached in g_ViewParams.m_fVFogViewDensity / m_nVFogViewZone by ViewParams::SetupFogViewPosition), clamps it to VFogMax and
+// (the viewer's own density and zone are cached in g_ViewParams.m_Unk4f0 / m_Unk4f4 by ViewParams::FUN_1000f1a0), clamps it to VFogMax and
 // stores 255 - fog in the specular alpha.  Same fastcall contract as the other fog hooks (position in ecx, specular in edx).
 // STUB diagnosis (W2): 944 of 976 bytes (746 differ): same statements and constants, but the exe never expands the SDK inlines here: `Mag()` is called out of line
 //   (0x1000e011) at all seven sites, the 3-float LTVector constructor out of line (0x1000dfb6, the temporary of an inlined operator- is
@@ -185,19 +185,19 @@ void __fastcall FUN_100135c0(LTVector *pPos, uint32 *pSpecular)
 	else
 		nZone = 1;
 
-	if (g_ViewParams.m_nVFogViewZone == nZone)
+	if (g_ViewParams.m_Unk4f4 == nZone)
 	{
 		float fDensity;
 
 		if (nZone == 2)
 		{
-			fDensity = (vPos.y - g_CV_VFogMinY.m_Unk04) * g_fInvVFogHeightRange * g_fVFogValueRange + g_ViewParams.m_fVFogViewDensity + g_CV_VFogMinYVal.m_Unk04;
+			fDensity = (vPos.y - g_CV_VFogMinY.m_Unk04) * DAT_10058778 * DAT_100584f8 + g_ViewParams.m_Unk4f0 + g_CV_VFogMinYVal.m_Unk04;
 			fFog = (vEye - vPos).Mag() * fDensity * g_fVFogDensityScale;
 		}
 		else
 		{
-			fDensity = g_ViewParams.m_fVFogViewDensity;
-			fFog = ((vEye - vPos).Mag() * fDensity + (vEye - vPos).Mag() * fDensity) * g_fVFogDensityScale;
+			fDensity = g_ViewParams.m_Unk4f0;
+			fFog = ((vEye - vPos).Mag() * fDensity + (vEye - vPos).Mag() * fDensity) * DAT_10058774;
 		}
 	}
 	else
@@ -210,18 +210,18 @@ void __fastcall FUN_100135c0(LTVector *pPos, uint32 *pSpecular)
 		vCross.y = g_CV_VFogMaxY.m_Unk04;
 		vCross.z = (vPos.z - vEye.z) * fT + vEye.z;
 
-		if (g_ViewParams.m_nVFogViewZone == 1)
+		if (g_ViewParams.m_Unk4f4 == 1)
 		{
 			// viewer above VFogMaxY, vertex below: the first part of the ray is at VFogMaxYVal
-			fFogA = g_CV_VFogMaxYVal.m_Unk04 + g_CV_VFogMaxYVal.m_Unk04;
+			fFogA = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
 			fFogA = (vEye - vCross).Mag() * fFogA * g_fVFogDensityScale;
 			if (vPos.y <= g_CV_VFogMinY.m_Unk04)
 				fFogB = g_CV_VFogMinYVal.m_Unk04;
 			else if (vPos.y >= g_CV_VFogMaxY.m_Unk04)
 				fFogB = g_CV_VFogMaxYVal.m_Unk04;
 			else
-				fFogB = (vPos.y - g_CV_VFogMinY.m_Unk04) * g_fInvVFogHeightRange * g_fVFogValueRange + g_CV_VFogMinYVal.m_Unk04;
-			fFogB = fFogB + g_CV_VFogMaxYVal.m_Unk04;
+				fFogB = (vPos.y - g_CV_VFogMinY.m_Unk04) * DAT_10058778 * DAT_100584f8 + g_CV_VFogMinYVal.m_Unk04;
+			fFogB = fFogB + g_CV_VFogMaxYVal.m_FloatVal;
 			fFog = (vCross - vPos).Mag() * fFogB;
 		}
 		else
@@ -231,13 +231,13 @@ void __fastcall FUN_100135c0(LTVector *pPos, uint32 *pSpecular)
 			else if (vEye.y >= g_CV_VFogMaxY.m_Unk04)
 				fFogB = g_CV_VFogMaxYVal.m_Unk04;
 			else
-				fFogB = (vEye.y - g_CV_VFogMinY.m_Unk04) * g_fInvVFogHeightRange * g_fVFogValueRange + g_CV_VFogMinYVal.m_Unk04;
+				fFogB = (vEye.y - g_CV_VFogMinY.m_Unk04) * DAT_10058778 * DAT_100584f8 + g_CV_VFogMinYVal.m_Unk04;
 			fFogB = fFogB + g_CV_VFogMaxYVal.m_Unk04;
-			fFogA = (vEye - vCross).Mag() * fFogB * g_fVFogDensityScale;
+			fFogA = (vEye - vCross).Mag() * fFogB * DAT_10058774;
 			fFogB = g_CV_VFogMaxYVal.m_Unk04 + g_CV_VFogMaxYVal.m_Unk04;
 			fFog = (vCross - vPos).Mag() * fFogB;
 		}
-		fFog = fFog * g_fVFogDensityScale + fFogA;
+		fFog = fFog * DAT_10058774 + fFogA;
 	}
 
 	if (fFog > g_CV_VFogMax.m_Unk04)
@@ -279,7 +279,7 @@ void FUN_100139f0(void)
 }
 
 // guess: begins an alpha tested pass: alpha test (reference function GREATER) when the AlphaTest console variable is set,
-// else colour keying; then flags the world poly drawer (d3d_SetChromaKeyPass).
+// else colour keying; then flags the world poly drawer (FUN_100099a9).
 // The saver object for the translucent object state changes: a UnkType_StateRestorer (d3ddevice.h) defined in this object.  In the exe
 // its constructor (two empty std::vectors) and destructor (restore, then free both vectors through the node allocator) are expanded
 // inline into the static initialiser 0x10013a80 and the atexit function 0x10013ad0; d3ddevice.h has them as inline members (the
@@ -348,7 +348,7 @@ void d3d_UnsetTranslucentObjectStates(int bChangeZ)
 // FUNCTION: D3DREN 0x10013e00
 void FUN_10013e00(void)
 {
-	if (g_CV_AlphaTest.m_Unk00)
+	if (g_CV_AlphaTest.m_IntVal)
 	{
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHATESTENABLE, 1);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHAFUNC, D3DCMP_GREATER);
@@ -364,7 +364,7 @@ void FUN_10013e00(void)
 // FUNCTION: D3DREN 0x10013e40
 void FUN_10013e40(void)
 {
-	if (g_CV_AlphaTest.m_Unk00)
+	if (g_CV_AlphaTest.m_IntVal)
 	{
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHATESTENABLE, 0);
 	}
@@ -553,7 +553,7 @@ void FUN_10013f40(WorldPoly *pPoly)
 		pDest = pVerts;
 		for (i = nVerts; i; i--)
 		{
-			FUN_10008719((float *)pDest, (const float *)&g_ViewParams.m_mClipTransform);
+			FUN_10008719((float *)pDest, (const float *)&g_ViewParams.m_Unk15c);
 			pDest++;
 		}
 		if (!ClipPoly(g_ClipFlags, &pVerts, &nVerts))
@@ -835,7 +835,7 @@ void FUN_100145f0(int a1)
 		}
 		DAT_10058c68 = 0;
 	}
-	if (g_CV_DrawPolyMgr.m_Unk00)
+	if (g_CV_DrawPolyMgr.m_IntVal)
 		g_DrawPolyMgr.FUN_1002a0c2();
 }
 
@@ -877,7 +877,7 @@ int FUN_100147f0(TLVertex **ppVerts, int *pnVerts)
 		pVert = *ppVerts;
 		for (i = *pnVerts; i != 0; i--)
 		{
-			FUN_10008719((float *)pVert, (const float *)&g_ViewParams.m_mClipTransform);
+			FUN_10008719((float *)pVert, (const float *)&g_ViewParams.m_Unk15c);
 			pVert++;
 		}
 		if (ClipPoly(g_ClipFlags, ppVerts, pnVerts))
@@ -974,10 +974,10 @@ void d3d_FullDrawScene(SceneDesc *pDesc)
 {
 	Counter cUnused;
 
-	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_CLIPPING, g_CV_UseD3DClip.m_Unk00 != 0);
+	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_CLIPPING, g_CV_UseD3DClip.m_IntVal != 0);
 	d3d_SetD3DMat(D3DTRANSFORMSTATE_WORLD, &g_ViewParams.m_mIdentity);
 	d3d_SetD3DMat(D3DTRANSFORMSTATE_VIEW, &g_ViewParams.m_mView);
-	d3d_SetD3DMat(D3DTRANSFORMSTATE_PROJECTION, &g_ViewParams.m_mProjection);
+	d3d_SetD3DMat(D3DTRANSFORMSTATE_PROJECTION, &g_ViewParams.m_Unk11c);
 	d3d_InitObjectQueues();
 	FUN_100107fb();
 
@@ -1022,7 +1022,7 @@ void d3d_FullDrawScene(SceneDesc *pDesc)
 			FUN_10014ce0(DAT_10058c68);
 			DAT_10058c68 = 0;
 		}
-		if (g_CV_DrawPolyMgr.m_Unk00)
+		if (g_CV_DrawPolyMgr.m_IntVal)
 			g_DrawPolyMgr.FUN_1002a0c2();
 	}
 
@@ -1403,7 +1403,7 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 			LTVector vMax(-100000.0f, -100000.0f, -100000.0f);
 			float depth = g_ViewParams.m_FarZ - 1.0f;
 			float rhw = 1.0f / depth;
-			float z = (depth * g_ViewParams.m_fProjZScale + g_ViewParams.m_fProjZOffset) * rhw;
+			float z = (depth * g_ViewParams.m_Unk32c + g_ViewParams.m_Unk330) * rhw;
 			for (int j = 0; j < nVerts; ++j)
 			{
 				TLVertex *pVert = pVerts + j;
@@ -1436,8 +1436,8 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 				&copiedCamera, LTVector(1.0f, 1.0f, 1.0f));
 			*(LTVector *)g_ViewParams.m_Pad4d8 = pPoly->m_Center;
 			g_ViewParams.m_Unk4cc = !backupView.m_Unk4cc;
-			g_ViewParams.m_Unk4d0 = FUN_10015820_CullSign(g_ViewParams.m_Unk4cc);
-			g_ViewParams.m_bPortalView = 1;
+			g_ViewParams.m_ModelTransform = FUN_10015820_CullSign(g_ViewParams.m_Unk4cc);
+			g_ViewParams.m_Unk4d4 = 1;
 
 			int oldLightMap = DAT_10048780;
 			if (!g_CV_PortalLightmap.m_Unk00)
@@ -1551,13 +1551,13 @@ static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVe
 	z = ((p1).z - (p0).z) * t + (p0).z; \
 	pOut->m_Vec.z = z; \
 	pOut->m_Vec.y = -z
-// far plane z == g_ViewParams.m_ClipFarZ (flag 2)
-#define CLIPTEST_FAR(v)		((v).z <= g_ViewParams.m_ClipFarZ)
+// far plane z == g_ViewParams.m_Unk90 (flag 2)
+#define CLIPTEST_FAR(v)		((v).z <= g_ViewParams.m_Unk90)
 #define DOCLIP_FAR(p0, p1) \
-	t = (g_ViewParams.m_ClipFarZ - (p0).z) / ((p1).z - (p0).z); \
+	t = (g_ViewParams.m_Unk90 - (p0).z) / ((p1).z - (p0).z); \
 	pOut->m_Vec.x = ((p1).x - (p0).x) * t + (p0).x; \
 	pOut->m_Vec.y = ((p1).y - (p0).y) * t + (p0).y; \
-	pOut->m_Vec.z = g_ViewParams.m_ClipFarZ
+	pOut->m_Vec.z = g_ViewParams.m_Unk90
 
 // guess: clips the line of pVerts[0], pVerts[1] (camera space TL vertices) in place against the planes of nMask (1 near, 4 left, 8 top, 0x10 right,
 // 0x20 bottom, 2 far; the callers pass 0x3f); returns 0 when the whole line is outside.  Jupiter has the macro file but no function around it.
@@ -1611,8 +1611,8 @@ void d3d_DrawLine(LTVector vSrc, LTVector vDest, uint32 color1, uint32 color2)
 
 	verts[0].color = color1;
 	verts[0].specular = 0xffffffff;
-	MatVMul_H((LTVector *)&verts[0].sx, &g_ViewParams.m_mClipTransform, &vSrc);
-	MatVMul_H((LTVector *)&verts[1].sx, &g_ViewParams.m_mClipTransform, &vDest);
+	MatVMul_H((LTVector *)&verts[0].sx, &g_ViewParams.m_Unk15c, &vSrc);
+	MatVMul_H((LTVector *)&verts[1].sx, &g_ViewParams.m_Unk15c, &vDest);
 	verts[1].color = color2;
 	verts[1].specular = 0xffffffff;
 
@@ -1624,10 +1624,10 @@ void d3d_DrawLine(LTVector vSrc, LTVector vDest, uint32 color1, uint32 color2)
 			float *pVert = &verts[1].sx;
 
 			pVert[3] = 1.0f / pVert[2];
-			pVert[0] = (pView->m_fProjXScale * pVert[0] + pView->m_fProjXOffset * pVert[2]) * pVert[3];
+			pVert[0] = (pView->m_Unk31c * pVert[0] + pView->m_Unk320 * pVert[2]) * pVert[3];
 			float z = pVert[2];
-			pVert[1] = (pView->m_fProjYScale * pVert[1] + pView->m_fProjYOffset * z) * pVert[3];
-			pVert[2] = (pView->m_fProjZScale * pVert[2] + pView->m_fProjZOffset) * pVert[3];
+			pVert[1] = (pView->m_Unk324 * pVert[1] + pView->m_Unk328 * z) * pVert[3];
+			pVert[2] = (pView->m_Unk32c * pVert[2] + pView->m_Unk330) * pVert[3];
 		}
 		g_pD3DDevice->DrawPrimitive(D3DPT_LINELIST, 0x1c4, verts, 2, 0);
 	}
@@ -1640,10 +1640,10 @@ inline void FUN_100173e0_inline(LTVector vSrc, LTVector vDest, uint32 color1, ui
 {
 	D3DTLVERTEX verts[2];
 
-	MatVMul_H((LTVector *)&verts[0].sx, &g_ViewParams.m_mClipTransform, &vSrc);
+	MatVMul_H((LTVector *)&verts[0].sx, &g_ViewParams.m_Unk15c, &vSrc);
 	verts[0].color = color1;
 	verts[0].specular = 0xffffffff;
-	MatVMul_H((LTVector *)&verts[1].sx, &g_ViewParams.m_mClipTransform, &vDest);
+	MatVMul_H((LTVector *)&verts[1].sx, &g_ViewParams.m_Unk15c, &vDest);
 	verts[1].color = color2;
 	verts[1].specular = 0xffffffff;
 	if (FUN_100161e0(&verts[0].sx, 0x3f))
@@ -1892,7 +1892,7 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		g_pOffscreen->AddAttachedSurface(g_pZBuffer);
 		g_pBackBuffer->DeleteAttachedSurface(0, g_pZBuffer);
 		g_pD3DDevice->SetRenderTarget(g_pOffscreen, 0);
-		DAT_1005a378 = g_CV_RenderToFront.m_Unk00;
+		DAT_1005a378 = g_CV_RenderToFront.m_IntVal;
 	}
 
 	if (g_CV_DrawPortals.m_Unk00)
@@ -1932,10 +1932,10 @@ int d3d_RenderScene(SceneDesc *pDesc)
 			g_pfnCalcFogAlpha = d3d_NullPreFrameCallback;
 		else if (g_CV_VFog.m_Unk00)
 		{
-			g_fVFogValueRange = g_CV_VFogMaxYVal.m_Unk04 - g_CV_VFogMinYVal.m_Unk04;
+			DAT_100584f8 = g_CV_VFogMaxYVal.m_Unk04 - g_CV_VFogMinYVal.m_Unk04;
 			g_pfnCalcFogAlpha = FUN_100135c0;
-			g_fInvVFogHeightRange = 1.0f / (g_CV_VFogMaxY.m_Unk04 - g_CV_VFogMinY.m_Unk04);
-			g_fVFogDensityScale = 255.0f / g_CV_VFogDensity.m_Unk04;
+			DAT_10058778 = 1.0f / (g_CV_VFogMaxY.m_Unk04 - g_CV_VFogMinY.m_Unk04);
+			DAT_10058774 = 255.0f / g_CV_VFogDensity.m_Unk04;
 		}
 		else
 			g_pfnCalcFogAlpha = FUN_100134b0;

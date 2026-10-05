@@ -235,7 +235,7 @@ class BuildDiffTests(unittest.TestCase):
 
     def test_function_pointer_declarators_keep_the_variable_name(self):
         for declaration, name in [
-                ('extern void (__fastcall *DAT_1005872c)(int);', 'DAT_1005872c'),
+                ('extern void (__fastcall *g_pfnCalcFogAlpha)(int);', 'g_pfnCalcFogAlpha'),
                 ('extern void (*DAT_1006cd70)();', 'DAT_1006cd70'),
                 ('int (__cdecl * const callbacks[4])(int) = {0};', 'callbacks'),
                 ('void (Widget::*callback)(int);', 'callback'),
@@ -249,14 +249,14 @@ class BuildDiffTests(unittest.TestCase):
 
     def test_callback_annotations_verify_correct_and_reject_wrong_relocation_addresses(self):
         callback_va = 0x1005872c
-        callback_name = '?DAT_1005872c@@3P6IXPAV?$_CVector@M@@PAK@ZA'
+        callback_name = '?g_pfnCalcFogAlpha@@3P6IXPAV?$_CVector@M@@PAK@ZA'
         callback = SimpleNamespace(name=callback_name, is_section_symbol=False, secno=0, cls=2)
         function = SimpleNamespace(name='_TestFunction', is_section_symbol=False, secno=1, cls=2)
         obj = BodyObject(bytes.fromhex('a100000000c3'), [(1, callback, build.REL_DIR32, 0)])
         obj.symbols = {0: callback, 1: function}
         obj.functions = lambda: [function]
         tag = build.modcfg.TAG
-        global_decl = '// GLOBAL: %s 0x1005872c\nextern void (__fastcall *DAT_1005872c)(int);\n' % tag
+        global_decl = '// GLOBAL: %s 0x1005872c\nextern void (__fastcall *g_pfnCalcFogAlpha)(int);\n' % tag
         function_decl = '// FUNCTION: %s 0x10001000\nvoid TestFunction() {}\n' % tag
         for location in ('source', 'header'):
             for actual_va in (callback_va, 0x10058c40):
@@ -283,10 +283,10 @@ class BuildDiffTests(unittest.TestCase):
                         self.assertEqual(build.ALL_NAMES[callback_name], callback_va)
                         self.assertEqual(names[callback_va], callback_name)
                         if location == 'source':
-                            self.assertEqual(unit.annots[0].name, 'DAT_1005872c')
+                            self.assertEqual(unit.annots[0].name, 'g_pfnCalcFogAlpha')
                             self.assertEqual(unit.annots[0].symbol, callback_name)
                         else:
-                            self.assertEqual(build.header_globals()[0][2], 'DAT_1005872c')
+                            self.assertEqual(build.header_globals()[0][2], 'g_pfnCalcFogAlpha')
                         self.assertEqual(len(results), 1)
                         result = results[0]
                         self.assertFalse(result.unverified)

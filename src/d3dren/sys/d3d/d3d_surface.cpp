@@ -459,7 +459,7 @@ void d3d_SwapBuffers(uint32 flags)
 		}
 		else
 		{
-			if (g_CV_LockOnFlip.m_Unk00 && !g_bScreenLocked)
+			if (g_CV_LockOnFlip.m_IntVal && !g_bScreenLocked)
 			{
 				lockRect.left = 0;
 				lockRect.top = 0;
