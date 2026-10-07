@@ -126,16 +126,12 @@ extern HPOLY g_hWorldPoly;
 
 // Tells if pPt is inside the convex poly.
 // d3d.ren's copy of this function tests the surface's SURF_SOLID flag itself (the engine's does it in the caller) and is out of line.
-// Not matching (333 bytes vs 329 in this form; 320 with the second-best form).  Same calls and arithmetic; the exe (a) keeps pCur in ebx (the register
-// of pPoly, recycled by `add ebx, 0x58` after pEnd was computed from pPoly) with pNormal in the dead pPoly argument slot [ebp+8]
-// and pEnd in [ebp-4]; ours puts pCur in the argument slot and pEnd in ebx; (b) re-reads `*pCur->m_Vec` for the Dot argument
-// (`mov esi,[ebx]` twice) where ours keeps the pointer in a stack slot; (c) has one dead 3-dword copy of the Cross argument at
-// [ebp-0x40] before the real by-value copy.  Tried: pEnd/pCur/pPrev in all orders, reference / value / no currVec, dead vTemp
-// assignment before Cross(*pPrev->m_Vec - *pCur->m_Vec), function-scope vTemp.
-// STUB: D3DREN 0x1003223b ?InsideConvex@@YAIPAUWorldPoly@@PAV?$_CVector@M@@@Z
+// Reuses the radius-difference vector as the Cross argument temporary so VC6 emits the original local-copy schedule.
+// FUNCTION: D3DREN 0x1003223b
 LTBOOL InsideConvex(WorldPoly *pPoly, LTVector *pPt)
 {
 	LTPlane edgePlane;
+	LTVector radiusDiff;
 	float edgeDot;
 	LTVector *pNormal;
 	SPolyVertex *pCur, *pPrev, *pEnd;
@@ -144,21 +140,21 @@ LTBOOL InsideConvex(WorldPoly *pPoly, LTVector *pPt)
 		return LTFALSE;
 
 	// Reject it if it's outside the radius of the poly
-	if ((pPoly->m_Center - *pPt).MagSqr() > (pPoly->m_Radius * pPoly->m_Radius))
+	radiusDiff = pPoly->m_Center - *pPt;
+	if (radiusDiff.MagSqr() > (pPoly->m_Radius * pPoly->m_Radius))
 		return LTFALSE;
 
 	pNormal = &pPoly->GetPlane()->m_Normal;
-	pCur  = (SPolyVertex*)(pPoly + 1);
 	pEnd  = (SPolyVertex*)(pPoly + 1) + pPoly->m_nVertices;
+	pCur  = (SPolyVertex*)(pPoly + 1);
 	pPrev = pEnd - 1;
 
 	for(; pCur != pEnd; pPrev = pCur, ++pCur)
 	{
-		LTVector &currVec = *pCur->m_Vec;
-		LTVector vTemp = *pPrev->m_Vec - currVec;
-		edgePlane.m_Normal = pNormal->Cross(vTemp);
+		radiusDiff = *pPrev->m_Vec - *pCur->m_Vec;
+		edgePlane.m_Normal = pNormal->Cross(radiusDiff);
 		edgePlane.m_Normal.Norm();
-		edgePlane.m_Dist = edgePlane.m_Normal.Dot(currVec);
+		edgePlane.m_Dist = edgePlane.m_Normal.Dot(*pCur->m_Vec);
 
 		edgeDot = edgePlane.DistTo(*pPt);
 		if(edgeDot < -INTERSECT_EPSILON)

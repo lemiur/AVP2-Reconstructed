@@ -205,15 +205,7 @@ void ModelDraw::FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 // 0x1006287c: data of another unit
 extern IDirectDrawSurface7 *g_pShadowBlobTexture;
 
-// Not matching: 27 of 3395 bytes (31 aligned instruction mismatches).  Same size, same instruction sequence (1052), same call sequence
-// (19 out-of-line LTVector constructors, Cross x5, Norm x6, Dot x4, operator- x1, LTMatrix::Init x2, LTMatrix::operator* x2), same frame
-// (0x2554, every slot), same constants and relocation targets.  All differing bytes are in one statement, +0x799..+0x7c5:
-//   the near plane's `pPlane->m_Dist = pPlane->m_Normal.Dot(m_pInstance->GetPos())`.  The exe copies GetPos() into the by-value
-//   argument first, then loads  fld pos.y; fmul n.y | fld n.z; fmul pos.z; faddp | fld pos.x; fmul n.x; faddp  (term order y, z, x);
-//   ours loads n.z before the copy and uses  fld n.z; fmul pos.z | fld n.y; fmul pos.y; faddp | fld pos.x; fmul n.x  (z, y, x).  The
-//   other Dot calls of the function (far/left/right/top/bottom planes) come out in the exe's order by themselves.  Tried without
-//   effect: Dot on info.m_Vecs[2], pos.Dot(n), VEC_DOT, a local copy / reference of the position, m_pInstance->m_Pos, a float local
-//   for the result, LTPlane::Init, direct info.m_FrustumPlanes[0], statement order.
+// Named query/light-origin aliases, separate traversal/drawing counters, and the guarded drawing scope reproduce the x87 Dot order.
 // The call sequence equals the exe's only with the inline helper d3d_SetTextureDirect() for the final SetTexture (it is the one
 // extra inline call site after the second loop's first out-of-line LTVector constructor that VC6's inline budget needs; Jupiter
 // calls d3d_SetTextureDirect(pOldTexture, 0) the same way); without any extra site that constructor (info.m_vProjectionCenter)
@@ -225,12 +217,12 @@ extern IDirectDrawSurface7 *g_pShadowBlobTexture;
 // The result depends on d3dstate.h's StateSet (constructor uses its `state` argument, not m_State) and on the inline sites of
 // the SDK headers: any change of those moves the inline decisions.
 // FUNCTION: D3DREN 0x10026009 ?SetupProjectionMatrix@LTMatrix@@QAEXV?$_CVector@M@@VLTPlane@@@Z
-// STUB: D3DREN 0x100252c6
+// FUNCTION: D3DREN 0x100252c6
 // NAME: ModelDraw::DrawModelShadows: names_proposal.csv (high, Jupiter drawmodelshadows.cpp)
 void ModelDraw::DrawModelShadows()
 {
 	ShadowLightInfo info;
-	int i, nShadows;
+	int i, nShadows, k;
 	UnkType_ShadowPolys polyLists[NUM_MODEL_SHADOWS];
 	LTVector lightDirs[NUM_MODEL_SHADOWS];
 	UnkType_ShadowPolyQuery query;
@@ -252,132 +244,137 @@ void ModelDraw::DrawModelShadows()
 	if (nShadows == 0)
 		return;
 
-	if (!DAT_1005c810 || !g_pShadowBlobTexture || !m_pModel->m_bShadowEnable)
-		return;
-
-	if (g_CV_ModelShadowProj.m_IntVal)
+	if (DAT_1005c810 && g_pShadowBlobTexture && m_pModel->m_bShadowEnable)
 	{
-		FUN_1002701e(nShadows);
-		return;
-	}
 
-	// Get stuff out of the command string.
-	fMaxShadowDist = m_pModel->m_ShadowProjectLength;
-	fSizeX = m_pModel->m_ShadowSizeX;
-	fSizeY = m_pModel->m_ShadowSizeY;
-	fDistToObject = m_pModel->m_ShadowLightDist;
-	vCenterOffset = m_pModel->m_ShadowCenterOffset;
+		if (g_CV_ModelShadowProj.m_IntVal)
+		{
+			FUN_1002701e(nShadows);
+			return;
+		}
 
-	// HACK.
-	static LTVector dir(0.0f, -1.0f, 0.0f);
-	m_ShadowLights[0] = dir;
-	m_ShadowLights[0].Norm();
+		// Get stuff out of the command string.
+		fMaxShadowDist = m_pModel->m_ShadowProjectLength;
+		fSizeX = m_pModel->m_ShadowSizeX;
+		fSizeY = m_pModel->m_ShadowSizeY;
+		fDistToObject = m_pModel->m_ShadowLightDist;
+		vCenterOffset = m_pModel->m_ShadowCenterOffset;
 
-	{
-	int nTotal = 0;
-	for (i = 0; i < nShadows; i++)
-	{
-		polyLists[i].m_nPolys = 0;
-		query.m_pPolys = &polyLists[i];
+		// HACK.
+		static LTVector dir(0.0f, -1.0f, 0.0f);
+		m_ShadowLights[0] = dir;
+		m_ShadowLights[0].Norm();
 
-		query.m_vOrigin = m_pInstance->GetPos() - m_ShadowLights[i] * fDistToObject;
-		lightDirs[i] = (m_pInstance->GetPos() + vCenterOffset) - query.m_vOrigin;
-		lightDirs[i].Norm();
+		{
+			int nTotal = 0;
+			for (i = 0; i < nShadows; i++)
+			{
+				polyLists[i].m_nPolys = 0;
+				query.m_pPolys = &polyLists[i];
 
-		query.m_vDir = lightDirs[i];
-		query.m_vStart = query.m_vOrigin;
-		query.m_vEnd = query.m_vOrigin + query.m_vDir * (fDistToObject + fMaxShadowDist);
-		query.m_fRadius = LTMAX(fSizeX, fSizeY);
+				query.m_vOrigin = m_pInstance->GetPos() - m_ShadowLights[i] * fDistToObject;
+				lightDirs[i] = (m_pInstance->GetPos() + vCenterOffset) - query.m_vOrigin;
+				lightDirs[i].Norm();
 
-		DAT_10056770->m_WorldTree.FindObjectsOnPoint(&m_pInstance->m_Pos, (WTObjCallback)FUN_10035917, &query, 0);
+				query.m_vDir = lightDirs[i];
+				LTVector *pQueryOrigin = &query.m_vOrigin;
+				query.m_vStart = *pQueryOrigin;
+				query.m_vEnd = query.m_vOrigin + query.m_vDir * (fDistToObject + fMaxShadowDist);
+				query.m_fRadius = LTMAX(fSizeX, fSizeY);
 
-		nTotal += polyLists[i].m_nPolys;
-	}
+				DAT_10056770->m_WorldTree.FindObjectsOnPoint(&m_pInstance->m_Pos, (WTObjCallback)FUN_10035917, &query, 0);
 
-	if (nTotal == 0)
-		return;
-	}
+				nTotal += polyLists[i].m_nPolys;
+			}
 
-	{
-	g_pD3DDevice->GetTexture(0, &pOldTexture);
-	g_pD3DDevice->SetTexture(0, g_pShadowBlobTexture);
-	StateSet alphaBlend(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-	StateSet zWrite(D3DRENDERSTATE_ZWRITEENABLE, 0);
+			if (nTotal == 0)
+				return;
+		}
 
-	for (i = 0; i < nShadows; i++)
-	{
-		if (polyLists[i].m_nPolys == 0)
-			continue;
+		{
+			g_pD3DDevice->GetTexture(0, &pOldTexture);
+			g_pD3DDevice->SetTexture(0, g_pShadowBlobTexture);
+			StateSet alphaBlend(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
+			StateSet zWrite(D3DRENDERSTATE_ZWRITEENABLE, 0);
 
-		info.m_fSizeX = fSizeX;
-		info.m_fSizeY = fSizeY;
-		info.m_vLightOrigin = m_pInstance->GetPos() - lightDirs[i] * fDistToObject;
-		info.m_ProjectionPlane.m_Normal = lightDirs[i];
-		info.m_vProjectionCenter = info.m_vLightOrigin +
-				lightDirs[i] * (fDistToObject + fMaxShadowDist);
-		info.m_ProjectionPlane.m_Dist = info.m_ProjectionPlane.m_Normal.Dot(
-			info.m_vProjectionCenter);
+			for (k = 0; k < nShadows; k++)
+			{
+				if (polyLists[k].m_nPolys == 0)
+					continue;
 
-		// Setup the frame of reference (up is (0,1,0) and right is generated).
-		info.m_Vecs[2] = lightDirs[i];
-		gr_GetPerpendicularVector(&info.m_Vecs[2], LTNULL, &info.m_Vecs[1]);
-		info.m_Vecs[0] = info.m_Vecs[2].Cross(info.m_Vecs[1]);
+				info.m_fSizeX = fSizeX;
+				info.m_fSizeY = fSizeY;
+				info.m_vLightOrigin = m_pInstance->m_Pos - lightDirs[k] * fDistToObject;
+				info.m_ProjectionPlane.m_Normal = lightDirs[k];
+				info.m_vProjectionCenter = info.m_vLightOrigin +
+						lightDirs[k] * (fDistToObject + fMaxShadowDist);
+				info.m_ProjectionPlane.m_Dist = info.m_ProjectionPlane.m_Normal.Dot(
+					info.m_vProjectionCenter);
 
-		vWindowLeft = info.m_vProjectionCenter - info.m_Vecs[0] * fSizeX;
-		vWindowRight = info.m_vProjectionCenter + info.m_Vecs[0] * fSizeX;
-		vWindowTop = info.m_vProjectionCenter + info.m_Vecs[1] * fSizeY;
-		vWindowBottom = info.m_vProjectionCenter - info.m_Vecs[1] * fSizeY;
+				// Setup the frame of reference (up is (0,1,0) and right is generated).
+				LTVector &vLightOrigin = info.m_vLightOrigin;
+				info.m_Vecs[2] = lightDirs[k];
+				gr_GetPerpendicularVector(&info.m_Vecs[2], LTNULL, &info.m_Vecs[1]);
+				info.m_Vecs[0] = info.m_Vecs[2].Cross(info.m_Vecs[1]);
 
-		info.m_vWindowTopLeft = info.m_vProjectionCenter -
-			info.m_Vecs[0] * fSizeX -
-			info.m_Vecs[1] * fSizeY;
+				vWindowLeft = info.m_vProjectionCenter - info.m_Vecs[0] * fSizeX;
+				vWindowRight = info.m_vProjectionCenter + info.m_Vecs[0] * fSizeX;
+				vWindowTop = info.m_vProjectionCenter + info.m_Vecs[1] * fSizeY;
+				vWindowBottom = info.m_vProjectionCenter - info.m_Vecs[1] * fSizeY;
 
-		// Setup the clipping planes.
-		pPlane = &info.m_FrustumPlanes[CPLANE_NEAR_INDEX];
-		pPlane->m_Normal = info.m_Vecs[2];
-		pPlane->m_Dist = pPlane->m_Normal.Dot(m_pInstance->GetPos());
+				info.m_vWindowTopLeft = info.m_vProjectionCenter -
+					info.m_Vecs[0] * fSizeX -
+					info.m_Vecs[1] * fSizeY;
 
-		pPlane = &info.m_FrustumPlanes[CPLANE_FAR_INDEX];
-		pPlane->m_Normal = -info.m_Vecs[2];
-		pPlane->m_Dist = pPlane->m_Normal.Dot(m_pInstance->GetPos() + info.m_Vecs[2] * fMaxShadowDist);
+				// Setup the clipping planes.
+				pPlane = &info.m_FrustumPlanes[CPLANE_NEAR_INDEX];
+				pPlane->m_Normal = info.m_Vecs[2];
+				pPlane->m_Dist = pPlane->m_Normal.Dot(m_pInstance->GetPos());
 
-		pPlane = &info.m_FrustumPlanes[CPLANE_LEFT_INDEX];
-		pPlane->m_Normal = (vWindowLeft - info.m_vLightOrigin).Cross(info.m_Vecs[1]);
-		pPlane->m_Normal.Norm();
-		pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
+				pPlane = &info.m_FrustumPlanes[CPLANE_FAR_INDEX];
+				pPlane->m_Normal = -info.m_Vecs[2];
+				pPlane->m_Dist = pPlane->m_Normal.Dot(m_pInstance->GetPos() + info.m_Vecs[2] * fMaxShadowDist);
 
-		pPlane = &info.m_FrustumPlanes[CPLANE_RIGHT_INDEX];
-		pPlane->m_Normal = info.m_Vecs[1].Cross(vWindowRight - info.m_vLightOrigin);
-		pPlane->m_Normal.Norm();
-		pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
+				pPlane = &info.m_FrustumPlanes[CPLANE_LEFT_INDEX];
+				pPlane->m_Normal = (vWindowLeft - info.m_vLightOrigin).Cross(info.m_Vecs[1]);
+				pPlane->m_Normal.Norm();
+				pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
 
-		pPlane = &info.m_FrustumPlanes[CPLANE_TOP_INDEX];
-		pPlane->m_Normal = (vWindowTop - info.m_vLightOrigin).Cross(info.m_Vecs[0]);
-		pPlane->m_Normal.Norm();
-		pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
+				pPlane = &info.m_FrustumPlanes[CPLANE_RIGHT_INDEX];
+				LTVector &vRightLightOrigin = vLightOrigin;
+				pPlane->m_Normal = info.m_Vecs[1].Cross(vWindowRight - vRightLightOrigin);
+				pPlane->m_Normal.Norm();
+				pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
 
-		pPlane = &info.m_FrustumPlanes[CPLANE_BOTTOM_INDEX];
-		pPlane->m_Normal = info.m_Vecs[0].Cross(vWindowBottom - info.m_vLightOrigin);
-		pPlane->m_Normal.Norm();
-		pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
+				pPlane = &info.m_FrustumPlanes[CPLANE_TOP_INDEX];
+				LTVector vTopLightOrigin = vRightLightOrigin;
+				pPlane->m_Normal = (vWindowTop - vTopLightOrigin).Cross(info.m_Vecs[0]);
+				pPlane->m_Normal.Norm();
+				pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
 
-		LTMatrix mProjection, mTexture, mScale;
-		mProjection.SetupProjectionMatrix(info.m_vLightOrigin, info.m_ProjectionPlane);
-		mTexture.Init(info.m_Vecs[0].x, info.m_Vecs[0].y, info.m_Vecs[0].z, -info.m_Vecs[0].Dot(info.m_vWindowTopLeft),
-			info.m_Vecs[1].x, info.m_Vecs[1].y, info.m_Vecs[1].z, -info.m_Vecs[1].Dot(info.m_vWindowTopLeft),
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f);
-		mScale.Init(1.0f / (info.m_fSizeX * 2.0f), 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f / (info.m_fSizeY * 2.0f), 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f);
-		info.m_Unk60 = mScale * mTexture * mProjection;
+				pPlane = &info.m_FrustumPlanes[CPLANE_BOTTOM_INDEX];
+				pPlane->m_Normal = info.m_Vecs[0].Cross(vWindowBottom - info.m_vLightOrigin);
+				pPlane->m_Normal.Norm();
+				pPlane->m_Dist = pPlane->m_Normal.Dot(info.m_vLightOrigin);
 
-		for (uint32 j = 0; j < polyLists[i].m_nPolys; j++)
-			FUN_10025078(&info, polyLists[i].m_Polys[j]);
-	}
+				LTMatrix mProjection, mTexture, mScale;
+				mProjection.SetupProjectionMatrix(info.m_vLightOrigin, info.m_ProjectionPlane);
+				mTexture.Init(info.m_Vecs[0].x, info.m_Vecs[0].y, info.m_Vecs[0].z, -info.m_Vecs[0].Dot(info.m_vWindowTopLeft),
+					info.m_Vecs[1].x, info.m_Vecs[1].y, info.m_Vecs[1].z, -info.m_Vecs[1].Dot(info.m_vWindowTopLeft),
+					0.0f, 0.0f, 1.0f, 0.0f,
+					0.0f, 0.0f, 0.0f, 1.0f);
+				mScale.Init(1.0f / (info.m_fSizeX * 2.0f), 0.0f, 0.0f, 0.0f,
+					0.0f, 1.0f / (info.m_fSizeY * 2.0f), 0.0f, 0.0f,
+					0.0f, 0.0f, 1.0f, 0.0f,
+					0.0f, 0.0f, 0.0f, 1.0f);
+				info.m_Unk60 = mScale * mTexture * mProjection;
 
-	d3d_SetTextureDirect(pOldTexture, 0);
+				for (uint32 j = 0; j < polyLists[k].m_nPolys; j++)
+					FUN_10025078(&info, polyLists[k].m_Polys[j]);
+			}
+
+			d3d_SetTextureDirect(pOldTexture, 0);
+		}
 	}
 }
 
@@ -852,14 +849,11 @@ ConVar g_CV_ModelShadowProjShow("ModelShadowProjShow", 0.0f);
 // and the specular colour is 0.  `this` is not used.  The distance must be written with the SDK operators on a named local
 // (`LTVector vToLight = pVert->m_Vec - pInfo->m_vLightOrigin; vToLight.Mag()`: the by-value temporaries of operator- and the out-of-line
 // Mag 0x1000e011 call give the exe's frame temporaries, and with them the exe's x87 term order of tu/tv/q and eax=matrix, ebx=vertex);
-// LTVector::Dist() or an unnamed temporary gives other orders.  The clip stage has to sit in its own block with its own locals (the exe
+// LTVector::Dist() or an unnamed temporary gives other orders. The clip stage has to sit in its own block with its own locals (the exe
 // shares the slots of pClipVerts/nClip with the vertex loop's variables) and counts down (`for (iPlane = 6; iPlane > 0; iPlane--)`).
-// Not matching (692 of 692 bytes, 30 aligned instruction mismatches, 76 bytes differ; storing m_Unk20 before `specular = 0` took it
-// from 42 / 120): only the scheduling of the clip stage and the
-// register of pSrc are left.  The exe has pSrc in edx (we: ecx) and, in the plane loop, `dec edi` as the first instruction of the body, the
-// store of the plane into the clipper object [ebp-0x1c] after the four argument pushes and `test edi,edi / jne` at the bottom; we
-// decrement at the bottom (`dec edi; test edi,edi; jg`) and store the clipper before the pushes.  A temporary `&UnkType_PlaneClipper(pPlane)`
-// (non-standard rvalue address) gives the same code as the named local; `iPlane != 0`/`iPlane` forms give `jne` but 2 bytes less.
+// Not matching: 18/692 bytes differ (6 aligned instruction mismatches, 235 instructions each). The six-plane clip loop now has
+// the target's down-count, delayed clipper store, bottom `test/jne`, and `pop edi` placement. Remaining differences are in the initial
+// source-pointer register choice and first vertex-loop setup ordering; keep this a STUB until the whole function is byte-exact.
 // STUB: D3DREN 0x10026d6a
 void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist)
 {
@@ -902,14 +896,13 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 		LTPlane *pPlane;
 		int nClip;
 		int iPlane;
-		pClipVerts = pVerts;
-		nClip = nVerts;
-		pClipOut = (UnkType_Vertex36 *)g_pClipScratchVerts;
 		pPlane = pInfo->m_FrustumPlanes;
-		for (iPlane = 6; iPlane > 0; iPlane--)
+		pClipOut = (UnkType_Vertex36 *)g_pClipScratchVerts;
+		pClipVerts = pVerts;
+		for (iPlane = 6, nClip = nVerts; iPlane != 0; )
 		{
-			clipper.m_Unk00 = pPlane;
-			if (!FUN_100260ce(&clipper, &pClipVerts, &nClip, &pClipOut))
+			--iPlane;
+			if (!FUN_100260ce((clipper.m_Unk00 = pPlane, &clipper), &pClipVerts, &nClip, &pClipOut))
 				return;
 			pPlane++;
 		}

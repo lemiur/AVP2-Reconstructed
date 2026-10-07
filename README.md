@@ -64,14 +64,16 @@ The DLL was built with a different compiler from the engine: the VC6 RTM front e
 
 | d3d.ren | |
 |---|---|
-| Annotated functions matching | 1,177 of 1,177 (1,175 addresses) |
-| Function code matched by source | 138,729 of 280,684 bytes (49.4%) |
-| Written but not yet matching (`// STUB:`) | 85 functions (94,803 bytes) |
+| Annotated functions matching | 1,188 of 1,188 (1,186 addresses) |
+| Function code matched by source | 145,377 of 280,684 bytes (51.794%) |
+| Written but not yet matching (`// STUB:`) | 74 functions (88,097 compiled bytes) |
 | Prebuilt library code (VC6 RTM CRT) | 469 functions, 41,550 bytes (14.8%) |
-| objdiff | 64.11% of code, 1,643 of 1,729 functions, 150 of 178 units complete |
+| objdiff | 66.49% of code, 1,654 of 1,729 functions, 154 of 178 units complete |
 
-The source is organised as the DLL's 52 original object files, recovered from the binary's layout. Work is paused
-at the checkpoint above. Still to do: the remaining stubs, the data sections (initialisers, vtables, ownership and
+The source is organised as the DLL's 52 original object files, recovered from the binary's layout. The 2026-10-07
+checkpoint adds eleven exact matches (6,648 bytes), including one more match (288 bytes) in the latest continuation;
+details and validation are in `README_D3DREN.md`.
+Still to do: the remaining stubs, the data sections (initialisers, vtables, ownership and
 order), removing the last three stand-in definitions, and a relink of the DLL itself. Its string resource and its
 three exports are already reconstructed (`config/d3dren/d3dren.rc`, `d3dren.def`) and verified against the
 original by `tools/test_d3dren_resources.py`; no complete renderer DLL has been linked yet.

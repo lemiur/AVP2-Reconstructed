@@ -72,7 +72,7 @@ extern float DAT_1004ffcc;		// guess: u of the left texel edge of the particle t
 // GLOBAL: D3DREN 0x1004ffd0
 extern float DAT_1004ffd0;
 // GLOBAL: D3DREN 0x1004ffd4
-extern float DAT_1004ffd4;		// guess: specular colour of every particle vertex
+extern uint32 DAT_1004ffd4;		// packed fog/specular colour: callback writes uint32; original 0x100097b0 copies the bits
 // GLOBAL: D3DREN 0x1004ffd8
 extern float DAT_1004ffd8;		// guess: v of the top texel edge, DAT_100513dc: v of the bottom edge
 // GLOBAL: D3DREN 0x100513dc
@@ -175,7 +175,7 @@ void FUN_10008ce0(LTParticleSystem *pSystem)
 		else
 			pView = &g_ViewParams.m_mClipTransform;
 		MatMul(&mFull, pView, &mObject);
-		g_pfnCalcFogAlpha(&pSystem->m_Pos, (uint32 *)&DAT_1004ffd4);
+		g_pfnCalcFogAlpha(&pSystem->m_Pos, &DAT_1004ffd4);
 		DAT_1004ffc0 = 1.0f / 255.0f;
 		DAT_1004ffc4 = 1.0f / 255.0f;
 		DAT_1004ffc8 = 1.0f / 255.0f;
@@ -193,7 +193,9 @@ void FUN_10008ce0(LTParticleSystem *pSystem)
 // guess: draws nCount particles of a system starting at pParticle: transforms each particle to camera space and to screen space, drops
 // those outside the view volume, builds a screen aligned quad of 4 TL vertices per particle (size in pixels from the particle size or
 // fSize, colour from the system colour and the particle colour / alpha, the texture coordinates clipped together with the quad against the
-// screen rectangle), and draws the quads with DrawIndexedPrimitive; returns the particle after the last one.  Not iterated against the exe yet.
+// screen rectangle), and draws the quads with DrawIndexedPrimitive; returns the particle after the last one.
+// Recovered from the original: 1.2f view-volume limit, packed uint32 fog/specular colour, and once-per-call UV endpoint loads.
+// Still not byte-matched: the frame, spills, x87 expression order and vertex-store schedule differ.
 // STUB: D3DREN 0x10009370
 PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize)
 {
@@ -202,6 +204,12 @@ PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int n
 	float fRed, fGreen, fBlue, fAlpha;
 	float fHalfSize, fHalfSizeBase;
 	float *m = &pMat->m[0][0];
+	// Original UV endpoints are loaded once at 0x100093b6..0x10009405.
+	float fBaseU0 = DAT_1004ffcc;
+	float fBaseU1 = DAT_1004ffd0;
+	float fBaseV0 = DAT_1004ffd8;
+	float fBaseV1 = DAT_100513dc;
+
 
 	pOut = aVerts;
 	fRed = (float)pSystem->m_ColorR * DAT_1004ffc0;
@@ -222,7 +230,8 @@ PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int n
 			float vx = (m[1] * fY + fZ * m[2] + m[0] * fX + m[3]) * fInvW;
 			float vy = (fZ * m[6] + m[4] * fX + fY * m[5] + m[7]) * fInvW;
 			float vz = (fZ * m[10] + m[8] * fX + fY * m[9] + m[11]) * fInvW;
-			float fLimit = vz * 0.5f;
+			// The original fmul at 0x100094d1 reads 1.2f from 0x100461e8.
+			float fLimit = vz * 1.2f;
 
 			if (g_ViewParams.m_NearZ < vz && vz < g_ViewParams.m_FarZ && -fLimit < vx && vx < fLimit && vy < fLimit && -fLimit < vy)
 			{
@@ -243,36 +252,36 @@ PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int n
 				y0 = sy - fExtent;
 				x1 = sx + fExtent;
 				y1 = sy + fExtent;
-				u0 = DAT_1004ffcc;
-				v0 = DAT_1004ffd8;
-				u1 = DAT_1004ffd0;
-				v1 = DAT_100513dc;
+				u0 = fBaseU0;
+				v0 = fBaseV0;
+				u1 = fBaseU1;
+				v1 = fBaseV1;
 				if (x0 < g_ViewParams.m_fScreenMinX)
 				{
-					u0 = (DAT_1004ffd0 - DAT_1004ffcc) * ((g_ViewParams.m_fScreenMinX - x0) / (x1 - x0)) + DAT_1004ffcc;
+					u0 = (fBaseU1 - fBaseU0) * ((g_ViewParams.m_fScreenMinX - x0) / (x1 - x0)) + fBaseU0;
 					x0 = g_ViewParams.m_fScreenMinX;
 				}
 				if (y0 < g_ViewParams.m_fScreenMinY)
 				{
-					v0 = (DAT_100513dc - DAT_1004ffd8) * ((g_ViewParams.m_fScreenMinY - y0) / (y1 - y0)) + DAT_1004ffd8;
+					v0 = (fBaseV1 - fBaseV0) * ((g_ViewParams.m_fScreenMinY - y0) / (y1 - y0)) + fBaseV0;
 					y0 = g_ViewParams.m_fScreenMinY;
 				}
-				u1 = DAT_1004ffd0;
+				u1 = fBaseU1;
 				if (g_ViewParams.m_fScreenMaxX < x1)
 				{
-					u1 = (DAT_1004ffd0 - u0) * ((g_ViewParams.m_fScreenMaxX - x0) / (x1 - x0)) + u0;
+					u1 = (fBaseU1 - u0) * ((g_ViewParams.m_fScreenMaxX - x0) / (x1 - x0)) + u0;
 					x1 = g_ViewParams.m_fScreenMaxX;
 				}
 				if (g_ViewParams.m_fScreenMaxY < y1)
 				{
-					v1 = (DAT_100513dc - v0) * ((g_ViewParams.m_fScreenMaxY - y0) / (y1 - y0)) + v0;
+					v1 = (fBaseV1 - v0) * ((g_ViewParams.m_fScreenMaxY - y0) / (y1 - y0)) + v0;
 					y1 = g_ViewParams.m_fScreenMaxY;
 				}
 
-				pOut[0].m_Vec.x = x0; pOut[0].m_Vec.y = y0; pOut[0].m_Vec.z = sz; pOut[0].rhw = fW; pOut[0].color = dwColor; pOut[0].specular = (uint32)DAT_1004ffd4; pOut[0].tu = u0; pOut[0].tv = v0;
-				pOut[1].m_Vec.x = x1; pOut[1].m_Vec.y = y0; pOut[1].m_Vec.z = sz; pOut[1].rhw = fW; pOut[1].color = dwColor; pOut[1].specular = (uint32)DAT_1004ffd4; pOut[1].tu = u1; pOut[1].tv = v0;
-				pOut[2].m_Vec.x = x1; pOut[2].m_Vec.y = y1; pOut[2].m_Vec.z = sz; pOut[2].rhw = fW; pOut[2].color = dwColor; pOut[2].specular = (uint32)DAT_1004ffd4; pOut[2].tu = u1; pOut[2].tv = v1;
-				pOut[3].m_Vec.x = x0; pOut[3].m_Vec.y = y1; pOut[3].m_Vec.z = sz; pOut[3].rhw = fW; pOut[3].color = dwColor; pOut[3].specular = (uint32)DAT_1004ffd4; pOut[3].tu = u0; pOut[3].tv = v1;
+				pOut[0].m_Vec.x = x0; pOut[0].m_Vec.y = y0; pOut[0].m_Vec.z = sz; pOut[0].rhw = fW; pOut[0].color = dwColor; pOut[0].specular = DAT_1004ffd4; pOut[0].tu = u0; pOut[0].tv = v0;
+				pOut[1].m_Vec.x = x1; pOut[1].m_Vec.y = y0; pOut[1].m_Vec.z = sz; pOut[1].rhw = fW; pOut[1].color = dwColor; pOut[1].specular = DAT_1004ffd4; pOut[1].tu = u1; pOut[1].tv = v0;
+				pOut[2].m_Vec.x = x1; pOut[2].m_Vec.y = y1; pOut[2].m_Vec.z = sz; pOut[2].rhw = fW; pOut[2].color = dwColor; pOut[2].specular = DAT_1004ffd4; pOut[2].tu = u1; pOut[2].tv = v1;
+				pOut[3].m_Vec.x = x0; pOut[3].m_Vec.y = y1; pOut[3].m_Vec.z = sz; pOut[3].rhw = fW; pOut[3].color = dwColor; pOut[3].specular = DAT_1004ffd4; pOut[3].tu = u0; pOut[3].tv = v1;
 				pOut += 4;
 			}
 			pParticle = pParticle->m_pNext;

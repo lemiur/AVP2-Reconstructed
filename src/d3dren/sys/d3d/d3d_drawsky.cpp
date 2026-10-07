@@ -159,11 +159,7 @@ void FUN_10019351(WorldPoly *pPoly)
 // FUNCTION: D3DREN 0x1001955d _$E7
 
 // guess: the objects of the sky: a world model's polygons are drawn back to front through its BSP, with the sky colour of the object
-// STUB diagnosis (W6): 307 bytes, the same instructions in the same order (13 aligned mismatches, all relocation naming); the only
-// structural difference is the cold block `xor esi,esi; jmp done` of the BSP walk: the exe has it at the end of the function after the
-// loop, ours places it in front of the loop head (`jmp 0x111; xor esi,esi`).  The if/else iSide form is what is closest; an
-// early-initialised iSide and the permuter (6 minutes) do not move the block.
-// STUB: D3DREN 0x1001955e
+// FUNCTION: D3DREN 0x1001955e
 void FUN_1001955e(LTObject *pObject)
 {
 	WorldModelInstance *pInstance = (WorldModelInstance *)pObject;
@@ -190,18 +186,10 @@ void FUN_1001955e(LTObject *pObject)
 				}
 				else
 				{
-					int iSide;
 					LTPlane *pPlane = pNode->GetPlane();
-					if (pPlane->DistTo(g_SkyParams.m_Pos) > 0.0f)
-					{
-						iSide = 1;
-						if (!(((Surface *)pNode->m_pPoly->m_pSurface)->m_Flags & SURF_INVISIBLE))
-							FUN_10019351(pNode->m_pPoly);
-					}
-					else
-					{
-						iSide = 0;
-					}
+					int iSide = pPlane->DistTo(g_SkyParams.m_Pos) > 0.0f;
+					if (iSide && !(((Surface *)pNode->m_pPoly->m_pSurface)->m_Flags & SURF_INVISIBLE))
+						FUN_10019351(pNode->m_pPoly);
 					*ppStack++ = pNode->m_Sides[iSide];
 					pNode = pNode->m_Sides[iSide == 0];
 				}

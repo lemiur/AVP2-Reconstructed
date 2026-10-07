@@ -111,20 +111,11 @@ void FUN_10007e5d(WorldPoly *pPoly, TLVertex *pVerts, int nVerts);
 uint32 FUN_10013990(uint8 r, uint8 g, uint8 b);		// unit unk/100132a0: packs three bytes into a D3DCOLOR
 int FUN_10013e80(int nVertices);					// unit unk/100132a0: grows the scratch array
 
-// The dynamic light setup object of FUN_100325e8 (unit unk/10030bb0, package W9: UnkType_DynLMSetup derives from UnkType_LMLock of include/d3dren/lightmap.h; this unit
-// declares the same-named types with the call shape only, because including lightmap.h here changes the code of FUN_100088ec / FUN_10008a23 (4 bytes each, measured):
-// the two structs below are layout-only views of W9's, the names are the decorated-name part of the shared prototype).
-struct UnkType_LMLock
-{
-	uint8	m_Pad00[0x54];
-	int FUN_10034af0(WorldPoly *pPoly, int bClear, uint32 width = 0, uint32 height = 0);	// 0x10034af0
-	int FUN_10034c7c(int bUpload);																// 0x10034c7c
-};
+// The dynamic light setup object of FUN_100325e8 uses the canonical shared lightmap layout.
+#include "d3dren/lightmap.h"
 struct UnkType_DynLMSetup : public UnkType_LMLock
 {
 };
-void SetupLMPlaneVectors(uint32 iPlane, const LTVector &N, LTVector &P, LTVector &Q);	// include/d3dren/lightmap.h (unit unk/10034000)
-
 int FUN_100325e8(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, UnkType_PolyLight *pLight, float fScale);	// unit unk/10030bb0
 
 // GLOBAL: D3DREN 0x10094c20
@@ -182,11 +173,8 @@ void FUN_10007976(void)
 //   permuter reached 25.
 // STUB: D3DREN 0x100079e4 ?d3d_SetTexture@@YAHPAUSharedTexture@@KK@Z
 
-// STUB diagnosis: 180 of 184 bytes, 8 aligned mismatches.  The target loads the stage byte then masks EDX after pushing the surface; direct calls and inline
-//   uint8/uint16 wrapper variants produce the same movzx form.  Its UV update caches the stage, loads V then U, stores U, and delays the V store until after
-//   restoring ESI; inline pair setters and read-before-write local snapshots tested so far leave 9-10 aligned mismatches.  The LTLink move and rest of the
-//   function match.
-// STUB: D3DREN 0x10007a89
+// Mask the device stage explicitly; cache the UV pair and read V before U to preserve the original load/store scheduling.
+// FUNCTION: D3DREN 0x10007a89
 void FUN_10007a89(RTexture *pRTexture)
 {
 	UnkType_RTexView *pTex = (UnkType_RTexView *)pRTexture;
@@ -199,19 +187,22 @@ void FUN_10007a89(RTexture *pRTexture)
 		*(int *)&g_pStruct->m_Pad48[0] += pTex->m_Unk10;	// RenderStruct+0x48: per-frame texture byte counter
 		pTex->m_Unk14 = g_CurFrameCode;
 	}
-	g_pD3DDevice->SetTexture((uint8)pTex->m_Unk42, pTex->m_Unk0c);
+	g_pD3DDevice->SetTexture(pTex->m_Unk42 & 0xff, pTex->m_Unk0c);
 	if (pTex->m_Unk16)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHAREF, pTex->m_Unk16);
-	DAT_10061810[pTex->m_Unk42].m_Unk00 = pTex->m_Unk04;
-	DAT_10061810[pTex->m_Unk42].m_Unk04 = pTex->m_Unk08;
+	UnkType_StageUV *pUV = &DAT_10061810[pTex->m_Unk42];
+	float v = pTex->m_Unk08;
+	float u = pTex->m_Unk04;
+	pUV->m_Unk00 = u;
+	pUV->m_Unk04 = v;
 	DAT_10057794++;
 }
 
 // guess: draws one world poly as a triangle fan with the colour, fog and texture coordinates of the current texture (DAT_10055ce0),
 // then adds the dynamic lights of the poly (LMDynamic) and records the vertices in the scratch array for the lightmap pass.
-// STUB diagnosis (W2): 45 of 666 bytes differ, 212 vs 212 instructions: the exe pushes ebx, esi and edi at entry (one shared epilogue for the "vertex buffer overflow"
-//   early return), ours pushes edi first and ebx/esi only after the test (shrink-wrapped pushes, the early return jumps into the epilogue).  Everything
-//   else (fog colour call before Get/SetRenderState, count-down vertex loops, rep movsd copies) already matches the exe's instruction stream.
+// Remaining difference: 3 of 666 bytes, 2 aligned instructions. The vertex-count update at the end reloads nVerts
+// into eax instead of the target's edx. Restoring fog and returning on clipping/growth failure preserves the
+// original entry pushes and shared epilogue; all 212 instructions otherwise align with the target.
 // STUB: D3DREN 0x10007b41
 void FUN_10007b41(WorldPoly *pPoly)
 {
@@ -274,8 +265,12 @@ void FUN_10007b41(WorldPoly *pPoly)
 		if (!g_CV_LMDynamic.m_IntVal)
 			FUN_100083ec(pPoly, aVerts, nVerts);
 
-		if (FUN_100085f2(&pVerts, &nVerts, &g_ViewParams, 0) &&
-			(DAT_100587e4 + nVerts <= DAT_1005a368 || FUN_10013e80(DAT_1005a368 + nVerts + 0x5dc)))
+		if (!FUN_100085f2(&pVerts, &nVerts, &g_ViewParams, 0) ||
+			!(DAT_100587e4 + nVerts <= DAT_1005a368 || FUN_10013e80(DAT_1005a368 + nVerts + 0x5dc)))
+		{
+			g_pD3DDevice->SetRenderState(saved.m_Type, saved.m_Val);
+			return;
+		}
 		{
 			TLVertex *pStore = DAT_100587fc + DAT_100587e4;
 			UnkType_PoolNode *pNode;
@@ -379,26 +374,36 @@ void __fastcall FUN_100083ae(CountAdder *pThis)
 	uint32 nTicks = cnt_EndCounter(pThis->m_Counter);
 	*pThis->m_pNum += nTicks;
 }
+// Layout-identical CountAdder view without its inline destructor; the exe's destructor copy is called explicitly at scope exit.
+struct UnkType_CountAdderRaw
+{
+	UnkType_CountAdderRaw(uint32 *pNum)
+	{
+		m_pNum = pNum;
+		cnt_StartCounter(m_Counter);
+	}
+
+	Counter		m_Counter;
+	uint32		*m_pNum;
+};
 // FUNCTION: D3DREN 0x100085d3 ?MagSqr@?$_CVector@M@@QBEMXZ
 // FUNCTION: D3DREN 0x1000868d ?MatVMul_InPlace_H@@YAMPAVLTMatrix@@PAV?$_CVector@M@@@Z
 
 // guess: dynamic light pass of a world poly (LMDynamic): for every light of the poly draws the poly again with additive blending and
 // texture coordinates projected from the light position.
-// STUB diagnosis (W2): 140 aligned mismatches (74 ignoring stack offsets), 833 of 826 bytes.  (1) Frame layout: the exe frame is 0x100 (the LTMatrix copy used for Inverse() and the
-//   local lightmap setup object share slots through block scope, mInvTransform below), ours 0xf0; the four saved render states are laid out
-//   alpha, dest, src, fog from the top in the exe (dest above src) and in first-use order in ours; the CountAdder / P / Q slots differ.  (2) The exe destroys
-//   the local CountAdder out of line (`lea ecx,[ebp-0x54]; call 0x100083ae`, the copy of CountAdder::~CountAdder), ours expands the destructor inline
-//   (counter.h defines it in the class body; no source shape tried (toy files, auto_inline) kept it out of line).  Structure and call sequence are the same.
-// STUB: D3DREN 0x10007e5d
+// The executable uses the out-of-line CountAdder destructor and projects each transformed vertex with LTVector::Dot.
+// FUNCTION: D3DREN 0x10007e5d
 void FUN_10007e5d(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 {
 	if (g_CV_LMDynamic.m_IntVal)
 	{
-		CountAdder cTimer(g_pSceneDesc->m_pTicks_Render_PolyGrids);
+		LTVector P;
+		UnkType_CountAdderRaw cTimer(g_pSceneDesc->m_pTicks_Render_PolyGrids);
+		LTVector Q;
 		struct SavedState { D3DRENDERSTATETYPE m_Type; DWORD m_Val; };
 		SavedState rsAlphaBlend, rsDestBlend, rsSrcBlend, rsFogColor;
 		DWORD dwOldAddress;
-		LTVector P, Q;
+
 		LTMatrix mInvTransform;
 		UnkType_PolyLight *pLight;
 
@@ -439,19 +444,21 @@ void FUN_10007e5d(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 				if (setup.FUN_10034c7c(nBuild) && nBuild)
 				{
 					float fScale = 1.0f / (pLight->m_pLight->GetLightRadius((uint32)pLight->m_pLight) * g_CV_LMDynamicScale.m_FloatVal);
-					int n;
-					float *pUV = &pVerts->tu;
-
-					for (n = nVerts; n; n--)
+					int n = nVerts;
+					if (n)
 					{
-						LTVector vWorld;
-						LTVector vDelta;
+						float *pUV = &pVerts->tv;
+						for (; n; n--)
+						{
+							LTVector vWorld;
+							LTVector vDelta;
 
-						mInvTransform.Apply4x4(*(LTVector *)((uint8 *)pUV - 0x18), vWorld);
-						vDelta = vWorld - pLight->m_Pos;
-						pUV[0] = (P.z * vDelta.z + P.y * vDelta.y + P.x * vDelta.x) * fScale + 0.5f;
-						pUV[1] = (Q.z * vDelta.z + Q.y * vDelta.y + Q.x * vDelta.x) * fScale + 0.5f;
-						pUV += 8;
+							mInvTransform.Apply4x4(*(LTVector *)((uint8 *)pUV - 0x1c), vWorld);
+							vDelta = vWorld - pLight->m_Pos;
+							pUV[-1] = P.Dot(vDelta) * fScale + 0.5f;
+							pUV[0] = Q.Dot(vDelta) * fScale + 0.5f;
+							pUV += 8;
+						}
 					}
 					g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 				}
@@ -465,6 +472,7 @@ void FUN_10007e5d(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 		g_pD3DDevice->SetRenderState(rsDestBlend.m_Type, rsDestBlend.m_Val);
 		g_pD3DDevice->SetRenderState(rsSrcBlend.m_Type, rsSrcBlend.m_Val);
 		g_pD3DDevice->SetRenderState(rsAlphaBlend.m_Type, rsAlphaBlend.m_Val);
+		FUN_100083ae((CountAdder *)&cTimer);
 	}
 }
 

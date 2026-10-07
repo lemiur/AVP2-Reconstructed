@@ -579,12 +579,11 @@ void d3d_UnsetDetailTexture(void);				// d3dstate.h: disable stage 1 colour op a
 // the viewport, the capability flags the dump (LISTDEVICECAPS) prints, the default render states, the two-stage validation and the lightmap mode).
 // Low confidence for the name (the strings are Talon's own); roles: pNode is the enumerated device node (UnkType_DeviceNode), pInit the mode
 // the engine asked for.  Returns 1 on success.
-// STUB diagnosis: 2608 of 2608 bytes (755 instructions in the exe, 748 in ours), same call sequence; the differences are (1) the frame slots of the
-//   big locals (exe: ddsd at esp+0x58, desc +0xd4, bltfx +0x1c0, DDCAPS hal +0x224 / hel +0x3a0, viewport +0x38; ours ddsd at +0x48 and the rest
-//   shifted accordingly -- the frame size 0x50c matches once the 16 byte state object is a function-scope local and the caps/free memory
-//   DWORDs sit in an inner scope), (2) the exe merges the "Unable to create a primary surface." failure of the flipping chain (first test) into the
-//   copy of the windowed branch (`jne 0x1001aff3`), ours leaves each failure block in place, (3) a few operand/register choices that follow from
-//   (1).  Tried: declaration order of the locals, scoped/unscoped locals, failure paths as goto and as duplicated blocks.
+// STUB diagnosis: the large local frame differs (exe: ddsd at esp+0x58, desc +0xd4, bltfx +0x1c0, DDCAPS hal +0x224 / hel +0x3a0, viewport +0x38;
+//   ours ddsd at +0x48; frame size 0x50c matches once the 16-byte state object is a function-scope local and the caps/free-memory DWORDs sit in an
+//   inner scope).  The initial flipping-surface failure and windowed primary-surface failure now share the primary-surface message/cleanup label,
+//   matching the exe's `jne 0x1001aff3`; the retry failure keeps its separate message push at 0x1001af72.  The reference-rasterizer,
+//   QueryInterface, and Force1Pass diagnostic literals now match the exe's strings at 0x1004b094, 0x1004aff8, and 0x1004aebc.
 // STUB: D3DREN 0x1001acc0
 int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 {
@@ -603,7 +602,7 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 	ShowCursor(0);
 	if (DAT_1005848c)
 	{
-		g_pStruct->ConsolePrint("USING DIRECT3D REFERENCE RASTERIZER");
+		g_pStruct->ConsolePrint("USING DIRECT3D REFERENCE RASTERIZER (SLOOOOOOOW!)");
 		DAT_10057828 = DDSCAPS_SYSTEMMEMORY;
 		guid = IID_IDirect3DRefDevice;
 	}
@@ -657,7 +656,7 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 
 	if (g_pDD->QueryInterface(IID_IDirect3D7, (void **)&g_pD3D) != 0)
 	{
-		AddDebugMessage(1, "QueryInterface(IID_IDirect3D7) failed.");
+		AddDebugMessage(1, "QueryInterface(IID_IDirect3D7) failed.. are you running NT 4.0?");
 		d3d_FreeDDraw();
 		return 0;
 	}
@@ -672,11 +671,7 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 		if (g_pDD->CreateSurface(&ddsd, &g_pBackBuffer, 0) != 0)
 		{
 			if (ddsd.dwBackBufferCount != 2)
-			{
-				AddDebugMessage(1, "Unable to create a primary surface.");
-				d3d_FreeDDraw();
-				return 0;
-			}
+				goto PrimarySurfaceFailure;
 			AddDebugMessage(0, "Unable to use triple buffering.");
 			ddsd.dwBackBufferCount = 1;
 			if (g_pDD->CreateSurface(&ddsd, &g_pBackBuffer, 0) != 0)
@@ -702,11 +697,7 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 		ddsd.dwFlags = DDSD_CAPS;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 		if (g_pDD->CreateSurface(&ddsd, &g_pPrimary, 0) != 0)
-		{
-			AddDebugMessage(1, "Unable to create a primary surface.");
-			d3d_FreeDDraw();
-			return 0;
-		}
+			goto PrimarySurfaceFailure;
 
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwHeight = pInit->m_Mode.m_Height;
@@ -728,6 +719,12 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 		}
 	}
 
+	goto SurfaceCreationSucceeded;
+PrimarySurfaceFailure:
+	AddDebugMessage(1, "Unable to create a primary surface.");
+	d3d_FreeDDraw();
+	return 0;
+SurfaceCreationSucceeded:
 	memset(&bltfx, 0, sizeof(bltfx));
 	bltfx.dwSize = sizeof(bltfx);
 	for (i = 4; i; i--)
@@ -876,7 +873,7 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 		else
 		{
 			DAT_1005c7e0 = 0;
-			AddDebugMessage(0, "Force1Pass doesn't work on this card.");
+			AddDebugMessage(0, "Force1Pass doesn't work on this card.  Using 2 pass lightmapping.");
 		}
 	}
 	else

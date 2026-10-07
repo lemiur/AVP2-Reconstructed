@@ -252,21 +252,20 @@ static inline void SkinVertexInto(ModelVert *pVert, LTMatrix *pTransforms, float
 #define MODELVERT_LOOP(BOUNDS, BLEND) 	for (; nVerts != 0; nVerts--, pVert++, pDest++) 	{ 		pDest->m_Vec.x = 0.0f; 		pDest->m_Vec.y = 0.0f; 		pDest->m_Vec.z = 0.0f; 		pDest->rhw = 0.0f; 		SkinVertexInto(pVert, pTransforms, &pDest->m_Vec.x); 		if (BLEND) 		{ 			ModelVert *pVertB = &pLOD2->m_Verts.GetArray()[pVert->m_iReplacement]; 			float vb[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; 			SkinVertexInto(pVertB, pTransforms, vb); 			pDest->m_Vec.x = (vb[0] - pDest->m_Vec.x) * m_fLODBlend + pDest->m_Vec.x; 			pDest->m_Vec.y = (vb[1] - pDest->m_Vec.y) * m_fLODBlend + pDest->m_Vec.y; 			pDest->m_Vec.z = (vb[2] - pDest->m_Vec.z) * m_fLODBlend + pDest->m_Vec.z; 			pDest->rhw = 1.0f / ((vb[3] - pDest->rhw) * m_fLODBlend + pDest->rhw); 		} 		else 			pDest->rhw = 1.0f / pDest->rhw; 		pDest->m_Vec.x = pDest->rhw * pDest->m_Vec.x; 		pDest->m_Vec.y = pDest->rhw * pDest->m_Vec.y; 		pDest->m_Vec.z = pDest->rhw * pDest->m_Vec.z; 		if (BOUNDS) 		{ 			if (pMin[0] <= pDest->m_Vec.x) { if (pMax[0] < pDest->m_Vec.x) pMax[0] = pDest->m_Vec.x; } else pMin[0] = pDest->m_Vec.x; 			if (pMin[1] <= pDest->m_Vec.y) { if (pMax[1] < pDest->m_Vec.y) pMax[1] = pDest->m_Vec.y; } else pMin[1] = pDest->m_Vec.y; 			if (pMin[2] <= pDest->m_Vec.z) { if (pMax[2] < pDest->m_Vec.z) pMax[2] = pDest->m_Vec.z; } else pMin[2] = pDest->m_Vec.z; 		} 		float fDot = fDx * pVert->m_Normal.x + fDy * pVert->m_Normal.y + fDz * pVert->m_Normal.z; 		float fR = fBaseR, fG = fBaseG, fB = fBaseB; 		if (0.0f < fDot) 		{ 			fR = (fLitR - fBaseR) * fDot + fBaseR; 			fG = (fLitG - fBaseG) * fDot + fBaseG; 			fB = (fLitB - fBaseB) * fDot + fBaseB; 		} 		UnkType_ModelLight *pLight = m_Unk3c; 		UnkType_ModelLight *pLightEnd = m_Unk3c + m_nModelLights; 		for (; pLight != pLightEnd; pLight++) 		{ 			float fLd = pVert->m_Normal.x * pLight->m_Unk10.x + pVert->m_Normal.y * pLight->m_Unk10.y + pVert->m_Normal.z * pLight->m_Unk10.z; 			if (0.0f < fLd) 			{ 				float fDist = (pVert->m_Vec.y - pLight->m_Unk00.y) * (pVert->m_Vec.y - pLight->m_Unk00.y) 					+ (pVert->m_Vec.z - pLight->m_Unk00.z) * (pVert->m_Vec.z - pLight->m_Unk00.z) 					+ (pVert->m_Vec.x - pLight->m_Unk00.x) * (pVert->m_Vec.x - pLight->m_Unk00.x); 				if (fDist < pLight->m_Unk0c) 				{ 					fLd = (pLight->m_Unk0c - fDist) * fLd; 					fR = fLd * pLight->m_Unk1c.x + fR; 					fG = fLd * pLight->m_Unk1c.y + fG; 					fB = fLd * pLight->m_Unk1c.z + fB; 				} 			} 		} 		if (255.0f < fR) 			fR = 255.0f; 		if (255.0f < fG) 			fG = 255.0f; 		if (255.0f < fB) 			fB = 255.0f; 		pLighting[0] = fR + pLighting[0]; 		pLighting[1] = fG + pLighting[1]; 		pLighting[2] = fB + pLighting[2]; 		pDest->rgb.r = (uint8)RoundFloatToInt(fR); 		pDest->rgb.g = (uint8)RoundFloatToInt(fG); 		pDest->rgb.b = (uint8)RoundFloatToInt(fB); 		pDest->rgb.a = m_Unk8a8; 		pfn(pDest); 	}
 
 // guess: projection with a z bias: the clip-space position of the vertex moved nearer by fZBias, used by the "really close" draw.
-// Not matching (138/256 bytes, 69 aligned mismatches): the first product chain (w) is identical; the exe keeps the three results in
-// float spill slots ([esp], [esp+4], [esp+8], moved with integer movs into pDest at the end) and reuses the dead parameter slot for
-// fZBias + pSrc[2], so its frame is 0xc against our 8.  Named float locals for the results and for z + bias were tried (151 bytes,
-// worse: the x87 first-reference order of the first chain changes).
-// STUB: D3DREN 0x100062e0
+// Collect xyz in a vector, write the biased reciprocal w, then copy the vector. This preserves the target's
+// three float spill slots and integer copies; x/y use the unbiased w while z uses the biased coordinate and w.
+// FUNCTION: D3DREN 0x100062e0
 void __cdecl FUN_100062e0(float *pDest, float *pSrc, float fZBias)
 {
+	LTVector result;
 	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
-	float fY = g_ViewParams.m_DeviceTimesProjection.m[1][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[1][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[1][3];
-	float w2 = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * (fZBias + pSrc[2]) + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
-	float fZ = g_ViewParams.m_DeviceTimesProjection.m[2][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[2][2] * (fZBias + pSrc[2]) + g_ViewParams.m_DeviceTimesProjection.m[2][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[2][3];
-	pDest[0] = (g_ViewParams.m_DeviceTimesProjection.m[0][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[0][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
-	pDest[1] = fY * w;
+	result.x = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
+	result.y = (g_ViewParams.m_DeviceTimesProjection.m[1][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[1][3]) * w;
+	float z = fZBias + pSrc[2];
+	float w2 = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * z + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.z = (g_ViewParams.m_DeviceTimesProjection.m[2][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[2][2] * z + g_ViewParams.m_DeviceTimesProjection.m[2][3]) * w2;
 	pDest[3] = w2;
-	pDest[2] = fZ * w2;
+	*(LTVector *)pDest = result;
 }
 
 // ---- plane clippers (merged from the W1 scratch unit) ----

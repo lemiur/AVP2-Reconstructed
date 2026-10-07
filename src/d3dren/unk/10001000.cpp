@@ -151,18 +151,20 @@ void __fastcall FUN_10001410(void *pDest, void *pSrc, float *pUV)
 
 // guess: environment map coordinates from the vertex normal: u/v = (normal . row of the matrix at +0x590) * scale + offset
 // (m_EnvMapTransform is an LTMatrix: rows 0 and 1 give u and v).
-// Not matching (12/112 bytes; 18 before the named copy of pSrc): same 37 instructions, the x87 term order of the two sums differs.
-// The exe computes v (the second SetUV argument) first as (5a4*ny + 5a0*nx) + 5a8*nz and then u as (594*ny + 598*nz) + nx*590 (the last
-// product with swapped operands: `fld nx; fmul m590`); ours gives (5a4*ny + 5a8*nz)-first for v and `fld m590; fmul nx` for the last u
-// product.  Source term order never changes it (72 permutations); a named copy of pSrc moves it closer; SDK MatVMul_3x3 into an
-// LTVector temporary (computes u first) is worse (68 bytes); 3000 permuter candidates stopped at this form.
-// STUB: D3DREN 0x10001420
+// Accumulate v before u, one term per statement. The last u term needs the named normal-x load to preserve
+// the target's `fld nx; fmul m590` operand order rather than loading the matrix element first.
+// FUNCTION: D3DREN 0x10001420
 void __fastcall FUN_10001420(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest)
 {
-	UnkType_ModelVertex *pVert = pSrc;	// the named copy changes the x87 term order: 18 -> 12 bytes (found with tools/permute.py)
-	SetUV(pDest,
-		(pThis->m_EnvMapTransform * pVert->m_Unk14 + pThis->m_Unk598 * pVert->m_Unk1c + pThis->m_Unk594 * pVert->m_Unk18) * pThis->m_Unk624 + pThis->m_Unk61c,
-		(pThis->m_Unk5a8 * pVert->m_Unk1c + pThis->m_Unk5a0 * pVert->m_Unk14 + pThis->m_Unk5a4 * pVert->m_Unk18) * pThis->m_Unk628 + pThis->m_Unk620);
+	UnkType_ModelVertex *pVert = pSrc;
+	float v = pThis->m_Unk5a4 * pVert->m_Unk18;
+	v += pThis->m_Unk5a0 * pVert->m_Unk14;
+	v += pThis->m_Unk5a8 * pVert->m_Unk1c;
+	float u = pThis->m_Unk594 * pVert->m_Unk18;
+	u += pThis->m_Unk598 * pVert->m_Unk1c;
+	float x = pVert->m_Unk14;
+	u += x * pThis->m_EnvMapTransform;
+	SetUV(pDest, u * pThis->m_Unk624 + pThis->m_Unk61c, v * pThis->m_Unk628 + pThis->m_Unk620);
 }
 
 // guess: light/specular dot product coordinates from the vertex normal

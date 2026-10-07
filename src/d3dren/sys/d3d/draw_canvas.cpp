@@ -147,11 +147,8 @@ void CanvasDrawMgr::FUN_10022645()
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, m_Unk20);
 }
 
-// STUB diagnosis: 39 of 282 bytes differ, same 103 instructions in the same order.  The exe pushes ebx/esi/edi in the entry block (scheduled between
-//   the argument loads, before `cmp eax, 3`) and its early `return 1` jumps to the common epilogue `pop edi / pop esi / pop ebx`; ours moves the
-//   three pushes behind the `nVertices < 3` test (the early return leaves through a bare `leave; ret`) and puts `xor eax, eax` between the pops.
-//   Tried: ret variable, if/else and nested-if forms of the early return, local declaration order.
-// STUB: D3DREN 0x100226e9
+// An early return when ClipPoly rejects the vertices keeps the callee-saved pushes in the entry block and shares the return epilogue.
+// FUNCTION: D3DREN 0x100226e9
 LTRESULT CanvasDrawMgr::DrawPrimitive(LTVertex *pVerts, uint32 nVerts, uint32 flags)
 {
 	TLVertex *pVertices = (TLVertex *)pVerts;
@@ -173,7 +170,8 @@ LTRESULT CanvasDrawMgr::DrawPrimitive(LTVertex *pVerts, uint32 nVerts, uint32 fl
 		g_ViewParams.m_NearZ = g_CV_ReallyCloseNearZ.m_FloatVal;
 		for (i = 0; i < nVertices; i++)
 			FUN_10008719((float *)((uint8 *)pVertices + i * 0x20), &g_ViewParams.m_mReallyCloseClipTransform.m[0][0]);
-		if (ClipPoly(g_ClipFlags, &pVertices, &nVertices))
+		if (!ClipPoly(g_ClipFlags, &pVertices, &nVertices))
+			return 0;
 		{
 			for (i = 0; i < nVertices; i++)
 				FUN_100062e0((float *)((uint8 *)pVertices + i * 0x20), (float *)((uint8 *)pVertices + i * 0x20), g_CV_NearZ.m_FloatVal);

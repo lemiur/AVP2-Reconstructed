@@ -278,36 +278,28 @@ int UnkType_VertexBufferCache::FUN_1003aabb(uint32 nKey1, uint32 nKey2)
 
 // guess: claim the next free entry (age 0) round-robin from m_Unk50 for the two keys; when every entry is busy and bGrow is set,
 // append a new vertex buffer slot and entry instead.  Returns 0 when nothing could be claimed.
-// Semantics, frame (sub esp,0x10: the 16-byte entry and pNull share the dead bGrow slot), the register of every constant and the
-// two Insert2 calls are right; what differs is block layout only (104 vs 105 instructions, ALIGNED 71):
-//  - exe: `if (arr[i].age == 0) goto found;` then a loop that tests `i == m_Unk50` (m_Unk50 and m_Unk24 re-read from memory every
-//    iteration) with the age test at the bottom; block order found, tail, ret, grow, fail; grow jumps back into the tail
-//    (cross-jumped copy).  The compiler rotates the loop (age test on top, start index cached in ecx) and puts the grow block
-//    in front of found, or, with the tail written twice, does not cross-jump the two tails because the grow copy loads nVertices
-//    into ebx before the call.
-//  - tried: do/while inside `if`, while, for(;;)+break, goto Grow/Tail with the label at the end, tail duplicated in the grow
-//    block (best layout, 68 mismatches, 319 bytes), post-loop flag, block-scoped locals, 4-argument entry constructor
-//    (needed for the frame), reference/pointer locals.  The compiler is the original one now (RTM C1XX/C2 8168),
-//    so this is a source-shape problem (loop/branch structure of the original that is not found yet); tools/permute.py was not run
-//    on it (it cannot handle member functions).
+// The initial free slot must bypass growth (target 0x1003ab28 -> 0x1003ab44); only a full occupied ring grows
+// (0x1003ab37 -> 0x1003abb0). Keep the full-ring check inside the occupied-slot guard.
+// It remains STUB: the candidate is 275 bytes but 221 bytes differ (84 aligned instruction mismatches). VC6 emits grow/fail
+// before found/tail, while the target branches to grow from the scan and lets a found slot fall through to the shared tail.
 // STUB: D3DREN 0x1003ab02
 int UnkType_VertexBufferCache::FUN_1003ab02(uint32 nKey1, uint32 nKey2, uint32 nVertices, int bGrow)
 {
-	uint32 i;
-
 	if (m_Unk5c != 0)
 		FUN_1003ac15();
-	i = m_Unk50;
-	while (m_Unk3c[i].m_Unk0c != 0)
+	uint32 i = m_Unk50;
+	if (m_Unk3c[i].m_Unk0c != 0)
 	{
-		i++;
-		if (i >= m_Unk24)
-			i = 0;
+		do
+		{
+			i++;
+			if (i >= m_Unk24)
+				i = 0;
+		}
+		while (i != m_Unk50 && m_Unk3c[i].m_Unk0c != 0);
 		if (i == m_Unk50)
-			break;
+			goto Grow;
 	}
-	if (i == m_Unk50)
-		goto Grow;
 	m_Unk18 = i;
 	if (m_Unk04[i])
 	{
@@ -336,14 +328,7 @@ Grow:
 			m_Unk24 = m_Unk24 + 1 > 0 ? m_Unk24 + 1 : m_Unk24;
 			UnkType_VBCacheEntry entry(nKey1, nKey2, nVertices, m_Unk60);
 			m_Unk3c.Append(entry);
-			m_Unk50 = m_Unk18 + 1;
-			if (m_Unk50 >= m_Unk24)
-				m_Unk50 = 0;
-			m_Unk5c = 1;
-			m_Unk1c = 0;
-			m_Unk20 = nVertices > 0 ? nVertices : m_Unk20;
-			m_Unk3c[m_Unk18].m_Unk08 = nVertices;
-			return 1;
+			goto Tail;
 		}
 	}
 	return 0;

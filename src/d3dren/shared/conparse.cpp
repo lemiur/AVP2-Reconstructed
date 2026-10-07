@@ -149,17 +149,13 @@ LTBOOL cp_Parse(char *pCommand, const char **pNewCommandPos, char *argBuffer, ch
 	return 0;
 }
 
-// STUB: D3DREN 0x10012fd9
-// Remaining difference: block layout only (221 bytes both, 102 differ).  The inlined cp_AddChar tail (store the character,
-// truncate at PARSE_MAXARGLEN, ++pTokenPos, ++pCurPos) is shared by the '%' and the ordinary branch in both; the exe puts
-// the shared tail after the ordinary branch (the '%' path jumps forward to it), our compile emits it right after the '%'
-// branch and jumps back from the ordinary branch.  Same instruction sequences; reordering the branches/inline keyword/
-// definition order of cp_AddChar changed nothing.
+// Keep the shared character-clamp tail after the ordinary-character store, with the escape path jumping forward to it.
+// A shared result for delimiters also preserves the original return block order.
+// FUNCTION: D3DREN 0x10012fd9
 static GNTResult cp_GetNextToken(const char* &pCurPos, char* &pTokenPos)
 {
 	char *pToken;
 	char curChar;
-	LTBOOL bEnd = LTFALSE;
 
 	// Skip spaces.
 	while(pCurPos[0] == ' ')
@@ -170,7 +166,7 @@ static GNTResult cp_GetNextToken(const char* &pCurPos, char* &pTokenPos)
 		return GNT_NoToken;
 
 	pToken = pTokenPos;
-	while(!bEnd)
+	while(1)
 	{
 		// Get the char.
 		curChar = *pCurPos;
@@ -178,7 +174,7 @@ static GNTResult cp_GetNextToken(const char* &pCurPos, char* &pTokenPos)
 		// End of string?
 		if(curChar == 0)
 		{
-			bEnd = LTTRUE;
+			break;
 		}
 		else if(curChar == SPECIAL_CHAR)
 		{
@@ -187,12 +183,12 @@ static GNTResult cp_GetNextToken(const char* &pCurPos, char* &pTokenPos)
 			curChar = *pCurPos;
 			if(curChar == 0)
 			{
-				bEnd = LTTRUE;
+				break;
 			}
 			else
 			{
-				cp_AddChar(pTokenPos, pToken, curChar);
-				pCurPos++;
+				*pTokenPos = curChar;
+				goto ClampCharacter;
 			}
 		}
 		else if(curChar == ';' || iscntrl(curChar))
@@ -200,17 +196,19 @@ static GNTResult cp_GetNextToken(const char* &pCurPos, char* &pTokenPos)
 			// If this is the first character, then return the fact that it's a semicolon.
 			*pTokenPos = 0;
 			++pTokenPos;
+			GNTResult result;
 			if(pToken[0] == 0)
 			{
 				// Only increment it if it's a full semicolon delimiter, so that
 				// next time around parsing, it'll skip past the semicolon.
 				++pCurPos;
-				return GNT_GotSemicolon;
+				result = GNT_GotSemicolon;
 			}
 			else
 			{
-				return GNT_GotToken;
+				result = GNT_GotToken;
 			}
+			return result;
 		}
 		else if(curChar == '(')
 		{
@@ -219,7 +217,7 @@ static GNTResult cp_GetNextToken(const char* &pCurPos, char* &pTokenPos)
 				++pCurPos;
 				cp_ParseParen(pCurPos, pTokenPos, pToken);
 			}
-			bEnd = LTTRUE;
+			break;
 		}
 		else if(curChar == QUOTE_CHAR)
 		{
@@ -228,16 +226,23 @@ static GNTResult cp_GetNextToken(const char* &pCurPos, char* &pTokenPos)
 				++pCurPos;
 				cp_ParseQuote(pCurPos, pTokenPos, pToken);
 			}
-			bEnd = LTTRUE;
+			break;
 		}
 		else if(curChar == ' ')
 		{
-			bEnd = LTTRUE;
+			break;
 		}
 		else
 		{
-			cp_AddChar(pTokenPos, pToken, curChar);
-			pCurPos++;
+			*pTokenPos = curChar;
+ClampCharacter:
+			if ((pTokenPos - pToken) >= PARSE_MAXARGLEN)
+			{
+				*pTokenPos = 0;
+				--pTokenPos;
+			}
+			++pTokenPos;
+			++pCurPos;
 		}
 	}
 

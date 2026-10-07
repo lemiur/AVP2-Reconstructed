@@ -202,9 +202,9 @@ int LightmapPage::GetBaseHeight()
 // guess: gives the polygon a place in a lightmap page (marks the cells of the page's bitmap, sets the polygon's
 // lightmap texture coordinates in the page and its page pointer); polygons of unlit surfaces and polygons that are
 // already assigned (or flagged by a light animation, WorldPoly::m_Flags & 0x3f) are left alone.
-// Not matching (197 vs 197 instructions, 112 aligned mismatches ignoring stack offsets; frame 0x9c in the exe, 0xac here): the exe computes
-// the vertex lightmap coordinates inline from x87 floats (no LTVector temporary for the delta: our `LTVector d` costs 16 frame bytes),
-// keeps the poly in esi (ours ebx) and loads both lightmap sizes into registers before the page search.  Semantics are the exe's.
+// Not matching (527 vs 533 bytes; 15 aligned instruction mismatches, 15 ignoring stack offsets; 188 vs 190 instructions, both frames 0x9c).
+// The behavior audit reports no difference. Remaining codegen differences include the extent checks, occupancy-map pointer access, and
+// one retained x87 intermediate store in the exe.
 // STUB: D3DREN 0x1003429b
 int FUN_1003429b(RenderContext *pContext, WorldPoly *pPoly)
 {
@@ -373,18 +373,18 @@ void FUN_10034543(WorldBsp *pBsp)
 // guess: builds the lightmap pages of a context: assigns every polygon of the world a page position (the polygons of the
 // "LightAnim_BASE" light animation first when the world has one, in leaf order for a VisBSP), then relights them
 // (FUN_10033210).  Returns 0 (and frees the pages again) when a page could not be made.
-// Not matching (146 vs 147 instructions, 49 aligned mismatches): the nested loops are laid out as in the exe now (leaf-list branch first,
-// one counter for both loops); remaining differences are the placement of the query-record construction (exe stores the leaf pointer
-// from `m_Leafs + offset` before DAT_1007aaf4) and the tail of the two loops (the exe tests the poly flag with a jne/jmp pair).
+// Not matching (10 of 492 bytes differ; 14 aligned instruction mismatches, 0 ignoring stack offsets; 148 vs 148 instructions). The remaining
+// byte differences come from the query/list phase counters occupying opposite stack slots; the instruction sequence otherwise aligns.
 // STUB: D3DREN 0x10034597
 int PageInLightmaps(RenderContext *pContext)
 {
 	MainWorld *pWorld = pContext->m_pWorld;
-	uint32 i, j;
+	uint32 j;
 	WorldBsp *pBsp;
 	LightAnim *pAnim;
 	DWORD tStart;
 	uint32 tElapsed;
+	uint32 iClear;
 
 	DAT_100796f0 = 0;
 	DAT_100796e8 = 0;
@@ -392,25 +392,26 @@ int PageInLightmaps(RenderContext *pContext)
 
 	tStart = timeGetTime();
 
-	for (i = 0; i < pWorld->m_WorldModels.GetSize(); i++)
-		FUN_10034543(pWorld->m_WorldModels[i]->m_pOriginalBsp);
+	for (iClear = 0; iClear < pWorld->m_WorldModels.GetSize(); iClear++)
+		FUN_10034543(pWorld->m_WorldModels[iClear]->m_pOriginalBsp);
 
 	pAnim = pWorld->FindLightAnim("LightAnim_BASE", LTNULL);
 	if (!pAnim || pAnim->m_nFrames < 1)
 		return 0;
 
-	for (i = 0; i < pWorld->m_WorldModels.GetSize(); i++)
+	for (j = 0; j < pWorld->m_WorldModels.GetSize(); j++)
 	{
-		j = 0;
-		pBsp = pWorld->m_WorldModels[i]->m_pOriginalBsp;
-		if (pBsp->m_nLeafLists != 0)
+		uint32 i = 0;
+		pBsp = pWorld->m_WorldModels[j]->m_pOriginalBsp;
+		if (pBsp->m_nLeafLists > 0)
 		{
-			for (; j < pBsp->m_nLeafs; j++)
+			for (; i < pBsp->m_nLeafs; i++)
 			{
+				Leaf *pLeaf = &pBsp->m_Leafs[i];
 				UnkType_LMVisQuery query;
 
 				DAT_1007aaf4 = pContext;
-				query.m_pLeaf = &pBsp->m_Leafs[j];
+				query.m_pLeaf = pLeaf;
 				query.m_pBsp = pBsp;
 				query.m_Unknown0C = (void *)FUN_100344c8;
 				query.m_Unknown10 = (void *)vq_DefaultFn1;
@@ -419,9 +420,9 @@ int PageInLightmaps(RenderContext *pContext)
 		}
 		else
 		{
-			for (; j < pBsp->m_nPolies; j++)
+			for (; i < pBsp->m_nPolies; i++)
 			{
-				if (!FUN_1003429b(pContext, pBsp->m_Polies[j]))
+				if (!FUN_1003429b(pContext, pBsp->m_Polies[i]))
 					goto Failed;
 			}
 		}
@@ -429,22 +430,25 @@ int PageInLightmaps(RenderContext *pContext)
 
 	FreeLightmapPageBitmaps(pContext);
 
-	for (i = 0; i < pWorld->m_WorldModels.GetSize(); i++)
 	{
-		pBsp = pWorld->m_WorldModels[i]->m_pOriginalBsp;
-		for (j = 0; j < pBsp->m_nPolies; j++)
+		uint32 iModel2 = 0;
+		for (; iModel2 < pWorld->m_WorldModels.GetSize(); iModel2++)
+	{
+		uint32 iPoly = 0;
+		pBsp = pWorld->m_WorldModels[iModel2]->m_pOriginalBsp;
+		for (; iPoly < pBsp->m_nPolies; iPoly++)
 		{
-			WorldPoly *pPoly = pBsp->m_Polies[j];
-			if (pPoly->m_Flags & 0x3f)
-			{
-				if (!FUN_10033210(pWorld, pPoly, 1))
-					goto Failed;
-			}
-			else
+			WorldPoly *pPoly = pBsp->m_Polies[iPoly];
+			if (!(pPoly->m_Flags & 0x3f))
 			{
 				WORLDPOLY_LMPAGE(pPoly) = 0;
 			}
+			else if (!FUN_10033210(pWorld, pPoly, 1))
+			{
+				goto Failed;
+			}
 		}
+	}
 	}
 
 	tElapsed = timeGetTime() - tStart;

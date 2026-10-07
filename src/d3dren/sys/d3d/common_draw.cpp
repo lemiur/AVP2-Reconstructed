@@ -214,12 +214,9 @@ void d3d_SetupPerspectiveMatrix(LTMatrix *pMatrix, float nearZ, float farZ);
 // pViewBox is the view window, the screen rectangle is the area on the screen that it maps into,
 // pMat is the viewer matrix and vScale an extra scale that scales all the coordinates up.
 // STUB: D3DREN 0x1000f72b
-// Remaining difference (21 of 952 instructions, same size 2766): instruction scheduling at statement boundaries only.
-// (1) The copies of the matrix products into pParams (rep movsd of m_mShearView/m_mClipTransform) are emitted right after the MatMul
-// call by us, the exe delays each one past the pushes of the next MatMul call; (2) the store of mDevice.m[1][1] and the
-// store of fRange are placed after a push by us and before it in the exe.  Statement order of the device matrix stores,
-// explicit MatMul temporaries and nested assignments were tried (worse).  The frame slots then differ by constant offsets
-// only (the exe's 0x3e4 frame has two more matrix temporaries than the three product temporaries we get from the chain).
+// Remaining difference (41 bytes / 7 aligned instructions of 952; same size 2766). The named half-screen width and height
+// copies below align the device-transform and fRange scheduling. The remaining hunks are the m_mShearView copy relative to
+// the next MatMul argument setup, and push/LEA order around the final hidden-return matrix temporary.
 LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 	ViewBoxDef *pViewBox,
 	float screenMinX, float screenMinY, float screenMaxX, float screenMaxY,
@@ -334,9 +331,11 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 	// Setup the device transform.  It subtracts a little to account for the FP tendency
 	// to slip above and below 0.5.
 	mDevice.Identity();
-	mDevice.m[0][0] = pParams->m_fHalfScreenWidth - 0.0001f;
+	float fDeviceHalfWidth = pParams->m_fHalfScreenWidth;
+	mDevice.m[0][0] = fDeviceHalfWidth - 0.0001f;
 	mDevice.m[0][3] = pParams->m_fScreenCenterX;
-	mDevice.m[1][1] = -(pParams->m_fHalfScreenHeight - 0.0001f);
+	float fDeviceHalfHeight = pParams->m_fHalfScreenHeight;
+	mDevice.m[1][1] = -(fDeviceHalfHeight - 0.0001f);
 	mDevice.m[1][3] = pParams->m_fScreenCenterY;
 
 	// Precalculate useful matrices.

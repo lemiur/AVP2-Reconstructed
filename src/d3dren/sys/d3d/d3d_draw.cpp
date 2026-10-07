@@ -511,25 +511,26 @@ extern float DAT_10056694;	// guess: accumulated screen area of the drawn polys 
 #pragma inline_depth(0)
 inline float FUN_10013f40_Project(LTMatrix *pMat, LTVector *pVec) { return MatVMul_InPlace_H(pMat,pVec); }
 #pragma inline_depth()
-// STUB diagnosis (W2): the 448-byte candidate differs by 22 bytes in seven aligned instructions, all in the x87 load/multiply order
-// of the triangle-area expression.  Seven factor-order flips left the output unchanged.  Six inline helper call permutations using
-// TLVertex* and six using LTVector* compiled identically; a six-float helper grew the function to 464 bytes.
-// STUB: D3DREN 0x10013f40
+// VC6's x87 operand order is reproduced by a separate vertex-array pointer and loop counters for the clipped projection passes.
+// FUNCTION: D3DREN 0x10013f40
 void FUN_10013f40(WorldPoly *pPoly)
 {
 	D3DTLVERTEX aVertsRaw[30];	// plain POD storage: TLVertex has an LTVector member whose constructor would make the array call ??_H
 	TLVertex *aVerts = (TLVertex *)aVertsRaw;
-	TLVertex *pVerts;
 	int nVerts;
+	TLVertex *pVerts;
 	TLVertex *pDest;
 	UnkType_PolyVertex *pSrc;
 	int i;
+	int k;
+	int i2;
 	float fArea;
 
 	nVerts = pPoly->m_nVertices;
 	pVerts = aVerts;
+	TLVertex *pVerts2 = pVerts;
+	pDest = pVerts2;
 	pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
-	pDest = pVerts;
 	for (uint16 j=(uint16)nVerts; j>0; j--)
 	{
 		pDest->m_Vec.x = pSrc->m_Vec->x;
@@ -541,7 +542,7 @@ void FUN_10013f40(WorldPoly *pPoly)
 
 	if (g_ClipFlags == 0)
 	{
-		pDest = pVerts;
+		pDest = pVerts2;
 		for (i = nVerts; i; i--)
 		{
 			pDest->rhw = FUN_10013f40_Project(&g_ViewParams.m_FullTransform, &pDest->m_Vec);
@@ -550,16 +551,16 @@ void FUN_10013f40(WorldPoly *pPoly)
 	}
 	else
 	{
-		pDest = pVerts;
-		for (i = nVerts; i; i--)
+		pDest = pVerts2;
+		for (k = nVerts; k; k--)
 		{
 			FUN_10008719((float *)pDest, (const float *)&g_ViewParams.m_mClipTransform);
 			pDest++;
 		}
-		if (!ClipPoly(g_ClipFlags, &pVerts, &nVerts))
+		if (!ClipPoly(g_ClipFlags, &pVerts2, &nVerts))
 			return;
-		pDest = pVerts;
-		for (i = nVerts; i; i--)
+		pDest = pVerts2;
+		for (i2 = nVerts; i2; i2--)
 		{
 			ProjectVertexToScreen((float *)pDest, &g_ViewParams);
 			pDest++;
@@ -567,11 +568,12 @@ void FUN_10013f40(WorldPoly *pPoly)
 	}
 
 	fArea = 0.0f;
-	for (uint16 n = 0; (int)n < nVerts - 2; n++)
+	int nVerts2 = nVerts;
+	for (uint16 n = 0; (int)n < nVerts2 - 2; n++)
 	{
-		TLVertex *a = pVerts;
-		TLVertex *c = pVerts + n + 2;
-		TLVertex *b = pVerts + n + 1;
+		TLVertex *a = pVerts2;
+		TLVertex *c = pVerts2 + n + 2;
+		TLVertex *b = pVerts2 + n + 1;
 
 		fArea += b->m_Vec.y * a->m_Vec.x - b->m_Vec.x * a->m_Vec.y + a->m_Vec.y * c->m_Vec.x - a->m_Vec.x * c->m_Vec.y + b->m_Vec.x * c->m_Vec.y - b->m_Vec.y * c->m_Vec.x;
 	}
@@ -1714,11 +1716,10 @@ void FUN_100161c0()
 void d3d_DrawWireframeBox(const LTVector &Min, const LTVector &Max, uint32 color);	// 0x100173e0 (scratch unit drawB)
 
 // guess: draws the bounding boxes of the terrain sections of every world model (DrawTerrainSections console variable): z test on, no
-// texture, each box in the colour given by the address of its section (the exe passes the section pointer as the colour).
-// STUB diagnosis (W2): d3d_DrawTerrainSections guess_: 38 aligned mismatches (the permuter reaches 15 with a dead 12-byte LTVector local, the SetTexture/g_pBoundTextures stores swapped and a local copy of pWorld: stack-slot layout), 288 bytes.  Written from the Ghidra C and the disassembly: ZENABLE saved/set, DisableTexture, loop over
-//   MainWorld::m_WorldModels (original BSP, IsUntransformed virtual), terrain sections' nodes via WorldTree::FindNode (virtual +0), d3d_DrawWireframeBox with the
-//   section pointer as colour.  Register allocation of the two nested loops differs (the exe keeps the section array base in edi and the world in ebp).
-// STUB: D3DREN 0x10017980
+// texture, each box in the colour given by the sum of its section and BSP addresses.
+// The original unbinds the normal stage through d3d_DisableTexture, caching the stage across SetTexture.
+// Its debug colour is the sum of the section and BSP addresses (add esi,edi at 0x10017a35).
+// FUNCTION: D3DREN 0x10017980
 void FUN_10017980(MainWorld *pWorld)
 {
 	struct { D3DRENDERSTATETYPE m_Type; DWORD m_Val; } saved;
@@ -1727,11 +1728,7 @@ void FUN_10017980(MainWorld *pWorld)
 	saved.m_Type = D3DRENDERSTATE_ZENABLE;
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ZENABLE, &saved.m_Val);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, 1);
-	if (g_pBoundTextures[g_NormalTextureStage])
-	{
-		g_pD3DDevice->SetTexture(g_NormalTextureStage, 0);
-		g_pBoundTextures[g_NormalTextureStage] = 0;
-	}
+	d3d_DisableTexture(g_NormalTextureStage);
 
 	for (i = 0; i < pWorld->m_WorldModels.GetSize(); i++)
 	{
@@ -1747,7 +1744,7 @@ void FUN_10017980(MainWorld *pWorld)
 				WorldTreeNode *pNode = pWorld->m_WorldTree.FindNode(&pSection->m_NodePath);
 
 				if (pNode)
-					d3d_DrawWireframeBox(pNode->m_BBoxMin, pNode->m_BBoxMax, (uint32)pSection);
+					d3d_DrawWireframeBox(pNode->m_BBoxMin, pNode->m_BBoxMax, (uint32)pSection + (uint32)pBsp);
 			}
 		}
 	}
