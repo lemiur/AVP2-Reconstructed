@@ -35,19 +35,19 @@ ConVar g_CV_ModelMinTri("ModelMinTri", 0.2f);
 // FUNCTION: D3DREN 0x10001050 _$E7
 // FUNCTION: D3DREN 0x10001080 _$E5
 // GLOBAL: D3DREN 0x1004d620
-UnkType_VertexBufferPoolA<0> DAT_1004d620(0);
+UnkType_VertexBufferPoolA<0> g_ModelTransformedVertexPoolTex1(0);
 // FUNCTION: D3DREN 0x10001090 _$E12
 // FUNCTION: D3DREN 0x100010c0 _$E10
 // GLOBAL: D3DREN 0x1004da80
-UnkType_VertexBufferPoolB<0> DAT_1004da80(0);
+UnkType_VertexBufferPoolB<0> g_ModelTransformedVertexPoolTex2(0);
 // FUNCTION: D3DREN 0x100010d0 _$E17
 // FUNCTION: D3DREN 0x10001100 _$E15
 // GLOBAL: D3DREN 0x1004eb48
-UnkType_VertexBufferPoolA<1> DAT_1004eb48(1);
+UnkType_VertexBufferPoolA<1> g_ModelUntransformedVertexPoolTex1(1);
 // FUNCTION: D3DREN 0x10001110 _$E22
 // FUNCTION: D3DREN 0x10001140 _$E20
 // GLOBAL: D3DREN 0x1004dae0
-UnkType_VertexBufferPoolB<1> DAT_1004dae0(1);
+UnkType_VertexBufferPoolB<1> g_ModelUntransformedVertexPoolTex2(1);
 
 // FUNCTION: D3DREN 0x10001150 _$E25
 // GLOBAL: D3DREN 0x1004d5c0
@@ -75,10 +75,10 @@ ConVar g_CV_ModelVBCacheDelay("ModelVBCacheDelay", 4.0f);
 // every unit that includes the header, so this include comes after this unit's own static initialisers).
 #include "d3dren/vbcache.h"
 
-float DAT_1004eb40;
-float DAT_1004eb44;
+float g_ModelTextureUOffset;
+float g_ModelTextureVOffset;
 
-// The exe evaluates the arguments of this right to left and keeps both on the x87 stack (FUN_10001370, FUN_100013d0).
+// The exe evaluates the arguments of this right to left and keeps both on the x87 stack (FillModelBaseTexCoords, CopyModelGeneratedTexCoords).
 static inline void SetUV(TLVertex *pVert, float u, float v)
 {
 	pVert->tu = u;
@@ -88,64 +88,64 @@ static inline void SetUV(TLVertex *pVert, float u, float v)
 // guess: (re)creates the four model vertex buffer pools and the model cache from the ModelVB* console variables: the size
 // is rounded up to a multiple of 3 (whole triangles), the count is at least 1.
 // FUNCTION: D3DREN 0x10001230
-void FUN_10001230(void)
+void d3d_InitModelVertexBufferPools(void)
 {
 	if (g_CV_ModelVBSize.m_IntVal <= 1)
 		g_CV_ModelVBSize.m_IntVal = 1;
 	if (g_CV_ModelVBCount.m_IntVal <= 1)
 		g_CV_ModelVBCount.m_IntVal = 1;
 	g_CV_ModelVBSize.m_IntVal = ((g_CV_ModelVBSize.m_IntVal + 2) / 3) * 3;
-	DAT_1004d620.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, g_TnLRast);
-	DAT_1004da80.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, g_TnLRast);
-	DAT_1004eb48.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, g_TnLRast);
-	DAT_1004dae0.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, g_TnLRast);
-	UnkType_VertexBufferPool *pCache = &UnkType_ModelVBCacheHolder::DAT_10093b10;
-	pCache->FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCache.m_IntVal, 1, g_TnLRast);
-	UnkType_ModelVBCacheHolder::DAT_10093b10.m_Unk60 = g_CV_ModelVBCacheDelay.m_IntVal;
+	g_ModelTransformedVertexPoolTex1.Init(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, g_TnLRast);
+	g_ModelTransformedVertexPoolTex2.Init(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, g_TnLRast);
+	g_ModelUntransformedVertexPoolTex1.Init(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, g_TnLRast);
+	g_ModelUntransformedVertexPoolTex2.Init(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, g_TnLRast);
+	UnkType_VertexBufferPool *pCache = &UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache;
+	pCache->Init(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCache.m_IntVal, 1, g_TnLRast);
+	UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.m_Unk60 = g_CV_ModelVBCacheDelay.m_IntVal;
 }
 
 // guess: releases the two non-cache model pools and the cache (Term, slot 3).
 // FUNCTION: D3DREN 0x10001340
-void FUN_10001340(void)
+void d3d_TermModelVertexBufferPools(void)
 {
-	DAT_1004d620.FUN_1003a805();
-	DAT_1004da80.FUN_1003a805();
-	UnkType_VertexBufferPool *pCache = &UnkType_ModelVBCacheHolder::DAT_10093b10;
-	pCache->FUN_1003a805();
+	g_ModelTransformedVertexPoolTex1.Term();
+	g_ModelTransformedVertexPoolTex2.Term();
+	UnkType_VertexBufferPool *pCache = &UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache;
+	pCache->Term();
 }
 
 // FUNCTION: D3DREN 0x10001370
-void __fastcall FUN_10001370(TLVertex *pDest, void *pSrc, float *pUV)
+void __fastcall FillModelBaseTexCoords(TLVertex *pDest, void *pSrc, float *pUV)
 {
-	SetUV(pDest, DAT_1004eb40 + pUV[0], DAT_1004eb44 + pUV[1]);
+	SetUV(pDest, g_ModelTextureUOffset + pUV[0], g_ModelTextureVOffset + pUV[1]);
 }
 
 // FUNCTION: D3DREN 0x10001390
-void __fastcall FUN_10001390(UnkType_TLVertex40 *pDest, void *pSrc, float *pUV)
+void __fastcall FillModelDetailTexCoords(UnkType_TLVertex40 *pDest, void *pSrc, float *pUV)
 {
-	pDest->tu = DAT_1004eb40 + pUV[0];
-	pDest->tv = DAT_1004eb44 + pUV[1];
+	pDest->tu = g_ModelTextureUOffset + pUV[0];
+	pDest->tv = g_ModelTextureVOffset + pUV[1];
 	pDest->tu2 = g_CV_ModelDetailTextureScale.m_FloatVal * pDest->tu;
 	pDest->tv2 = g_CV_ModelDetailTextureScale.m_FloatVal * pDest->tv;
 }
 
 // FUNCTION: D3DREN 0x100013d0
-void __fastcall FUN_100013d0(TLVertex *pDest, TLVertex *pSrc, float *pUV)
+void __fastcall CopyModelGeneratedTexCoords(TLVertex *pDest, TLVertex *pSrc, float *pUV)
 {
 	SetUV(pDest, pSrc->tu, pSrc->tv);
 }
 
 // FUNCTION: D3DREN 0x100013e0
-void __fastcall FUN_100013e0(UnkType_TLVertex40 *pDest, TLVertex *pSrc, float *pUV)
+void __fastcall FillModelBaseAndGeneratedTexCoords(UnkType_TLVertex40 *pDest, TLVertex *pSrc, float *pUV)
 {
-	pDest->tu = DAT_1004eb40 + pUV[0];
-	pDest->tv = DAT_1004eb44 + pUV[1];
+	pDest->tu = g_ModelTextureUOffset + pUV[0];
+	pDest->tv = g_ModelTextureVOffset + pUV[1];
 	pDest->tu2 = pSrc->tu;
 	pDest->tv2 = pSrc->tv;
 }
 
 // FUNCTION: D3DREN 0x10001410
-void __fastcall FUN_10001410(void *pDest, void *pSrc, float *pUV)
+void __fastcall GenerateModelTexCoordsNoOp(void *pDest, void *pSrc, float *pUV)
 {
 }
 
@@ -154,7 +154,7 @@ void __fastcall FUN_10001410(void *pDest, void *pSrc, float *pUV)
 // Accumulate v before u, one term per statement. The last u term needs the named normal-x load to preserve
 // the target's `fld nx; fmul m590` operand order rather than loading the matrix element first.
 // FUNCTION: D3DREN 0x10001420
-void __fastcall FUN_10001420(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest)
+void __fastcall GenerateModelEnvMapCoords(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest)
 {
 	UnkType_ModelVertex *pVert = pSrc;
 	float v = pThis->m_Unk5a4 * pVert->m_Unk18;
@@ -169,7 +169,7 @@ void __fastcall FUN_10001420(UnkType_ModelDrawerVertexView *pThis, UnkType_Model
 
 // guess: light/specular dot product coordinates from the vertex normal
 // FUNCTION: D3DREN 0x10001490
-void __fastcall FUN_10001490(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest)
+void __fastcall GenerateModelSpecularCoords(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest)
 {
 	UnkType_Vec3 vDir = pThis->m_Unk874;
 	float fDot = vDir.x * pSrc->m_Unk14 + vDir.y * pSrc->m_Unk18 + vDir.z * pSrc->m_Unk1c;
@@ -181,25 +181,25 @@ void __fastcall FUN_10001490(UnkType_ModelDrawerVertexView *pThis, UnkType_Model
 }
 
 // FUNCTION: D3DREN 0x10001510
-void __fastcall FUN_10001510(TLVertex *pDest, TLVertex *pSrc)
+void __fastcall CopyTLVertex32(TLVertex *pDest, TLVertex *pSrc)
 {
 	*pDest = *pSrc;
 }
 
 // FUNCTION: D3DREN 0x10001520
-void __fastcall FUN_10001520(UnkType_TLVertex40 *pDest, UnkType_TLVertex40 *pSrc)
+void __fastcall CopyTLVertex40(UnkType_TLVertex40 *pDest, UnkType_TLVertex40 *pSrc)
 {
 	*pDest = *pSrc;
 }
 
 // GLOBAL: D3DREN 0x10094de0
-extern int DAT_10094de0[56];	// guess: Jupiter polyclip.h bInside[] of the near plane (static here)
+extern int g_ClipNearInsideFlagsTLVertex[56];	// guess: Jupiter polyclip.h bInside[] of the near plane (static here)
 // GLOBAL: D3DREN 0x10094ec0
-extern int DAT_10094ec0[56];	// guess: bInside[] of the left plane
+extern int g_ClipLeftInsideFlagsTLVertex[56];	// guess: bInside[] of the left plane
 
-float FUN_10001a50(float *p1, float *p2, float *pOut);
-int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts);
-float FUN_10001ac0(float *p1, float *p2, float *pOut);
+float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
+int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts);
+float IntersectLeftClipPlane(float *p1, float *p2, float *pOut);
 void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 
 // Plane clippers for the remaining planes (flag bits 8, 0x10, 0x20, 2); the first argument is unused by them.
@@ -208,15 +208,15 @@ int ClipPolyRight(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **pp
 int ClipPolyBottom(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 int ClipPolyFar(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 
-int FUN_10006e40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10007670(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-void FUN_10001f20(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t);
+int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t);
 // GLOBAL: D3DREN 0x10094c20
-extern int DAT_10094c20[56];	// guess: bInside[] of the near plane, 0x28-byte vertices
+extern int g_ClipNearInsideFlagsVertex40[56];	// guess: bInside[] of the near plane, 0x28-byte vertices
 // GLOBAL: D3DREN 0x10094d00
-extern int DAT_10094d00[56];	// guess: bInside[] of the left plane, 0x28-byte vertices
+extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left plane, 0x28-byte vertices
 
 // guess: clips the polygon *ppVerts (*pnVerts vertices) against the planes selected by flags (1 near, 4 left, 8, 0x10,
 // 0x20, 2); returns 0 when nothing is left.  The result replaces *ppVerts/*pnVerts (in the scratch buffer when clipped).
@@ -225,7 +225,7 @@ extern int DAT_10094d00[56];	// guess: bInside[] of the left plane, 0x28-byte ve
 // 10006900/10006ba0 for flags 8/0x10/0x20/2).  The exe keeps flags and ppVerts in spill slots [esp+0x24]/[esp+0x34], pInside/
 // nInside at [esp+0x28]/[esp+0x20] and the loop end pointer in esi; `mov eax,[g_CV]` is hoisted above the pushes.
 // STUB: D3DREN 0x10001530
-int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
+int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 {
 	TLVertex *pOut = g_pClipScratchVerts;
 	if (g_CV_UseD3DClip.m_IntVal)	// guess: when set, only the near plane is clipped (flag bit 1)
@@ -247,8 +247,8 @@ int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 		TLVertex *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
 
-		DAT_1005668c++;
-		pInside = DAT_10094de0;
+		g_nPlaneClipTests++;
+		pInside = g_ClipNearInsideFlagsTLVertex;
 		pCur = pVerts;
 		pEnd = pCur + nVerts;
 		while (pCur != pEnd)
@@ -268,11 +268,11 @@ int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 			for (iCur = 0; iCur < nVerts; iCur++)
 			{
 				pCur = pVerts + iCur;
-				if (DAT_10094de0[iPrev])
+				if (g_ClipNearInsideFlagsTLVertex[iPrev])
 					*pOut++ = *pPrev;
-				if (DAT_10094de0[iPrev] != DAT_10094de0[iCur])
+				if (g_ClipNearInsideFlagsTLVertex[iPrev] != g_ClipNearInsideFlagsTLVertex[iCur])
 				{
-					t = FUN_10001a50(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
 					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
@@ -292,8 +292,8 @@ int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 		TLVertex *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
 
-		DAT_1005668c++;
-		pInside = DAT_10094ec0;
+		g_nPlaneClipTests++;
+		pInside = g_ClipLeftInsideFlagsTLVertex;
 		pCur = pVerts;
 		pEnd = pCur + nVerts;
 		while (pCur != pEnd)
@@ -313,11 +313,11 @@ int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 			for (iCur = 0; iCur < nVerts; iCur++)
 			{
 				pCur = pVerts + iCur;
-				if (DAT_10094ec0[iPrev])
+				if (g_ClipLeftInsideFlagsTLVertex[iPrev])
 					*pOut++ = *pPrev;
-				if (DAT_10094ec0[iPrev] != DAT_10094ec0[iCur])
+				if (g_ClipLeftInsideFlagsTLVertex[iPrev] != g_ClipLeftInsideFlagsTLVertex[iCur])
 				{
-					t = FUN_10001ac0(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
 					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
@@ -344,9 +344,9 @@ int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 	return 1;
 }
 
-// guess: the 0x28-byte vertex twin of FUN_10001530 (same shape, see there): ClipExtra FUN_10001f20, planes FUN_10006e40/10007100/100073b0/10007670.
+// guess: the 0x28-byte vertex twin of ClipModelPolygon32 (same shape, see there): ClipExtra TLVertex40_ClipExtra, planes ClipPolyTop40/10007100/100073b0/10007670.
 // STUB: D3DREN 0x10001b30
-int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts)
+int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts)
 {
 	UnkType_TLVertex40 *pOut = (UnkType_TLVertex40 *)g_pClipScratchVerts;
 	if (g_CV_UseD3DClip.m_IntVal)	// guess: when set, only the near plane is clipped (flag bit 1)
@@ -368,8 +368,8 @@ int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnV
 		UnkType_TLVertex40 *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
 
-		DAT_1005668c++;
-		pInside = DAT_10094c20;
+		g_nPlaneClipTests++;
+		pInside = g_ClipNearInsideFlagsVertex40;
 		pCur = pVerts;
 		pEnd = pCur + nVerts;
 		while (pCur != pEnd)
@@ -389,12 +389,12 @@ int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnV
 			for (iCur = 0; iCur < nVerts; iCur++)
 			{
 				pCur = pVerts + iCur;
-				if (DAT_10094c20[iPrev])
+				if (g_ClipNearInsideFlagsVertex40[iPrev])
 					*pOut++ = *pPrev;
-				if (DAT_10094c20[iPrev] != DAT_10094c20[iCur])
+				if (g_ClipNearInsideFlagsVertex40[iPrev] != g_ClipNearInsideFlagsVertex40[iCur])
 				{
-					t = FUN_10001a50(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
-					FUN_10001f20(pPrev, pCur, pOut, t);
+					t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					TLVertex40_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
 				iPrev = iCur;
@@ -413,8 +413,8 @@ int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnV
 		UnkType_TLVertex40 *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
 
-		DAT_1005668c++;
-		pInside = DAT_10094d00;
+		g_nPlaneClipTests++;
+		pInside = g_ClipLeftInsideFlagsVertex40;
 		pCur = pVerts;
 		pEnd = pCur + nVerts;
 		while (pCur != pEnd)
@@ -434,12 +434,12 @@ int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnV
 			for (iCur = 0; iCur < nVerts; iCur++)
 			{
 				pCur = pVerts + iCur;
-				if (DAT_10094d00[iPrev])
+				if (g_ClipLeftInsideFlagsVertex40[iPrev])
 					*pOut++ = *pPrev;
-				if (DAT_10094d00[iPrev] != DAT_10094d00[iCur])
+				if (g_ClipLeftInsideFlagsVertex40[iPrev] != g_ClipLeftInsideFlagsVertex40[iCur])
 				{
-					t = FUN_10001ac0(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
-					FUN_10001f20(pPrev, pCur, pOut, t);
+					t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					TLVertex40_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
 				iPrev = iCur;
@@ -451,13 +451,13 @@ int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnV
 		}
 	}
 
-	if ((flags & 8) && !FUN_10006e40(&bUnused0, &pVerts, &nVerts, &pOut))
+	if ((flags & 8) && !ClipPolyTop40(&bUnused0, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x10) && !FUN_10007100(&bUnused1, &pVerts, &nVerts, &pOut))
+	if ((flags & 0x10) && !ClipPolyRight40(&bUnused1, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x20) && !FUN_100073b0(&bUnused2, &pVerts, &nVerts, &pOut))
+	if ((flags & 0x20) && !ClipPolyBottom40(&bUnused2, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 2) && !FUN_10007670(&bUnused3, &pVerts, &nVerts, &pOut))
+	if ((flags & 2) && !ClipPolyFar40(&bUnused3, &pVerts, &nVerts, &pOut))
 		return 0;
 
 	*ppVerts = pVerts;
@@ -483,7 +483,7 @@ void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t
 
 // guess: intersection with the near plane z == g_ViewParams.m_NearZ; returns t, the parameter along p1->p2.
 // FUNCTION: D3DREN 0x10001a50
-float FUN_10001a50(float *p1, float *p2, float *pOut)
+float IntersectNearClipPlane(float *p1, float *p2, float *pOut)
 {
 	float t;
 	float dz = p2[2] - p1[2];
@@ -500,7 +500,7 @@ float FUN_10001a50(float *p1, float *p2, float *pOut)
 // guess: intersection with the plane x + z == 0 (left frustum plane); returns t.  The z of the second vertex goes through a named
 // float first (as in the bottom plane clipper ClipPolyBottom): that is what puts p1[0] before p1[2] in the numerator.
 // FUNCTION: D3DREN 0x10001ac0
-float FUN_10001ac0(float *p1, float *p2, float *pOut)
+float IntersectLeftClipPlane(float *p1, float *p2, float *pOut)
 {
 	float fCz = p2[2];
 	float d = ((p2[0] - p1[0]) + fCz) - p1[2];
@@ -513,7 +513,7 @@ float FUN_10001ac0(float *p1, float *p2, float *pOut)
 }
 
 // FUNCTION: D3DREN 0x10001f20
-void FUN_10001f20(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t)
+void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t)
 {
 	pOut->tu = (pCur->tu - pPrev->tu) * t + pPrev->tu;
 	pOut->tv = (pCur->tv - pPrev->tv) * t + pPrev->tv;
@@ -538,7 +538,7 @@ static inline void ProjectVertex(TLVertex *pDest, TLVertex *pSrc)
 	pDest->rhw = w;
 }
 
-// ---- the clipping callbacks (FUN_10002bc0 and its "really close" twin FUN_10002050) -----------------------------------------
+// ---- the clipping callbacks (DrawPieceClipped and its "really close" twin DrawPieceClippedReallyClose) -----------------------------------------
 
 // guess: 1/w projection of one camera-space vertex with the matrix at g_ViewParams.m_DeviceTimesProjection.m[0][0] (position only)
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
@@ -567,11 +567,11 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nBytes = (char *)pOut - (char *)pp->Lock(); \
 		uint32 nVertsOut = nBytes / pp->vfn_Unk18(); \
-		DAT_1005626c += nVertsOut / 3; \
+		g_nModelTrianglesDrawn += nVertsOut / 3; \
 		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVertsOut); \
 	}
 
-// The body of the two clipping callbacks.  REALLYCLOSE adds the z bias g_CV_NearZ.m_FloatVal to the w of the z row (FUN_100062e0).
+// The body of the two clipping callbacks.  REALLYCLOSE adds the z bias g_CV_NearZ.m_FloatVal to the w of the z row (ProjectPositionWithDepthBias).
 // Per triangle: the clip planes of g_ClipFlags are tested vertex by vertex (count of vertices inside: none = skip the
 // triangle, not all = it has to be clipped), then the triangle is back face tested in 2D and projected.
 #define CLIPPED_CALLBACK(REALLYCLOSE) \
@@ -657,7 +657,7 @@ TestRight: \
 				for (int k = 0; k < 3; k++) \
 				{ \
 					if (REALLYCLOSE) \
-						FUN_100062e0(&pOut->m_Vec.x, apV[k], g_CV_NearZ.m_FloatVal); \
+						ProjectPositionWithDepthBias(&pOut->m_Vec.x, apV[k], g_CV_NearZ.m_FloatVal); \
 					else \
 						ProjectPos(&pOut->m_Vec.x, apV[k]); \
 					pOut->color = ((TLVertex *)apV[k])->color; \
@@ -667,7 +667,7 @@ TestRight: \
 				} \
 				if ((char *)pOut > pEnd && nTris > 1) \
 				{ \
-					DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3; \
+					g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3; \
 					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c); \
 					POOL_REFILL_END(pOut, pEnd) \
 				} \
@@ -709,14 +709,14 @@ Clip: \
 					{ \
 						float vSrc[3] = { ((float *)pP)[0], ((float *)pP)[1], ((float *)pP)[2] }; \
 						if (REALLYCLOSE) \
-							FUN_100062e0((float *)pP, vSrc, g_CV_NearZ.m_FloatVal); \
+							ProjectPositionWithDepthBias((float *)pP, vSrc, g_CV_NearZ.m_FloatVal); \
 						else \
 							ProjectPos((float *)pP, vSrc); \
 					} \
 					if ((char *)pOut + (nPoly * 3 - 6) * m_Unk5f8 > pEnd) \
 					{ \
 						POOL_FLUSH_DRAW() \
-						m_Unk608->FUN_1003a7f7(); \
+						m_Unk608->RestartInNextBuffer(); \
 						POOL_REFILL_END(pOut, pEnd) \
 					} \
 					for (int iFan = 1; iFan < nPoly - 1; iFan++) \
@@ -736,13 +736,13 @@ Skip: \
 		nTris--; \
 	}
 
-void FUN_100062e0(float *pDest, float *pSrc, float fZBias);
+void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 
 
-// guess: the "really close" variant (instances with FLAG_REALLYCLOSE): the z row uses z + g_CV_NearZ (FUN_100062e0).
+// guess: the "really close" variant (instances with FLAG_REALLYCLOSE): the z row uses z + g_CV_NearZ (ProjectPositionWithDepthBias).
 // Not matching yet: semantically complete (written from the Ghidra C), 2928 bytes in the exe.
 // STUB: D3DREN 0x10002050
-int ModelDraw::FUN_10002050(PieceLOD *pLOD, TLVertex *pVerts)
+int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	CLIPPED_CALLBACK(1)
 }
@@ -751,14 +751,14 @@ int ModelDraw::FUN_10002050(PieceLOD *pLOD, TLVertex *pVerts)
 // that cross a plane through m_Unk600, software projection and culling.
 // Not matching yet: semantically complete (written from the Ghidra C), 2832 bytes in the exe.
 // STUB: D3DREN 0x10002bc0
-int ModelDraw::FUN_10002bc0(PieceLOD *pLOD, TLVertex *pVerts)
+int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	CLIPPED_CALLBACK(0)
 }
 
 // guess: the callback for pieces that need no clipping: projects the vertices in software (matrix g_ViewParams.m_DeviceTimesProjection.m[0][0]) and draws.
 // STUB: D3DREN 0x100036d0
-int ModelDraw::FUN_100036d0(PieceLOD *pLOD, TLVertex *pVerts)
+int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
 	UnkType_VertexBufferPool *pPool = m_Unk608;
@@ -774,7 +774,7 @@ int ModelDraw::FUN_100036d0(PieceLOD *pLOD, TLVertex *pVerts)
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nBytes = (char *)pOut - (char *)p->Lock();
 			uint32 nVerts = nBytes / p->vfn_Unk18();
-			DAT_1005626c += nVerts / 3;
+			g_nModelTrianglesDrawn += nVerts / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
 			return 1;
 		}
@@ -809,7 +809,7 @@ int ModelDraw::FUN_100036d0(PieceLOD *pLOD, TLVertex *pVerts)
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 		if ((char *)pOut > pEnd && nTris > 1)
 		{
-			DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
+			g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 			pOut = (TLVertex *)m_Unk608->Lock();
 			UnkType_VertexBufferPool *p = m_Unk608;
@@ -824,7 +824,7 @@ Skip:
 
 // guess: the default draw callback: copies the transformed vertices of each (front facing) triangle into the pool
 // STUB: D3DREN 0x10003b60
-int ModelDraw::FUN_10003b60(PieceLOD *pLOD, TLVertex *pVerts)
+int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
 	UnkType_VertexBufferPool *pPool = m_Unk608;
@@ -840,7 +840,7 @@ int ModelDraw::FUN_10003b60(PieceLOD *pLOD, TLVertex *pVerts)
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nBytes = (char *)pOut - (char *)p->Lock();
 			uint32 nVerts = nBytes / p->vfn_Unk18();
-			DAT_1005626c += nVerts / 3;
+			g_nModelTrianglesDrawn += nVerts / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
 			return 1;
 		}
@@ -876,7 +876,7 @@ int ModelDraw::FUN_10003b60(PieceLOD *pLOD, TLVertex *pVerts)
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 		if ((char *)pOut > pEnd && nTris > 1)
 		{
-			DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
+			g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 			pOut = (TLVertex *)m_Unk608->Lock();
 			UnkType_VertexBufferPool *p = m_Unk608;
@@ -899,10 +899,10 @@ struct UnkType_TnLVertex
 	float		tu, tv;		// 0x14
 };
 
-// guess: the untransformed variant of FUN_10003b60: writes XYZ + diffuse + specular vertices (stride m_Unk5f8 - 4) so that
+// guess: the untransformed variant of DrawPieceTransformed: writes XYZ + diffuse + specular vertices (stride m_Unk5f8 - 4) so that
 // Direct3D transforms them; the back face test (m_Unk8b4) is done on the model-space x/y of the vertices.
 // STUB: D3DREN 0x10003e00
-int ModelDraw::FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts)
+int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	UnkType_TnLVertex *pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 	UnkType_VertexBufferPool *pPool = m_Unk608;
@@ -935,7 +935,7 @@ int ModelDraw::FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts)
 				}
 				if ((char *)pOut > pEnd && nTris > 1)
 				{
-					DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
+					g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 					pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 					UnkType_VertexBufferPool *p = m_Unk608;
@@ -961,7 +961,7 @@ int ModelDraw::FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts)
 			}
 			if ((char *)pOut > pEnd && nTris > 1)
 			{
-				DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
+				g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 				((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 				pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 				UnkType_VertexBufferPool *p = m_Unk608;
@@ -974,16 +974,16 @@ int ModelDraw::FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts)
 	UnkType_VertexBufferPool *p = m_Unk608;
 	uint32 nBytes = (char *)pOut - (char *)p->Lock();
 	uint32 nVerts = nBytes / p->vfn_Unk18();
-	DAT_1005626c += nVerts / 3;
+	g_nModelTrianglesDrawn += nVerts / 3;
 	((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
 	return 1;
 }
 
 // FUNCTION: D3DREN 0x10004230
-int ModelDraw::FUN_10004230(PieceLOD *pLOD, TLVertex *pVerts)
+int ModelDraw::DrawPieceCached(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	uint32 nIndices = pLOD->m_Tris.GetSize() * 3;
-	DAT_1005626c += nIndices / 3;
+	g_nModelTrianglesDrawn += nIndices / 3;
 	((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nIndices);
 	return 1;
 }
@@ -998,46 +998,46 @@ void d3d_BuildSpecularLookupTexture(float fSpecularPower);	// unit d3d_texture (
 // (ModelPiece::GetLOD inline) and the loop counter/slot assignment differ.  tools/permute.py cannot run on this unit file
 // (member function in a large file); not yet tried on an extracted copy.
 // STUB: D3DREN 0x10004270
-void ModelDraw::FUN_10004270(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int a3)
+void ModelDraw::DrawPiecesWithCallbacks(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int a3)
 {
 	m_Unk5f0 = a3;
 	if (m_Unk5e8 == 1)
 	{
 		m_Unk5f8 = 0x20;
-		m_Unk5fc = (PFN_CopyVertex)FUN_10001510;
-		m_Unk600 = (PFN_ClipPolygon)FUN_10001530;
+		m_Unk5fc = (PFN_CopyVertex)CopyTLVertex32;
+		m_Unk600 = (PFN_ClipPolygon)ClipModelPolygon32;
 		m_Unk604 = 0x1c4;
 		if (m_Unk8b0)
-			m_Unk608 = &DAT_1004eb48;
+			m_Unk608 = &g_ModelUntransformedVertexPoolTex1;
 		else
-			m_Unk608 = &DAT_1004d620;
+			m_Unk608 = &g_ModelTransformedVertexPoolTex1;
 	}
 	else
 	{
 		m_Unk5f8 = 0x28;
-		m_Unk5fc = (PFN_CopyVertex)FUN_10001520;
-		m_Unk600 = (PFN_ClipPolygon)FUN_10001b30;
+		m_Unk5fc = (PFN_CopyVertex)CopyTLVertex40;
+		m_Unk600 = (PFN_ClipPolygon)ClipModelPolygon40;
 		m_Unk604 = 0x2c4;
 		if (m_Unk8b0)
-			m_Unk608 = &DAT_1004dae0;
+			m_Unk608 = &g_ModelUntransformedVertexPoolTex2;
 		else
-			m_Unk608 = &DAT_1004da80;
+			m_Unk608 = &g_ModelTransformedVertexPoolTex2;
 	}
 	if (m_Unk608->m_Unk20 != g_CV_ModelVBSize.m_IntVal || m_Unk608->m_Unk24 != g_CV_ModelVBCount.m_IntVal)
 	{
-		DAT_1004d620.FUN_1003a805();
-		DAT_1004da80.FUN_1003a805();
-		UnkType_VertexBufferPool *pCache = &UnkType_ModelVBCacheHolder::DAT_10093b10;
-		pCache->FUN_1003a805();
-		FUN_10001230();
+		g_ModelTransformedVertexPoolTex1.Term();
+		g_ModelTransformedVertexPoolTex2.Term();
+		UnkType_VertexBufferPool *pCache = &UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache;
+		pCache->Term();
+		d3d_InitModelVertexBufferPools();
 	}
 	if (m_Unk8b0)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_CCW);
 	if (m_Unk8ac)
 	{
-		m_Unk608 = &UnkType_ModelVBCacheHolder::DAT_10093b10;
-		UnkType_ModelVBCacheHolder::DAT_10093b10.m_Unk58 = (m_Unk604 & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
-		UnkType_ModelVBCacheHolder::DAT_10093b10.m_Unk54 = m_Unk5f8 - 4;
+		m_Unk608 = &UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache;
+		UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.m_Unk58 = (m_Unk604 & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
+		UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.m_Unk54 = m_Unk5f8 - 4;
 	}
 	int bCull;
 	if (m_Unk8ac == 1 || m_Unk8b0)
@@ -1055,13 +1055,13 @@ void ModelDraw::FUN_10004270(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int
 		{
 			if (pPiece->m_TextureIndex != m_Unk4cc)
 			{
-				FUN_10024589(pPiece->m_TextureIndex);
-				FUN_100244b3((uint32 *)&m_Unk5f0);
+				BindModelSkinTextures(pPiece->m_TextureIndex);
+				BeginModelRenderPass((uint32 *)&m_Unk5f0);
 				SharedTexture *pSkin = m_pInstance->m_pSkins[pPiece->m_TextureIndex];
 				if (pSkin && pSkin->m_pStateChange)
 				{
-					DAT_10063c90.FUN_10021da6();
-					DAT_10063c90.FUN_10021db7(pSkin->m_pStateChange, m_Unk34);
+					g_TextureStateRestorer.RestoreAllStates();
+					g_TextureStateRestorer.ApplyStateChange(pSkin->m_pStateChange, m_Unk34);
 				}
 			}
 			m_Unk62c = pPiece->m_SpecularPower;
@@ -1070,7 +1070,7 @@ void ModelDraw::FUN_10004270(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int
 				m_Unk62c = g_CV_SpecularPowerTest.m_FloatVal;
 			if (g_CV_SpecularScaleTest.m_FloatVal != 0.0f)
 				m_Unk630 = g_CV_SpecularScaleTest.m_FloatVal;
-			if (m_Unk630 != 0.0f && m_Unk5ec == (PFN_GenTexCoords)FUN_10001490)
+			if (m_Unk630 != 0.0f && m_Unk5ec == (PFN_GenTexCoords)GenerateModelSpecularCoords)
 				d3d_BuildSpecularLookupTexture(m_Unk62c);
 			if (!m_Unk3c4[i])
 				(this->*pfnDrawA)(pLOD, pVerts);
@@ -1081,39 +1081,39 @@ void ModelDraw::FUN_10004270(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int
 	}
 	if (m_Unk8b0)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_NONE);
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 }
 
 // Note: the exe loads the second member pointer into edx first: `pfnB = pfnA = X;` (assignment order) gives that register order
 // FUNCTION: D3DREN 0x100045a0
-void ModelDraw::FUN_100045a0(int a1)
+void ModelDraw::SelectPieceDrawCallbacks(int a1)
 {
 	PFN_DrawPiece pfnA, pfnB;
 	if (m_Unk8ac == 2)
 	{
-		pfnB = pfnA = &ModelDraw::FUN_10004230;
+		pfnB = pfnA = &ModelDraw::DrawPieceCached;
 	}
 	else if (m_Unk8ac == 1 || m_Unk8b0)
 	{
-		pfnB = pfnA = &ModelDraw::FUN_10003e00;
+		pfnB = pfnA = &ModelDraw::DrawPieceUntransformed;
 	}
 	else if (m_pInstance->m_Flags & 0x40)
 	{
-		pfnB = pfnA = &ModelDraw::FUN_10002050;
+		pfnB = pfnA = &ModelDraw::DrawPieceClippedReallyClose;
 	}
 	else if (g_ClipFlags & 0x3f)
 	{
-		pfnA = &ModelDraw::FUN_100036d0;
-		pfnB = &ModelDraw::FUN_10002bc0;
+		pfnA = &ModelDraw::DrawPieceProjected;
+		pfnB = &ModelDraw::DrawPieceClipped;
 	}
 	else
 	{
-		pfnB = pfnA = &ModelDraw::FUN_10003b60;
+		pfnB = pfnA = &ModelDraw::DrawPieceTransformed;
 	}
-	FUN_10004270(pfnA, pfnB, a1);
+	DrawPiecesWithCallbacks(pfnA, pfnB, a1);
 }
 
-// ---- the skinning / lighting / projection of one piece (FUN_10004660) and its driver (FUN_10005700) ----------------------
+// ---- the skinning / lighting / projection of one piece (SkinAndLightPieceVertices) and its driver (PrepareModelPieceVertices) ----------------------
 
 // guess: accumulates the bone-transformed offsets of one model vertex into pOut (x, y, z, w; pOut is cleared first)
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
@@ -1131,7 +1131,7 @@ static inline void SkinVertexInto(ModelVert *pVert, LTMatrix *pTransforms, float
 	}
 }
 
-// One loop of FUN_10004660: the exe has four copies of it (bounds on/off x LOD blend on/off); BOUNDS and BLEND are constants.
+// One loop of SkinAndLightPieceVertices: the exe has four copies of it (bounds on/off x LOD blend on/off); BOUNDS and BLEND are constants.
 #define MODELVERT_LOOP(BOUNDS, BLEND) 	for (; nVerts != 0; nVerts--, pVert++, pDest++) 	{ 		pDest->m_Vec.x = 0.0f; 		pDest->m_Vec.y = 0.0f; 		pDest->m_Vec.z = 0.0f; 		pDest->rhw = 0.0f; 		SkinVertexInto(pVert, pTransforms, &pDest->m_Vec.x); 		if (BLEND) 		{ 			ModelVert *pVertB = &pLOD2->m_Verts.GetArray()[pVert->m_iReplacement]; 			float vb[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; 			SkinVertexInto(pVertB, pTransforms, vb); 			pDest->m_Vec.x = (vb[0] - pDest->m_Vec.x) * m_fLODBlend + pDest->m_Vec.x; 			pDest->m_Vec.y = (vb[1] - pDest->m_Vec.y) * m_fLODBlend + pDest->m_Vec.y; 			pDest->m_Vec.z = (vb[2] - pDest->m_Vec.z) * m_fLODBlend + pDest->m_Vec.z; 			pDest->rhw = 1.0f / ((vb[3] - pDest->rhw) * m_fLODBlend + pDest->rhw); 		} 		else 			pDest->rhw = 1.0f / pDest->rhw; 		pDest->m_Vec.x = pDest->rhw * pDest->m_Vec.x; 		pDest->m_Vec.y = pDest->rhw * pDest->m_Vec.y; 		pDest->m_Vec.z = pDest->rhw * pDest->m_Vec.z; 		if (BOUNDS) 		{ 			if (pMin[0] <= pDest->m_Vec.x) { if (pMax[0] < pDest->m_Vec.x) pMax[0] = pDest->m_Vec.x; } else pMin[0] = pDest->m_Vec.x; 			if (pMin[1] <= pDest->m_Vec.y) { if (pMax[1] < pDest->m_Vec.y) pMax[1] = pDest->m_Vec.y; } else pMin[1] = pDest->m_Vec.y; 			if (pMin[2] <= pDest->m_Vec.z) { if (pMax[2] < pDest->m_Vec.z) pMax[2] = pDest->m_Vec.z; } else pMin[2] = pDest->m_Vec.z; 		} 		float fDot = fDx * pVert->m_Normal.x + fDy * pVert->m_Normal.y + fDz * pVert->m_Normal.z; 		float fR = fBaseR, fG = fBaseG, fB = fBaseB; 		if (0.0f < fDot) 		{ 			fR = (fLitR - fBaseR) * fDot + fBaseR; 			fG = (fLitG - fBaseG) * fDot + fBaseG; 			fB = (fLitB - fBaseB) * fDot + fBaseB; 		} 		UnkType_ModelLight *pLight = m_Unk3c; 		UnkType_ModelLight *pLightEnd = m_Unk3c + m_nModelLights; 		for (; pLight != pLightEnd; pLight++) 		{ 			float fLd = pVert->m_Normal.x * pLight->m_Unk10.x + pVert->m_Normal.y * pLight->m_Unk10.y + pVert->m_Normal.z * pLight->m_Unk10.z; 			if (0.0f < fLd) 			{ 				float fDist = (pVert->m_Vec.y - pLight->m_Unk00.y) * (pVert->m_Vec.y - pLight->m_Unk00.y) 					+ (pVert->m_Vec.z - pLight->m_Unk00.z) * (pVert->m_Vec.z - pLight->m_Unk00.z) 					+ (pVert->m_Vec.x - pLight->m_Unk00.x) * (pVert->m_Vec.x - pLight->m_Unk00.x); 				if (fDist < pLight->m_Unk0c) 				{ 					fLd = (pLight->m_Unk0c - fDist) * fLd; 					fR = fLd * pLight->m_Unk1c.x + fR; 					fG = fLd * pLight->m_Unk1c.y + fG; 					fB = fLd * pLight->m_Unk1c.z + fB; 				} 			} 		} 		if (255.0f < fR) 			fR = 255.0f; 		if (255.0f < fG) 			fG = 255.0f; 		if (255.0f < fB) 			fB = 255.0f; 		pLighting[0] = fR + pLighting[0]; 		pLighting[1] = fG + pLighting[1]; 		pLighting[2] = fB + pLighting[2]; 		pDest->rgb.r = (uint8)RoundFloatToInt(fR); 		pDest->rgb.g = (uint8)RoundFloatToInt(fG); 		pDest->rgb.b = (uint8)RoundFloatToInt(fB); 		pDest->rgb.a = m_Unk8a8; 		pfn(pDest); 	}
 
 // guess: skins, lights and projects the vertices of one piece into pDest (TL vertices), calls the per-vertex generator,
@@ -1140,7 +1140,7 @@ static inline void SkinVertexInto(ModelVert *pVert, LTMatrix *pTransforms, float
 // Not matching: semantically complete, four loop copies as in the exe; the exe's loop body differs in x87 term order and register
 // allocation (not yet worked on), the function was written from the Ghidra C only.
 // STUB: D3DREN 0x10004660
-void ModelDraw::FUN_10004660(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, void *pfnPerVertex, LTMatrix *pTransforms,
+void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, void *pfnPerVertex, LTMatrix *pTransforms,
 	float *pLighting, char bBounds, float *pMin, float *pMax)
 {
 	void (__fastcall *pfn)(TLVertex *) = (void (__fastcall *)(TLVertex *))pfnPerVertex;
@@ -1191,7 +1191,7 @@ void ModelDraw::FUN_10004660(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, v
 // tests the 8 corners of the projected bounding box against the clip planes: m_Unk2c4[i] = completely outside (skip the piece),
 // m_Unk3c4[i] = crosses a plane (needs the clipping callback).  The mean vertex light is stored in the instance (m_ModelLighting).
 // STUB: D3DREN 0x10005700
-void ModelDraw::FUN_10005700()
+void ModelDraw::PrepareModelPieceVertices()
 {
 	LTMatrix *pTransforms;
 	if (g_ClipFlags == 0)
@@ -1232,7 +1232,7 @@ void ModelDraw::FUN_10005700()
 				else
 					bBounds = 1;
 				float vMin[3], vMax[3];
-				FUN_10004660(pLOD, pLODB, m_Unk82c + iVertBase, m_Unk5ec, pTransforms, &m_pInstance->m_ModelLighting.x, bBounds, vMin, vMax);
+				SkinAndLightPieceVertices(pLOD, pLODB, m_Unk82c + iVertBase, m_Unk5ec, pTransforms, &m_pInstance->m_ModelLighting.x, bBounds, vMin, vMax);
 				if (bBounds)
 				{
 					// the 8 corners of the projected bounding box against the six clip planes
@@ -1307,7 +1307,7 @@ template <int N> int UnkType_VertexBufferPoolA<N>::vfn_Unk1c(IDirect3D7 *pD3D)
 			bOK = 0;
 	}
 	if (!bOK)
-		FUN_1003a90f();
+		ReleaseVertexBuffers();
 	return bOK;
 }
 
@@ -1335,11 +1335,11 @@ template <int N> int UnkType_VertexBufferPoolB<N>::vfn_Unk1c(IDirect3D7 *pD3D)
 			bOK = 0;
 	}
 	if (!bOK)
-		FUN_1003a90f();
+		ReleaseVertexBuffers();
 	return bOK;
 }
 // (defined in unk/100062e0)
-void __cdecl FUN_100062e0(float *pDest, float *pSrc, float fZBias);
+void __cdecl ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 
 static inline void ClipExtra40(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t)
 {
@@ -1354,10 +1354,10 @@ static inline void ClipExtra40(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pC
 	pOut->specular_rgb.a = (uint8)RoundFloatToInt((float)(int)(pCur->specular_rgb.a - pPrev->specular_rgb.a) * t + (float)pPrev->specular_rgb.a);
 }
 // (defined in unk/100062e0)
-int FUN_10006e40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 // (defined in unk/100062e0)
-int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 // (defined in unk/100062e0)
-int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 // (defined in unk/100062e0)
-int FUN_10007670(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);

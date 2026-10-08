@@ -30,22 +30,22 @@
 void DDPFToPFormat(DDPIXELFORMAT *pDDPF, PFormat *pFormat);
 
 // guess: the staging textures and their size class table: texture sizes (width = height) and how many pool textures of each
-// size are made by FUN_10034db8 (the data is in the exe's .data in this order: sizes, counts).
+// size are made by CreateTexturePools (the data is in the exe's .data in this order: sizes, counts).
 // GLOBAL: D3DREN 0x1004bf3c
-uint32 DAT_1004bf3c[5] = { 4, 8, 0x10, 0x20, 0x40 };
+uint32 g_LightmapPoolTextureSizes[5] = { 4, 8, 0x10, 0x20, 0x40 };
 // GLOBAL: D3DREN 0x1004bf50
-uint32 DAT_1004bf50[5] = { 0x7d, 0x48, 0x18, 10, 10 };
+uint32 g_LightmapPoolTextureCounts[5] = { 0x7d, 0x48, 0x18, 10, 10 };
 // GLOBAL: D3DREN 0x1007abd0
-RTexture *DAT_1007abd0[5];
+RTexture *g_pLightmapStagingTextures[5];
 // GLOBAL: D3DREN 0x1007bfe8
-extern LTLink DAT_1007bfe8[5];
+extern LTLink g_LightmapTexturePoolLists[5];
 // Not matching (133 vs 138 instructions, 24 aligned mismatches): the size-class search.  The exe keeps both the running pointer into the
-// size table (compared with the end address 0x1004bf50: `jl`, as `(int)pSize < (int)&DAT_1004bf3c[5]` gives in FUN_10034e3d) and a separate
+// size table (compared with the end address 0x1004bf50: `jl`, as `(int)pSize < (int)&g_LightmapPoolTextureSizes[5]` gives in ResetTexturePoolLists) and a separate
 // index in the parameter slots [ebp+0x10]/[ebp+8]; our compiler always strength-reduces both into one byte offset counter
 // (`cmp [ebp+0x10], 0x14`).  Also the RECT of the BltFast path is stored in a different order and the exe computes `width + left`
 // with width as the destination operand.
 // STUB: D3DREN 0x10034af0
-int UnkType_LMLock::FUN_10034af0(WorldPoly *pPoly, int bClear, uint32 width, uint32 height)
+int UnkType_LMLock::LockStagingLightmap(WorldPoly *pPoly, int bClear, uint32 width, uint32 height)
 {
 	int i;
 	uint32 *pSize;
@@ -62,12 +62,12 @@ int UnkType_LMLock::FUN_10034af0(WorldPoly *pPoly, int bClear, uint32 width, uin
 
 	m_Unk4c = 0;
 	i = 0;
-	for (pSize = DAT_1004bf3c; (int)pSize < (int)&DAT_1004bf3c[5]; pSize++, i++)
+	for (pSize = g_LightmapPoolTextureSizes; (int)pSize < (int)&g_LightmapPoolTextureSizes[5]; pSize++, i++)
 	{
 		if (width <= *pSize && height <= *pSize)
 		{
 			m_Unk08 = i;
-			m_Unk4c = &DAT_1007bfe8[i];
+			m_Unk4c = &g_LightmapTexturePoolLists[i];
 			break;
 		}
 	}
@@ -75,7 +75,7 @@ int UnkType_LMLock::FUN_10034af0(WorldPoly *pPoly, int bClear, uint32 width, uin
 	if (!m_Unk4c || m_Unk4c->m_pNext == m_Unk4c)
 		return 0;
 
-	m_Unk50 = DAT_1007abd0[m_Unk08];
+	m_Unk50 = g_pLightmapStagingTextures[m_Unk08];
 	pSurface = m_Unk50->m_Data.m_pSurface;
 
 	if (bClear)
@@ -117,9 +117,9 @@ int UnkType_LMLock::FUN_10034af0(WorldPoly *pPoly, int bClear, uint32 width, uin
 	return 1;
 }
 
-// The distinct HRESULT-valued Load calls preserve the original source-rectangle paths: &rc when DAT_1005de3c is false, NULL when it is true.
+// The distinct HRESULT-valued Load calls preserve the original source-rectangle paths: &rc when g_bLoadWholeLightmapSurface is false, NULL when it is true.
 // FUNCTION: D3DREN 0x10034c7c
-int UnkType_LMLock::FUN_10034c7c(int bUpload)
+int UnkType_LMLock::UnlockStagingLightmap(int bUpload)
 {
 	RECT rc;
 	rc.top = 0;
@@ -137,7 +137,7 @@ int UnkType_LMLock::FUN_10034c7c(int bUpload)
 			pTexture->m_Data.m_nTextureFrameCode = g_CurFrameCode;
 
 		HRESULT result;
-		if (!DAT_1005de3c)
+		if (!g_bLoadWholeLightmapSurface)
 			result = g_pD3DDevice->Load(pTexture->m_Data.m_pSurface, NULL, m_Unk50->m_Data.m_pSurface, &rc, 0);
 		else
 			result = g_pD3DDevice->Load(pTexture->m_Data.m_pSurface, NULL, m_Unk50->m_Data.m_pSurface, NULL, 0);
@@ -147,12 +147,12 @@ int UnkType_LMLock::FUN_10034c7c(int bUpload)
 		dl_Remove(&pTexture->m_Link);
 		dl_Insert(m_Unk4c->m_pPrev, &pTexture->m_Link);
 
-		g_pBoundTextures[DAT_1005c838] = (RTextureBase *)pTexture;
-		g_pD3DDevice->SetTexture(DAT_1005c838, pTexture->m_Data.m_pSurface);
+		g_pBoundTextures[g_LightmapTextureStage] = (RTextureBase *)pTexture;
+		g_pD3DDevice->SetTexture(g_LightmapTextureStage, pTexture->m_Data.m_pSurface);
 
-		float fInvSize = 1.0f / (float)DAT_1004bf3c[m_Unk08];
-		DAT_10061810[DAT_1005c838].m_Unk00 = fInvSize;
-		DAT_10061810[DAT_1005c838].m_Unk04 = fInvSize;
+		float fInvSize = 1.0f / (float)g_LightmapPoolTextureSizes[m_Unk08];
+		g_TextureStageTexelSizes[g_LightmapTextureStage].m_Unk00 = fInvSize;
+		g_TextureStageTexelSizes[g_LightmapTextureStage].m_Unk04 = fInvSize;
 	}
 
 	return 1;
@@ -161,14 +161,14 @@ int UnkType_LMLock::FUN_10034c7c(int bUpload)
 // ---- lightmap staging texture pools (a data-less class: its constructor and methods only touch the statics above) ----------
 // FUNCTION: D3DREN 0x10034d82 _$E2
 // FUNCTION: D3DREN 0x10034d87 _$E1
-LTLink DAT_1007bfe8[5];
+LTLink g_LightmapTexturePoolLists[5];
 
 // FUNCTION: D3DREN 0x10034d88 _$E5
 // GLOBAL: D3DREN 0x1007abe4
-UnkType_LMTexturePools DAT_1007abe4;
+UnkType_LMTexturePools g_LightmapTexturePools;
 
 // FUNCTION: D3DREN 0x10034db8
-void UnkType_LMTexturePools::FUN_10034db8(PFN_CreateLMTexture pfnCreate)
+void UnkType_LMTexturePools::CreateTexturePools(PFN_CreateLMTexture pfnCreate)
 {
 	int i;
 	uint32 j;
@@ -179,33 +179,33 @@ void UnkType_LMTexturePools::FUN_10034db8(PFN_CreateLMTexture pfnCreate)
 	{
 		for (i = 0; i < 5; i++)
 		{
-			size = DAT_1004bf3c[i];
-			for (j = 0; j < DAT_1004bf50[i]; j++)
+			size = g_LightmapPoolTextureSizes[i];
+			for (j = 0; j < g_LightmapPoolTextureCounts[i]; j++)
 			{
 				pTexture = pfnCreate(size, size, 0x4000);
 				if (pTexture)
 				{
 					pTexture->m_Link.m_pData = pTexture;
-					DAT_1007bfe8[i].AddAfter(&pTexture->m_Link);
+					g_LightmapTexturePoolLists[i].AddAfter(&pTexture->m_Link);
 				}
 			}
 
-			DAT_1007abd0[i] = pfnCreate(size, size, 0x800);
+			g_pLightmapStagingTextures[i] = pfnCreate(size, size, 0x800);
 		}
 	}
 }
 
 // FUNCTION: D3DREN 0x10034e3d
-void UnkType_LMTexturePools::FUN_10034e3d()
+void UnkType_LMTexturePools::ResetTexturePoolLists()
 {
 	int i;
-	LTLink *pLink = DAT_1007bfe8;
+	LTLink *pLink = g_LightmapTexturePoolLists;
 
 	for (i = 0; i < 5; i++)
-		DAT_1007abd0[i] = 0;
+		g_pLightmapStagingTextures[i] = 0;
 
 	// (the exe compares the running pointer with the end signed: jl)
-	for (; (int)pLink < (int)&DAT_1007bfe8[5]; pLink++)
+	for (; (int)pLink < (int)&g_LightmapTexturePoolLists[5]; pLink++)
 		pLink->TieOff();
 }
 
@@ -213,17 +213,17 @@ void UnkType_LMTexturePools::FUN_10034e3d()
 UnkType_LMTexturePools::UnkType_LMTexturePools()
 {
 	int i;
-	LTLink *pLink = DAT_1007bfe8;
+	LTLink *pLink = g_LightmapTexturePoolLists;
 
 	for (i = 0; i < 5; i++)
-		DAT_1007abd0[i] = 0;
+		g_pLightmapStagingTextures[i] = 0;
 
-	for (; (int)pLink < (int)&DAT_1007bfe8[5]; pLink++)
+	for (; (int)pLink < (int)&g_LightmapTexturePoolLists[5]; pLink++)
 		pLink->TieOff();
 }
 
 // FUNCTION: D3DREN 0x10034e61
-void UnkType_LMTexturePools::FUN_10034e61()
+void UnkType_LMTexturePools::FreeTexturePools()
 {
 	int i;
 
@@ -231,18 +231,18 @@ void UnkType_LMTexturePools::FUN_10034e61()
 	{
 		LTLink link(LTLink_Init);
 
-		if (DAT_1007abd0[i])
+		if (g_pLightmapStagingTextures[i])
 		{
-			link.m_pData = DAT_1007abd0[i];
-			DAT_1007bfe8[i].AddAfter(&link);
-			DAT_1007abd0[i] = 0;
+			link.m_pData = g_pLightmapStagingTextures[i];
+			g_LightmapTexturePoolLists[i].AddAfter(&link);
+			g_pLightmapStagingTextures[i] = 0;
 		}
 
-		FUN_1001f920(&DAT_1007bfe8[i]);
+		CTextureManager_FreeTextureList(&g_LightmapTexturePoolLists[i]);
 	}
 }
 
-// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by FUN_100356b8) --------------
+// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by QueueLightmappedPoly) --------------
 // The queued polys' texture: node -> poly -> surface -> SharedTexture.
 #define BUCKET_TEXTURE(pBucket)	(((Surface *)((WorldPoly *)(pBucket)->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture)
 

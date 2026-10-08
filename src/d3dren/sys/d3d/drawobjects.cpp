@@ -21,7 +21,7 @@ ConVar g_CV_DrawSorted("DrawSorted", 1.0f);
 
 // Handlers of other units (module init/term, per-frame and per-object functions).  Ghidra names; the `guess_` names of
 // names_proposal.csv are not used (no evidence).
-extern void FUN_1000b772();					// OT_MODEL ModuleInit
+extern void d3d_ModelModuleInit();					// OT_MODEL ModuleInit
 extern void thunk_FUN_10001340();			// OT_MODEL ModuleTerm (5-byte jmp thunk)
 extern void d3d_ModelPreFrame();
 extern void d3d_ProcessModel(LTObject *pObject);
@@ -29,9 +29,9 @@ extern void d3d_NullPreFrameCallback();					// empty PreFrame function shared by
 extern void d3d_ProcessWorldModel(LTObject *pObject);
 extern void d3d_ProcessSprite(LTObject *pObject);
 extern void d3d_ProcessLight(LTObject *pObject);
-extern void FUN_100296a6();					// OT_PARTICLESYSTEM PreFrame
+extern void d3d_InitParticleQuadIndices();					// OT_PARTICLESYSTEM PreFrame
 extern void d3d_ProcessParticles(LTObject *pObject);
-extern void FUN_1002ce10();					// OT_POLYGRID ModuleInit
+extern void d3d_InitPolyGridBuffers();					// OT_POLYGRID ModuleInit
 extern void d3d_TermPolyGridDraw();			// OT_POLYGRID ModuleTerm
 extern void d3d_ProcessPolyGrid(LTObject *pObject);
 extern void d3d_ProcessLineSystem(LTObject *pObject);
@@ -44,7 +44,7 @@ ObjectHandler g_ObjectHandlers[11] =
 	// OT_NORMAL
 	{ 0, 0, 0, 0, 0 },
 	// OT_MODEL
-	{ FUN_1000b772, thunk_FUN_10001340, 0, d3d_ModelPreFrame, d3d_ProcessModel },
+	{ d3d_ModelModuleInit, thunk_FUN_10001340, 0, d3d_ModelPreFrame, d3d_ProcessModel },
 	// OT_WORLDMODEL
 	{ 0, 0, 0, d3d_NullPreFrameCallback, d3d_ProcessWorldModel },
 	// OT_SPRITE
@@ -54,9 +54,9 @@ ObjectHandler g_ObjectHandlers[11] =
 	// OT_CAMERA
 	{ 0, 0, 0, 0, 0 },
 	// OT_PARTICLESYSTEM
-	{ 0, 0, 0, FUN_100296a6, d3d_ProcessParticles },
+	{ 0, 0, 0, d3d_InitParticleQuadIndices, d3d_ProcessParticles },
 	// OT_POLYGRID
-	{ FUN_1002ce10, d3d_TermPolyGridDraw, 0, d3d_NullPreFrameCallback, d3d_ProcessPolyGrid },
+	{ d3d_InitPolyGridBuffers, d3d_TermPolyGridDraw, 0, d3d_NullPreFrameCallback, d3d_ProcessPolyGrid },
 	// OT_LINESYSTEM
 	{ 0, 0, 0, d3d_NullPreFrameCallback, d3d_ProcessLineSystem },
 	// OT_CONTAINER (containers drawn like WorldModels)
@@ -117,10 +117,10 @@ extern void d3d_DrawSolidWorldModels();				// d3d_DrawSolidWorldModels, 0x1002fa
 extern void d3d_DrawSolidModels();			// 0x10024d22
 extern void d3d_DrawSolidPolyGrids();		// 0x1002cce0
 extern void d3d_DrawSolidCanvases();		// 0x10022ae3
-extern void FUN_10013e00();					// 0x10013e00 (guess: begin alpha test pass)
-extern void FUN_1002fed0();					// 0x1002fed0 (guess: draws the chromakey world models)
-extern void FUN_10024dc0();					// 0x10024dc0 (guess: draws the chromakey models)
-extern void FUN_10013e40();					// 0x10013e40 (guess: end alpha test pass)
+extern void d3d_BeginChromaKeyPolyPass();					// 0x10013e00 (guess: begin alpha test pass)
+extern void d3d_DrawChromaKeyWorldModels();					// 0x1002fed0 (guess: draws the chromakey world models)
+extern void d3d_DrawChromaKeyModels();					// 0x10024dc0 (guess: draws the chromakey models)
+extern void d3d_EndChromaKeyPolyPass();					// 0x10013e40 (guess: end alpha test pass)
 extern void d3d_SetTranslucentObjectStates(int);	// 0x10013ba0
 extern void d3d_QueueTranslucentParticles();	// 0x100298b6
 extern void d3d_QueueTranslucentPolyGrids();	// 0x1002cdc0
@@ -133,18 +133,19 @@ extern void d3d_DrawNoZSprites();				// 0x1002ea90
 extern void d3d_UnsetTranslucentObjectStates(int bChangeZ);	// 0x10013df0
 
 // GLOBAL: D3DREN 0x1006cd70
-extern void (*DAT_1006cd70)();		// guess: optional callback run after the solid objects (RenderScene sets it)
+extern void (*g_pfnDrawVisibleReflections)();		// guess: optional callback run after the solid objects (RenderScene sets it)
 // The native draw loop reuses one DWORD flags value for its visible and portal-visible tests.
 // Keep the accessor/getter inline sites while reading the same fully constructed LTObject member.
-static inline uint32 FUN_10028660_Flags(const ObjectDrawer &d)
+static inline uint32 GetDrawerObjectFlags(const ObjectDrawer &d)
 {
 	return d.m_pObject->m_Flags;
 }
 // STUB: D3DREN 0x10028660
-// STUB diagnosis: 768/768 bytes, 103 strict differences. Caching the full object flags restores
+// STUB diagnosis: 768/768 bytes, 53 strict differences. Caching the full object flags restores
 // the native DWORD flag load, byte tests and immediate constants, including the profiling calls
 // and static-list initialization. The loop's portal guard/load schedule, index registers and final
-// counter epilogue still differ. ALIGNED 20/20; the independently reviewed sort remains exact.
+// counter epilogue still differ. The callback-local drawer reference preserves both field reads
+// before the call. ALIGNED 22/22; the independently reviewed sort remains exact.
 void d3d_FlushObjectQueues()
 {
 	g_pStruct->Unknown24();
@@ -167,12 +168,12 @@ void d3d_FlushObjectQueues()
 	d3d_DrawSolidPolyGrids();
 	g_pStruct->Unknown24();
 	d3d_DrawSolidCanvases();
-	FUN_10013e00();
-	FUN_1002fed0();
-	FUN_10024dc0();
-	FUN_10013e40();
-	if (DAT_1006cd70)
-		DAT_1006cd70();
+	d3d_BeginChromaKeyPolyPass();
+	d3d_DrawChromaKeyWorldModels();
+	d3d_DrawChromaKeyModels();
+	d3d_EndChromaKeyPolyPass();
+	if (g_pfnDrawVisibleReflections)
+		g_pfnDrawVisibleReflections();
 
 	{
 		CountAdder cntAdd((uint32 *)((uint8 *)g_pStruct + 0x68));
@@ -208,17 +209,18 @@ void d3d_FlushObjectQueues()
 		{
 			uint32 i;
 
-			s_TransObjList.FUN_100289b0(&g_ViewParams);
+			s_TransObjList.SortByViewDistance(&g_ViewParams);
 			for (i = 0; i < s_TransObjList.m_Unk14; i++)
 			{
 				// This same-width read is inside the live object, also when the portal guard skips drawing.
-				uint32 flags = FUN_10028660_Flags(s_TransObjList[i]);
+				uint32 flags = GetDrawerObjectFlags(s_TransObjList[i]);
 				if (g_ViewParams.m_bPortalView == 0 || (s_TransObjList[i].m_pObject->m_Flags2 & FLAG2_PORTALINVISIBLE) == 0)
 				{
 					if ((flags & FLAG_VISIBLE) ||
 						(g_ViewParams.m_bPortalView != 0 && (flags & FLAG_PORTALVISIBLE)))
 					{
-						s_TransObjList[i].m_pDrawFn(&g_ViewParams, s_TransObjList[i].m_pObject);
+						ObjectDrawer &drawer = s_TransObjList[i];
+						drawer.m_pDrawFn(&g_ViewParams, drawer.m_pObject);
 					}
 				}
 			}
@@ -230,16 +232,16 @@ void d3d_FlushObjectQueues()
 	}
 }
 
-// Shell-sort style gap tables of FUN_100289b0: gap = 1 << shift, from 512 down to 1.
+// Shell-sort style gap tables of SortByViewDistance: gap = 1 << shift, from 512 down to 1.
 // GLOBAL: D3DREN 0x1004bb54
-int DAT_1004bb54[10] = { 0x200, 0x100, 0x80, 0x40, 0x20, 0x10, 8, 4, 2, 1 };
+int g_ObjectDrawSortGaps[10] = { 0x200, 0x100, 0x80, 0x40, 0x20, 0x10, 8, 4, 2, 1 };
 // GLOBAL: D3DREN 0x1004bb7c
-int DAT_1004bb7c[10] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+int g_ObjectDrawSortGapShifts[10] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 
 // The atexit target of the function static s_TransObjList (destroys the CMoArray<ObjectDrawer> base).
 // FUNCTION: D3DREN 0x10028960 _$E8
 
-// NAME: guess_ObjectDrawList_Sort (low): no evidence for a name, Ghidra's FUN_100289b0 kept as a member of ObjectDrawList
+// NAME: guess_ObjectDrawList_Sort (low): no evidence for a name, Ghidra's SortByViewDistance kept as a member of ObjectDrawList
 // Jupiter drawobjects.cpp ObjectDrawList::CalcDistance (private static member there; the exe has no separate copy, it is
 // expanded into the sort function)
 float ObjectDrawList::CalcDistance(const LTObject *pObject, const ViewParams &Params)
@@ -252,7 +254,7 @@ float ObjectDrawList::CalcDistance(const LTObject *pObject, const ViewParams &Pa
 
 // Native +0xb3 and +0xda store the distance in each branch. This helper retains those stores
 // and the out-of-line vector constructor while preserving the CalcDistance formulas.
-static inline void FUN_100289b0_Distance(ObjectDrawer *pDrawer, const ViewParams &Params)
+static inline void StoreObjectDrawerViewDistance(ObjectDrawer *pDrawer, const ViewParams &Params)
 {
 	if ((pDrawer->m_pObject->m_Flags & FLAG_REALLYCLOSE) == 0)
 		pDrawer->m_fDistance = (pDrawer->m_pObject->GetPos() - Params.m_Pos).MagSqr();
@@ -262,14 +264,14 @@ static inline void FUN_100289b0_Distance(ObjectDrawer *pDrawer, const ViewParams
 
 // Native 0x10028aa2 caches the array after distance calculation; sorting cannot resize it.
 // Keep two inline accessor sites, with CMoArray's unsigned 32-bit index conversion.
-static inline ObjectDrawer &FUN_100289b0_At(ObjectDrawer *pArray, uint32 index)
+static inline ObjectDrawer &GetObjectDrawerAt(ObjectDrawer *pArray, uint32 index)
 {
 	return pArray[index];
 }
 
 // The native comparator returns a 32-bit result; the same ObjectDrawer ordering expressions
 // retain the comparison spill, frame size and register lifetimes when expanded here.
-static inline int FUN_100289b0_Compare(const ObjectDrawer &a, const ObjectDrawer &b)
+static inline int CompareObjectDrawersForDistanceSort(const ObjectDrawer &a, const ObjectDrawer &b)
 {
 	if ((a.m_pObject->m_Flags & FLAG_REALLYCLOSE) == (b.m_pObject->m_Flags & FLAG_REALLYCLOSE))
 		return a.m_fDistance < b.m_fDistance;
@@ -280,7 +282,7 @@ static inline int FUN_100289b0_Compare(const ObjectDrawer &a, const ObjectDrawer
 // FUNCTION: D3DREN 0x100289b0
 // Both accessor sites and the out-of-line LTVector constructor preserve native inlining.
 // Computing the higher-index drawer first reproduces the original sort address schedule.
-void ObjectDrawList::FUN_100289b0(ViewParams *pParams)
+void ObjectDrawList::SortByViewDistance(ViewParams *pParams)
 {
 	uint32 i;
 	int pass;
@@ -291,23 +293,23 @@ void ObjectDrawList::FUN_100289b0(ViewParams *pParams)
 	{
 		ObjectDrawer *pDrawer = &(*this)[i];
 
-		FUN_100289b0_Distance(pDrawer, *pParams);
+		StoreObjectDrawerViewDistance(pDrawer, *pParams);
 	}
 
 	ObjectDrawer *pArray = GetArray();
 
 	for (pass = 0; pass < 10; pass++)
 	{
-		int gap = DAT_1004bb54[pass];
-		int shift = DAT_1004bb7c[pass];
+		int gap = g_ObjectDrawSortGaps[pass];
+		int shift = g_ObjectDrawSortGapShifts[pass];
 		int n = (m_Unk14 - 1) >> shift;
 
 		for (j = 0; j < n; j++)
 		{
-			ObjectDrawer *pB = &FUN_100289b0_At(pArray, gap + (j << shift));
-			ObjectDrawer *pA = &FUN_100289b0_At(pArray, j << shift);
+			ObjectDrawer *pB = &GetObjectDrawerAt(pArray, gap + (j << shift));
+			ObjectDrawer *pA = &GetObjectDrawerAt(pArray, j << shift);
 
-			if (FUN_100289b0_Compare(*pA, *pB))
+			if (CompareObjectDrawersForDistanceSort(*pA, *pB))
 			{
 				ObjectDrawer tmp = *pA;
 				*pA = *pB;

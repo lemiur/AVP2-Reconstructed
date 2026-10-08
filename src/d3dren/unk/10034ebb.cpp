@@ -26,52 +26,52 @@
 #include <math.h>
 #include "world_tree.h"
 
-// Texture coordinate offsets/scales the world poly draw state sets (FUN_10007930's unit): world x/z of the current texture ref.
+// Texture coordinate offsets/scales the world poly draw state sets (SetupWorldTextureCoordinates's unit): world x/z of the current texture ref.
 // GLOBAL: D3DREN 0x1004ffb0
-extern float DAT_1004ffb0;
+extern float g_fGlobalPanUOffset;
 // GLOBAL: D3DREN 0x1004ffb4
-extern float DAT_1004ffb4;
+extern float g_fGlobalPanVOffset;
 // GLOBAL: D3DREN 0x1004eba8
-extern float DAT_1004eba8;
+extern float g_fGlobalPanUScale;
 // GLOBAL: D3DREN 0x1004ebac
-extern float DAT_1004ebac;
+extern float g_fGlobalPanVScale;
 // GLOBAL: D3DREN 0x10057774
-extern uint8 DAT_10057774;		// guess: alpha byte of the vertex colours
+extern uint8 g_nPolyVertexAlpha;		// guess: alpha byte of the vertex colours
 // The current texture reference: [0] SharedTexture*, [4]/[8] texture offset, [0xc]/[0x10] texture size (GlobalPanInfo, RenderStruct::m_GlobalPans).
 // GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *DAT_10055ce0;	// &RenderStruct::m_GlobalPans[n]
+extern GlobalPanInfo *g_pGlobalPanInfo;	// &RenderStruct::m_GlobalPans[n]
 
-// callbacks of FUN_10035629 (one queued poly each); they return non-zero when they drew something
-int FUN_10035071(WorldPoly *pPoly);
-int FUN_100354bf(WorldPoly *pPoly);
-int FUN_10035416(WorldPoly *pPoly);
-uint32 FUN_10035629(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree, UnkType_PoolNode **ppDeferred);
+// callbacks of ProcessQueuedPolyList (one queued poly each); they return non-zero when they drew something
+int DrawMultitexturedLightmappedPoly(WorldPoly *pPoly);
+int DrawPolyWithWorldPlanarTexture(WorldPoly *pPoly);
+int DrawPolyBaseTexturePass(WorldPoly *pPoly);
+uint32 ProcessQueuedPolyList(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree, UnkType_PoolNode **ppDeferred);
 
 // Gamma/colour byte tables of the world poly vertex colours (256 entries each).
 // GLOBAL: D3DREN 0x1005a004
-extern uint8 DAT_1005a004[256];
+extern uint8 g_VertexTintTableR[256];
 // GLOBAL: D3DREN 0x1005a104
-extern uint8 DAT_1005a104[256];
+extern uint8 g_VertexTintTableG[256];
 // GLOBAL: D3DREN 0x1005a204
-extern uint8 DAT_1005a204[256];
+extern uint8 g_VertexTintTableB[256];
 
 // GLOBAL: D3DREN 0x1007d424
-extern int DAT_1007d424;		// guess: set elsewhere (lightmap draw state)
-void FUN_10035348(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, UnkType_PolyVertex *pSrc, int nVerts);
-void FUN_1003524b(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
-int FUN_10020ff0(WorldPoly *pPoly, int bDirect);	// W8's unit: updates the dynamic lights of the poly's lightmap
-void FUN_10013ef0(WorldPoly *pPoly);				// guess: draws the poly without its lightmap (fallback)
+extern int g_bLightmapModulate2X;		// guess: set elsewhere (lightmap draw state)
+void SetPolyLocalLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, UnkType_PolyVertex *pSrc, int nVerts);
+void FillPolyVerticesWithLocalLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
+int d3d_RefreshWorldPolyLightmap(WorldPoly *pPoly, int bDirect);	// W8's unit: updates the dynamic lights of the poly's lightmap
+void d3d_QueueWorldPoly(WorldPoly *pPoly);				// guess: draws the poly without its lightmap (fallback)
 
-// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by FUN_100356b8) --------------
+// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by QueueLightmappedPoly) --------------
 // The queued polys' texture: node -> poly -> surface -> SharedTexture.
 #define BUCKET_TEXTURE(pBucket)	(((Surface *)((WorldPoly *)(pBucket)->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture)
 
-// guess: draws everything that was queued in DAT_1005a308 (one bucket per texture): the polys of textures that can be bound now
-// are drawn with their lightmap (FUN_10035071), the polys of surfaces flagged 0x8000 are deferred to a second pass that draws
-// them with world uvs (FUN_100354bf), and the buckets that drew something get a last pass with the lightmap alone (FUN_10035416).
+// guess: draws everything that was queued in g_pTexturedWorldPolyBuckets (one bucket per texture): the polys of textures that can be bound now
+// are drawn with their lightmap (DrawMultitexturedLightmappedPoly), the polys of surfaces flagged 0x8000 are deferred to a second pass that draws
+// them with world uvs (DrawPolyWithWorldPlanarTexture), and the buckets that drew something get a last pass with the lightmap alone (DrawPolyBaseTexturePass).
 // The successful bucket path advances directly to the next iteration. The explicit sb_Free bodies retain both original null checks.
 // FUNCTION: D3DREN 0x10034ebb
-void FUN_10034ebb()
+void DrawQueuedLightmappedPolys()
 {
 	UnkType_PoolBucket *pLightmapPass = 0;
 	UnkType_PoolNode *pDeferred = 0;
@@ -79,7 +79,7 @@ void FUN_10034ebb()
 	SharedTexture *pTexture;
 	DWORD oldState;
 
-	pBucket = DAT_1005a308;
+	pBucket = g_pTexturedWorldPolyBuckets;
 	if (pBucket)
 	{
 		do
@@ -87,9 +87,9 @@ void FUN_10034ebb()
 			pNext = pBucket->m_Unk08;
 			if (pBucket->m_Unk04)
 			{
-				if (FUN_100211d0(BUCKET_TEXTURE(pBucket), g_NormalTextureStage))
+				if (d3d_EnsureTextureAndGetFlags(BUCKET_TEXTURE(pBucket), g_NormalTextureStage))
 				{
-					if (FUN_10035629(pBucket->m_Unk04, FUN_10035071, 0, &pDeferred))
+					if (ProcessQueuedPolyList(pBucket->m_Unk04, DrawMultitexturedLightmappedPoly, 0, &pDeferred))
 					{
 						pBucket->m_Unk08 = pLightmapPass;
 						pLightmapPass = pBucket;
@@ -98,30 +98,30 @@ void FUN_10034ebb()
 						continue;
 					}
 
-					FUN_100142b0(pBucket->m_Unk04);
+					d3d_FreeWorldPolyQueue(pBucket->m_Unk04);
 				}
 				else
 				{
-					FUN_10035629(pBucket->m_Unk04, FUN_10035071, 1, &pDeferred);
+					ProcessQueuedPolyList(pBucket->m_Unk04, DrawMultitexturedLightmappedPoly, 1, &pDeferred);
 				}
 			}
 
 			((UnkType_BucketOwner *)pBucket->m_Unk00)->m_Unk1c[0] = 0;
-			if (pBucket && &DAT_10058c98)
+			if (pBucket && &g_WorldPolyBucketBank)
 			{
 				StructLink *pLink = (StructLink *)pBucket;
-				pLink->m_pSLNext = DAT_10058c98.m_FreeListHead;
-				DAT_10058c98.m_FreeListHead = pLink;
+				pLink->m_pSLNext = g_WorldPolyBucketBank.m_FreeListHead;
+				g_WorldPolyBucketBank.m_FreeListHead = pLink;
 			}
 			pBucket = pNext;
 		} while (pBucket);
 
 		if (pDeferred)
 		{
-			if (DAT_10055ce0 && DAT_10055ce0->m_pTexture)
-				d3d_SetTexture(DAT_10055ce0->m_pTexture, DAT_1005c838, 0);
-			FUN_10007930();
-			FUN_10035629(pDeferred, FUN_100354bf, 1, (UnkType_PoolNode **)-1);
+			if (g_pGlobalPanInfo && g_pGlobalPanInfo->m_pTexture)
+				d3d_SetTexture(g_pGlobalPanInfo->m_pTexture, g_LightmapTextureStage, 0);
+			SetupWorldTextureCoordinates();
+			ProcessQueuedPolyList(pDeferred, DrawPolyWithWorldPlanarTexture, 1, (UnkType_PoolNode **)-1);
 		}
 
 		if (pLightmapPass)
@@ -137,13 +137,13 @@ void FUN_10034ebb()
 				if (pBucket->m_Unk04 && (pTexture = BUCKET_TEXTURE(pBucket)) != 0)
 				{
 					d3d_SetTexture(pTexture, g_NormalTextureStage, 0);
-					FUN_10035629(pBucket->m_Unk04, FUN_10035416, 1, (UnkType_PoolNode **)-1);
+					ProcessQueuedPolyList(pBucket->m_Unk04, DrawPolyBaseTexturePass, 1, (UnkType_PoolNode **)-1);
 				}
-				if (pBucket && &DAT_10058c98)
+				if (pBucket && &g_WorldPolyBucketBank)
 				{
 					StructLink *pLink = (StructLink *)pBucket;
-					pLink->m_pSLNext = DAT_10058c98.m_FreeListHead;
-					DAT_10058c98.m_FreeListHead = pLink;
+					pLink->m_pSLNext = g_WorldPolyBucketBank.m_FreeListHead;
+					g_WorldPolyBucketBank.m_FreeListHead = pLink;
 				}
 				pBucket = pNext;
 			} while (pBucket);
@@ -153,7 +153,7 @@ void FUN_10034ebb()
 		}
 	}
 
-	DAT_1005a308 = 0;
+	g_pTexturedWorldPolyBuckets = 0;
 }
 
 // guess: sets the first texture coordinates of a vertex (the arguments stay on the x87 stack: `fld v; fld u; fstp tu; fstp tv`).
@@ -164,12 +164,12 @@ static inline void SetUV(UnkType_TLVertex40 *pVertex, float u, float v)
 }
 
 // guess: draws one queued world polygon with its lightmap (first texture stage the poly's texture, second the lightmap):
-// copies the vertices (with the lightmap uvs of FUN_1003429b as second texture coordinates) into a stack array of 0x28 byte
+// copies the vertices (with the lightmap uvs of AssignPolyLightmapPage as second texture coordinates) into a stack array of 0x28 byte
 // vertices, projects/clips them, rebinds the poly's texture, applies the texture's state change and draws a triangle fan.
 // Polys with more than 0x80 vertices are refused.  Returns 1 when the poly was drawn.
 // The fallback stays after the successful draw so all failed paths share the original return sequence.
 // FUNCTION: D3DREN 0x10035071
-int FUN_10035071(WorldPoly *pPoly)
+int DrawMultitexturedLightmappedPoly(WorldPoly *pPoly)
 {
 	UnkType_TLVertex40 verts[0x80];
 	UnkType_TLVertex40 *pVerts;
@@ -194,7 +194,7 @@ int FUN_10035071(WorldPoly *pPoly)
 		pDest->m_Vec.x = pSrc->m_Vec->x;
 		pDest->m_Vec.y = pSrc->m_Vec->y;
 		pDest->m_Vec.z = pSrc->m_Vec->z;
-		pDest->color = DAT_100566bc.color;
+		pDest->color = g_GlobalVertexTintColor.color;
 		SetUV(pDest, pSrc->m_U, pSrc->m_V);
 		pDest->tu2 = pSrc->m_Unk0c;
 		pDest->tv2 = pSrc->m_Unk10;
@@ -204,24 +204,24 @@ int FUN_10035071(WorldPoly *pPoly)
 
 	nVerts = nPolyVerts;
 	pVerts = verts;
-	if (!FUN_100085f2(&pVerts, &nVerts, &g_ViewParams, 0))
+	if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
 		return 0;
 
-	if (!WORLDPOLY_UNK30(pPoly) || !FUN_10020ff0(pPoly, 0))
+	if (!WORLDPOLY_UNK30(pPoly) || !d3d_RefreshWorldPolyLightmap(pPoly, 0))
 	{
-		if (!d3d_SetLightmapTexture(pPoly, DAT_1005c838))
+		if (!d3d_SetLightmapTexture(pPoly, g_LightmapTextureStage))
 			goto Fallback;
 	}
 	else if (pVerts == verts)
 	{
-		FUN_10035348(pPoly, pVerts, (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58), nVerts);
+		SetPolyLocalLightmapUVs(pPoly, pVerts, (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58), nVerts);
 	}
 	else
 	{
 		pVerts = verts;
 		nVerts = pPoly->m_nVertices;
-		FUN_1003524b(pPoly, verts, (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58), nVerts);
-		if (!FUN_100085f2(&pVerts, &nVerts, &g_ViewParams, 0))
+		FillPolyVerticesWithLocalLightmapUVs(pPoly, verts, (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58), nVerts);
+		if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
 			return 0;
 	}
 
@@ -232,21 +232,21 @@ int FUN_10035071(WorldPoly *pPoly)
 	{
 		float u = pDest->tu;
 		float v = pDest->tv;
-		SetUV(pDest, u * DAT_10061810[0].m_Unk00, v * DAT_10061810[0].m_Unk04);
+		SetUV(pDest, u * g_TextureStageTexelSizes[0].m_Unk00, v * g_TextureStageTexelSizes[0].m_Unk04);
 		++pDest;
 	}
 
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 	pStateChange = (StateChange *)((Surface *)pPoly->m_pSurface)->m_pTexture->m_pStateChange;
 	if (pStateChange)
-		DAT_10063c90.FUN_10021db7(pStateChange, g_NormalTextureStage);
+		g_TextureStateRestorer.ApplyStateChange(pStateChange, g_NormalTextureStage);
 
 	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x2c4, pVerts, nVerts, 0);
-	DAT_10063c90.FUN_10021da6();
-	DAT_100566ac++;
+	g_TextureStateRestorer.RestoreAllStates();
+	g_nWorldPolysDrawn++;
 	return 1;
 Fallback:
-	FUN_10013ef0(pPoly);
+	d3d_QueueWorldPoly(pPoly);
 	return 0;
 }
 
@@ -254,7 +254,7 @@ Fallback:
 // as second uvs the planar lightmap coordinates of the vertices, scaled by the detail stage's uv scale.
 // Copy the vertex before computing the delta. The SDK Dot calls preserve the original x87 evaluation and retained delta components.
 // FUNCTION: D3DREN 0x1003524b
-void FUN_1003524b(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
+void FillPolyVerticesWithLocalLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
 {
 	LTVector P, Q;
 	int i;
@@ -266,21 +266,21 @@ void FUN_1003524b(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVerte
 		pDest->m_Vec.x = pSrc->m_Vec->x;
 		pDest->m_Vec.y = pSrc->m_Vec->y;
 		pDest->m_Vec.z = pSrc->m_Vec->z;
-		pDest->color = DAT_100566bc.color;
+		pDest->color = g_GlobalVertexTintColor.color;
 		SetUV(pDest, pSrc->m_U, pSrc->m_V);
 		LTVector d = *pSrc->m_Vec - pPoly->m_Unknown38;
-		pDest->tu2 = (P.Dot(d) / DAT_10056770->m_LMGridSize + 0.5f) * DAT_10061810[1].m_Unk00;
-		pDest->tv2 = (Q.Dot(d) / DAT_10056770->m_LMGridSize + 0.5f) * DAT_10061810[1].m_Unk04;
+		pDest->tu2 = (P.Dot(d) / g_pFrameMainWorld->m_LMGridSize + 0.5f) * g_TextureStageTexelSizes[1].m_Unk00;
+		pDest->tv2 = (Q.Dot(d) / g_pFrameMainWorld->m_LMGridSize + 0.5f) * g_TextureStageTexelSizes[1].m_Unk04;
 		pDest++;
 		pSrc++;
 	}
 }
 
-// guess: as FUN_1003524b but only the second uvs (the vertices are already filled).
+// guess: as FillPolyVerticesWithLocalLightmapUVs but only the second uvs (the vertices are already filled).
 // (The chains of named temporaries below were found by tools/permute.py: they pin the order in which P and Q are first referenced, which
 // decides the x87 term order of the two sums; the plain loop body `P.x * d.x + P.y * d.y + P.z * d.z` gives a different order.)
 // FUNCTION: D3DREN 0x10035348
-void FUN_10035348(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, UnkType_PolyVertex *pSrc, int nVerts)
+void SetPolyLocalLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, UnkType_PolyVertex *pSrc, int nVerts)
 {
 	float fTmp110;
 	float fTmp109;
@@ -322,9 +322,9 @@ void FUN_10035348(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, UnkType_PolyVert
 		fTmp4 = fTmp109;
 		fTmp1 = fTmp45;
 		fTmp59 = Q.y;
-		pPVerts2->tu2 = ((fTmp116 * d.x + fTmp4 * d.y + fTmp1 * d.z) / DAT_10056770->m_LMGridSize + 0.5f) * DAT_10061810[1].m_Unk00;
+		pPVerts2->tu2 = ((fTmp116 * d.x + fTmp4 * d.y + fTmp1 * d.z) / g_pFrameMainWorld->m_LMGridSize + 0.5f) * g_TextureStageTexelSizes[1].m_Unk00;
 		++pSrc;
-		pPVerts2->tv2 = ((fTmp149 * d.x + fTmp59 * d.y + fTmp5 * d.z) / DAT_10056770->m_LMGridSize + 0.5f) * DAT_10061810[1].m_Unk04;
+		pPVerts2->tv2 = ((fTmp149 * d.x + fTmp59 * d.y + fTmp5 * d.z) / g_pFrameMainWorld->m_LMGridSize + 0.5f) * g_TextureStageTexelSizes[1].m_Unk04;
 		pPVerts2++;
 		++i;
 	}
@@ -333,7 +333,7 @@ void FUN_10035348(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, UnkType_PolyVert
 // guess: draws a queued poly with the lightmap alone: 0x20 byte vertices (uv = the lightmap uvs of the poly scaled by the stage 0
 // uv scale), clipped, one triangle fan.
 // FUNCTION: D3DREN 0x10035416
-int FUN_10035416(WorldPoly *pPoly)
+int DrawPolyBaseTexturePass(WorldPoly *pPoly)
 {
 	TLVertex verts[64];
 	TLVertex *pVerts;
@@ -347,13 +347,13 @@ int FUN_10035416(WorldPoly *pPoly)
 	pDest = verts;
 	for (i = 0; i < nPolyVerts; i++)
 	{
-		float fU = DAT_10061810[0].m_Unk00 * pSrc->m_U;
-		float fV = DAT_10061810[0].m_Unk04 * pSrc->m_V;
+		float fU = g_TextureStageTexelSizes[0].m_Unk00 * pSrc->m_U;
+		float fV = g_TextureStageTexelSizes[0].m_Unk04 * pSrc->m_V;
 		pDest->m_Vec.x = pSrc->m_Vec->x;
 		pDest->m_Vec.y = pSrc->m_Vec->y;
 		pDest->m_Vec.z = pSrc->m_Vec->z;
 		pDest->tu = fU;
-		pDest->color = DAT_100566bc.color;
+		pDest->color = g_GlobalVertexTintColor.color;
 		pDest->tv = fV;
 		pDest++;
 		pSrc++;
@@ -361,7 +361,7 @@ int FUN_10035416(WorldPoly *pPoly)
 
 	nVerts = nPolyVerts;
 	pVerts = verts;
-	if (!FUN_1000af16(&pVerts, &nVerts, &g_ViewParams, 0))
+	if (!d3d_ClipAndProjectTLVertices(&pVerts, &nVerts, &g_ViewParams, 0))
 		return 0;
 
 	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
@@ -369,10 +369,10 @@ int FUN_10035416(WorldPoly *pPoly)
 }
 
 // guess: draws a queued poly in the second pass with world uvs (planar mapping from the world position through the offsets
-// DAT_1004ffb0/b4 and scales DAT_1004eba8/ac) and the gamma-corrected vertex colours.
+// g_fGlobalPanUOffset/b4 and scales g_fGlobalPanUScale/ac) and the gamma-corrected vertex colours.
 // Snapshotting both UV inputs before scaling preserves the original x87 load/multiply order.
 // FUNCTION: D3DREN 0x100354bf
-int FUN_100354bf(WorldPoly *pPoly)
+int DrawPolyWithWorldPlanarTexture(WorldPoly *pPoly)
 {
 	UnkType_TLVertex40 verts[64];
 	UnkType_TLVertex40 *pVerts;
@@ -390,21 +390,21 @@ int FUN_100354bf(WorldPoly *pPoly)
 		pDest->m_Vec.x = pSrc->m_Vec->x;
 		pDest->m_Vec.y = pSrc->m_Vec->y;
 		pDest->m_Vec.z = pSrc->m_Vec->z;
-		pDest->rgb.r = DAT_1005a004[pSrc->m_Color[2]];
-		pDest->rgb.g = DAT_1005a104[pSrc->m_Color[1]];
-		pDest->rgb.b = DAT_1005a204[pSrc->m_Color[0]];
-		pDest->rgb.a = DAT_10057774;
+		pDest->rgb.r = g_VertexTintTableR[pSrc->m_Color[2]];
+		pDest->rgb.g = g_VertexTintTableG[pSrc->m_Color[1]];
+		pDest->rgb.b = g_VertexTintTableB[pSrc->m_Color[0]];
+		pDest->rgb.a = g_nPolyVertexAlpha;
 		SetUV(pDest, pSrc->m_U, pSrc->m_V);
-		pDest->tu2 = (DAT_1004ffb0 + pSrc->m_Vec->x) * DAT_1004eba8;
-		pDest->tv2 = (DAT_1004ffb4 + pSrc->m_Vec->z) * DAT_1004ebac;
+		pDest->tu2 = (g_fGlobalPanUOffset + pSrc->m_Vec->x) * g_fGlobalPanUScale;
+		pDest->tv2 = (g_fGlobalPanVOffset + pSrc->m_Vec->z) * g_fGlobalPanVScale;
 		pDest++;
 		pSrc++;
 	}
 
 	nVerts = nPolyVerts;
 	pVerts = verts;
-	FUN_100083ec(pPoly, verts, nVerts);
-	if (!FUN_100085f2(&pVerts, &nVerts, &g_ViewParams, 0))
+	AddPolyDynamicVertexLighting(pPoly, verts, nVerts);
+	if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
 		return 0;
 
 	d3d_SetTexture(((Surface *)pPoly->m_pSurface)->m_pTexture, g_NormalTextureStage, 0);
@@ -414,17 +414,17 @@ int FUN_100354bf(WorldPoly *pPoly)
 	{
 		float u = pDest->tu;
 		float v = pDest->tv;
-		SetUV(pDest, u * DAT_10061810[0].m_Unk00, v * DAT_10061810[0].m_Unk04);
+		SetUV(pDest, u * g_TextureStageTexelSizes[0].m_Unk00, v * g_TextureStageTexelSizes[0].m_Unk04);
 		++pDest;
 	}
 
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 	pStateChange = (StateChange *)((Surface *)pPoly->m_pSurface)->m_pTexture->m_pStateChange;
 	if (pStateChange)
-		DAT_10063c90.FUN_10021db7(pStateChange, g_NormalTextureStage);
+		g_TextureStateRestorer.ApplyStateChange(pStateChange, g_NormalTextureStage);
 
 	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x2c4, pVerts, nVerts, 0);
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 	return 1;
 }
 
@@ -432,7 +432,7 @@ int FUN_100354bf(WorldPoly *pPoly)
 // the list *ppDeferred instead unless ppDeferred is -1 (the second pass); bFree gives the nodes back to the pool.  Returns the OR
 // of the callbacks' results (1 for a deferred poly).
 // FUNCTION: D3DREN 0x10035629
-uint32 FUN_10035629(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree, UnkType_PoolNode **ppDeferred)
+uint32 ProcessQueuedPolyList(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree, UnkType_PoolNode **ppDeferred)
 {
 	uint32 result = 0;
 	UnkType_PoolNode *pNext;
@@ -450,7 +450,7 @@ uint32 FUN_10035629(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree,
 			}
 			else
 			{
-				pNew = (UnkType_PoolNode *)sb_Allocate(&DAT_10058758);
+				pNew = (UnkType_PoolNode *)sb_Allocate(&g_WorldPolyNodeBank);
 				if (pNew)
 				{
 					result |= 1;
@@ -462,7 +462,7 @@ uint32 FUN_10035629(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree,
 			}
 
 			if (bFree && pNode)
-				sb_Free(&DAT_10058758, pNode);
+				sb_Free(&g_WorldPolyNodeBank, pNode);
 
 			pNode = pNext;
 		} while (pNode);
@@ -471,19 +471,19 @@ uint32 FUN_10035629(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree,
 	return result;
 }
 
-// guess: queues pPoly in the per-texture list DAT_1005a308 with the current clip state word.
+// guess: queues pPoly in the per-texture list g_pTexturedWorldPolyBuckets with the current clip state word.
 // FUNCTION: D3DREN 0x100356b8
-void FUN_100356b8(WorldPoly *pPoly)
+void QueueLightmappedPoly(WorldPoly *pPoly)
 {
-	FUN_10007ddb(pPoly, &DAT_1005a308, 0)->m_Unk0c = g_ClipFlags;
+	AllocateTexturePolyNode(pPoly, &g_pTexturedWorldPolyBuckets, 0)->m_Unk0c = g_ClipFlags;
 }
 
 // guess: sets the texture stage states of the lightmap passes: stage 0 modulates the diffuse colour with the base texture,
-// stage 1 (unless g_LightmapsOnly) modulates the lightmap with it (add when DAT_1007d424).
+// stage 1 (unless g_LightmapsOnly) modulates the lightmap with it (add when g_bLightmapModulate2X).
 // The stage 1 setup calls are written out in both branches and the compiler tail-merges the two shared ones; written as a
 // single copy after the if/else, the constant 2 is not CSE'd into edi (it needs 6 uses; the merged copy shows only 5 pushes).
 // FUNCTION: D3DREN 0x100356d5
-void FUN_100356d5()
+void SetLightmapTextureStageStates()
 {
 	uint32 op;
 
@@ -492,7 +492,7 @@ void FUN_100356d5()
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 
 	op = D3DTOP_MODULATE;
-	if (DAT_1007d424)
+	if (g_bLightmapModulate2X)
 		op = D3DTOP_MODULATE2X;
 
 	if (g_LightmapsOnly)
@@ -511,7 +511,7 @@ void FUN_100356d5()
 
 // guess: restores the texture stage states after the lightmap passes.
 // FUNCTION: D3DREN 0x10035771
-void FUN_10035771()
+void ResetLightmapTextureStageStates()
 {
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);

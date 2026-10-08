@@ -46,8 +46,8 @@ void dsi_ConsolePrint(const char *pMsg, ...);		// 0x10012d5d
 // Prints only if debugLevel <= the RenderDebug console variable.
 void AddDebugMessage(int debugLevel, const char *pMsg, ...);		// 0x10012d92
 
-// NAME: names_proposal.csv guess_CountSetBits (low, invented): FUN_10012edf, the number of set bits of a 32 bit mask (declared here by W8, defined in common_stuff.cpp).
-int FUN_10012edf(uint32 mask);											// 0x10012edf
+// NAME: names_proposal.csv guess_CountSetBits (low, invented): CountMaskBits, the number of set bits of a 32 bit mask (declared here by W8, defined in common_stuff.cpp).
+int CountMaskBits(uint32 mask);											// 0x10012edf
 
 HLTPARAM d3d_MaybeCreateCVar(const char *pName, float defaultVal);	// 0x10012dd2
 void d3d_CreateConsoleVariables();									// 0x10012e26

@@ -27,8 +27,8 @@
 // The lists of polygons touched by dynamic lights (names unknown, shapes in the comments).
 // ------------------------------------------------------------------ //
 
-// The per-poly record of a dynamic light touching it (StructBank DAT_10056220, 0x14 bytes) and the list of lit polys
-// (StructBank DAT_10056240, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
+// The per-poly record of a dynamic light touching it (StructBank g_PolyLightBank, 0x14 bytes) and the list of lit polys
+// (StructBank g_LitPolyBank, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
 struct UnkType_PolyLight
 {
 	UnkType_PolyLight	*m_pNext;		// 0x00
@@ -39,7 +39,7 @@ struct UnkType_PolyLight
 #define WORLDPOLY_LIGHTS(p)	(*(UnkType_PolyLight**)((uint8*)(p) + 0x30))
 
 // Functions of the device bring-up unit (sys/d3d/d3d_init) and of this unit further down.
-void FUN_10012eaf(char *pStr);
+void UppercaseStringInPlace(char *pStr);
 
 // Stores a function address in a RenderStruct slot.  The slots are typed in include/renderstruct.h, but some of them are
 // padding there (GetOptimized2DBlend/Color, IsInOptimized2D and the unnamed 0xc8) and several functions of the units that
@@ -529,13 +529,13 @@ void d3d_ReadConsoleVariables()
 	}
 
 	d3d_ReadExtraConsoleVariables();
-	if (DAT_10057a10)
+	if (g_bSpecialRenderMode)
 		g_LightMap = 0;
 }
 
 // FUNCTION: D3DREN 0x10012eaf
 // guess: upper-cases a string in place (the name matcher of the device list)
-void FUN_10012eaf(char *pStr)
+void UppercaseStringInPlace(char *pStr)
 {
 	uint32 i;
 
@@ -547,7 +547,7 @@ void FUN_10012eaf(char *pStr)
 
 // FUNCTION: D3DREN 0x10012edf
 // guess: number of set bits of a 32-bit mask (the colour masks of a DDPIXELFORMAT)
-int FUN_10012edf(uint32 mask)
+int CountMaskBits(uint32 mask)
 {
 	int nBits = 0;
 	int i;

@@ -57,9 +57,9 @@ ViewParams g_ViewParams;
 
 // Globals of other units that this part reads.
 // GLOBAL: D3DREN 0x10056770
-extern MainWorld *DAT_10056770;			// guess: the engine's main world (names_proposal guess_g_pMainWorld, low)
+extern MainWorld *g_pFrameMainWorld;			// guess: the engine's main world (names_proposal guess_g_pMainWorld, low)
 
-void FUN_1000f40a(WorldBsp *pBsp);
+void d3d_ClearWorldBspFrameCodes(WorldBsp *pBsp);
 
 // Talon-only per-frame visit codes (no member names known): the u16 at Leaf+0x2c and WorldPoly+0x46.
 // FUNCTION: D3DREN 0x1000f3c0
@@ -73,9 +73,9 @@ void d3d_IncrementFrameCode(RenderContext *pContext)
 		pContext->m_CurFrameCode = 1;
 
 		// The frame code wrapped: reset the codes of the leaves and polies of every world model.
-		for (i = 0; i < DAT_10056770->m_WorldModels.GetSize(); i++)
+		for (i = 0; i < g_pFrameMainWorld->m_WorldModels.GetSize(); i++)
 		{
-			FUN_1000f40a(DAT_10056770->m_WorldModels[i]->m_pOriginalBsp);
+			d3d_ClearWorldBspFrameCodes(g_pFrameMainWorld->m_WorldModels[i]->m_pOriginalBsp);
 		}
 	}
 
@@ -84,7 +84,7 @@ void d3d_IncrementFrameCode(RenderContext *pContext)
 
 // FUNCTION: D3DREN 0x1000f40a
 // guess: resets the u16 frame codes of all leaves (+0x2c of each 0x30 byte leaf) and all polies (+0x46) of a world BSP
-void FUN_1000f40a(WorldBsp *pBsp)
+void d3d_ClearWorldBspFrameCodes(WorldBsp *pBsp)
 {
 	uint32 i;
 
@@ -102,7 +102,7 @@ void FUN_1000f40a(WorldBsp *pBsp)
 // FUNCTION: D3DREN 0x1000f458
 // guess: the portal visibility test of a vis query (VisQueryRequest::m_Unknown24 = VQPortalFn): returns 0 when the portal's
 // box (m_Center +- m_Dims) lies completely outside one of the six world-space clip planes of g_ViewParams
-LTBOOL FUN_1000f458(BspPortal *pPortal)
+LTBOOL d3d_IsPortalInsideViewFrustum(BspPortal *pPortal)
 {
 	LTVector aCorners[8];
 	LTVector vCorner;
@@ -196,7 +196,7 @@ void d3d_InitViewBox2(ViewBoxDef *pDef,
 
 // guess: caches six elements of the projection matrices (called at the end of d3d_InitFrustum2)
 // FUNCTION: D3DREN 0x1000f6de
-void FUN_1000f6de(ViewParams *pParams)
+void d3d_CacheProjectionCoefficients(ViewParams *pParams)
 {
 	pParams->m_fProjXScale = pParams->m_DeviceTimesProjection.m[0][0];
 	pParams->m_fProjXOffset = pParams->m_DeviceTimesProjection.m[0][2];
@@ -342,7 +342,7 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 	pParams->m_DeviceTimesProjection = mDevice * mProjectionTransform;
 	pParams->m_FullTransform = pParams->m_DeviceTimesProjection * pParams->m_mClipTransform;
 
-	FUN_1000f6de(pParams);
+	d3d_CacheProjectionCoefficients(pParams);
 
 	float fInvFarZ = 1.0f / pViewBox->m_FarZ;
 	mFarScale.Init(
@@ -470,8 +470,8 @@ void d3d_SetupSkyStuff()
 
 	if (g_pSceneDesc->m_DrawMode == DRAWMODE_NORMAL)
 	{
-		const LTVector &min = DAT_10056770->m_ExtentsMin;
-		const LTVector &max = DAT_10056770->m_ExtentsMax;
+		const LTVector &min = g_pFrameMainWorld->m_ExtentsMin;
+		const LTVector &max = g_pFrameMainWorld->m_ExtentsMax;
 		percents = (g_ViewParams.m_Pos - min) / (max - min);
 	}
 	else
@@ -496,71 +496,71 @@ uint16 g_CurFrameCode;
 // GLOBAL: D3DREN 0x100561f0
 uint32 g_CurObjectFrameCode;
 // GLOBAL: D3DREN 0x10057b58
-extern int DAT_10057b58;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
+extern int g_nRenderFrameCount;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
 // GLOBAL: D3DREN 0x1005625c
-extern int DAT_1005625c;				// guess: the third argument of d3d_InitFrame
+extern int g_nInitFrameArgument;				// guess: the third argument of d3d_InitFrame
 // GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *DAT_10055ce0;	// &g_pStruct->m_GlobalPans (NAMING.md: "DAT_10055ce0 = &it")
+extern GlobalPanInfo *g_pGlobalPanInfo;	// &g_pStruct->m_GlobalPans (NAMING.md: "g_pGlobalPanInfo = &it")
 // GLOBAL: D3DREN 0x10056284
-extern RenderContext *DAT_10056284;	// guess: the render context of the frame (CreateContext's object)
+extern RenderContext *g_pFrameRenderContext;	// guess: the render context of the frame (CreateContext's object)
 // GLOBAL: D3DREN 0x100577b8
-extern uint16 DAT_100577b8;			// guess: current texture frame code (RenderStruct::IncCurTextureFrameCode)
+extern uint16 g_CurTextureFrameCode;			// guess: current texture frame code (RenderStruct::IncCurTextureFrameCode)
 // GLOBAL: D3DREN 0x100577a8
-extern LTVector DAT_100577a8;			// guess: a vector the engine hands over (SceneDesc +0x38)
+extern LTVector g_vSceneClientVectorPrimary;			// guess: a vector the engine hands over (SceneDesc +0x38)
 // GLOBAL: D3DREN 0x100566a0
-extern LTVector DAT_100566a0;			// guess: SceneDesc +0x44
+extern LTVector g_vSceneClientVectorSecondary;			// guess: SceneDesc +0x44
 // GLOBAL: D3DREN 0x100561f8
-extern LTVector DAT_100561f8;			// guess: the global light scale (SceneDesc +0x50, "GlobalLightScale")
+extern LTVector g_GlobalLightScale;			// guess: the global light scale (SceneDesc +0x50, "GlobalLightScale")
 // GLOBAL: D3DREN 0x10056208
-extern LTVector DAT_10056208;			// guess: DAT_100561f8 * 255
+extern LTVector g_GlobalLightScale255;			// guess: g_GlobalLightScale * 255
 // GLOBAL: D3DREN 0x100566c0
-extern LTVector DAT_100566c0;			// DAT_100561f8 / 255 (original loads at 0x100104cb/0x100104d2/0x100104dd)
+extern LTVector g_vGlobalLightScalePerByte;			// g_GlobalLightScale / 255 (original loads at 0x100104cb/0x100104d2/0x100104dd)
 // GLOBAL: D3DREN 0x10056698
-extern TLRGB DAT_10056698;				// guess: the light scale as a packed colour
+extern TLRGB g_GlobalLightScaleColor;				// guess: the light scale as a packed colour
 // GLOBAL: D3DREN 0x10057774
-extern uint8 DAT_10057774;				// guess: 0xff, set with the colours (an alpha byte)
+extern uint8 g_nPolyVertexAlpha;				// guess: 0xff, set with the colours (an alpha byte)
 // GLOBAL: D3DREN 0x10055ce8
-extern LTVector DAT_10055ce8;			// guess: the global vertex tint (SceneDesc +0x5c)
+extern LTVector g_GlobalVertexTint;			// guess: the global vertex tint (SceneDesc +0x5c)
 // GLOBAL: D3DREN 0x100566bc
-extern RGBColor DAT_100566bc;				// guess: the tint as a packed colour
+extern RGBColor g_GlobalVertexTintColor;				// guess: the tint as a packed colour
 // GLOBAL: D3DREN 0x10056260
-extern LTVector DAT_10056260;			// guess: SceneDesc +0x68
+extern LTVector g_vGlobalModelDirAdd2;			// guess: SceneDesc +0x68
 // GLOBAL: D3DREN 0x10057798
-extern TLRGB DAT_10057798;				// guess: that vector as a packed colour (not scaled)
+extern TLRGB g_GlobalModelDirAdd2Color;				// guess: that vector as a packed colour (not scaled)
 // GLOBAL: D3DREN 0x10056694
-extern float DAT_10056694;				// guess: area drawn this frame ("Tri area drawn")
+extern float g_fScreenTriangleArea;				// guess: area drawn this frame ("Tri area drawn")
 // Per-frame counters of the draw code (zeroed here; printed by RenderScene).
 // GLOBAL: D3DREN 0x10056688
-extern int DAT_10056688;
+extern int g_nWorldPolysProcessed;
 // GLOBAL: D3DREN 0x100566ac
-extern int DAT_100566ac;
+extern int g_nWorldPolysDrawn;
 // GLOBAL: D3DREN 0x10055cd8
-extern int DAT_10055cd8;
+extern int g_nParticlesDrawn;
 // GLOBAL: D3DREN 0x1005779c
-extern int DAT_1005779c;
+extern int g_nReservedFrameStatistic;
 // GLOBAL: D3DREN 0x100566cc
-extern int DAT_100566cc;
+extern int g_nLightTests;
 // GLOBAL: D3DREN 0x10056690
-extern int DAT_10056690;
+extern int g_nRejectedPolyLightTests;
 // GLOBAL: D3DREN 0x100566b8
-extern int DAT_100566b8;
+extern int g_nSkyPortals;
 // GLOBAL: D3DREN 0x10056270
-extern int DAT_10056270;
+extern int g_nSkyPolyFragments;
 // GLOBAL: D3DREN 0x10056218
 extern uint32 g_nNumObjectDynamicLights;	// unsigned: the exe compares it with jb/jbe
 // GLOBAL: D3DREN 0x100566b0
-extern int DAT_100566b0;
+extern int g_nPolygonTriangles;
 // GLOBAL: D3DREN 0x10055cf4
-extern int DAT_10055cf4;
+extern int g_nVisibleLeaves;
 // GLOBAL: D3DREN 0x10056280
-extern int DAT_10056280;
+extern int g_nTextureUploads;
 // GLOBAL: D3DREN 0x10057794
-extern int DAT_10057794;
+extern int g_nTextureChanges;
 // GLOBAL: D3DREN 0x10056278
-extern int DAT_10056278;
+extern int g_nDynamicLightmapsRefreshed;
 // GLOBAL: D3DREN 0x10055cdc
-extern int DAT_10055cdc;
-// DAT_1005626c, DAT_1005668c, g_ClipFlags, g_pClipScratchVerts: include/d3dren/viewparams.h
+extern int g_nTextureUploadSaves;
+// g_nModelTrianglesDrawn, g_nPlaneClipTests, g_ClipFlags, g_pClipScratchVerts: include/d3dren/viewparams.h
 
 // NAME: d3d_InitFrustum: Jupiter common_draw.cpp, expanded in d3d_InitFrame in Talon.
 inline LTBOOL d3d_InitFrustum(ViewParams *pParams,
@@ -579,7 +579,7 @@ inline LTBOOL d3d_InitFrustum(ViewParams *pParams,
 }
 
 // Component-wise SDK VEC_MULSCALAR formula, returned through the original-style vector temporary.
-inline LTVector FUN_100103c2_Scale(LTVector v, float scale)
+inline LTVector ScaleVectorComponents(LTVector v, float scale)
 {
     LTVector ret;
     VEC_MULSCALAR(ret, v, scale);
@@ -587,7 +587,7 @@ inline LTVector FUN_100103c2_Scale(LTVector v, float scale)
 }
 
 // NAME: d3d_InitFrame: Jupiter common_draw.cpp d3d_InitFrame (names_proposal medium); the Talon form takes two more arguments (the
-// scratch vertex buffer of the polygon clippers, stored in g_pClipScratchVerts, and an int stored in DAT_1005625c) and has Jupiter's
+// scratch vertex buffer of the polygon clippers, stored in g_pClipScratchVerts, and an int stored in g_nInitFrameArgument) and has Jupiter's
 // d3d_InitFrustum inlined (it has no copy of its own in d3d.ren).
 // STUB: D3DREN 0x100103c2
 // Remaining difference: 939 instead of 949 bytes (486 bytes differ). The inline frustum call snapshots its FOV, near/far,
@@ -608,11 +608,11 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 
 	d3d_ReadConsoleVariables();
 
-	DAT_10057b58++;
+	g_nRenderFrameCount++;
 	g_pClipScratchVerts = pScratchVerts;
 	g_pSceneDesc = pDesc;
-	DAT_1005625c = nUnk;
-	DAT_10055ce0 = g_pStruct->m_GlobalPans;
+	g_nInitFrameArgument = nUnk;
+	g_pGlobalPanInfo = g_pStruct->m_GlobalPans;
 
 	// Get stuff out of the context (if it exists).
 	pContext = (RenderContext *)pDesc->m_hRenderContext;
@@ -621,64 +621,64 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 		if (!pContext)
 			return 0;
 
-		DAT_10056770 = pContext->m_pWorld;
-		DAT_10056284 = pContext;
+		g_pFrameMainWorld = pContext->m_pWorld;
+		g_pFrameRenderContext = pContext;
 		d3d_IncrementFrameCode(pContext);
 		g_CurFrameCode = pContext->m_CurFrameCode;
 	}
 	else
 	{
-		DAT_10056284 = 0;
-		DAT_10056770 = 0;
+		g_pFrameRenderContext = 0;
+		g_pFrameMainWorld = 0;
 	}
 
 	g_CurObjectFrameCode = g_pStruct->IncObjectFrameCode();
-	DAT_100577b8 = g_pStruct->IncCurTextureFrameCode();
+	g_CurTextureFrameCode = g_pStruct->IncCurTextureFrameCode();
 	g_ClipFlags = 0x3f;
 
-	DAT_100577a8 = pDesc->m_Unknown38;
-	DAT_100566a0 = pDesc->m_Unknown44;
+	g_vSceneClientVectorPrimary = pDesc->m_Unknown38;
+	g_vSceneClientVectorSecondary = pDesc->m_Unknown44;
 
-	DAT_100561f8 = pDesc->m_GlobalLightScale;
-	DAT_10056208 = FUN_100103c2_Scale(DAT_100561f8, 255.0f);
-	DAT_100566c0 = FUN_100103c2_Scale(DAT_100561f8, 1.0f / 255.0f);
-	DAT_10056698.r = (uint8)RoundFloatToInt(DAT_100561f8.x * 255.0f);
-	DAT_10056698.g = (uint8)RoundFloatToInt(DAT_100561f8.y * 255.0f);
-	DAT_10056698.b = (uint8)RoundFloatToInt(DAT_100561f8.z * 255.0f);
-	DAT_10056698.a = 0xff;
-	DAT_10057774 = 0xff;
+	g_GlobalLightScale = pDesc->m_GlobalLightScale;
+	g_GlobalLightScale255 = ScaleVectorComponents(g_GlobalLightScale, 255.0f);
+	g_vGlobalLightScalePerByte = ScaleVectorComponents(g_GlobalLightScale, 1.0f / 255.0f);
+	g_GlobalLightScaleColor.r = (uint8)RoundFloatToInt(g_GlobalLightScale.x * 255.0f);
+	g_GlobalLightScaleColor.g = (uint8)RoundFloatToInt(g_GlobalLightScale.y * 255.0f);
+	g_GlobalLightScaleColor.b = (uint8)RoundFloatToInt(g_GlobalLightScale.z * 255.0f);
+	g_GlobalLightScaleColor.a = 0xff;
+	g_nPolyVertexAlpha = 0xff;
 
-	DAT_10055ce8 = pDesc->m_GlobalVertexTint;
-	DAT_100566bc.rgb.r = (uint8)RoundFloatToInt(DAT_10055ce8.x * 255.0f);
-	DAT_100566bc.rgb.g = (uint8)RoundFloatToInt(DAT_10055ce8.y * 255.0f);
-	DAT_100566bc.rgb.b = (uint8)RoundFloatToInt(DAT_10055ce8.z * 255.0f);
-	DAT_100566bc.rgb.a = 0xff;
+	g_GlobalVertexTint = pDesc->m_GlobalVertexTint;
+	g_GlobalVertexTintColor.rgb.r = (uint8)RoundFloatToInt(g_GlobalVertexTint.x * 255.0f);
+	g_GlobalVertexTintColor.rgb.g = (uint8)RoundFloatToInt(g_GlobalVertexTint.y * 255.0f);
+	g_GlobalVertexTintColor.rgb.b = (uint8)RoundFloatToInt(g_GlobalVertexTint.z * 255.0f);
+	g_GlobalVertexTintColor.rgb.a = 0xff;
 
-	DAT_10056260 = pDesc->m_GlobalModelDirAdd2;
-	DAT_10057798.r = (uint8)RoundFloatToInt(DAT_10056260.x);
-	DAT_10057798.g = (uint8)RoundFloatToInt(DAT_10056260.y);
-	DAT_10057798.b = (uint8)RoundFloatToInt(DAT_10056260.z);
-	DAT_10057798.a = 0xff;
+	g_vGlobalModelDirAdd2 = pDesc->m_GlobalModelDirAdd2;
+	g_GlobalModelDirAdd2Color.r = (uint8)RoundFloatToInt(g_vGlobalModelDirAdd2.x);
+	g_GlobalModelDirAdd2Color.g = (uint8)RoundFloatToInt(g_vGlobalModelDirAdd2.y);
+	g_GlobalModelDirAdd2Color.b = (uint8)RoundFloatToInt(g_vGlobalModelDirAdd2.z);
+	g_GlobalModelDirAdd2Color.a = 0xff;
 
 	// Reset the statistics.
-	DAT_10056694 = 0.0f;
-	DAT_10056688 = 0;
-	DAT_100566ac = 0;
-	DAT_10055cd8 = 0;
-	DAT_1005626c = 0;
-	DAT_1005779c = 0;
-	DAT_100566cc = 0;
-	DAT_1005668c = 0;
-	DAT_10056690 = 0;
-	DAT_100566b8 = 0;
-	DAT_10056270 = 0;
+	g_fScreenTriangleArea = 0.0f;
+	g_nWorldPolysProcessed = 0;
+	g_nWorldPolysDrawn = 0;
+	g_nParticlesDrawn = 0;
+	g_nModelTrianglesDrawn = 0;
+	g_nReservedFrameStatistic = 0;
+	g_nLightTests = 0;
+	g_nPlaneClipTests = 0;
+	g_nRejectedPolyLightTests = 0;
+	g_nSkyPortals = 0;
+	g_nSkyPolyFragments = 0;
 	g_nNumObjectDynamicLights = 0;
-	DAT_100566b0 = 0;
-	DAT_10055cf4 = 0;
-	DAT_10056280 = 0;
-	DAT_10057794 = 0;
-	DAT_10056278 = 0;
-	DAT_10055cdc = 0;
+	g_nPolygonTriangles = 0;
+	g_nVisibleLeaves = 0;
+	g_nTextureUploads = 0;
+	g_nTextureChanges = 0;
+	g_nDynamicLightmapsRefreshed = 0;
+	g_nTextureUploadSaves = 0;
 
     return d3d_InitFrustum(&g_ViewParams,
         pDesc->m_xFov, pDesc->m_yFov, g_CV_NearZ.m_FloatVal, pDesc->m_FarZ,
@@ -691,8 +691,8 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 // The lists of polygons touched by dynamic lights (names unknown, shapes in the comments).
 // ------------------------------------------------------------------ //
 
-// The per-poly record of a dynamic light touching it (StructBank DAT_10056220, 0x14 bytes) and the list of lit polys
-// (StructBank DAT_10056240, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
+// The per-poly record of a dynamic light touching it (StructBank g_PolyLightBank, 0x14 bytes) and the list of lit polys
+// (StructBank g_LitPolyBank, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
 struct UnkType_PolyLight
 {
 	UnkType_PolyLight	*m_pNext;		// 0x00
@@ -709,39 +709,39 @@ struct UnkType_LitPoly
 #define WORLDPOLY_LIGHTS(p)	(*(UnkType_PolyLight**)((uint8*)(p) + 0x30))
 
 // GLOBAL: D3DREN 0x10056214
-int DAT_10056214;				// guess: number of polys in the lit list ("Num Lit Polies")
+int g_nLitPolies;				// guess: number of polys in the lit list ("Num Lit Polies")
 // GLOBAL: D3DREN 0x10056220
-StructBank DAT_10056220;		// guess: UnkType_PolyLight records
+StructBank g_PolyLightBank;		// guess: UnkType_PolyLight records
 // GLOBAL: D3DREN 0x10056240
-StructBank DAT_10056240;		// guess: UnkType_LitPoly records
+StructBank g_LitPolyBank;		// guess: UnkType_LitPoly records
 // GLOBAL: D3DREN 0x10057778
-StructBank DAT_10057778;		// guess: 0xc byte records of the lit polygon drawing (see unit unk/10023860)
+StructBank g_PolyDrawRecordBank;		// guess: 0xc byte records of the lit polygon drawing (see unit unk/10023860)
 // GLOBAL: D3DREN 0x100577b4
-UnkType_LitPoly *DAT_100577b4;	// guess: head of the list of polys touched by a dynamic light this frame
+UnkType_LitPoly *g_pDynamicallyLitPolys;	// guess: head of the list of polys touched by a dynamic light this frame
 
-void FUN_100107c3(UnkType_LitPoly *pLitPoly);
+void d3d_FreePolyLightRecords(UnkType_LitPoly *pLitPoly);
 
 // guess: ends the lit lists of the frame: returns every record and list node to its StructBank (called once per frame by 0x10014a40)
 // FUNCTION: D3DREN 0x10010777
-void FUN_10010777()
+void d3d_FreeLitPolyList()
 {
 	UnkType_LitPoly *pNode;
 	UnkType_LitPoly *pNext;
 
-	DAT_10056214 = 0;
-	for (pNode = DAT_100577b4; pNode; pNode = pNext)
+	g_nLitPolies = 0;
+	for (pNode = g_pDynamicallyLitPolys; pNode; pNode = pNext)
 	{
-		DAT_10056214++;
-		FUN_100107c3(pNode);
+		g_nLitPolies++;
+		d3d_FreePolyLightRecords(pNode);
 		pNext = pNode->m_pNext;
-		sb_Free(&DAT_10056240, pNode);
+		sb_Free(&g_LitPolyBank, pNode);
 	}
-	DAT_100577b4 = 0;
+	g_pDynamicallyLitPolys = 0;
 }
 
 // guess: returns the light records of one lit poly to their StructBank
 // FUNCTION: D3DREN 0x100107c3
-void FUN_100107c3(UnkType_LitPoly *pLitPoly)
+void d3d_FreePolyLightRecords(UnkType_LitPoly *pLitPoly)
 {
 	UnkType_PolyLight *pRecord;
 	UnkType_PolyLight *pNext;
@@ -749,38 +749,38 @@ void FUN_100107c3(UnkType_LitPoly *pLitPoly)
 	for (pRecord = WORLDPOLY_LIGHTS(pLitPoly->m_pPoly); pRecord; pRecord = pNext)
 	{
 		pNext = pRecord->m_pNext;
-		sb_Free(&DAT_10056220, pRecord);
+		sb_Free(&g_PolyLightBank, pRecord);
 	}
 	WORLDPOLY_LIGHTS(pLitPoly->m_pPoly) = 0;
 }
 
-// guess: tail-call wrapper of FUN_10010777 (the frame code calls this one)
+// guess: tail-call wrapper of d3d_FreeLitPolyList (the frame code calls this one)
 // FUNCTION: D3DREN 0x100107fb
-void FUN_100107fb()
+void d3d_ClearFrameLitPolys()
 {
-	FUN_10010777();
+	d3d_FreeLitPolyList();
 }
 
 // guess: creates the StructBanks of the lit lists (and of the lit polygon drawing)
 // FUNCTION: D3DREN 0x10010800
-void FUN_10010800()
+void d3d_InitLitPolyPools()
 {
-	sb_Init2(&DAT_10056220, 0x14, 0x40, 0x40);
-	sb_Init2(&DAT_10056240, 8, 0x40, 0x40);
-	sb_Init2(&DAT_10057778, 0xc, 0x200, 0x800);
+	sb_Init2(&g_PolyLightBank, 0x14, 0x40, 0x40);
+	sb_Init2(&g_LitPolyBank, 8, 0x40, 0x40);
+	sb_Init2(&g_PolyDrawRecordBank, 0xc, 0x200, 0x800);
 }
 
 // FUNCTION: D3DREN 0x1001083a
-void FUN_1001083a()
+void d3d_TermLitPolyPools()
 {
-	sb_Term(&DAT_10056220);
-	sb_Term(&DAT_10056240);
-	sb_Term(&DAT_10057778);
+	sb_Term(&g_PolyLightBank);
+	sb_Term(&g_LitPolyBank);
+	sb_Term(&g_PolyDrawRecordBank);
 }
 
 // guess: sphere-map texture coordinates (u, v) of the reflection of the view ray p1 -> p2 about the normal
 // FUNCTION: D3DREN 0x1001085e
-void FUN_1001085e(LTVector *pPos1, LTVector *pPos2, LTVector *pNormal, float *pU, float *pV)
+void d3d_CalcWorldReflectionUVs(LTVector *pPos1, LTVector *pPos2, LTVector *pNormal, float *pU, float *pV)
 {
 	LTVector vDir = *pPos2 - *pPos1;
 	float fDot;

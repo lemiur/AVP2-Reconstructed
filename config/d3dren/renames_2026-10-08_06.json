@@ -1,0 +1,1019 @@
+[
+ {
+  "va": "100238b0",
+  "old": "FUN_100238b0",
+  "new": "AttachDynamicLightToWorldModelPolys",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Traverses a world model BSP using the transformed light position and radius, attaching unique per-polygon light records. Unhit in recorded scenarios.",
+  "primary_draft": "AddDynamicLightToWorldModelPolys",
+  "prior_evidence": "Walks a BSP/node list testing |dot(light pos,plane)-d| <= light radius (light+0x1b0) and sphere distance, allocates link nodes from pools DAT_10056220/10056240 and attaches the light to Node/poly list at +0x30 (the list read by 10022f85); only called through 10023b00.",
+  "independent_opinion": {
+   "va": "100238b0",
+   "old": "FUN_100238b0",
+   "new": "AttachDynamicLightToWorldModelPolys",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Traverses a world model BSP using the transformed light position and radius, attaching unique per-polygon light records. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100238b0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10023b00",
+  "old": "FUN_10023b00",
+  "new": "DynamicLightWorldModelQueryCB",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: World-tree callback restricts results to world models and applies the supplied dynamic light. Unhit in recorded scenarios.",
+  "primary_draft": "WorldModelLightCB",
+  "prior_evidence": "Callback (obj,...): if obj->m_ObjectType(+0xbc)==OT_WORLDMODEL(2) call 100238b0; used as FindObjInfo callback by 10023b20 (same role as Jupiter ModelDraw::StaticLightCB(WorldTreeObj*,void*)).",
+  "independent_opinion": {
+   "va": "10023b00",
+   "old": "FUN_10023b00",
+   "new": "DynamicLightWorldModelQueryCB",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "World-tree callback restricts results to world models and applies the supplied dynamic light. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10023b00.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10023b20",
+  "old": "FUN_10023b20",
+  "new": "ApplyVisibleDynamicLight",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds eligible light objects to the object-light array and queries world models in the light-radius box. Unhit in recorded scenarios.",
+  "primary_draft": "d3d_ProcessVisibleLightCB",
+  "prior_evidence": "Per light of VS_LIGHTS: appends to visible-light array DAT_100566d0 (max 0x28, count DAT_10056218) and, unless flag 0x80, queries world models in the light's box via the world BSP client (DAT_10056770 vcall +8) with callback 10023b00.",
+  "independent_opinion": {
+   "va": "10023b20",
+   "old": "FUN_10023b20",
+   "new": "ApplyVisibleDynamicLight",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds eligible light objects to the object-light array and queries world models in the light-radius box. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10023b20.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10023d60",
+  "old": "FUN_10023d60",
+  "new": "d3d_QueueLineSystemDraw",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds the line-system object to ObjectDrawList with d3d_DrawLineSystem. Unhit in recorded scenarios.",
+  "primary_draft": "d3d_QueueLineSystemThunk",
+  "prior_evidence": "(Params,obj) -> ObjectDrawList::Add(g_pTransObjList, obj, 10023d80).",
+  "independent_opinion": {
+   "va": "10023d60",
+   "old": "FUN_10023d60",
+   "new": "d3d_QueueLineSystemDraw",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds the line-system object to ObjectDrawList with d3d_DrawLineSystem. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10023d60.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100296a6",
+  "old": "FUN_100296a6",
+  "new": "d3d_InitParticleQuadIndices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Guarded initialization emits six indices for each of 128 four-vertex particle quads. Unhit in recorded scenarios.",
+  "primary_draft": "d3d_ParticleSystemPreFrame",
+  "prior_evidence": "g_ObjectHandlers[OT_PARTICLESYSTEM=6].m_PreFrameFn (1004bafc); once (flag DAT_1006e7b8) fills DAT_1006d1b8 with 128 quads of indices (n,n+1,n+2,n,n+2,n+3) as shorts.",
+  "independent_opinion": {
+   "va": "100296a6",
+   "old": "FUN_100296a6",
+   "new": "d3d_InitParticleQuadIndices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Guarded initialization emits six indices for each of 128 four-vertex particle quads. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100296a6.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100298da",
+  "old": "FUN_100298da",
+  "new": "d3d_QueueParticleSystemDraw",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds one particle-system object to ObjectDrawList with d3d_TestAndDrawPS. Unhit in recorded scenarios.",
+  "primary_draft": "d3d_QueueParticleSystemThunk",
+  "prior_evidence": "(Params,obj) -> ObjectDrawList::Add(g_pTransObjList, obj, 1002970e).",
+  "independent_opinion": {
+   "va": "100298da",
+   "old": "FUN_100298da",
+   "new": "d3d_QueueParticleSystemDraw",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds one particle-system object to ObjectDrawList with d3d_TestAndDrawPS. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100298da.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029b12",
+  "old": "FUN_10029b12",
+  "new": "GenerateScaledBaseTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Scales source vertex U/V by the selected texture stage's scale pair. Unhit in recorded scenarios.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029b12",
+   "old": "FUN_10029b12",
+   "new": "GenerateScaledBaseTexCoords",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Scales source vertex U/V by the selected texture stage's scale pair. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10029b12.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029b3c",
+  "old": "FUN_10029b3c",
+  "new": "CopySecondaryTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies the source vertex's second coordinate pair at offsets 0x0c and 0x10, ignoring stage. Avoids asserting unresolved lightmap field identity. Unhit in recorded scenarios.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029b3c",
+   "old": "FUN_10029b3c",
+   "new": "CopySecondaryTexCoords",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Copies the source vertex's second coordinate pair at offsets 0x0c and 0x10, ignoring stage. Avoids asserting unresolved lightmap field identity. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10029b3c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029b52",
+  "old": "FUN_10029b52",
+  "new": "GeneratePannedPlanarTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builds UVs from position x/z plus pan products, then applies the selected stage scale. Unhit in recorded scenarios.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029b52",
+   "old": "FUN_10029b52",
+   "new": "GeneratePannedPlanarTexCoords",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Builds UVs from position x/z plus pan products, then applies the selected stage scale. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10029b52.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029b9f",
+  "old": "FUN_10029b9f",
+  "new": "SetDetailUV",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Multiplies the source U and V by the detail scales initialized from DetailTextureScale and the linked texture.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029b9f",
+   "old": "FUN_10029b9f",
+   "new": "SetDetailUV",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Multiplies the source U and V by the detail scales initialized from DetailTextureScale and the linked texture."
+  },
+  "dossier": "build/d3dren/dossier/10029b9f.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029bc1",
+  "old": "FUN_10029bc1",
+  "new": "SetTwoStageUV",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Dispatches stage zero and stage one UV callbacks into two consecutive coordinate pairs.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029bc1",
+   "old": "FUN_10029bc1",
+   "new": "SetTwoStageUV",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Dispatches stage zero and stage one UV callbacks into two consecutive coordinate pairs."
+  },
+  "dossier": "build/d3dren/dossier/10029bc1.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029bed",
+  "old": "FUN_10029bed",
+  "new": "SetThreeStageUV",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Dispatches three stage UV callbacks into three consecutive coordinate pairs.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029bed",
+   "old": "FUN_10029bed",
+   "new": "SetThreeStageUV",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Dispatches three stage UV callbacks into three consecutive coordinate pairs."
+  },
+  "dossier": "build/d3dren/dossier/10029bed.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029c2b",
+  "old": "FUN_10029c2b",
+  "new": "InitSurfaceTextureSource",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Obtains the polygon surface texture scales for the selected material stage.",
+  "primary_draft": "TextureSrcInit_SurfaceTexture",
+  "prior_evidence": "(this,poly,stage): FUN_10021a80(poly->m_pSurface(+0x2c)->m_pTexture(+0x2c), stage, &this[0x770+8*stage], &this[0x774+8*stage]) = fetch per-stage UV scale of the surface texture.",
+  "independent_opinion": {
+   "va": "10029c2b",
+   "old": "FUN_10029c2b",
+   "new": "InitSurfaceTextureSource",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Obtains the polygon surface texture scales for the selected material stage."
+  },
+  "dossier": "build/d3dren/dossier/10029c2b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029c55",
+  "old": "FUN_10029c55",
+  "new": "InitLightmapTextureSource",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Success-only initializer occupies the lightmap source slot in s_TextureSrcInitFns; it needs no surface texture scale setup.",
+  "primary_draft": "TextureSrcInit_None",
+  "prior_evidence": "stdcall(2 args) returns 1 and does nothing (no texture source needed).",
+  "independent_opinion": {
+   "va": "10029c55",
+   "old": "FUN_10029c55",
+   "new": "InitLightmapTextureSource",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Success-only initializer occupies the lightmap source slot in s_TextureSrcInitFns; it needs no surface texture scale setup."
+  },
+  "dossier": "build/d3dren/dossier/10029c55.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029c5b",
+  "old": "FUN_10029c5b",
+  "new": "InitDetailTextureSource",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Finds the linked texture, fetches its scales, and computes manager detail scales; the original return remains zero.",
+  "primary_draft": "TextureSrcInit_DetailTexture",
+  "prior_evidence": "Uses surface texture's m_pLinkedTexture (SharedTexture+0x28 = detail texture, de_world.h) for UV scale and stores DetailTextureScale cvar (DAT_1006e824) * scale at this+0x788/+0x78c.",
+  "independent_opinion": {
+   "va": "10029c5b",
+   "old": "FUN_10029c5b",
+   "new": "InitDetailTextureSource",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Finds the linked texture, fetches its scales, and computes manager detail scales; the original return remains zero."
+  },
+  "dossier": "build/d3dren/dossier/10029c5b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029cbb",
+  "old": "FUN_10029cbb",
+  "new": "InitUntexturedSource",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Unbinds the selected texture stage through the stage-unset helper and returns success.",
+  "primary_draft": "TextureSrcInit_Disable",
+  "prior_evidence": "d3d_DisableTexture(stage) via 1000a27b, returns 1.",
+  "independent_opinion": {
+   "va": "10029cbb",
+   "old": "FUN_10029cbb",
+   "new": "InitUntexturedSource",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Unbinds the selected texture stage through the stage-unset helper and returns success."
+  },
+  "dossier": "build/d3dren/dossier/10029cbb.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029ccb",
+  "old": "FUN_10029ccb",
+  "new": "BindSurfaceTexture",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Calls d3d_SetTexture with the polygon surface texture and selected stage.",
+  "primary_draft": "TextureSrcInit_BindSurfaceTexture",
+  "prior_evidence": "Binds poly->m_pSurface->m_pTexture to the stage (100079e4(tex,stage,0)).",
+  "independent_opinion": {
+   "va": "10029ccb",
+   "old": "FUN_10029ccb",
+   "new": "BindSurfaceTexture",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Calls d3d_SetTexture with the polygon surface texture and selected stage."
+  },
+  "dossier": "build/d3dren/dossier/10029ccb.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029ce6",
+  "old": "FUN_10029ce6",
+  "new": "BindLightmapTexture",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Calls d3d_SetLightmapTexture for the polygon and selected stage.",
+  "primary_draft": "TextureSrcInit_Lightmap",
+  "prior_evidence": "Forwards (poly,stage) to FUN_10009ea5 (lightmap bind helper).",
+  "independent_opinion": {
+   "va": "10029ce6",
+   "old": "FUN_10029ce6",
+   "new": "BindLightmapTexture",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Calls d3d_SetLightmapTexture for the polygon and selected stage."
+  },
+  "dossier": "build/d3dren/dossier/10029ce6.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029cf8",
+  "old": "FUN_10029cf8",
+  "new": "BindDetailTexture",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Binds the linked detail texture and computes detail scales from DetailTextureScale and the bound stage scales.",
+  "primary_draft": "TextureSrcInit_BindDetailTexture",
+  "prior_evidence": "Binds SharedTexture::m_pLinkedTexture (+0x28) at stage, stores DetailTextureScale * texel size (DAT_10061810/14[stage*2]) at this+0x788/+0x78c, returns success.",
+  "independent_opinion": {
+   "va": "10029cf8",
+   "old": "FUN_10029cf8",
+   "new": "BindDetailTexture",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Binds the linked detail texture and computes detail scales from DetailTextureScale and the bound stage scales."
+  },
+  "dossier": "build/d3dren/dossier/10029cf8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10029d60",
+  "old": "FUN_10029d60",
+  "new": "SetFullbrightColor",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Writes opaque white to the output vertex diffuse color.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029d60",
+   "old": "FUN_10029d60",
+   "new": "SetFullbrightColor",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Writes opaque white to the output vertex diffuse color."
+  },
+  "dossier": "build/d3dren/dossier/10029d60.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029d6b",
+  "old": "FUN_10029d6b",
+  "new": "SetCorrectedVertexColor",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Maps source RGB bytes through three color lookup tables and copies the current alpha.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029d6b",
+   "old": "FUN_10029d6b",
+   "new": "SetCorrectedVertexColor",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Maps source RGB bytes through three color lookup tables and copies the current alpha."
+  },
+  "dossier": "build/d3dren/dossier/10029d6b.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029da6",
+  "old": "FUN_10029da6",
+  "new": "SetScaledVertexColor",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Scales source vertex RGB with three manager channel multipliers and copies current alpha.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029da6",
+   "old": "FUN_10029da6",
+   "new": "SetScaledVertexColor",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Scales source vertex RGB with three manager channel multipliers and copies current alpha."
+  },
+  "dossier": "build/d3dren/dossier/10029da6.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029e1c",
+  "old": "FUN_10029e1c",
+  "new": "GetTextureBucketKey",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses the polygon surface texture pointer as key and its shifted bits for one of 32 buckets.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029e1c",
+   "old": "FUN_10029e1c",
+   "new": "GetTextureBucketKey",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses the polygon surface texture pointer as key and its shifted bits for one of 32 buckets."
+  },
+  "dossier": "build/d3dren/dossier/10029e1c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029e39",
+  "old": "FUN_10029e39",
+  "new": "GetLightmapBucketKey",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses the polygon lightmap page field as key and its shifted bits for one of 32 buckets.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029e39",
+   "old": "FUN_10029e39",
+   "new": "GetLightmapBucketKey",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses the polygon lightmap page field as key and its shifted bits for one of 32 buckets."
+  },
+  "dossier": "build/d3dren/dossier/10029e39.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029e53",
+  "old": "FUN_10029e53",
+  "new": "ClipAndProjectSingleTexturePoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sets the clip mask and delegates to the 32-byte TLVertex clip-and-project path; selected for one texture stage.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029e53",
+   "old": "FUN_10029e53",
+   "new": "ClipAndProjectSingleTexturePoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Sets the clip mask and delegates to the 32-byte TLVertex clip-and-project path; selected for one texture stage."
+  },
+  "dossier": "build/d3dren/dossier/10029e53.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029e70",
+  "old": "FUN_10029e70",
+  "new": "ClipAndProjectTwoTexturePoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sets the clip mask and delegates to the 40-byte two-coordinate-pair vertex path; selected for two texture stages.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029e70",
+   "old": "FUN_10029e70",
+   "new": "ClipAndProjectTwoTexturePoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Sets the clip mask and delegates to the 40-byte two-coordinate-pair vertex path; selected for two texture stages."
+  },
+  "dossier": "build/d3dren/dossier/10029e70.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029e8d",
+  "old": "FUN_10029e8d",
+  "new": "ClipSingleTexturePoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Direct ClipPoly adapter selected by the one-stage clip-only callback table.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029e8d",
+   "old": "FUN_10029e8d",
+   "new": "ClipSingleTexturePoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Direct ClipPoly adapter selected by the one-stage clip-only callback table."
+  },
+  "dossier": "build/d3dren/dossier/10029e8d.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029e9e",
+  "old": "FUN_10029e9e",
+  "new": "ClipTwoTexturePoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Delegates to the 40-byte vertex clip-only helper selected by the two-stage table.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029e9e",
+   "old": "FUN_10029e9e",
+   "new": "ClipTwoTexturePoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Delegates to the 40-byte vertex clip-only helper selected by the two-stage table."
+  },
+  "dossier": "build/d3dren/dossier/10029e9e.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029eaf",
+  "old": "FUN_10029eaf",
+  "new": "RejectThreeTexturePoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Always returns failure and occupies the three-stage slot in both clipping callback tables; this does not establish unreachability.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029eaf",
+   "old": "FUN_10029eaf",
+   "new": "RejectThreeTexturePoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Always returns failure and occupies the three-stage slot in both clipping callback tables; this does not establish unreachability."
+  },
+  "dossier": "build/d3dren/dossier/10029eaf.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029eb4",
+  "old": "FUN_10029eb4",
+  "new": "AddDynamicLightToDrawBuffer",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Passes the draw-buffer polygon and its 40-byte vertices to the dynamic lighting helper.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029eb4",
+   "old": "FUN_10029eb4",
+   "new": "AddDynamicLightToDrawBuffer",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Passes the draw-buffer polygon and its 40-byte vertices to the dynamic lighting helper."
+  },
+  "dossier": "build/d3dren/dossier/10029eb4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10029ecc",
+  "old": "FUN_10029ecc",
+  "new": "SkipDrawBufferPostprocess",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Empty callback used in postprocess slots where no vertex operation is requested.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10029ecc",
+   "old": "FUN_10029ecc",
+   "new": "SkipDrawBufferPostprocess",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Empty callback used in postprocess slots where no vertex operation is requested."
+  },
+  "dossier": "build/d3dren/dossier/10029ecc.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1002cdf0",
+  "old": "FUN_1002cdf0",
+  "new": "d3d_QueuePolyGrid",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds one object to the sorted draw list with d3d_DrawPolyGrid as callback.",
+  "primary_draft": "d3d_QueuePolyGridCB",
+  "prior_evidence": "BaseObjectSet::Draw callback: ObjectDrawList::Add(g_TransObjList 0x1006b934, pObj, d3d_DrawPolyGrid 1002aff0) (10028ba0 draws immediately when DrawSorted is off).",
+  "independent_opinion": {
+   "va": "1002cdf0",
+   "old": "FUN_1002cdf0",
+   "new": "d3d_QueuePolyGrid",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds one object to the sorted draw list with d3d_DrawPolyGrid as callback."
+  },
+  "dossier": "build/d3dren/dossier/1002cdf0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1002ce10",
+  "old": "FUN_1002ce10",
+  "new": "d3d_InitPolyGridBuffers",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Polygrid module-init callback resets the triangle vertex pointer, size, and related buffers to zero.",
+  "primary_draft": "d3d_InitPolyGridDraw",
+  "prior_evidence": "ObjectHandler[OT_POLYGRID].m_ModuleInit (0x1004bb04): zeroes g_TriVertList/g_TriVertListSize and the index list pointer/size.",
+  "independent_opinion": {
+   "va": "1002ce10",
+   "old": "FUN_1002ce10",
+   "new": "d3d_InitPolyGridBuffers",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Polygrid module-init callback resets the triangle vertex pointer, size, and related buffers to zero."
+  },
+  "dossier": "build/d3dren/dossier/1002ce10.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1002ea70",
+  "old": "FUN_1002ea70",
+  "new": "d3d_QueueSprite",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds one object to the sorted draw list with d3d_DrawSprite as callback.",
+  "primary_draft": "d3d_QueueSpriteCB",
+  "prior_evidence": "BaseObjectSet::Draw callback: ObjectDrawList::Add(g_TransObjList, pObj, d3d_DrawSprite 1002d660).",
+  "independent_opinion": {
+   "va": "1002ea70",
+   "old": "FUN_1002ea70",
+   "new": "d3d_QueueSprite",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds one object to the sorted draw list with d3d_DrawSprite as callback."
+  },
+  "dossier": "build/d3dren/dossier/1002ea70.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10030ad0",
+  "old": "FUN_10030ad0",
+  "new": "d3d_DrawAdditiveWorldModel",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Wraps d3d_DrawTranslucentWorldModel with ONE/ONE blend factors and black fog color.",
+  "primary_draft": "d3d_DrawAdditiveWorldModel",
+  "prior_evidence": "Queued by 1002ff00 for SURF_ADDITIVE(1<<19) models: SetRenderState SRCBLEND(0x13)=ONE, DESTBLEND(0x14)=ONE, FOGCOLOR(0x22)=0, calls 10030070, restores (Jupiter folds this into d3d_DrawTranslucentWorldModel with FLAG2_ADDITIVE).",
+  "independent_opinion": {
+   "va": "10030ad0",
+   "old": "FUN_10030ad0",
+   "new": "d3d_DrawAdditiveWorldModel",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Wraps d3d_DrawTranslucentWorldModel with ONE/ONE blend factors and black fog color."
+  },
+  "dossier": "build/d3dren/dossier/10030ad0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100344c8",
+  "old": "FUN_100344c8",
+  "new": "AssignLeafLightmapPages",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Calls the polygon page-assignment routine for every polygon in a leaf and stops on the first failure. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "LightAnimPolyCallback",
+  "prior_evidence": "callback struct member used by 10034597: for each poly index of the LightAnim (anim+0x20,n=+0x24) calls AssignPolyLightmapPage(DAT_1007aaf4,poly)",
+  "independent_opinion": {
+   "va": "100344c8",
+   "old": "FUN_100344c8",
+   "new": "AssignLeafLightmapPages",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Calls the polygon page-assignment routine for every polygon in a leaf and stops on the first failure. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/100344c8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10035071",
+  "old": "FUN_10035071",
+  "new": "DrawMultitexturedLightmappedPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builds and clips two-UV vertices, binds base and lightmap textures, applies surface state, and draws a triangle fan. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "DrawLightmappedPoly",
+  "prior_evidence": "string 1004842c 'Error: vertex buffer overflow' when poly vertex count (poly+0x54) > 0x80: builds <=128 vertices (0x28 bytes) into a stack array, clips (100085f2), picks the 2-pass (10035348) or 1-pass (1003524b) lightmap UV fill, SetTexture(lightmap), DrawPrimitive (device slot 0x64)",
+  "independent_opinion": {
+   "va": "10035071",
+   "old": "FUN_10035071",
+   "new": "DrawMultitexturedLightmappedPoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Builds and clips two-UV vertices, binds base and lightmap textures, applies surface state, and draws a triangle fan. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10035071.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1003524b",
+  "old": "FUN_1003524b",
+  "new": "FillPolyVerticesWithLocalLightmapUVs",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies polygon positions, colors, and base UVs, then derives local lightmap UVs from plane vectors and grid size. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "FillLMVertsWithUV",
+  "prior_evidence": "copies poly vertices (pos, colour DAT_100566bc, base UVs) into 0x28-byte TL vertices and computes lightmap U/V with SetupLMPlaneVectors (P,Q) / LMGridSize (world+0xf8) * DAT_10061818/1c; caller 10035071",
+  "independent_opinion": {
+   "va": "1003524b",
+   "old": "FUN_1003524b",
+   "new": "FillPolyVerticesWithLocalLightmapUVs",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Copies polygon positions, colors, and base UVs, then derives local lightmap UVs from plane vectors and grid size. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003524b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10035348",
+  "old": "FUN_10035348",
+  "new": "SetPolyLocalLightmapUVs",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Updates only the second texture coordinates of already-filled vertices using the polygon's planar lightmap basis and current stage scale. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "FillLMUVOnly",
+  "prior_evidence": "only the lightmap U/V fields (stride 0x28) of already filled vertices, same formula as 1003524b; caller 10035071",
+  "independent_opinion": {
+   "va": "10035348",
+   "old": "FUN_10035348",
+   "new": "SetPolyLocalLightmapUVs",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Updates only the second texture coordinates of already-filled vertices using the polygon's planar lightmap basis and current stage scale. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10035348.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10035416",
+  "old": "FUN_10035416",
+  "new": "DrawPolyBaseTexturePass",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies polygon positions and scaled base UVs into single-UV vertices, clips them, and emits a triangle fan for the later base-texture pass. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "DrawQueuedPolyLMUV",
+  "prior_evidence": "draw callback: <=0x80 poly vertices -> 0x20-byte vertices whose UV (vertex words +4/+8 = per-vertex lightmap UV) is scaled by DAT_10061810/14 (1/pool size), DrawPrimitive(D3DPT_TRIANGLEFAN,0x1c4); one of the passes of FlushLightmappedPolys",
+  "independent_opinion": {
+   "va": "10035416",
+   "old": "FUN_10035416",
+   "new": "DrawPolyBaseTexturePass",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Copies polygon positions and scaled base UVs into single-UV vertices, clips them, and emits a triangle fan for the later base-texture pass. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10035416.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100354bf",
+  "old": "FUN_100354bf",
+  "new": "DrawPolyWithWorldPlanarTexture",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses gamma-corrected vertex colors and a second UV set derived from world X/Z offsets and scales before drawing the polygon. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "DrawQueuedPolyWorldUV",
+  "prior_evidence": "draw callback: vertices with colour bytes from tables DAT_1005a004/104/204, UV planar from world x/z ((DAT_1004ffb0/b4 + pos)*DAT_1004eba8/ac), clip, DrawPrimitive(D3DPT_TRIANGLEFAN,0x2c4); used by FlushLightmappedPolys",
+  "independent_opinion": {
+   "va": "100354bf",
+   "old": "FUN_100354bf",
+   "new": "DrawPolyWithWorldPlanarTexture",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses gamma-corrected vertex colors and a second UV set derived from world X/Z offsets and scales before drawing the polygon. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/100354bf.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100356b8",
+  "old": "FUN_100356b8",
+  "new": "QueueLightmappedPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Inserts a polygon into the queued lightmap texture-bucket list and captures the current clip flags in its queue node. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "QueueLightmappedPoly",
+  "prior_evidence": "allocates a node (10007ddb) in list DAT_1005a308 and stores DAT_10056274 (+0xc)",
+  "independent_opinion": {
+   "va": "100356b8",
+   "old": "FUN_100356b8",
+   "new": "QueueLightmappedPoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Inserts a polygon into the queued lightmap texture-bucket list and captures the current clip flags in its queue node. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/100356b8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10035917",
+  "old": "FUN_10035917",
+  "new": "CollectWorldModelSegmentPolys",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Traverses an eligible world-model BSP along a radius-expanded segment and appends unique visible polygon candidates subject to distance and facing tests. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "CollectPolysAlongSegment",
+  "prior_evidence": "iterative BSP segment walk (stack of {node,p1,p2} 0x1c bytes at 1007d860..10081060) over the model BSP (obj+0x1b0, root=vtable+4): collects polys within radius (param_2+0x1c) whose frame code (poly+0x46) == DAT_100577a0 into an array (<=0x100 pointers, count at +0x400); has a function-local static guard DAT_10082060 + atexit(10035ce6)",
+  "independent_opinion": {
+   "va": "10035917",
+   "old": "FUN_10035917",
+   "new": "CollectWorldModelSegmentPolys",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Traverses an eligible world-model BSP along a radius-expanded segment and appends unique visible polygon candidates subject to distance and facing tests. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10035917.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10039a40",
+  "old": "FUN_10039a40",
+  "new": "CollectProcessableObjects",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Walks object links in reverse until the sentinel condition and appends objects accepted by the renderer's process predicate. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "d3d_GetNodeObjects",
+  "prior_evidence": "VisQueryRequest::m_Unknown18 (+0x18) callback (LTLink *pListHead, LTObject ***ppObjects, uint32 *pnObjects), client twin of the engine sm_GetClientObjects 0x00486bc0: appends the renderable objects of a node list until the first object with sd(+0x190)!=0; xcheck: mnemonic similarity with lithtech.exe 00486bc0 = 0.70 (sizes 160/80)",
+  "independent_opinion": {
+   "va": "10039a40",
+   "old": "FUN_10039a40",
+   "new": "CollectProcessableObjects",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Walks object links in reverse until the sentinel condition and appends objects accepted by the renderer's process predicate. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10039a40.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10039ae0",
+  "old": "FUN_10039ae0",
+  "new": "ProcessVisibleLeaf",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Tags the leaf for the frame, processes newly visible polygrids and attachments, and tags all leaf polygons. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "d3d_TagLeaf",
+  "prior_evidence": "VisQueryRequest::m_Unknown20 (+0x20) callback taking a world Leaf* (de_world.h Leaf: m_LeafLinks +0x14 (polygrids, OT 7), m_Polies +0x20, m_nPolies +0x24, frame code short +0x2c): stamps the leaf frame code (DAT_100577a0), counts it (DAT_10055cf4), processes its polygrids and appends its WorldPolies to the g_VisibleSet arrays",
+  "independent_opinion": {
+   "va": "10039ae0",
+   "old": "FUN_10039ae0",
+   "new": "ProcessVisibleLeaf",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Tags the leaf for the frame, processes newly visible polygrids and attachments, and tags all leaf polygons. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10039ae0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1003a6fb",
+  "old": "FUN_1003a6fb",
+  "new": "DrawPrimitive",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Unlocks the current pool buffer, submits its vertex range through DrawPrimitiveVB, and advances buffers when its capacity is consumed. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "DrawPrimitive",
+  "prior_evidence": "[role evidence: vtable/medium] Slot 1 override: remembers device (+0x68), refreshes entry age (+0xc = delay +0x60), DrawPrimitiveVB directly when the entry is already optimized, else the base fill-and-draw slot 1003a6fb",
+  "independent_opinion": {
+   "va": "1003a6fb",
+   "old": "FUN_1003a6fb",
+   "new": "DrawPrimitive",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Unlocks the current pool buffer, submits its vertex range through DrawPrimitiveVB, and advances buffers when its capacity is consumed. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003a6fb.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording",
+  "allow": true,
+  "collision_reason": "Intentional virtual method name shared by unrelated classes and by this base/derived override",
+  "additional_addresses": [
+   "1003ac2e"
+  ],
+  "additional_opinions": [
+   {
+    "va": "1003ac2e",
+    "old": "FUN_1003a6fb",
+    "new": "DrawPrimitive",
+    "confidence": "low",
+    "provenance": "invented",
+    "why": "Overrides the pool draw operation, refreshes cache protection age, preserves the selected entry when filling it, and reuses cached data otherwise. Static code supports this role; recorded runtime scenarios did not hit it."
+   }
+  ]
+ },
+ {
+  "va": "1003a76c",
+  "old": "FUN_1003a76c",
+  "new": "AdvanceBuffer",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Increments the selected vertex-buffer index and wraps it at the configured buffer count. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "NextBuffer",
+  "prior_evidence": "[role evidence: callgraph/medium] m_curBuffer(+0x18)++ wrapping to 0 at m_nBuffers(+0x24); called by the draw slots and 1003a7f7",
+  "independent_opinion": {
+   "va": "1003a76c",
+   "old": "FUN_1003a76c",
+   "new": "AdvanceBuffer",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Increments the selected vertex-buffer index and wraps it at the configured buffer count. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003a76c.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1003a77c",
+  "old": "FUN_1003a77c",
+  "new": "DrawIndexedPrimitive",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Unlocks the current pool buffer, submits its vertices and indices through DrawIndexedPrimitiveVB, and advances at capacity. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "DrawIndexedPrimitive",
+  "prior_evidence": "[role evidence: dx-sdk/medium] Vtable slot 2: same as slot 1 but IDirect3DDevice7 vslot 0x80 = DrawIndexedPrimitiveVB(type,vb,startVertex,nVerts,lpwIndices,dwIndexCount,0)",
+  "independent_opinion": {
+   "va": "1003a77c",
+   "old": "FUN_1003a77c",
+   "new": "DrawIndexedPrimitive",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Unlocks the current pool buffer, submits its vertices and indices through DrawIndexedPrimitiveVB, and advances at capacity. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003a77c.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording",
+  "allow": true,
+  "collision_reason": "Distinct renderer pool class method with the conventional Direct3D indexed-draw name"
+ },
+ {
+  "va": "1003a7f7",
+  "old": "FUN_1003a7f7",
+  "new": "RestartInNextBuffer",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Advances to the next buffer and resets the current vertex offset to zero. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "NextBufferAndReset",
+  "prior_evidence": "[role evidence: callgraph/medium] NextBuffer + m_offset(+0x1c)=0; called by the model draw callbacks 10002050/10002bc0",
+  "independent_opinion": {
+   "va": "1003a7f7",
+   "old": "FUN_1003a7f7",
+   "new": "RestartInNextBuffer",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Advances to the next buffer and resets the current vertex offset to zero. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003a7f7.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10048c50",
+  "old": "DAT_10048c50",
+  "new": "g_bPortalStencilClipEnabled",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Integer defaults to 1; mirror draw disables D3DRENDERSTATE_STENCILENABLE when it is false or ShowPortalBounds is enabled. Names the directly observed clipping switch. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10048c50",
+   "old": "DAT_10048c50",
+   "new": "g_bPortalStencilClipEnabled",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Integer defaults to 1; mirror draw disables D3DRENDERSTATE_STENCILENABLE when it is false or ShowPortalBounds is enabled. Names the directly observed clipping switch. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10048c50.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ }
+]

@@ -24,7 +24,7 @@
 extern uint32 g_CurObjectFrameCode;		// NAME: Jupiter g_CurObjectFrameCode (names_proposal high)
 #include "d3dren/d3dstate.h"
 // GLOBAL: D3DREN 0x10056770
-extern MainWorld *DAT_10056770;			// guess: g_pMainWorld (names_proposal guess_g_pMainWorld, low)
+extern MainWorld *g_pFrameMainWorld;			// guess: g_pMainWorld (names_proposal guess_g_pMainWorld, low)
 
 // FUNCTION: D3DREN 0x10038830 _$E4
 // FUNCTION: D3DREN 0x10038850 _$E2
@@ -191,9 +191,9 @@ void VisibleSet::ClearSet()
 // ---------------------------------------------------------------------------------------------------------------------
 
 // GLOBAL: D3DREN 0x10055cf4
-extern int DAT_10055cf4;				// guess: g_nVisibleLeaves (names_proposal low): "Visible Leaves: %d"
+extern int g_nVisibleLeaves;				// guess: g_nVisibleLeaves (names_proposal low): "Visible Leaves: %d"
 // GLOBAL: D3DREN 0x10056688
-extern int DAT_10056688;				// guess: g_nWorldPoliesProcessed (names_proposal low)
+extern int g_nWorldPolysProcessed;				// guess: g_nWorldPoliesProcessed (names_proposal low)
 // GLOBAL: D3DREN 0x100584a4
 extern int g_LockPVS;				// g_CV_LockPVS mirror (names_proposal medium, not in rendererconsolevars.h yet)
 // GLOBAL: D3DREN 0x100584b8
@@ -203,7 +203,7 @@ extern int g_DrawFlat;				// g_CV_DrawFlat mirror (names_proposal medium)
 // GLOBAL: D3DREN 0x1005811c
 extern int g_FixTJunc;				// g_CV_FixTJunc mirror (names_proposal medium)
 // GLOBAL: D3DREN 0x1005ce18
-extern int DAT_1005ce18;
+extern int g_bPortalsEnabled;
 
 // Raw views while the Talon layouts of these are not published (ViewParams: owner W1; WorldPoly::m_Pad46 and
 // Leaf::m_Pad2C are padding in the shared headers and may only be renamed there, so they are read through casts).
@@ -294,7 +294,7 @@ static inline void d3d_TagPoly(WorldPoly *pPoly)
 			{
 				d3d_AddPoly(g_VisibleSet.m_Unk10, g_VisibleSet.m_nUnk24, pPoly);
 			}
-			else if (DAT_1005ce18)
+			else if (g_bPortalsEnabled)
 			{
 				if (g_VisibleSet.m_nUnk140 < 32)
 				{
@@ -322,7 +322,7 @@ Tagged:
 
 // Tags every object and poly of a visibility BSP (the world has a VisBSP and no portal view).
 // FUNCTION: D3DREN 0x10039100
-void FUN_10039100(WorldBsp *pBsp)
+void ProcessAllBspObjectsAndPolys(WorldBsp *pBsp)
 {
 	uint32 i;
 	Node *pNode;
@@ -364,28 +364,28 @@ void FUN_10039100(WorldBsp *pBsp)
 // Called by d3d_TagVisibleLeaves only through the constructor; defined in another unit.
 
 // 0x1000f458 (common_draw): the leaf visibility test of a vis query (VisQueryRequest::m_Unknown24).
-LTBOOL FUN_1000f458(BspPortal *pPortal);
+LTBOOL d3d_IsPortalInsideViewFrustum(BspPortal *pPortal);
 // 0x100185a0 (d3d_draw, W2): applies one light anim to a poly's lightmap data.
-int FUN_100185a0(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef);
+int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef);
 // the draw callbacks the poly draw loop calls (function pointers set by the draw units)
 typedef void (*PFN_DrawWorldPoly)(WorldPoly *pPoly);
 // GLOBAL: D3DREN 0x10058cd8
-extern PFN_DrawWorldPoly DAT_10058cd8;
+extern PFN_DrawWorldPoly g_pfnDrawUntexturedWorldPoly;
 // GLOBAL: D3DREN 0x100587e8
-extern PFN_DrawWorldPoly DAT_100587e8;
+extern PFN_DrawWorldPoly g_pfnDrawTexturedWorldPoly;
 // GLOBAL: D3DREN 0x1005a304
-extern PFN_DrawWorldPoly DAT_1005a304;
+extern PFN_DrawWorldPoly g_pfnDrawPanningSkyWorldPoly;
 // GLOBAL: D3DREN 0x10058c24
-extern PFN_DrawWorldPoly DAT_10058c24;
+extern PFN_DrawWorldPoly g_pfnDrawLightmappedWorldPoly;
 void d3d_DrawSky();		// 0x1002d4c0 (unit unk/1002d080, W6; named there from names_proposal.csv, see drawsky.h)
-void FUN_10023cb0();		// 0x10023cb0 (unit unk/10023860, W8)
+void ApplyVisibleDynamicLights();		// 0x10023cb0 (unit unk/10023860, W8)
 
 // Called from the render-scene function: picks the VisBSP path (1) unless the world has a VisBSP and DrawAll is off.
 void d3d_TagVisibleLeaves(int bUseVisBSP);
 // FUNCTION: D3DREN 0x10039510
-void FUN_10039510()
+void TagWorldVisibility()
 {
-	if ((DAT_10056770->m_WorldFlags & WORLD_HASVISBSP) && !g_DrawAll)
+	if ((g_pFrameMainWorld->m_WorldFlags & WORLD_HASVISBSP) && !g_DrawAll)
 		d3d_TagVisibleLeaves(0);
 	else
 		d3d_TagVisibleLeaves(1);
@@ -393,12 +393,12 @@ void FUN_10039510()
 
 // The vis query callbacks (defined below, after this function: address order).
 void d3d_CheckAndProcessObject(LTObject *pObject);
-void FUN_10039a40(LTLink *pHead, LTObject ***ppObjects, uint32 *pnObjects);
-void FUN_10039ae0(Leaf *pLeaf);
+void CollectProcessableObjects(LTLink *pHead, LTObject ***ppObjects, uint32 *pnObjects);
+void ProcessVisibleLeaf(Leaf *pLeaf);
 LTBOOL d3d_IsWorldNodeVisible(WorldTreeNode *pNode);
 
 // Tags the visible leaves (world tree query or VisBSP walk), queues the objects and draws the tagged world polys.
-// bUseVisBSP = 0: the Talon world tree query (callbacks below); else walk the VisBSP (FUN_10039100).
+// bUseVisBSP = 0: the Talon world tree query (callbacks below); else walk the VisBSP (ProcessAllBspObjectsAndPolys).
 // FUNCTION: D3DREN 0x10039540
 void d3d_TagVisibleLeaves(int bUseVisBSP)
 {
@@ -422,10 +422,10 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 
 		if (bUseVisBSP)
 		{
-			pBsp = DAT_10056770->GetVisBSP();
+			pBsp = g_pFrameMainWorld->GetVisBSP();
 			if (pBsp)
 			{
-				FUN_10039100(pBsp);
+				ProcessAllBspObjectsAndPolys(pBsp);
 			}
 			else
 			{
@@ -441,17 +441,17 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 			request.m_Viewpoint = *pViewPos;
 			request.m_ViewRadius = 10000.0f;
 			request.m_AddObject = (VQAddObjectFn)d3d_CheckAndProcessObject;
-			request.m_Unknown18 = (void*)FUN_10039a40;
+			request.m_Unknown18 = (void*)CollectProcessableObjects;
 			request.m_pUserData = LTNULL;
-			request.m_Unknown20 = (void*)FUN_10039ae0;
-			request.m_Unknown24 = (void*)FUN_1000f458;
+			request.m_Unknown20 = (void*)ProcessVisibleLeaf;
+			request.m_Unknown24 = (void*)d3d_IsPortalInsideViewFrustum;
 			request.m_NodeFilterFn = d3d_IsWorldNodeVisible;
-			DAT_10056770->m_WorldTree.DoVisQuery(&request);
+			g_pFrameMainWorld->m_WorldTree.DoVisQuery(&request);
 		}
 	}
 
 	d3d_DrawSky();
-	FUN_10023cb0();
+	ApplyVisibleDynamicLights();
 
 	if (g_DrawWorld)
 	{
@@ -476,7 +476,7 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 							g_ClipFlags &= ~(1 << i);
 					}
 
-					DAT_10056688++;
+					g_nWorldPolysProcessed++;
 
 					pSurface = (Surface*)pPoly->m_pSurface;
 					surfFlags = pSurface->m_Flags;
@@ -486,13 +486,13 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 						{
 							if (surfFlags & 0x80)
 							{
-								DAT_10058c24(pPoly);
+								g_pfnDrawLightmappedWorldPoly(pPoly);
 							}
 							else
 							{
 								if (pPoly->m_Flags & 0x4000)
 								{
-									pWorld = DAT_10056770;
+									pWorld = g_pFrameMainWorld;
 									if (g_FixTJunc)
 									{
 										pVerts = pPoly->m_pVertices;
@@ -514,7 +514,7 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 										{
 											LightAnim *pAnim = &pWorld->m_LightAnims[iAnim];
 											if (pAnim->m_iFrames[0] != 0xffffffff && pAnim->m_fBlendPercent >= 0.02f)
-												FUN_100185a0(pVerts, nVerts, pAnim, &pPoly->m_pLMAnimRefs[j]);
+												d3d_AddLightAnimVertexColors(pVerts, nVerts, pAnim, &pPoly->m_pLMAnimRefs[j]);
 										}
 									}
 
@@ -522,14 +522,14 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 								}
 
 								if (surfFlags & 0x8000)
-									DAT_1005a304(pPoly);
+									g_pfnDrawPanningSkyWorldPoly(pPoly);
 								else
-									DAT_100587e8(pPoly);
+									g_pfnDrawTexturedWorldPoly(pPoly);
 							}
 						}
 						else
 						{
-							DAT_10058cd8(pPoly);
+							g_pfnDrawUntexturedWorldPoly(pPoly);
 						}
 					}
 				}
@@ -561,7 +561,7 @@ void d3d_CheckAndProcessObject(LTObject *pObject)
 
 // VisQueryRequest::m_Unknown18: the objects of a node's list.
 // FUNCTION: D3DREN 0x10039a40
-void FUN_10039a40(LTLink *pHead, LTObject ***ppObjects, uint32 *pnObjects)
+void CollectProcessableObjects(LTLink *pHead, LTObject ***ppObjects, uint32 *pnObjects)
 {
 	LTLink *pCur;
 	LTObject *pObject;
@@ -581,14 +581,14 @@ void FUN_10039a40(LTLink *pHead, LTObject ***ppObjects, uint32 *pnObjects)
 
 // VisQueryRequest::m_Unknown20: a leaf the query reached.
 // FUNCTION: D3DREN 0x10039ae0
-void FUN_10039ae0(Leaf *pLeaf)
+void ProcessVisibleLeaf(Leaf *pLeaf)
 {
 	LTLink *pCur;
 	LTObject *pObject;
 	WorldPoly **ppPoly, **ppPolyEnd;
 
 	LEAF_FRAMECODE(pLeaf) = g_CurFrameCode;
-	DAT_10055cf4++;
+	g_nVisibleLeaves++;
 
 	for (pCur = pLeaf->m_LeafLinks.m_pNext; pCur != (LTLink*)&pLeaf->m_LeafLinks; pCur = pCur->m_pNext)
 	{

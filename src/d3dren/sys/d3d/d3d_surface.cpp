@@ -327,7 +327,7 @@ LTBOOL d3d_WarpToScreen(BlitRequest *pRequest)
 	return LTFALSE;
 }
 
-extern PFormat DAT_100577c8;	// 0x100577c8 the screen format (defined by the device bring-up object, sys/d3d/common_init)
+extern PFormat g_ScreenPixelFormat;	// 0x100577c8 the screen format (defined by the device bring-up object, sys/d3d/common_init)
 extern FormatMgr g_FormatMgr;	// 0x10060710
 
 // The implicit PFormat::operator= (the exe has the out-of-line copy here; the vptr is not copied).
@@ -338,7 +338,7 @@ extern FormatMgr g_FormatMgr;	// 0x10060710
 // d3d_optimizedsurface.cpp: `extern bool d3d_GetScreenFormat(PFormat *pFormat);`), so the exe calls it.
 void d3d_GetScreenFormat(PFormat *pFormat)
 {
-	*pFormat = DAT_100577c8;
+	*pFormat = g_ScreenPixelFormat;
 }
 
 // NAME: d3d_MakeScreenShot: names_proposal.csv (medium; RenderStruct slot MakeScreenShot; the body is Jupiter's
@@ -374,7 +374,7 @@ void d3d_MakeScreenShot(const char *pFilename)
 		return;
 	}
 
-	*request.m_pSrcFormat = DAT_100577c8;
+	*request.m_pSrcFormat = g_ScreenPixelFormat;
 	request.m_pSrc = (uint8 *)ddsd.lpSurface;
 	request.m_SrcPitch = ddsd.lPitch;
 	request.m_pDestFormat->Init(BPP_32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
@@ -433,8 +433,8 @@ void d3d_MakeScreenShot(const char *pFilename)
 
 // ---- d3d_SwapBuffers -----------------------------------------------------------------------------------------------------
 
-extern int DAT_10057e24;		// 0x10057e24 guess: horizontal stretch factor of the window blit
-extern int DAT_10057e28;		// 0x10057e28 guess: vertical stretch factor
+extern int g_nWindowBlitScaleX;		// 0x10057e24 guess: horizontal stretch factor of the window blit
+extern int g_nWindowBlitScaleY;		// 0x10057e28 guess: vertical stretch factor
 void DirtyRectSwap();			// 0x100223c8 (dirtyrect, another unit)
 void ClearDirtyRects();			// 0x1002241c
 
@@ -503,8 +503,8 @@ void d3d_SwapBuffers(uint32 flags)
 				srcRect.bottom = g_ScreenHeight;
 				destRect.left = pt.x;
 				destRect.top = pt.y;
-				destRect.right = DAT_10057e24 * g_ScreenWidth + pt.x;
-				destRect.bottom = DAT_10057e28 * g_ScreenHeight + pt.y;
+				destRect.right = g_nWindowBlitScaleX * g_ScreenWidth + pt.x;
+				destRect.bottom = g_nWindowBlitScaleY * g_ScreenHeight + pt.y;
 				memset(&bltfx, 0, sizeof(bltfx));
 				bltfx.dwSize = sizeof(bltfx);
 				destRect.left = pt.x;

@@ -16,33 +16,33 @@
 
 // ---- data and functions of other units that the code below uses ----
 // GLOBAL: D3DREN 0x10054888
-extern uint16 DAT_10054888;		// guess: the frame code (g_CurFrameCode) at which the vertex buffer cache was last aged
+extern uint16 g_ModelVBCacheLastAgeFrameCode;		// guess: the frame code (g_CurFrameCode) at which the vertex buffer cache was last aged
 // GLOBAL: D3DREN 0x100587e0
-extern int DAT_100587e0;		// guess: models drawn with clipping this frame ("ModelProfile: %d clipped, %d unclipped")
+extern int g_nClippedModelsDrawn;		// guess: models drawn with clipping this frame ("ModelProfile: %d clipped, %d unclipped")
 // GLOBAL: D3DREN 0x10058cdc
-extern int DAT_10058cdc;		// guess: models drawn without clipping this frame
+extern int g_nUnclippedModelsDrawn;		// guess: models drawn without clipping this frame
 // GLOBAL: D3DREN 0x10056218
 extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (declared by unit unk/1000f160)
 // GLOBAL: D3DREN 0x100566d0
 extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (same)
 // GLOBAL: D3DREN 0x10055ce8
-extern LTVector DAT_10055ce8;	// guess: colour scale of the model lighting
-void FUN_10001230();	// unit unk/10001000: sets up the model vertex buffer pools from the console variables
-void FUN_10001340();	// unit unk/10001000: releases them
+extern LTVector g_GlobalVertexTint;	// guess: colour scale of the model lighting
+void d3d_InitModelVertexBufferPools();	// unit unk/10001000: sets up the model vertex buffer pools from the console variables
+void d3d_TermModelVertexBufferPools();	// unit unk/10001000: releases them
 LTBOOL i_IntersectSegment(IntersectQuery *pQuery, IntersectInfo *pInfo, WorldTree *pWorldTree, LTBOOL bServer);	// 0x10030bdd
 void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);	// 0x1000c860
 
-// Warble data of the model vertex projection (set up by FUN_1000b6cd / FUN_1000b772, used by FUN_1000ddb4 / FUN_1000ddc5).
+// Warble data of the model vertex projection (set up by d3d_BuildModelWarbleTables / d3d_ModelModuleInit, used by d3d_BeginModelWarbleProjection / d3d_ProjectWarbledModelVertex).
 // GLOBAL: D3DREN 0x10053730
-float DAT_10053730[32];		// guess: warble table (FUN_1000b6cd)
+float g_ModelWarbleScales[32];		// guess: warble table (d3d_BuildModelWarbleTables)
 // GLOBAL: D3DREN 0x10052900
-float DAT_10052900[32];		// guess: the differences of consecutive warble table entries
+float g_ModelWarbleDeltas[32];		// guess: the differences of consecutive warble table entries
 // GLOBAL: D3DREN 0x10054870
-float DAT_10054870;			// guess: warble fraction (set per frame, 0 after the module init)
+float g_fModelWarbleFraction;			// guess: warble fraction (set per frame, 0 after the module init)
 // GLOBAL: D3DREN 0x10053278
-float DAT_10053278;			// guess: warble phase (advanced per frame by another unit)
+float g_fModelWarblePhase;			// guess: warble phase (advanced per frame by another unit)
 // GLOBAL: D3DREN 0x1005328c
-int DAT_1005328c;			// guess: warble table index (advanced per vertex)
+int g_nModelWarbleIndex;			// guess: warble table index (advanced per vertex)
 
 // The model lighting code and the light callback.
 // Callback data of ModelDraw::StaticLightCB (Jupiter's SStaticLightCallbackData analogue): the model drawer and the
@@ -69,7 +69,7 @@ struct UnkType_RenderStructLightView
 };
 #define RENDERSTRUCT_LIGHTS		((UnkType_RenderStructLightView *)g_pStruct)
 
-// guess: the 0x2a8-byte draw state record that FUN_1000d3a7 declares and never uses again (its constructor call survives):
+// guess: the 0x2a8-byte draw state record that DrawModel declares and never uses again (its constructor call survives):
 // 8 stage records, then the cache members.  The constructor is out of line (it contains a loop).
 struct UnkType_DrawState
 {
@@ -102,9 +102,9 @@ ModelDraw g_ModelDraw;
 // empty constructors are the empty static initialisers; the linker folded them into one copy, 0x1000b369).
 // FUNCTION: D3DREN 0x1000b369 _$E10
 // GLOBAL: D3DREN 0x10054878
-LTLink DAT_10054878;
+LTLink g_ModelFrameListHeadA;
 // GLOBAL: D3DREN 0x10053280
-LTLink DAT_10053280;
+LTLink g_ModelFrameListHeadB;
 
 // ---- the console variables of the model drawer ----
 // FUNCTION: D3DREN 0x1000b36a _$E13
@@ -179,14 +179,14 @@ void d3d_QueueModel(ViewParams *pParams, LTObject *pObject)
 
 	if (pInstance->m_AnimTracker.IsValid())
 	{
-		if (FUN_1000b584(pDraw, pInstance, &g_ClipFlags))
-			pDraw->FUN_1000d3a7(pInstance);
+		if (d3d_TestModelFrustum(pDraw, pInstance, &g_ClipFlags))
+			pDraw->DrawModel(pInstance);
 	}
 }
 
 // guess: bounding sphere of the instance against the view frustum; *pClipFlags gets the planes the sphere crosses (0x3f = all).
 // FUNCTION: D3DREN 0x1000b584
-int FUN_1000b584(ModelDraw *pDraw, ModelInstance *pInstance, uint32 *pClipFlags)
+int d3d_TestModelFrustum(ModelDraw *pDraw, ModelInstance *pInstance, uint32 *pClipFlags)
 {
 	Model *pModel = pInstance->GetModelDB();
 	LTPlane *pPlanes;
@@ -198,13 +198,13 @@ int FUN_1000b584(ModelDraw *pDraw, ModelInstance *pInstance, uint32 *pClipFlags)
 	if (!(pInstance->m_Flags & FLAG_REALLYCLOSE))
 		pPlanes = g_ViewParams.m_ClipPlanes;
 
-	return FUN_1000b63b(&pInstance->m_Pos, pDraw->m_Unk634, pPlanes, pClipFlags) != 0;
+	return d3d_TestSphereClipPlanes(&pInstance->m_Pos, pDraw->m_Unk634, pPlanes, pClipFlags) != 0;
 }
 
 // guess: sphere (position, radius) against 6 planes: returns 0 when it is completely outside one, else 1 with the bit of
 // every plane that the sphere does not cross cleared in *pFlags.
 // FUNCTION: D3DREN 0x1000b63b
-int FUN_1000b63b(LTVector *pPos, float fRadius, LTPlane *pPlanes, uint32 *pFlags)
+int d3d_TestSphereClipPlanes(LTVector *pPos, float fRadius, LTPlane *pPlanes, uint32 *pFlags)
 {
 	LTPlane *p = pPlanes;
 	int i;
@@ -226,13 +226,13 @@ int FUN_1000b63b(LTVector *pPos, float fRadius, LTPlane *pPlanes, uint32 *pFlags
 // FUNCTION: D3DREN 0x1000b6ae
 void d3d_ModelPreFrame()
 {
-	dl_TieOff(&DAT_10054878);
-	dl_TieOff(&DAT_10053280);
+	dl_TieOff(&g_ModelFrameListHeadA);
+	dl_TieOff(&g_ModelFrameListHeadB);
 }
 
 // guess: fills the 32-entry warble tables (a sine scaled by the ModelWarble amount) and their deltas.
 // FUNCTION: D3DREN 0x1000b6cd
-void FUN_1000b6cd()
+void d3d_BuildModelWarbleTables()
 {
 	int i;
 	float fScale;
@@ -250,29 +250,29 @@ void FUN_1000b6cd()
 		fSum = fScale;
 		fSum += fAmp;
 		fSum += fAmp * fSin;
-		DAT_10053730[i] = fSum;
+		g_ModelWarbleScales[i] = fSum;
 	}
 	for (i = 0; i < 32; i++)
-		DAT_10052900[i] = DAT_10053730[(i + 1) & 0x1f] - DAT_10053730[i];
+		g_ModelWarbleDeltas[i] = g_ModelWarbleScales[(i + 1) & 0x1f] - g_ModelWarbleScales[i];
 }
 
 // guess: OT_MODEL ModuleInit slot of g_ObjectHandlers.
 // FUNCTION: D3DREN 0x1000b772
-void FUN_1000b772()
+void d3d_ModelModuleInit()
 {
-	FUN_1000b6cd();
-	DAT_10054870 = 0.0f;
-	DAT_10053278 = 0.0f;
-	dl_TieOff(&DAT_10054878);
-	dl_TieOff(&DAT_10053280);
-	FUN_10001230();
+	d3d_BuildModelWarbleTables();
+	g_fModelWarbleFraction = 0.0f;
+	g_fModelWarblePhase = 0.0f;
+	dl_TieOff(&g_ModelFrameListHeadA);
+	dl_TieOff(&g_ModelFrameListHeadB);
+	d3d_InitModelVertexBufferPools();
 }
 
 // guess: OT_MODEL ModuleTerm slot (a jmp thunk).
 // FUNCTION: D3DREN 0x1000b7aa
 void thunk_FUN_10001340()
 {
-	FUN_10001340();
+	d3d_TermModelVertexBufferPools();
 }
 
 // FUNCTION: D3DREN 0x1000b7af ??0ModelDraw@@QAE@XZ
@@ -291,7 +291,7 @@ UnkType_StateCache::UnkType_StateCache()
 		m_Unk000[i].m_Unk0c = -1;
 		m_Unk000[i].m_Unk18 = -1;
 		m_Unk000[i].m_Unk20 = 0;
-		m_Unk000[i].FUN_1000b9b1();
+		m_Unk000[i].ResetStageRecord();
 	}
 	m_Unk124 = 0;
 	m_Unk128 = 0;
@@ -301,7 +301,7 @@ UnkType_StateCache::UnkType_StateCache()
 }
 
 // FUNCTION: D3DREN 0x1000b9b1
-void UnkType_StageRecord::FUN_1000b9b1()
+void UnkType_StageRecord::ResetStageRecord()
 {
 	m_Unk1c = 0.0f;
 	m_Unk00 = 0;
@@ -329,7 +329,7 @@ ModelDraw::~ModelDraw()
 
 // guess: grows the vertex and the node transform arrays to the size the current model needs.
 // FUNCTION: D3DREN 0x1000ba1c
-int ModelDraw::FUN_1000ba1c()
+int ModelDraw::EnsureVertexAndTransformBuffers()
 {
 	if (m_pModel->m_nTotalVerts > Unk828().GetSize())
 	{
@@ -367,7 +367,7 @@ void ModelDraw::StaticLightCB(WorldTreeObj *pObj, void *pUser)
 	UnkType_StaticLightCBData *pData = (UnkType_StaticLightCBData *)pUser;
 	StaticLight *pStaticLight = (StaticLight *)pObj;
 
-	pData->m_Unk00->FUN_1000bafe(&pData->m_Unk04, &pStaticLight->m_Pos, pStaticLight->m_Radius,
+	pData->m_Unk00->AddModelLight(&pData->m_Unk04, &pStaticLight->m_Pos, pStaticLight->m_Radius,
 		pStaticLight->m_Color.x, pStaticLight->m_Color.y, pStaticLight->m_Color.z,
 		pStaticLight->m_OuterColor.x, pStaticLight->m_OuterColor.y, pStaticLight->m_OuterColor.z,
 		&pStaticLight->m_Dir, pStaticLight->m_FOV);
@@ -375,7 +375,7 @@ void ModelDraw::StaticLightCB(WorldTreeObj *pObj, void *pUser)
 
 // FUNCTION: D3DREN 0x1000e011 ?Mag@?$_CVector@M@@QBEMXZ
 // FUNCTION: D3DREN 0x1000bafe
-void ModelDraw::FUN_1000bafe(LTMatrix *pMat, LTVector *pLightPos, float fRadius, float r, float g, float b, float r2, float g2, float b2, LTVector *pDir, float fFov)
+void ModelDraw::AddModelLight(LTMatrix *pMat, LTVector *pLightPos, float fRadius, float r, float g, float b, float r2, float g2, float b2, LTVector *pDir, float fFov)
 {
 	if ((uint32)m_nModelLights < m_nMaxModelLights)
 	{
@@ -402,9 +402,9 @@ void ModelDraw::FUN_1000bafe(LTMatrix *pMat, LTVector *pLightPos, float fRadius,
 			UnkType_ModelLight *pLight = &m_Unk3c[m_nModelLights];
 
 			pLight->m_Unk1c.Init(r, g, b);
-			pLight->m_Unk1c.x *= DAT_10055ce8.x;
-			pLight->m_Unk1c.y *= DAT_10055ce8.y;
-			pLight->m_Unk1c.z *= DAT_10055ce8.z;
+			pLight->m_Unk1c.x *= g_GlobalVertexTint.x;
+			pLight->m_Unk1c.y *= g_GlobalVertexTint.y;
+			pLight->m_Unk1c.z *= g_GlobalVertexTint.z;
 			pLight->m_Unk1c *= m_ObjectColor;
 			MatVMul(&pLight->m_Unk00, pMat, pLightPos);
 			pLight->m_Unk10 = pLight->m_Unk00;
@@ -422,7 +422,7 @@ void ModelDraw::FUN_1000bafe(LTMatrix *pMat, LTVector *pLightPos, float fRadius,
 // FUNCTION: D3DREN 0x1000bdeb ??0IntersectQuery@@QAE@XZ
 // FUNCTION: D3DREN 0x1000be28 ??0IntersectInfo@@QAE@XZ
 // FUNCTION: D3DREN 0x1000be59 ?w_GetPolyFromHPoly@UnkType_MainWorldView@@QAEPAUWorldPoly@@K@Z
-// NAME: CastRayAtSky: Jupiter setupmodel.cpp static CastRayAtSky (the Talon one reads DAT_10056770, the MainWorld, instead of
+// NAME: CastRayAtSky: Jupiter setupmodel.cpp static CastRayAtSky (the Talon one reads g_pFrameMainWorld, the MainWorld, instead of
 // the world_bsp_client holder).
 // FUNCTION: D3DREN 0x1000bd4f
 LTBOOL CastRayAtSky(const LTVector &vFrom, const LTVector &vDir)
@@ -434,9 +434,9 @@ LTBOOL CastRayAtSky(const LTVector &vFrom, const LTVector &vDir)
 	iQuery.m_To = vFrom + vDir;
 	iQuery.m_Flags = INTERSECT_HPOLY;
 
-	if (i_IntersectSegment(&iQuery, &iInfo, &DAT_10056770->m_WorldTree, LTFALSE))
+	if (i_IntersectSegment(&iQuery, &iInfo, &g_pFrameMainWorld->m_WorldTree, LTFALSE))
 	{
-		WorldPoly *pPoly = ((UnkType_MainWorldView *)DAT_10056770)->w_GetPolyFromHPoly(iInfo.m_hPoly);
+		WorldPoly *pPoly = ((UnkType_MainWorldView *)g_pFrameMainWorld)->w_GetPolyFromHPoly(iInfo.m_hPoly);
 		if (!pPoly)
 			return LTFALSE;
 		if (((Surface *)pPoly->m_pSurface)->m_Flags & SURF_SKY)
@@ -468,7 +468,7 @@ WorldPoly *UnkType_MainWorldView::w_GetPolyFromHPoly(HPOLY hPoly)
 // FUNCTION: D3DREN 0x1000be88
 float ModelDraw::GetDirLightAmount()
 {
-	WorldTreeNode *pWTRoot = DAT_10056770->m_WorldTree.GetRootNode();
+	WorldTreeNode *pWTRoot = g_pFrameMainWorld->m_WorldTree.GetRootNode();
 	float fLongestDist = pWTRoot->m_Radius * -2.0f;
 	LTVector vDir = RENDERSTRUCT_LIGHTS->m_GlobalLightDir * fLongestDist;
 
@@ -568,8 +568,8 @@ void ModelDraw::SetupModelLight()
 		return;
 	}
 
-	if (!DAT_10056770 || !g_CV_ModelApplySun.m_IntVal ||
-		(DAT_10055ce8.x == 0.0f && DAT_10055ce8.y == 0.0f && DAT_10055ce8.z == 0.0f) ||
+	if (!g_pFrameMainWorld || !g_CV_ModelApplySun.m_IntVal ||
+		(g_GlobalVertexTint.x == 0.0f && g_GlobalVertexTint.y == 0.0f && g_GlobalVertexTint.z == 0.0f) ||
 		(RENDERSTRUCT_LIGHTS->m_GlobalLightColor.x == 0.0f && RENDERSTRUCT_LIGHTS->m_GlobalLightColor.y == 0.0f &&
 		RENDERSTRUCT_LIGHTS->m_GlobalLightColor.z == 0.0f))
 	{
@@ -593,13 +593,13 @@ void ModelDraw::SetupModelLight()
 		m_DirLightDir = -m_DirLightDir;
 	}
 
-	m_DirLightColor = RENDERSTRUCT_LIGHTS->m_GlobalLightColor * DAT_10055ce8;
+	m_DirLightColor = RENDERSTRUCT_LIGHTS->m_GlobalLightColor * g_GlobalVertexTint;
 
-	if (DAT_10056770)
+	if (g_pFrameMainWorld)
 	{
 		LTRGB rgb;
 
-		w_GetLightVal(&DAT_10056770->m_LightTable, &m_Unk5d0, &rgb);
+		w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &m_Unk5d0, &rgb);
 		m_AmbientLight.x = rgb.r;
 		m_AmbientLight.y = rgb.g;
 		m_AmbientLight.z = rgb.b;
@@ -610,7 +610,7 @@ void ModelDraw::SetupModelLight()
 		m_AmbientLight.y = 0.0f;
 		m_AmbientLight.z = 0.0f;
 	}
-	m_AmbientLight *= DAT_10055ce8;
+	m_AmbientLight *= g_GlobalVertexTint;
 
 	m_nModelLights = 0;
 
@@ -622,13 +622,13 @@ void ModelDraw::SetupModelLight()
 	{
 		DynamicLight *pLight = g_ObjectDynamicLights[i];
 
-		FUN_1000bafe(&mInvTransform, &pLight->m_Pos, pLight->m_LightRadius,
+		AddModelLight(&mInvTransform, &pLight->m_Pos, pLight->m_LightRadius,
 			pLight->m_ColorR, pLight->m_ColorG, pLight->m_ColorB, 0.0f, 0.0f, 0.0f, &vNoDir, -1.0f);
 		if ((uint32)m_nModelLights >= m_nMaxModelLights)
 			break;
 	}
 
-	if ((uint32)m_nModelLights < m_nMaxModelLights && DAT_10056770)
+	if ((uint32)m_nModelLights < m_nMaxModelLights && g_pFrameMainWorld)
 	{
 		CallbackData.m_Unk00 = this;
 		CallbackData.m_Unk04 = mInvTransform;
@@ -637,7 +637,7 @@ void ModelDraw::SetupModelLight()
 		foInfo.m_Max = m_Unk5d0 + LTVector(m_pModel->m_VisRadius, m_pModel->m_VisRadius, m_pModel->m_VisRadius);
 		foInfo.m_CB = &ModelDraw::StaticLightCB;
 		foInfo.m_pCBUser = &CallbackData;
-		DAT_10056770->m_WorldTree.FindObjectsInBox2(&foInfo);
+		g_pFrameMainWorld->m_WorldTree.FindObjectsInBox2(&foInfo);
 	}
 }
 
@@ -782,19 +782,19 @@ void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB)
 
 // ---- the model drawing ----
 
-void FUN_1000d340(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags);	// 0x1000d340 below
+void d3d_DrawDevicePrimitive(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags);	// 0x1000d340 below
 
 // GLOBAL: D3DREN 0x1005a004
-extern uint8 DAT_1005a004[256];	// guess: gamma table of the red channel (255 = full light)
+extern uint8 g_VertexTintTableR[256];	// guess: gamma table of the red channel (255 = full light)
 // GLOBAL: D3DREN 0x1005a104
-extern uint8 DAT_1005a104[256];	// guess: gamma table of the green channel
+extern uint8 g_VertexTintTableG[256];	// guess: gamma table of the green channel
 // GLOBAL: D3DREN 0x1005a204
-extern uint8 DAT_1005a204[256];	// guess: gamma table of the blue channel
+extern uint8 g_VertexTintTableB[256];	// guess: gamma table of the blue channel
 
 // guess: draws the fade sprite of a model that is far away (Model::m_pFadeSpriteTex, size m_FadeSpriteSizeX/Y) as a lit camera
 // facing quad around the instance position; nAlpha is the vertex alpha.
 // Not matching (best effort, 843 vs 1639 bytes; same calls (FUN_100079e4 texture bind, Cross 0x1000e70c, Norm 0x1000e6d9, w_GetLightVal,
-// FUN_1000af16, FUN_1000d340), same four corners P-R+U, P+R+U, P+R-U, P-R-U in the same order).  Where it differs: in the exe the
+// d3d_ClipAndProjectTLVertices, d3d_DrawDevicePrimitive), same four corners P-R+U, P+R+U, P+R-U, P-R-U in the same order).  Where it differs: in the exe the
 // SDK operators of LTVector are expanded inline but the LTVector(x, y, z) constructor inside every operator+ / operator- after the
 // first one stays an out-of-line call (0x1000dfb6: `mov eax,ecx; mov [eax],arg1..3; ret 0xc`, called with the three x87 results
 // pushed right to left, its result copied with movsd into the vertex), and the inline temporaries live in 0x104 bytes of frame
@@ -805,7 +805,7 @@ extern uint8 DAT_1005a204[256];	// guess: gamma table of the blue channel
 // LTVector(x, y, z) corners (753 bytes) and by-value operators were tried and are further away.  0x1000dfb6 (25 bytes) is not
 // emitted for the same reason: only a function that leaves the constructor out of line produces it.
 // STUB: D3DREN 0x1000ccd9
-void ModelDraw::FUN_1000ccd9(ModelInstance *pInstance, uint8 nAlpha)
+void ModelDraw::DrawFadeSprite(ModelInstance *pInstance, uint8 nAlpha)
 {
 	Model *pModel = pInstance->GetModelDB();
 	LTVector vUp(0.0f, 1.0f, 0.0f);
@@ -834,27 +834,27 @@ void ModelDraw::FUN_1000ccd9(ModelInstance *pInstance, uint8 nAlpha)
 		aVerts[2].m_Vec = (m_Unk5d0 + vSizeRight) - vSizeUp;
 		aVerts[3].m_Vec = (m_Unk5d0 - vSizeRight) - vSizeUp;
 
-		aVerts[0].tu = DAT_10061810[0].m_Unk00;
-		aVerts[0].tv = DAT_10061810[0].m_Unk04;
-		aVerts[1].tu = 1.0f - DAT_10061810[0].m_Unk00;
-		aVerts[1].tv = DAT_10061810[0].m_Unk04;
-		aVerts[2].tu = 1.0f - DAT_10061810[0].m_Unk00;
-		aVerts[2].tv = 1.0f - DAT_10061810[0].m_Unk04;
-		aVerts[3].tu = DAT_10061810[0].m_Unk00;
-		aVerts[3].tv = 1.0f - DAT_10061810[0].m_Unk04;
+		aVerts[0].tu = g_TextureStageTexelSizes[0].m_Unk00;
+		aVerts[0].tv = g_TextureStageTexelSizes[0].m_Unk04;
+		aVerts[1].tu = 1.0f - g_TextureStageTexelSizes[0].m_Unk00;
+		aVerts[1].tv = g_TextureStageTexelSizes[0].m_Unk04;
+		aVerts[2].tu = 1.0f - g_TextureStageTexelSizes[0].m_Unk00;
+		aVerts[2].tv = 1.0f - g_TextureStageTexelSizes[0].m_Unk04;
+		aVerts[3].tu = g_TextureStageTexelSizes[0].m_Unk00;
+		aVerts[3].tv = 1.0f - g_TextureStageTexelSizes[0].m_Unk04;
 
-		if (g_CV_LightModelSprites.m_IntVal && DAT_10056770)
+		if (g_CV_LightModelSprites.m_IntVal && g_pFrameMainWorld)
 		{
-			w_GetLightVal(&DAT_10056770->m_LightTable, &m_Unk5d0, &rgb);
-			r = DAT_1005a004[rgb.r];
-			g = DAT_1005a104[rgb.g];
-			b = DAT_1005a204[rgb.b];
+			w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &m_Unk5d0, &rgb);
+			r = g_VertexTintTableR[rgb.r];
+			g = g_VertexTintTableG[rgb.g];
+			b = g_VertexTintTableB[rgb.b];
 		}
 		else
 		{
-			r = DAT_1005a004[255];
-			g = DAT_1005a104[255];
-			b = DAT_1005a204[255];
+			r = g_VertexTintTableR[255];
+			g = g_VertexTintTableG[255];
+			b = g_VertexTintTableB[255];
 		}
 
 		for (int i = 0; i < 4; i++)
@@ -869,22 +869,22 @@ void ModelDraw::FUN_1000ccd9(ModelInstance *pInstance, uint8 nAlpha)
 		pVerts = aVerts;
 		nVerts = 4;
 		g_ClipFlags = 0x3f;
-		if (FUN_1000af16(&pVerts, &nVerts, &g_ViewParams, 0))
-			FUN_1000d340(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
+		if (d3d_ClipAndProjectTLVertices(&pVerts, &nVerts, &g_ViewParams, 0))
+			d3d_DrawDevicePrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 	}
 }
 
 
 // guess: draws primitives through the device (wrapper around IDirect3DDevice7::DrawPrimitive).
 // FUNCTION: D3DREN 0x1000d340
-void FUN_1000d340(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags)
+void d3d_DrawDevicePrimitive(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags)
 {
 	g_pD3DDevice->DrawPrimitive(type, dwVertexTypeDesc, lpvVertices, dwVertexCount, dwFlags);
 }
 
 // guess: 3 * the triangle count of the current LOD (m_Unk60c) of every piece.
 // FUNCTION: D3DREN 0x1000d35f
-int ModelDraw::FUN_1000d35f()
+int ModelDraw::GetLODIndexCount()
 {
 	uint32 i;
 	int nTris = 0;
@@ -901,7 +901,7 @@ int ModelDraw::FUN_1000d35f()
 
 // guess: node transforms of the model (m_Unk840[i] = *pMat * model node transform i).
 // FUNCTION: D3DREN 0x1000df7a
-void ModelDraw::FUN_1000df7a(LTMatrix *pMat)
+void ModelDraw::BuildProjectedNodeTransforms(LTMatrix *pMat)
 {
 	uint32 i;
 
@@ -911,14 +911,14 @@ void ModelDraw::FUN_1000df7a(LTMatrix *pMat)
 
 // guess: key of the rigid model cache (the vertex buffer cache's two keys): the specular colour word bits and the LOD index.
 // FUNCTION: D3DREN 0x1000de1f
-uint32 FUN_1000de1f(uint32 nKey1, uint32 nKey2)
+uint32 d3d_PackRigidModelCacheKey(uint32 nKey1, uint32 nKey2)
 {
 	return ((((((nKey2 & ~0x3f) << 6) | (nKey2 & 0x30)) << 6 | (nKey2 & 0xc)) << 6 | (nKey2 & 3)) << 6) | ((nKey1 >> 2) & 0x3f3f3f3f);
 }
 
 // guess: picks the LOD (m_Unk60c) from the distance m_fModelDist; with ModelLODBlendEnable it also computes the blend (m_bLODBlend/m_fLODBlend).
 // FUNCTION: D3DREN 0x1000de56
-void ModelDraw::FUN_1000de56()
+void ModelDraw::SelectLODAndBlend()
 {
 	float fRange;
 	float fDist;
@@ -957,35 +957,35 @@ void ModelDraw::FUN_1000de56()
 
 // guess: nothing to do when the warble is off.
 // FUNCTION: D3DREN 0x1000dd18
-void FUN_1000dd18(void)
+void d3d_BeginModelProjectionNoOp(void)
 {
 }
 
 // guess: projects one model vertex into a TL vertex (no warble).
 // FUNCTION: D3DREN 0x1000dd34 ?MatVMul_H@@YAMPAV?$_CVector@M@@PAVLTMatrix@@0@Z
 // FUNCTION: D3DREN 0x1000dd19
-void __fastcall FUN_1000dd19(ModelVert *pVert, TLVertex *pOut, LTMatrix *pMat)
+void __fastcall d3d_ProjectModelVertex(ModelVert *pVert, TLVertex *pOut, LTMatrix *pMat)
 {
 	pOut->rhw = MatVMul_H(&pOut->m_Vec, pMat, &pVert->m_Vec);
 }
 
 // guess: begins the warble of the vertex projection: the table index follows the warble phase.
 // FUNCTION: D3DREN 0x1000ddb4
-void FUN_1000ddb4(void)
+void d3d_BeginModelWarbleProjection(void)
 {
-	DAT_1005328c = (int)DAT_10053278;
+	g_nModelWarbleIndex = (int)g_fModelWarblePhase;
 }
 
 // guess: projects one model vertex into a TL vertex with the warble of the current table entry.
 // FUNCTION: D3DREN 0x1000ddc5
-void __fastcall FUN_1000ddc5(ModelVert *pVert, TLVertex *pOut, LTMatrix *pMat)
+void __fastcall d3d_ProjectWarbledModelVertex(ModelVert *pVert, TLVertex *pOut, LTMatrix *pMat)
 {
 	LTVector v;
 	float fScale;
-	uint32 iEntry = DAT_1005328c & 0x1f;
+	uint32 iEntry = g_nModelWarbleIndex & 0x1f;
 
-	fScale = DAT_10054870 * DAT_10052900[iEntry] + DAT_10053730[iEntry];
-	DAT_1005328c++;
+	fScale = g_fModelWarbleFraction * g_ModelWarbleDeltas[iEntry] + g_ModelWarbleScales[iEntry];
+	g_nModelWarbleIndex++;
 	v.x = fScale * pVert->m_Vec.x;
 	v.y = fScale * pVert->m_Vec.y;
 	v.z = fScale * pVert->m_Vec.z;
@@ -1004,7 +1004,7 @@ UnkType_DrawState::UnkType_DrawState()
 		m_Unk000[i].m_Unk0c = -1;
 		m_Unk000[i].m_Unk18 = -1;
 		m_Unk000[i].m_Unk20 = 0;
-		m_Unk000[i].FUN_1000b9b1();
+		m_Unk000[i].ResetStageRecord();
 	}
 	m_Unk124 = 0;
 	m_Unk128 = 0;
@@ -1014,8 +1014,8 @@ UnkType_DrawState::UnkType_DrawState()
 	m_Unk120 = 0;
 }
 
-// guess: the per-model entry: caches the instance, fades the model by its distance (FUN_1000ccd9 draws the fade sprite), picks the
-// LOD, looks the model up in the rigid vertex buffer cache, builds the matrices, lights it and calls FUN_1002476b.
+// guess: the per-model entry: caches the instance, fades the model by its distance (DrawFadeSprite draws the fade sprite), picks the
+// LOD, looks the model up in the rigid vertex buffer cache, builds the matrices, lights it and calls DrawModelRenderPasses.
 // Not matching (2126 vs 2129 bytes, 628 vs 627 instructions; all code and the stack frame are the same, 60 of the 70 aligned
 // differences are unrelocated addresses): the matrix products are the SDK's `LTMatrix::operator*` (a hidden shared temporary at
 // [ebp-0x68]; with explicit MatMul calls and a named temporary the two REALLYCLOSE / else products were merged into one call with a
@@ -1029,7 +1029,7 @@ UnkType_DrawState::UnkType_DrawState()
 // FUNCTION: D3DREN 0x1000dfb6 ??0?$_CVector@M@@QAE@MMM@Z
 // FUNCTION: D3DREN 0x1000dfcf ?Dist@?$_CVector@M@@QBEMABV1@@Z
 // STUB: D3DREN 0x1000d3a7
-void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
+void ModelDraw::DrawModel(ModelInstance *pInstance)
 {
 	UnkType_DrawState state;
 	LTMatrix mWork;
@@ -1058,7 +1058,7 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 	{
 		if (fDistSqr > m_pModel->m_FadeRangeMaxSqr)
 		{
-			FUN_1000ccd9(pInstance, 0xff);
+			DrawFadeSprite(pInstance, 0xff);
 			return;
 		}
 		if (fDistSqr <= m_pModel->m_FadeRangeMinSqr)
@@ -1069,7 +1069,7 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 			uint8 nAlpha = (uint8)RoundFloatToInt((1.0f - (fDist - m_pModel->m_FadeRangeMin) / (m_pModel->m_FadeRangeMax - m_pModel->m_FadeRangeMin)) * m_pInstance->m_ColorA);
 
 			m_Unk8a8 = nAlpha;
-			FUN_1000ccd9(pInstance, 0xff - nAlpha);
+			DrawFadeSprite(pInstance, 0xff - nAlpha);
 		}
 	}
 	else
@@ -1090,18 +1090,18 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 
 	m_fModelDist = g_ViewParams.m_Pos.Dist(m_Unk5d0);
 	m_fModelDist = m_fModelDist / g_CV_ModelZoomScale.m_FloatVal;
-	FUN_1000de56();
+	SelectLODAndBlend();
 
 	if (m_pModel->m_bRigid && g_CV_ModelCacheRigid.m_IntVal)
 	{
 		ModelInstance *pInst = m_pInstance;
-		int nKey = FUN_1000de1f(m_Unk640, m_nLOD);
+		int nKey = d3d_PackRigidModelCacheKey(m_Unk640, m_nLOD);
 
 		if (!m_bLODBlend && m_Unk8a8 == m_pInstance->m_ColorA)
 		{
-			if (UnkType_ModelVBCacheHolder::DAT_10093b10.FUN_1003aabb((int)pInst, nKey))
+			if (UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.SelectEntry((int)pInst, nKey))
 				m_Unk8ac = 2;
-			else if (UnkType_ModelVBCacheHolder::DAT_10093b10.FUN_1003ab02((int)pInst, nKey, FUN_1000d35f(), 0))
+			else if (UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.AllocateEntry((int)pInst, nKey, GetLODIndexCount(), 0))
 				m_Unk8ac = 1;
 			else
 				m_Unk8ac = 0;
@@ -1112,10 +1112,10 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 	else
 		m_Unk8ac = 0;
 
-	if (DAT_10054888 != g_CurFrameCode)
+	if (g_ModelVBCacheLastAgeFrameCode != g_CurFrameCode)
 	{
-		UnkType_ModelVBCacheHolder::DAT_10093b10.FUN_1003acb0();
-		DAT_10054888 = g_CurFrameCode;
+		UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.AgeEntries();
+		g_ModelVBCacheLastAgeFrameCode = g_CurFrameCode;
 	}
 
 	m_Unk638 = (g_TintModels && (pInstance->m_Flags & FLAG_MODELTINT) && pInstance->m_ColorA == 0xff) ? 1 : 0;
@@ -1208,7 +1208,7 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 		m_InvTransform = mInv;
 	}
 
-	if (!FUN_1000ba1c())
+	if (!EnsureVertexAndTransformBuffers())
 		return;
 
 	fOldNearZ = g_ViewParams.m_NearZ;
@@ -1228,7 +1228,7 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 			m_pModel->m_Transforms[i] = m_Transform * pTransforms[i];
 		}
 		if (!g_ClipFlags)
-			FUN_1000df7a(&g_ViewParams.m_DeviceTimesProjection);
+			BuildProjectedNodeTransforms(&g_ViewParams.m_DeviceTimesProjection);
 		SetupModelLight();
 	}
 
@@ -1246,8 +1246,8 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 	if (m_pInstance->m_NodeControlFn && !(m_pInstance->m_Unknown188 & 8))
 		g_ClipFlags |= 0x3f;
 
-	m_Unk5dc = g_ModelWarble ? FUN_1000ddb4 : FUN_1000dd18;
-	m_Unk5e0 = g_ModelWarble ? FUN_1000ddc5 : FUN_1000dd19;
+	m_Unk5dc = g_ModelWarble ? d3d_BeginModelWarbleProjection : d3d_BeginModelProjectionNoOp;
+	m_Unk5e0 = g_ModelWarble ? d3d_ProjectWarbledModelVertex : d3d_ProjectModelVertex;
 
 	m_Unk00c.m_Flags = 0;
 	if (m_pInstance->m_HookFn)
@@ -1258,12 +1258,12 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 		g_ClipFlags |= 1;
 	}
 
-	FUN_1002476b();
+	DrawModelRenderPasses();
 	g_ViewParams.m_NearZ = fOldNearZ;
 	if (g_ClipFlags)
-		DAT_100587e0++;
+		g_nClippedModelsDrawn++;
 	else
-		DAT_10058cdc++;
+		g_nUnclippedModelsDrawn++;
 }
 // ---- CMoArray instances requested by ModelDraw (compiler generated, no source of their own) -----------------------
 // CMoArray<unsigned short> (vtable 0x10046204), CMoArray<TLVertex> (0x10046234), CMoArray<LTMatrix> (0x10046264): the

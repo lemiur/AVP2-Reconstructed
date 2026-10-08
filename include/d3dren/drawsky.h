@@ -30,7 +30,7 @@ extern ViewParams g_SkyParams;
 
 // guess: the surface flags of the first polygon of a world model's original BSP (0 when it has none): an inline function of the
 // original (the draw units expand it, the /O1 sky object has an out-of-line copy at 0x10019880)
-inline uint32 FUN_10019880(LTObject *pObject)
+inline uint32 GetWorldModelFirstSurfaceFlags(LTObject *pObject)
 {
 	WorldModelInstance *pInstance = (WorldModelInstance *)pObject;
 	if (pInstance->m_pOriginalBsp)
@@ -45,7 +45,7 @@ void d3d_DrawSkyObjects();		// 0x10019691: draws the sky objects (world models, 
 // guess: adds the dynamic lights that touch pPoly (its light list) to the colours of the 0x20-byte vertices pVerts (one per vertex of
 // the poly); the third argument (the vertex count the callers pass) is not used.  Called by the world polygon draw functions of
 // units unk/10021d70 and unk/10023860 as well.
-void FUN_10019923(WorldPoly *pPoly, TLVertex *pVerts, int nVerts);
+void d3d_ApplyWorldPolyVertexLights(WorldPoly *pPoly, TLVertex *pVerts, int nVerts);
 // d3d_DrawSky (Jupiter d3d_DrawSkyExtents): the whole sky pass (0x1002d4c0 in unit unk/1002d080).
 void d3d_DrawSky();
 

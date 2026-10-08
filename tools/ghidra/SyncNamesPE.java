@@ -142,5 +142,6 @@ public class SyncNamesPE extends GhidraScript {
 		}
 		println(String.format("SyncNamesPE: splits %d, functions %d, data %d, already same %d, failed %d", nSplit, nf,
 			nd, same, fail));
+		if (fail != 0) throw new IllegalStateException("Name synchronization failed for " + fail + " entries");
 	}
 }

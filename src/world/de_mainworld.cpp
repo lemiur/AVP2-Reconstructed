@@ -921,7 +921,7 @@ LTRESULT w_LoadWorldBsp(WorldLoadInfo *pInfo, MainWorld *pWorld, LTBOOL bProgres
 			STREAM_READ(pVert[k].m_Color[0]);
 			pVert[k].m_Color[3] = 0xFF;
 
-			pVert[k].m_U = (*pVert[k].m_Vec - O).Dot(P);
+			pVert[k].m_U = P.Dot(*pVert[k].m_Vec - O);
 			pVert[k].m_V = (*pVert[k].m_Vec - O).Dot(Q);
 		}
 

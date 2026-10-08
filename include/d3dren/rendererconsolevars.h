@@ -208,7 +208,7 @@ extern float g_WarbleSpeed;
 extern float g_FogNearZ;
 
 // GLOBAL: D3DREN 0x10057a10
-extern int DAT_10057a10;
+extern int g_bSpecialRenderMode;
 
 // Console variables: defined in convars_a / convars_b.
 // GLOBAL: D3DREN 0x1004d5a0

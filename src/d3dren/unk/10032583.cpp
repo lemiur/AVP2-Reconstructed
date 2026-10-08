@@ -130,16 +130,16 @@ struct UnkType_DynLMSetup : public UnkType_LMLock
 {
 };
 
-uint32 FUN_10032825(float fIntensity, uint8 *pColor);
-uint32 FUN_10032966(float fIntensity, uint8 *pColor);
-void FUN_1003273a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused);
-void FUN_1003287a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused);
+uint32 PackDynamicLightColorRGB555(float fIntensity, uint8 *pColor);
+uint32 PackDynamicLightColorRGB32(float fIntensity, uint8 *pColor);
+void FillDynamicLightmapRGB555(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused);
+void FillDynamicLightmapRGB32(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused);
 
 // guess: draws the light of a dynamic light (the poly's pLight record) as a round blob of its colour into the locked staging lightmap
 // (a radial falloff of the distance of the light to the poly plane); returns 0 when the light does not reach the poly or has no colour.
 // fScale scales the colour (1.0 = as is).
 // FUNCTION: D3DREN 0x100325e8
-int FUN_100325e8(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, UnkType_PolyLight *pLight, float fScale)
+int BuildDynamicLightmapPixels(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, UnkType_PolyLight *pLight, float fScale)
 {
 	float fDist;
 	float fRatio;
@@ -172,9 +172,9 @@ int FUN_100325e8(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, UnkType_PolyLight
 
 	pPixels = pSetup->m_Unk00;
 	if (pSetup->m_Unk0c.GetType() == BPP_16)
-		FUN_1003273a(pPixels, pSetup, fSqr, (uint8 *)&color, 0);
+		FillDynamicLightmapRGB555(pPixels, pSetup, fSqr, (uint8 *)&color, 0);
 	else
-		FUN_1003287a(pPixels, pSetup, fSqr, (uint8 *)&color, 0);
+		FillDynamicLightmapRGB32(pPixels, pSetup, fSqr, (uint8 *)&color, 0);
 	return 1;
 }
 
@@ -183,7 +183,7 @@ int FUN_100325e8(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, UnkType_PolyLight
 // The x87 operand order of the y increment (`fld fY; fadd fStepY`) requires fStepY to be referenced before fY in the source
 // (first-reference rule, README wave 6): fStepY is computed before `fY = -1.0f`, making it the memory operand.
 // FUNCTION: D3DREN 0x1003273a
-void FUN_1003273a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused)
+void FillDynamicLightmapRGB555(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused)
 {
 	uint32 nPitch;
 	uint32 nWidth, nHeight;
@@ -215,7 +215,7 @@ void FUN_1003273a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uin
 			{
 				float fSqr = fX * fX + fYSqr;
 				if (fSqr < 1.0f)
-					*pPixel = (uint16)FUN_10032825(1.0f - fSqr, pColor);
+					*pPixel = (uint16)PackDynamicLightColorRGB555(1.0f - fSqr, pColor);
 				fX += fStepX;
 				pPixel++;
 			} while (--x);
@@ -227,17 +227,17 @@ void FUN_1003273a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uin
 
 // guess: packs colour * intensity into a 15 bit (RGB 555) texel through the multiplication table.
 // FUNCTION: D3DREN 0x10032825
-uint32 FUN_10032825(float fIntensity, uint8 *pColor)
+uint32 PackDynamicLightColorRGB555(float fIntensity, uint8 *pColor)
 {
 	int iRow = ((uint8)(int)(fIntensity * 255.0f)) * 0x100;
 
-	return (((DAT_10082168.m_Unk00[iRow + pColor[2]] & 0xf8) << 5 | (DAT_10082168.m_Unk00[iRow + pColor[1]] & 0xf8)) << 2) |
-		(DAT_10082168.m_Unk00[iRow + pColor[0]] >> 3);
+	return (((g_ByteMultiplyTable.m_Unk00[iRow + pColor[2]] & 0xf8) << 5 | (g_ByteMultiplyTable.m_Unk00[iRow + pColor[1]] & 0xf8)) << 2) |
+		(g_ByteMultiplyTable.m_Unk00[iRow + pColor[0]] >> 3);
 }
 
-// guess: the 32 bit version of FUN_1003273a (same fStepY-before-fY first-reference order).
+// guess: the 32 bit version of FillDynamicLightmapRGB555 (same fStepY-before-fY first-reference order).
 // FUNCTION: D3DREN 0x1003287a
-void FUN_1003287a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused)
+void FillDynamicLightmapRGB32(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uint8 *pColor, int nUnused)
 {
 	uint32 nPitch;
 	uint32 nWidth, nHeight;
@@ -269,7 +269,7 @@ void FUN_1003287a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uin
 			{
 				float fSqr = fX * fX + fYSqr;
 				if (fSqr < 1.0f)
-					*pPixel = FUN_10032966(1.0f - fSqr, pColor);
+					*pPixel = PackDynamicLightColorRGB32(1.0f - fSqr, pColor);
 				fX += fStepX;
 				pPixel++;
 			} while (--x);
@@ -279,12 +279,12 @@ void FUN_1003287a(void *pPixels, UnkType_DynLMSetup *pSetup, float fSqrDist, uin
 	}
 }
 
-// guess: packs colour * intensity into a 24 bit RGB texel (the 32 bit version of FUN_10032825).
+// guess: packs colour * intensity into a 24 bit RGB texel (the 32 bit version of PackDynamicLightColorRGB555).
 // FUNCTION: D3DREN 0x10032966
-uint32 FUN_10032966(float fIntensity, uint8 *pColor)
+uint32 PackDynamicLightColorRGB32(float fIntensity, uint8 *pColor)
 {
 	int iRow = ((uint8)(int)(fIntensity * 255.0f)) * 0x100;
 
-	return (DAT_10082168.m_Unk00[iRow + pColor[2]] << 8 | DAT_10082168.m_Unk00[iRow + pColor[1]]) << 8 |
-		DAT_10082168.m_Unk00[iRow + pColor[0]];
+	return (g_ByteMultiplyTable.m_Unk00[iRow + pColor[2]] << 8 | g_ByteMultiplyTable.m_Unk00[iRow + pColor[1]]) << 8 |
+		g_ByteMultiplyTable.m_Unk00[iRow + pColor[0]];
 }

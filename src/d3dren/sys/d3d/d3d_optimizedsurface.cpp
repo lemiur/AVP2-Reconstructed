@@ -38,10 +38,10 @@ static LTSurfaceBlend g_Optimized2DBlend;
 
 // ---- externs of other units (no GLOBAL annotation) -----------------------------------------------------------------------
 extern FormatMgr g_FormatMgr;					// 0x10060710 (constructed by the static initialiser 0x1001e660)
-extern uint32 DAT_1005c984;						// 0x1005c984 D3DPRIMCAPS.dwTextureCaps copy (0x20 = D3DPTEXTURECAPS_SQUAREONLY)
+extern uint32 g_DeviceTriangleTextureCaps;						// 0x1005c984 D3DPRIMCAPS.dwTextureCaps copy (0x20 = D3DPTEXTURECAPS_SQUAREONLY)
 void DDPFToPFormat(DDPIXELFORMAT *pDDPF, PFormat *pFormat);	// 0x100109fd (the engine's cutil.cpp copy)
 void d3d_GetScreenFormat(PFormat *pFormat);		// 0x1001dec3 (d3d_surface unit)
-void FUN_100139f0();							// 0x100139f0 guess: sets the stage 0 texture blend to modulate
+void d3d_SetModulateAlphaTextureStates();							// 0x100139f0 guess: sets the stage 0 texture blend to modulate
 
 // ---- d3d_optimizedsurface ---------------------------------------------------------------------------------------------
 
@@ -299,7 +299,7 @@ LTBOOL d3d_OptimizeSurface(HLTBUFFER hBuffer, PValue transparentColor)
 
 	RSurface *pSurface = (RSurface *)hBuffer;
 
-	if (DAT_1005c984 & D3DPTEXTURECAPS_SQUAREONLY)
+	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 		return LTFALSE;
 
 	// Do we have a texture format we can use?
@@ -343,7 +343,7 @@ LTBOOL d3d_OptimizeSurface(HLTBUFFER hBuffer, PValue transparentColor)
 				SurfaceTile *pTile = &pSurface->m_pTiles->m_Tiles[y * nTilesX + x];
 
 				// handle square textures
-				if (DAT_1005c984 & D3DPTEXTURECAPS_SQUAREONLY)
+				if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 				{
 					pTile->m_nTileWidth = LTMAX(tileXSize, tileYSize);
 					pTile->m_nTileHeight = LTMAX(tileXSize, tileYSize);
@@ -408,7 +408,7 @@ LTBOOL d3d_StartOptimized2D()
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTFP_POINT);
 	}
 
-	FUN_100139f0();
+	d3d_SetModulateAlphaTextureStates();
 
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, TRUE);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
@@ -734,7 +734,7 @@ void d3d_WarpToScreen3D(BlitRequest *pRequest);								// 0x1001cc80
 // dirtyrect (0x10022151)
 void InvalidateRect(LTRect *pRect);
 
-extern PFormat DAT_100577c8;	// 0x100577c8 the screen format (defined by the device bring-up object, sys/d3d/common_init)
+extern PFormat g_ScreenPixelFormat;	// 0x100577c8 the screen format (defined by the device bring-up object, sys/d3d/common_init)
 extern FormatMgr g_FormatMgr;	// 0x10060710
 // (defined in sys/d3d/d3d_surface)
 void d3d_GetScreenFormat(PFormat *pFormat);

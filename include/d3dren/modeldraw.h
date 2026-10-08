@@ -18,7 +18,7 @@
 #include "model.h"
 #include "de_objects.h"
 
-// View of the vertex buffer pool's vtable slot 1 (FUN_1003a6fb: Draw(device, primitive type, vertex count) -> DrawPrimitiveVB,
+// View of the vertex buffer pool's vtable slot 1 (DrawPrimitive: Draw(device, primitive type, vertex count) -> DrawPrimitiveVB,
 // `ret 0xc`).  vbpool.h declares it with two arguments; this view keeps the call correct meanwhile.
 class UnkType_VBPoolDrawView
 {
@@ -28,7 +28,7 @@ public:
 };
 
 // One of the 16 light slots of the model drawer (0x28 bytes; the 1-byte constructor FUN_1000b9d1 is empty).
-// Layout as read by the vertex lighting loop of FUN_10004660: the light position, the squared radius, a direction and a colour.
+// Layout as read by the vertex lighting loop of SkinAndLightPieceVertices: the light position, the squared radius, a direction and a colour.
 struct UnkType_ModelLight
 {
 	UnkType_ModelLight();	// 0x1000b9d1 (empty; defined out of line in unit unk/100098d0 so that the 16-element loop of the ModelDraw constructor calls it)
@@ -39,7 +39,7 @@ struct UnkType_ModelLight
 	LTVector	m_Unk1c;		// 0x1c guess: colour (0-255 scaled)
 };
 
-// guess: one texture stage record of the draw state cache (0x24 bytes).  FUN_1000b9b1 (UnkType_StageRecord::FUN_1000b9b1)
+// guess: one texture stage record of the draw state cache (0x24 bytes).  ResetStageRecord (UnkType_StageRecord::ResetStageRecord)
 // resets everything except the two slots that the cache constructor sets to -1.   (W4)
 struct UnkType_StageRecord
 {
@@ -55,7 +55,7 @@ struct UnkType_StageRecord
 	float	m_Unk1c;
 	uint32	m_Unk20;
 
-	void FUN_1000b9b1();
+	void ResetStageRecord();
 };
 
 // guess: the draw state cache that ModelDraw embeds at +0x6a4 (8 stage records and a matrix, 0x170 bytes); constructor
@@ -109,110 +109,110 @@ public:
 	// the Talon versions take no arguments (they work on the members) except StaticLightCB, which is the FindObjInfo callback.
 	void	CallModelHook();					// 0x1000ba6e: fills the model hook data of the instance and calls the scene's hook
 	static void	StaticLightCB(WorldTreeObj *pObj, void *pUser);	// 0x1000baa4
-	void	FUN_1000bafe(LTMatrix *pMat, LTVector *pLightPos, float fRadius, float r, float g, float b, float r2, float g2, float b2, LTVector *pDir, float fFov);	// guess: adds one light to m_Unk3c (colour fades from r,g,b to r2,g2,b2 across the spot cone)
+	void	AddModelLight(LTMatrix *pMat, LTVector *pLightPos, float fRadius, float r, float g, float b, float r2, float g2, float b2, LTVector *pDir, float fFov);	// guess: adds one light to m_Unk3c (colour fades from r,g,b to r2,g2,b2 across the spot cone)
 	float	GetDirLightAmount();				// 0x1000be88: the fraction of the sun that reaches the instance (rays at the sky)
 	void	SetupModelLight();					// 0x1000c100: transforms, ambient/sun/dynamic/static lights of the instance
-	void	FUN_1000ccd9(ModelInstance *pInstance, uint8 nAlpha);	// guess: draws the fade sprite of a far away model as a lit quad
-	int		FUN_1000d35f();						// guess: 3 * the triangle count of the current LOD of every piece
-	void	FUN_1000d3a7(ModelInstance *pInstance);	// guess: the per-model entry: setup, LOD, cache lookup, lighting, draw
-	void	FUN_1000de56();						// guess: picks the LOD (m_nLOD) from m_fModelDist and the blend (m_bLODBlend/m_fLODBlend)
-	void	FUN_1000df7a(LTMatrix *pMat);		// guess: m_Unk840[i] = *pMat * model node transform i
-	int		FUN_1000ba1c();						// guess: grows the vertex and node transform arrays to the size of m_pModel; 1 on success
+	void	DrawFadeSprite(ModelInstance *pInstance, uint8 nAlpha);	// guess: draws the fade sprite of a far away model as a lit quad
+	int		GetLODIndexCount();						// guess: 3 * the triangle count of the current LOD of every piece
+	void	DrawModel(ModelInstance *pInstance);	// guess: the per-model entry: setup, LOD, cache lookup, lighting, draw
+	void	SelectLODAndBlend();						// guess: picks the LOD (m_nLOD) from m_fModelDist and the blend (m_bLODBlend/m_fLODBlend)
+	void	BuildProjectedNodeTransforms(LTMatrix *pMat);		// guess: m_Unk840[i] = *pMat * model node transform i
+	int		EnsureVertexAndTransformBuffers();						// guess: grows the vertex and node transform arrays to the size of m_pModel; 1 on success
 
-	// The per-piece draw callbacks stored by FUN_100045a0/FUN_10004270: `this` in ecx, pLOD = the piece's selected level of
-	// detail (m_Tris is read at +0x14/+0x18), pVerts = the transformed vertices (stride 0x20) filled by FUN_10004660.
+	// The per-piece draw callbacks stored by SelectPieceDrawCallbacks/DrawPiecesWithCallbacks: `this` in ecx, pLOD = the piece's selected level of
+	// detail (m_Tris is read at +0x14/+0x18), pVerts = the transformed vertices (stride 0x20) filled by SkinAndLightPieceVertices.
 	typedef int (ModelDraw::*PFN_DrawPiece)(PieceLOD *pLOD, TLVertex *pVerts);
 
 	// The function pointer members (the fillers/generators/clippers of unit unk/10001000 are __fastcall; the vertex arguments
 	// are TLVertex* or UnkType_TLVertex40* depending on the vertex format, hence void*).
-	typedef void (__fastcall *PFN_FillTexCoords)(void *pDest, void *pSrc, float *pUV);	// FUN_10001370 family
-	typedef void (__fastcall *PFN_GenTexCoords)(ModelDraw *pThis, void *pSrc, void *pDest);	// FUN_10001410/10001420/10001490
-	typedef void (__fastcall *PFN_CopyVertex)(void *pDest, void *pSrc);					// FUN_10001510/10001520
-	typedef int (__fastcall *PFN_ClipPolygon)(uint32 flags, void **ppVerts, int *pnVerts);	// FUN_10001530/10001b30
+	typedef void (__fastcall *PFN_FillTexCoords)(void *pDest, void *pSrc, float *pUV);	// FillModelBaseTexCoords family
+	typedef void (__fastcall *PFN_GenTexCoords)(ModelDraw *pThis, void *pSrc, void *pDest);	// GenerateModelTexCoordsNoOp/10001420/10001490
+	typedef void (__fastcall *PFN_CopyVertex)(void *pDest, void *pSrc);					// CopyTLVertex32/10001520
+	typedef int (__fastcall *PFN_ClipPolygon)(uint32 flags, void **ppVerts, int *pnVerts);	// ClipModelPolygon32/10001b30
 
 	// guess: draws the triangles of pLOD from the already filled cache pool (m_pPool): DrawPrimitiveVB TRIANGLELIST.
-	int FUN_10004230(PieceLOD *pLOD, TLVertex *pVerts);
+	int DrawPieceCached(PieceLOD *pLOD, TLVertex *pVerts);
 
 	// guess: runs the draw callbacks over the pieces of the model (pfnDrawA draws the pieces whose flag byte m_Unk3c4[i]
 	// is 0, pfnDrawB the others).
-	void FUN_10004270(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int a3);
+	void DrawPiecesWithCallbacks(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int a3);
 
-	// guess: picks the draw callbacks from the render mode and calls FUN_10004270.
-	void FUN_100045a0(int a1);
+	// guess: picks the draw callbacks from the render mode and calls DrawPiecesWithCallbacks.
+	void SelectPieceDrawCallbacks(int a1);
 
 	// The other four draw callbacks (not decompiled yet).
-	int FUN_10002050(PieceLOD *pLOD, TLVertex *pVerts);
-	int FUN_10002bc0(PieceLOD *pLOD, TLVertex *pVerts);
-	int FUN_100036d0(PieceLOD *pLOD, TLVertex *pVerts);
-	int FUN_10003b60(PieceLOD *pLOD, TLVertex *pVerts);
-	int FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts);
+	int DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts);
+	int DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts);
+	int DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts);
+	int DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts);
+	int DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts);
 
-	// guess: skins, lights and projects the vertices of one piece (see FUN_10005700, its only caller).
-	void FUN_10004660(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, void *pfnPerVertex, LTMatrix *pTransforms,
+	// guess: skins, lights and projects the vertices of one piece (see PrepareModelPieceVertices, its only caller).
+	void SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, void *pfnPerVertex, LTMatrix *pTransforms,
 		float *pLighting, char bBounds, float *pMin, float *pMax);
 
 	// guess: per piece of the model: skin/light/project it into m_Unk82c and decide which of the draw callback variants it needs.
-	void FUN_10005700();
+	void PrepareModelPieceVertices();
 
 	// ---- drawmodel.cpp (0x1002421e-0x10024c8b, package W7) ----
 	// guess: draws the 12 edges of the box of the model's current animation dimensions around the instance (ModelBoxes).
-	void FUN_1002421e();
+	void DrawAnimationDimensionsBox();
 	// guess: begin drawing: texturing decision (m_Unk4c8), fill mode save (wireframe on FLAG_MODELWIREFRAME); *pbResult = 1 when the
-	// bound texture is a fullbrite one and the object is not alpha blended (0 again when ShowFullbriteModels is set), passed on to FUN_100045a0.
-	void FUN_100244b3(uint32 *pbResult);
-	// guess: binds skin iSkin of the instance on the normal stage (the second/detail texture stages too) before a piece is drawn (called by FUN_10004270).
-	void FUN_10024589(uint32 iSkin);
-	// guess: the central model draw (state setup per render mode, FUN_10024c8b with the matching vertex fillers, shadows, box).
-	void FUN_1002476b();
-	// guess: stores the vertex fillers, runs FUN_100244b3, FUN_10005700 (when bTransform) and FUN_100045a0, restores the fill mode.
-	void FUN_10024c8b(PFN_FillTexCoords pfnTexFill, PFN_GenTexCoords pfnShade, int bTransform);
+	// bound texture is a fullbrite one and the object is not alpha blended (0 again when ShowFullbriteModels is set), passed on to SelectPieceDrawCallbacks.
+	void BeginModelRenderPass(uint32 *pbResult);
+	// guess: binds skin iSkin of the instance on the normal stage (the second/detail texture stages too) before a piece is drawn (called by DrawPiecesWithCallbacks).
+	void BindModelSkinTextures(uint32 iSkin);
+	// guess: the central model draw (state setup per render mode, DrawModelPassWithVertexCallbacks with the matching vertex fillers, shadows, box).
+	void DrawModelRenderPasses();
+	// guess: stores the vertex fillers, runs BeginModelRenderPass, PrepareModelPieceVertices (when bTransform) and SelectPieceDrawCallbacks, restores the fill mode.
+	void DrawModelPassWithVertexCallbacks(PFN_FillTexCoords pfnTexFill, PFN_GenTexCoords pfnShade, int bTransform);
 	// ModelDraw::DrawModelShadows (0x100252c6, unit drawmodelshadows).
 	void DrawModelShadows();
 	// guess: draws the shadow described by pInfo onto one world polygon (0x10025078, package W7, called per polygon by DrawModelShadows).
-	void FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly);
+	void DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly);
 	// guess: projected-texture shadow path of DrawModelShadows (g_CV_ModelShadowProj set; 0x1002701e, package W7), nShadows = shadow count.
-	void FUN_1002701e(uint32 nMaxShadows);
+	void DrawProjectedModelShadows(uint32 nMaxShadows);
 	// guess: draws the projected shadow texture described by pInfo onto one world polygon (0x10026d6a, ret 0xc, package W7; fDist = fMaxShadowDist of the light).
-	void FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist);
+	void DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist);
 
-	// ---- members (offsets verified in FUN_10004270, FUN_10004660, FUN_10005700 and the five callbacks) ----
+	// ---- members (offsets verified in DrawPiecesWithCallbacks, SkinAndLightPieceVertices, PrepareModelPieceVertices and the five callbacks) ----
 	Model			*m_pModel;				// 0x000 the model (m_Pieces at +0x34)
 	ModelInstance	*m_pInstance;			// 0x004 the instance (m_Flags +0x88 bit 0x40 = really close, m_HiddenPieces +0x24c, m_pSkins +0x1c0)
 	LTAnimTracker	*m_Unk008;				// 0x008 &m_pInstance->m_AnimTracker (set by 0x1000d3a7)
 	ModelInstanceHookData	m_Unk00c;		// 0x00c filled by the instance's hook function (SDK ModelInstanceHookData: flags, clip plane in world space)
 	LTPlane			m_Unk020;				// 0x020 the hook's clip plane transformed into model space (MIH_CLIPPLANE)
 	int				m_Unk30;				// 0x030 guess: FLAG_DETAILTEXTURE (1<<3) of the instance, stored by 0x1000d3a7 (selects the detail texture pass of 0x1002476b)
-	uint32			m_Unk34;				// 0x034 guess: stage / skin index argument of the state-change saver (FUN_10021db7)
+	uint32			m_Unk34;				// 0x034 guess: stage / skin index argument of the state-change saver (ApplyStateChange)
 	int				m_Unk38;				// 0x038 (-1 after the constructor)
 	UnkType_ModelLight	m_Unk3c[16];		// 0x03c the model lights (16 x 0x28; constructor loop of 0x1000b7af)
 	int				m_nModelLights;				// 0x2bc number of lights in use
 	uint32			m_nMaxModelLights;				// 0x2c0 maximum number of model lights (min(MaxModelLights, 16))
 	uint8			m_Unk2c4[0x100];		// 0x2c4 guess: per piece flag, set when the piece is completely outside a clip plane (not drawn)
 	uint8			m_Unk3c4[0x100];		// 0x3c4 guess: per piece flag, set when the piece crosses a clip plane (needs the clipping callback)
-	int				m_Unk4c4;				// 0x4c4 guess: set to 1 by FUN_10024c8b while it draws, 0 by the env map pass of FUN_1002476b (FUN_10024589 does nothing while it is 0)
-	int				m_Unk4c8;				// 0x4c8 guess: the model is drawn textured (FUN_100244b3: TextureModels && MHF_USETEXTURE)
+	int				m_Unk4c4;				// 0x4c4 guess: set to 1 by DrawModelPassWithVertexCallbacks while it draws, 0 by the env map pass of DrawModelRenderPasses (BindModelSkinTextures does nothing while it is 0)
+	int				m_Unk4c8;				// 0x4c8 guess: the model is drawn textured (BeginModelRenderPass: TextureModels && MHF_USETEXTURE)
 	int				m_Unk4cc;				// 0x4cc guess: texture currently bound (-1 after the model draw starts)
 	LTMatrix		m_ModelTransform;				// 0x4d0 guess: matrix MatVMul'ed with the light positions (0x1002701e: model lights to world space; W7)
 	LTMatrix		m_Transform;				// 0x510
 	LTMatrix		m_InvTransform;				// 0x550
 	LTMatrix		m_EnvMapTransform;				// 0x590
 	LTVector		m_Unk5d0;				// 0x5d0 guess: the instance position (really close: transformed by the inverse view)
-	void			(*m_Unk5dc)();			// 0x5dc guess: begins the warble of the vertex projection (FUN_1000ddb4 / empty FUN_1000dd18)
-	void			(__fastcall *m_Unk5e0)(ModelVert *pVert, TLVertex *pOut, LTMatrix *pMatrix);	// 0x5e0 guess: projects one model vertex into the TL vertex pOut (FUN_1000ddc5 warbling / FUN_1000dd19)
+	void			(*m_Unk5dc)();			// 0x5dc guess: begins the warble of the vertex projection (d3d_BeginModelWarbleProjection / empty d3d_BeginModelProjectionNoOp)
+	void			(__fastcall *m_Unk5e0)(ModelVert *pVert, TLVertex *pOut, LTMatrix *pMatrix);	// 0x5e0 guess: projects one model vertex into the TL vertex pOut (d3d_ProjectWarbledModelVertex warbling / d3d_ProjectModelVertex)
 	uint8			m_Pad5e4[0x5e8 - 0x5e4];
-	uint32			m_Unk5e8;				// 0x5e8 guess: vertex format (1 = 0x20-byte TL vertices, else 0x28-byte); unsigned: FUN_10024589 tests `< 2` with jae
-	PFN_GenTexCoords	m_Unk5ec;			// 0x5ec guess: per-vertex generator (FUN_10001410 / FUN_10001420 / FUN_10001490)
+	uint32			m_Unk5e8;				// 0x5e8 guess: vertex format (1 = 0x20-byte TL vertices, else 0x28-byte); unsigned: BindModelSkinTextures tests `< 2` with jae
+	PFN_GenTexCoords	m_Unk5ec;			// 0x5ec guess: per-vertex generator (GenerateModelTexCoordsNoOp / GenerateModelEnvMapCoords / GenerateModelSpecularCoords)
 	int				m_Unk5f0;				// 0x5f0
-	PFN_FillTexCoords	m_Unk5f4;			// 0x5f4 guess: texture coordinate filler (FUN_10001370 family)
+	PFN_FillTexCoords	m_Unk5f4;			// 0x5f4 guess: texture coordinate filler (FillModelBaseTexCoords family)
 	int				m_Unk5f8;				// 0x5f8 guess: vertex size in bytes (0x20 / 0x28)
-	PFN_CopyVertex	m_Unk5fc;				// 0x5fc guess: vertex copy (FUN_10001510 / FUN_10001520)
-	PFN_ClipPolygon	m_Unk600;				// 0x600 guess: polygon clipper (FUN_10001530 / FUN_10001b30)
+	PFN_CopyVertex	m_Unk5fc;				// 0x5fc guess: vertex copy (CopyTLVertex32 / CopyTLVertex40)
+	PFN_ClipPolygon	m_Unk600;				// 0x600 guess: polygon clipper (ClipModelPolygon32 / ClipModelPolygon40)
 	int				m_Unk604;				// 0x604 guess: FVF of the current vertex format (0x1c4 / 0x2c4)
 	UnkType_VertexBufferPool	*m_Unk608;	// 0x608 the vertex buffer pool of the current vertex format
 	uint32			m_nLOD;				// 0x60c guess: level of detail (0 = piece itself, n = m_LODs[n-1])
 	int				m_bLODBlend;				// 0x610 guess: LOD blend enabled
 	float			m_fLODBlend;				// 0x614 guess: LOD blend amount
-	int				m_Unk618;				// 0x618 guess: draw an environment map pass (tested with the EnvMapAll mirror in FUN_1002476b)
+	int				m_Unk618;				// 0x618 guess: draw an environment map pass (tested with the EnvMapAll mirror in DrawModelRenderPasses)
 	float			m_Unk61c, m_Unk620;		// 0x61c guess: environment map u/v offsets
 	float			m_Unk624, m_Unk628;		// 0x624 guess: u/v scales
 	float			m_Unk62c;				// 0x62c guess: specular power of the piece
@@ -233,7 +233,7 @@ public:
 	float			m_DirLightAmount;				// 0x880 guess: directional light amount
 	LTVector		m_AmbientLight;				// 0x884 guess: colour scale in shadow
 	ModelHookData	m_ModelHookData;				// 0x890 the model hook data (m_ObjectFlags at 0x898, m_LightAdd 0x89c, m_ObjectColor 0x8a0)
-	uint32			m_Unk8a4;				// 0x8a4 guess: third argument (dwMaxLOD) of d3d_SetTexture in FUN_10024589
+	uint32			m_Unk8a4;				// 0x8a4 guess: third argument (dwMaxLOD) of d3d_SetTexture in BindModelSkinTextures
 	uint8			m_Unk8a8;				// 0x8a8 guess: alpha written into every vertex colour
 	uint8			m_Pad8a9[0x8ac - 0x8a9];
 	int				m_Unk8ac;				// 0x8ac guess: draw mode (2: draw the cached pool, 1: untransformed vertices)

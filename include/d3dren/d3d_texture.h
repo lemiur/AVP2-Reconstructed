@@ -16,7 +16,7 @@
 class RTexture;
 
 // The members of the renderer side of a texture (RTexture, d3dtexture.h) that the inline helpers and the binding code touch.  A layout-only view
-// (including d3dtexture.h here would pull lightmap.h into every object, which changes the code of FUN_100088ec / FUN_10008a23, 4 bytes each).
+// (including d3dtexture.h here would pull lightmap.h into every object, which changes the code of ClipPolyNear40 / ClipPolyLeft40, 4 bytes each).
 struct UnkType_RTexView
 {
 	void				*m_pVtbl;		// 0x00
@@ -37,10 +37,10 @@ struct UnkType_RTexView
 
 // d3d_CreateAndLoadTexture (sys/d3d/d3d_texture): finds or creates the RTexture of pTexture for the stage (bChild: chain it behind the first one).
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);
-// FUN_10007a89 (unk/10007930): binds the RTexture on its device stage (LRU list, SetTexture, ALPHAREF, per-stage UV scale, change counter).
-void FUN_10007a89(RTexture *pRTexture);
+// d3d_BindRTexture (unk/10007930): binds the RTexture on its device stage (LRU list, SetTexture, ALPHAREF, per-stage UV scale, change counter).
+void d3d_BindRTexture(RTexture *pRTexture);
 // GLOBAL: D3DREN 0x100577b8
-extern uint16 DAT_100577b8;		// guess: current texture frame code (stored into SharedTexture::m_Unknown30)
+extern uint16 g_CurTextureFrameCode;		// guess: current texture frame code (stored into SharedTexture::m_Unknown30)
 
 // Finds or creates the RTexture of pTexture for the stage, binds it and sets its LOD; returns 0 when there is no texture.
 // dwMaxLOD: the argument of IDirectDrawSurface7::SetLOD, which is the only thing the third argument is used for.
@@ -59,7 +59,7 @@ inline int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLO
 		return 0;
 
 	pFirst = (UnkType_RTexView *)pTexture->m_pRenderData;
-	pTexture->m_Unknown30 = DAT_100577b8;
+	pTexture->m_Unknown30 = g_CurTextureFrameCode;
 	for (pRTexture = pFirst; pRTexture; pRTexture = pRTexture->m_Unk30)
 	{
 		if (pRTexture->m_Unk42 == (uint8)nStage)
@@ -88,7 +88,7 @@ inline int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLO
 				pFirst->m_Unk30 = pRTexture;
 			}
 		}
-		FUN_10007a89((RTexture *)pRTexture);
+		d3d_BindRTexture((RTexture *)pRTexture);
 	}
 
 	if (pRTexture->m_Unk44 != dwMaxLOD)

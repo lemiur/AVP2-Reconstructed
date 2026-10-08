@@ -13,9 +13,9 @@
 extern uint32 g_ClipFlags;
 
 // GLOBAL: D3DREN 0x1005626c
-extern int DAT_1005626c;		// guess: triangles drawn by the model drawer this frame ("Model triangles drawn: %d")
+extern int g_nModelTrianglesDrawn;		// guess: triangles drawn by the model drawer this frame ("Model triangles drawn: %d")
 // GLOBAL: D3DREN 0x1005668c
-extern int DAT_1005668c;		// guess: number of plane clip tests done this frame ("Num Clip Tests: %d")
+extern int g_nPlaneClipTests;		// guess: number of plane clip tests done this frame ("Num Clip Tests: %d")
 
 struct TLVertex;
 // GLOBAL: D3DREN 0x1005627c

@@ -134,20 +134,20 @@ extern LTLink g_Textures;		// LRU list of the RTextures (RTexture::m_Link, m_pDa
 #define RENDERSTRUCT_TEXMEM(p)			(*(int *)((uint8 *)(p) + 0x50))
 
 // GLOBAL: D3DREN 0x1005c984
-extern uint32 DAT_1005c984;			// D3DPRIMCAPS.dwTextureCaps copy of the device caps (0x20 = D3DPTEXTURECAPS_SQUAREONLY); W7's optsurface.cpp declares it too
+extern uint32 g_DeviceTriangleTextureCaps;			// D3DPRIMCAPS.dwTextureCaps copy of the device caps (0x20 = D3DPTEXTURECAPS_SQUAREONLY); W7's optsurface.cpp declares it too
 // DXT support flags, set by 0x1001f600 from the enumerated formats (Jupiter m_bSupportsDXT1/3/5).
 // GLOBAL: D3DREN 0x10062854
-extern int DAT_10062854;			// DXT1 supported
+extern int g_bDXT1Supported;			// DXT1 supported
 // GLOBAL: D3DREN 0x10062850
-extern int DAT_10062850;			// DXT3 supported
+extern int g_bDXT3Supported;			// DXT3 supported
 // GLOBAL: D3DREN 0x1006284c
-extern int DAT_1006284c;			// DXT5 supported
+extern int g_bDXT5Supported;			// DXT5 supported
 
 // Helper textures and state of the texture manager (cleared by Init/Term).
 // GLOBAL: D3DREN 0x10062874
 extern int g_bTextureManagerInitialized;							// the texture manager is initialised (set by Init, cleared by Term)
 // GLOBAL: D3DREN 0x10062878
-extern IDirectDrawSurface7 *DAT_10062878;			// the 0x20x0x20 lightmap format dummy surface (0x1001eb80 / the tail of Init)
+extern IDirectDrawSurface7 *g_pLightmapScratchSurface;			// the 0x20x0x20 lightmap format dummy surface (0x1001eb80 / the tail of Init)
 // GLOBAL: D3DREN 0x1006287c
 extern IDirectDrawSurface7 *g_pShadowBlobTexture;			// the 16x16 shadow blob texture (0x1001f670); W7's modelshadows.cpp declares it too
 // GLOBAL: D3DREN 0x10062880
@@ -162,7 +162,7 @@ int CTextureManager_S3TCFormatConv(BPPIdent bpp, uint32 *pFourCC);			// 0x100219
 int CTextureManager_IsS3TCFormatSupported(BPPIdent bpp);								// 0x10021a50 IsS3TCFormatSupported
 int d3d_GetFirstUsableMipmap(TextureData *pTexture);		// 0x10020f20
 void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *outHeight);	// 0x100219b0
-TextureFormat *FUN_1001f590(const TextureFormatSpec *pSpecs, uint32 nSpecs);	// 0x1001f590 search the enumerated formats for the first spec that matches
+TextureFormat *d3d_FindTextureFormatBySpecs(const TextureFormatSpec *pSpecs, uint32 nSpecs);	// 0x1001f590 search the enumerated formats for the first spec that matches
 HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pContext);	// 0x1001f0d0 d3d_EnumTextureFormatsCallback
 void CTextureManager_FreeTexture(RTexture *pTexture, int bChained);		// 0x1001f850 FreeTexture (frees the chained stage textures; an additional-stage RTexture only when bChained)
 // The three values the texture creation functions take from the caller (SharedTexture, its TextureData and the device stage flags).
@@ -174,10 +174,10 @@ struct UnkType_RTextureBuild
 };
 int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData);	// 0x10020360 copies the mipmaps of pTextureData into the surface chain of pTexture; 0 on failure
 RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdditional);	// 0x10021290 CreateRTexture
-void FUN_1001f920(LTLink *pList);							// 0x1001f920 FreeTexture on every RTexture of an LTLink list, then tie the head off
+void CTextureManager_FreeTextureList(LTLink *pList);							// 0x1001f920 FreeTexture on every RTexture of an LTLink list, then tie the head off
 void d3d_FreeAllTextures();
-void FUN_1001f600();										// 0x1001f600 sets the DXT support flags from the enumerated formats
-void FUN_1001f670();										// 0x1001f670 builds the shadow blob texture
+void DetectDXTTextureFormatSupport();										// 0x1001f600 sets the DXT support flags from the enumerated formats
+void d3d_CreateShadowBlobTexture();										// 0x1001f670 builds the shadow blob texture
 void d3d_ReinitLightmapTextureSupport();										// 0x1001eb80 re-creates the lightmap texture pools and the lightmap dummy surface
 void d3d_BuildSpecularLookupTexture(float fPower);							// 0x1001e910 builds the specular lookup texture
 int CTextureManager_Init();											// 0x1001ec50 CTextureManager::Init (called by the device creation 0x1001acc0)

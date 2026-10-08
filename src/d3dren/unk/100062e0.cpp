@@ -1,5 +1,5 @@
 // d3d.ren unk/100062e0 (0x100062e0-0x10007930): A (16-byte aligned functions) object of config/d3dren/objects_v2.csv.
-// really-close projection FUN_100062e0 + 8 out-of-line plane clippers (4 for 0x20-byte, 4 for 0x28-byte vertices).
+// really-close projection ProjectPositionWithDepthBias + 8 out-of-line plane clippers (4 for 0x20-byte, 4 for 0x28-byte vertices).
 // FLAGS: /O2 /Ob2
 #include <string.h>
 #include "d3dren/rendererconsolevars.h"
@@ -22,15 +22,15 @@ int ClipPolyRight(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **pp
 int ClipPolyBottom(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 int ClipPolyFar(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 
-int FUN_10006e40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10007670(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 
 // Same epsilon as Jupiter 3d_ops.h CLIP_EPSILON (0.00001f): the two constants at 0x100461c4 / 0x100461c8 are +-1e-5.
 #define CLIP_EPSILON	0.00001f
 
-// ---- the clipping callbacks (FUN_10002bc0 and its "really close" twin FUN_10002050) -----------------------------------------
+// ---- the clipping callbacks (DrawPieceClipped and its "really close" twin DrawPieceClippedReallyClose) -----------------------------------------
 
 // guess: 1/w projection of one camera-space vertex with the matrix at g_ViewParams.m_DeviceTimesProjection.m[0][0] (position only)
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
@@ -59,11 +59,11 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nBytes = (char *)pOut - (char *)pp->Lock(); \
 		uint32 nVertsOut = nBytes / pp->vfn_Unk18(); \
-		DAT_1005626c += nVertsOut / 3; \
+		g_nModelTrianglesDrawn += nVertsOut / 3; \
 		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVertsOut); \
 	}
 
-// The body of the two clipping callbacks.  REALLYCLOSE adds the z bias g_CV_NearZ.m_FloatVal to the w of the z row (FUN_100062e0).
+// The body of the two clipping callbacks.  REALLYCLOSE adds the z bias g_CV_NearZ.m_FloatVal to the w of the z row (ProjectPositionWithDepthBias).
 // Per triangle: the clip planes of g_ClipFlags are tested vertex by vertex (count of vertices inside: none = skip the
 // triangle, not all = it has to be clipped), then the triangle is back face tested in 2D and projected.
 #define CLIPPED_CALLBACK(REALLYCLOSE) \
@@ -149,7 +149,7 @@ TestRight: \
 				for (int k = 0; k < 3; k++) \
 				{ \
 					if (REALLYCLOSE) \
-						FUN_100062e0(&pOut->m_Vec.x, apV[k], g_CV_NearZ.m_FloatVal); \
+						ProjectPositionWithDepthBias(&pOut->m_Vec.x, apV[k], g_CV_NearZ.m_FloatVal); \
 					else \
 						ProjectPos(&pOut->m_Vec.x, apV[k]); \
 					pOut->color = ((TLVertex *)apV[k])->color; \
@@ -159,7 +159,7 @@ TestRight: \
 				} \
 				if ((char *)pOut > pEnd && nTris > 1) \
 				{ \
-					DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3; \
+					g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3; \
 					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c); \
 					POOL_REFILL_END(pOut, pEnd) \
 				} \
@@ -201,14 +201,14 @@ Clip: \
 					{ \
 						float vSrc[3] = { ((float *)pP)[0], ((float *)pP)[1], ((float *)pP)[2] }; \
 						if (REALLYCLOSE) \
-							FUN_100062e0((float *)pP, vSrc, g_CV_NearZ.m_FloatVal); \
+							ProjectPositionWithDepthBias((float *)pP, vSrc, g_CV_NearZ.m_FloatVal); \
 						else \
 							ProjectPos((float *)pP, vSrc); \
 					} \
 					if ((char *)pOut + (nPoly * 3 - 6) * m_Unk5f8 > pEnd) \
 					{ \
 						POOL_FLUSH_DRAW() \
-						m_Unk608->FUN_1003a7f7(); \
+						m_Unk608->RestartInNextBuffer(); \
 						POOL_REFILL_END(pOut, pEnd) \
 					} \
 					for (int iFan = 1; iFan < nPoly - 1; iFan++) \
@@ -228,9 +228,9 @@ Skip: \
 		nTris--; \
 	}
 
-void FUN_100062e0(float *pDest, float *pSrc, float fZBias);
+void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 
-// ---- the skinning / lighting / projection of one piece (FUN_10004660) and its driver (FUN_10005700) ----------------------
+// ---- the skinning / lighting / projection of one piece (SkinAndLightPieceVertices) and its driver (PrepareModelPieceVertices) ----------------------
 
 // guess: accumulates the bone-transformed offsets of one model vertex into pOut (x, y, z, w; pOut is cleared first)
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
@@ -248,14 +248,14 @@ static inline void SkinVertexInto(ModelVert *pVert, LTMatrix *pTransforms, float
 	}
 }
 
-// One loop of FUN_10004660: the exe has four copies of it (bounds on/off x LOD blend on/off); BOUNDS and BLEND are constants.
+// One loop of SkinAndLightPieceVertices: the exe has four copies of it (bounds on/off x LOD blend on/off); BOUNDS and BLEND are constants.
 #define MODELVERT_LOOP(BOUNDS, BLEND) 	for (; nVerts != 0; nVerts--, pVert++, pDest++) 	{ 		pDest->m_Vec.x = 0.0f; 		pDest->m_Vec.y = 0.0f; 		pDest->m_Vec.z = 0.0f; 		pDest->rhw = 0.0f; 		SkinVertexInto(pVert, pTransforms, &pDest->m_Vec.x); 		if (BLEND) 		{ 			ModelVert *pVertB = &pLOD2->m_Verts.GetArray()[pVert->m_iReplacement]; 			float vb[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; 			SkinVertexInto(pVertB, pTransforms, vb); 			pDest->m_Vec.x = (vb[0] - pDest->m_Vec.x) * m_fLODBlend + pDest->m_Vec.x; 			pDest->m_Vec.y = (vb[1] - pDest->m_Vec.y) * m_fLODBlend + pDest->m_Vec.y; 			pDest->m_Vec.z = (vb[2] - pDest->m_Vec.z) * m_fLODBlend + pDest->m_Vec.z; 			pDest->rhw = 1.0f / ((vb[3] - pDest->rhw) * m_fLODBlend + pDest->rhw); 		} 		else 			pDest->rhw = 1.0f / pDest->rhw; 		pDest->m_Vec.x = pDest->rhw * pDest->m_Vec.x; 		pDest->m_Vec.y = pDest->rhw * pDest->m_Vec.y; 		pDest->m_Vec.z = pDest->rhw * pDest->m_Vec.z; 		if (BOUNDS) 		{ 			if (pMin[0] <= pDest->m_Vec.x) { if (pMax[0] < pDest->m_Vec.x) pMax[0] = pDest->m_Vec.x; } else pMin[0] = pDest->m_Vec.x; 			if (pMin[1] <= pDest->m_Vec.y) { if (pMax[1] < pDest->m_Vec.y) pMax[1] = pDest->m_Vec.y; } else pMin[1] = pDest->m_Vec.y; 			if (pMin[2] <= pDest->m_Vec.z) { if (pMax[2] < pDest->m_Vec.z) pMax[2] = pDest->m_Vec.z; } else pMin[2] = pDest->m_Vec.z; 		} 		float fDot = fDx * pVert->m_Normal.x + fDy * pVert->m_Normal.y + fDz * pVert->m_Normal.z; 		float fR = fBaseR, fG = fBaseG, fB = fBaseB; 		if (0.0f < fDot) 		{ 			fR = (fLitR - fBaseR) * fDot + fBaseR; 			fG = (fLitG - fBaseG) * fDot + fBaseG; 			fB = (fLitB - fBaseB) * fDot + fBaseB; 		} 		UnkType_ModelLight *pLight = m_Unk3c; 		UnkType_ModelLight *pLightEnd = m_Unk3c + m_nModelLights; 		for (; pLight != pLightEnd; pLight++) 		{ 			float fLd = pVert->m_Normal.x * pLight->m_Unk10.x + pVert->m_Normal.y * pLight->m_Unk10.y + pVert->m_Normal.z * pLight->m_Unk10.z; 			if (0.0f < fLd) 			{ 				float fDist = (pVert->m_Vec.y - pLight->m_Unk00.y) * (pVert->m_Vec.y - pLight->m_Unk00.y) 					+ (pVert->m_Vec.z - pLight->m_Unk00.z) * (pVert->m_Vec.z - pLight->m_Unk00.z) 					+ (pVert->m_Vec.x - pLight->m_Unk00.x) * (pVert->m_Vec.x - pLight->m_Unk00.x); 				if (fDist < pLight->m_Unk0c) 				{ 					fLd = (pLight->m_Unk0c - fDist) * fLd; 					fR = fLd * pLight->m_Unk1c.x + fR; 					fG = fLd * pLight->m_Unk1c.y + fG; 					fB = fLd * pLight->m_Unk1c.z + fB; 				} 			} 		} 		if (255.0f < fR) 			fR = 255.0f; 		if (255.0f < fG) 			fG = 255.0f; 		if (255.0f < fB) 			fB = 255.0f; 		pLighting[0] = fR + pLighting[0]; 		pLighting[1] = fG + pLighting[1]; 		pLighting[2] = fB + pLighting[2]; 		pDest->rgb.r = (uint8)RoundFloatToInt(fR); 		pDest->rgb.g = (uint8)RoundFloatToInt(fG); 		pDest->rgb.b = (uint8)RoundFloatToInt(fB); 		pDest->rgb.a = m_Unk8a8; 		pfn(pDest); 	}
 
 // guess: projection with a z bias: the clip-space position of the vertex moved nearer by fZBias, used by the "really close" draw.
 // Collect xyz in a vector, write the biased reciprocal w, then copy the vector. This preserves the target's
 // three float spill slots and integer copies; x/y use the unbiased w while z uses the biased coordinate and w.
 // FUNCTION: D3DREN 0x100062e0
-void __cdecl FUN_100062e0(float *pDest, float *pSrc, float fZBias)
+void __cdecl ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias)
 {
 	LTVector result;
 	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
@@ -305,7 +305,7 @@ int ClipPolyTop(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOu
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;
@@ -364,7 +364,7 @@ int ClipPolyRight(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **pp
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;
@@ -423,7 +423,7 @@ int ClipPolyBottom(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **p
 	int iPrev, iCur;
 	float d;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;
@@ -480,7 +480,7 @@ int ClipPolyFar(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOu
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;
@@ -529,7 +529,7 @@ int ClipPolyFar(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOu
 
 // guess: top plane (inside: y < z), flag 8 (0x28-byte vertices)
 // FUNCTION: D3DREN 0x10006e40
-int FUN_10006e40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
+int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
 {
 	static int bInside[56];	// 0x100947c0
 	int *pInside;
@@ -538,7 +538,7 @@ int FUN_10006e40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;
@@ -588,7 +588,7 @@ int FUN_10006e40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 
 // guess: right plane (inside: x < z), flag 0x10 (0x28-byte vertices)
 // FUNCTION: D3DREN 0x10007100
-int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
+int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
 {
 	static int bInside[56];	// 0x100946e0
 	int *pInside;
@@ -597,7 +597,7 @@ int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;
@@ -648,9 +648,9 @@ int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 // guess: bottom plane (inside: -z < y), flag 0x20 (0x28-byte vertices)
 // Not matching (11/704 bytes): identical except for the tail of the inlined ClipExtra: the exe schedules `xor ecx,ecx` (the zero
 // extension for `mov cl,[pCur->rgb.a]` at vertex offset +0x13) before the store of rgb.b, ours after it.  The same function for the top and
-// right planes (FUN_10006e40/10007100) and the 0x20-byte twins match with this source shape; 4000 permuter candidates found nothing.
+// right planes (ClipPolyTop40/10007100) and the 0x20-byte twins match with this source shape; 4000 permuter candidates found nothing.
 // STUB: D3DREN 0x100073b0
-int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
+int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
 {
 	static int bInside[56];	// 0x10094600
 	int *pInside;
@@ -659,7 +659,7 @@ int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 	int iPrev, iCur;
 	float d;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;
@@ -708,9 +708,9 @@ int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 // guess: far plane (inside: z <= g_ViewParams.m_ClipFarZ), flag 2 (0x28-byte vertices)
 // Not matching (11/704 bytes): identical except for the tail of the inlined ClipExtra: the exe schedules `xor ecx,ecx` (the zero
 // extension for `mov cl,[pCur->rgb.a]` at vertex offset +0x13) before the store of rgb.b, ours after it.  The same function for the top and
-// right planes (FUN_10006e40/10007100) and the 0x20-byte twins match with this source shape; 4000 permuter candidates found nothing.
+// right planes (ClipPolyTop40/10007100) and the 0x20-byte twins match with this source shape; 4000 permuter candidates found nothing.
 // STUB: D3DREN 0x10007670
-int FUN_10007670(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
+int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
 {
 	static int bInside[56];	// 0x10094520
 	int *pInside;
@@ -719,7 +719,7 @@ int FUN_10007670(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
+	g_nPlaneClipTests++;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
 	pInside = bInside;

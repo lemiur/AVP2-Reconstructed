@@ -10,7 +10,7 @@
 //  3. draw_canvas.cpp (Jupiter draw_canvas.cpp: CanvasDrawMgr, an ILTCustomDraw implementation),
 //  4. the world polygon draw passes (multipass gouraud / dynamic light), no Jupiter equivalent.
 // Static initialiser `_$E` numbers in this file are those of the compiler for the whole file, not of the original objects.
-// FLAGS NOTE: the unit default is /O1 /Ob2, which inlines FUN_10022803 into SetState etc. (the exe keeps them
+// FLAGS NOTE: the unit default is /O1 /Ob2, which inlines ConvertCanvasBlendToD3DBlend into SetState etc. (the exe keeps them
 // out of line: /Ob1 shape).  The four static initialiser wrappers `_$E6 _$E9 _$E12 _$E18` of the exe are the merged /Ob2 form; with /Ob1 the compiler
 // emits `call _$E3; jmp _$E5` style wrappers (see the STUB notes at the globals).
 // FLAGS: /O1 /Ob2 /D__STL_NO_EXCEPTION_HEADER /D__STL_NO_NEW_NEW_HEADER /D__STL_NO_BAD_ALLOC /IE:/AVP2Source/build/proj/LT2/lithshared/stl /IE:/MSVC6/VC98/MFC
@@ -27,55 +27,55 @@
 // FUNCTION: D3DREN 0x10021d86 ??0UnkType_StateRestorer@@QAE@XZ
 // The wrapper `_$E6` below is the merged /Ob2 form (`mov ecx, g; call ctor; push stub; call atexit; pop ecx; ret`), which is the normal shape of a
 // P object (objects_v2.csv section 4), so the object is built `/O1 /Ob2`.  The two state-apply helpers are kept out of line with narrowly scoped
-// compiler control so FUN_10021db7 retains the exe's calls while the rest of the object keeps its /Ob2 behavior.
+// compiler control so ApplyStateChange retains the exe's calls while the rest of the object keeps its /Ob2 behavior.
 // FUNCTION: D3DREN 0x10021d70 _$E6
 // FUNCTION: D3DREN 0x10021d9c _$E4
-UnkType_StateRestorer DAT_10063c90;
+UnkType_StateRestorer g_TextureStateRestorer;
 
 // guess: restore every saved state of both lists, then forget them.
-// FUNCTION: D3DREN 0x10021da6 ?FUN_10021da6@UnkType_StateRestorer@@QAEXXZ
-void UnkType_StateRestorer::FUN_10021da6()
+// FUNCTION: D3DREN 0x10021da6 ?RestoreAllStates@UnkType_StateRestorer@@QAEXXZ
+void UnkType_StateRestorer::RestoreAllStates()
 {
-	FUN_10021ec9();
-	FUN_10021f09();
+	RestoreRenderStates();
+	RestoreTextureStageStates();
 }
 
 // guess: applies pChange to the device on texture stage nStage: every render state, then every texture stage state, each one
 // remembering the value it replaces.
 // FUNCTION: D3DREN 0x10021db7
-void UnkType_StateRestorer::FUN_10021db7(StateChange *pChange, uint32 nStage)
+void UnkType_StateRestorer::ApplyStateChange(StateChange *pChange, uint32 nStage)
 {
 	std::vector<RenderState>::iterator itRender;
 	std::vector<RenderState>::iterator itRenderEnd = pChange->m_RenderList.end();
 	for (itRender = pChange->m_RenderList.begin(); itRender != itRenderEnd; ++itRender)
-		FUN_10021e28(*itRender);
+		ApplyRenderState(*itRender);
 
 	std::vector<TextureState>::iterator itTexture;
 	std::vector<TextureState>::iterator itTextureEnd = pChange->m_TextureList.end();
 	for (itTexture = pChange->m_TextureList.begin(); itTexture != itTextureEnd; ++itTexture)
-		FUN_10021dfd(*itTexture, nStage);
+		ApplyTextureStageState(*itTexture, nStage);
 }
 
 // FUNCTION: D3DREN 0x10021dfd
 #pragma auto_inline(off)
-void UnkType_StateRestorer::FUN_10021dfd(const TextureState &state, uint32 nStage)
+void UnkType_StateRestorer::ApplyTextureStageState(const TextureState &state, uint32 nStage)
 {
-	FUN_10021e80(state, nStage);
+	SaveTextureStageState(state, nStage);
 	g_pD3DDevice->SetTextureStageState(nStage, state.m_TextureStateType, state.m_TextureState);
 }
 #pragma auto_inline(on)
 
 // FUNCTION: D3DREN 0x10021e28
 #pragma auto_inline(off)
-void UnkType_StateRestorer::FUN_10021e28(const RenderState &state)
+void UnkType_StateRestorer::ApplyRenderState(const RenderState &state)
 {
-	FUN_10021e47(state);
+	SaveRenderState(state);
 	g_pD3DDevice->SetRenderState(state.m_RenderStateType, state.m_RenderState);
 }
 #pragma auto_inline(on)
 
 // FUNCTION: D3DREN 0x10021e47
-void UnkType_StateRestorer::FUN_10021e47(const RenderState &state)
+void UnkType_StateRestorer::SaveRenderState(const RenderState &state)
 {
 	DWORD dwOld;
 	g_pD3DDevice->GetRenderState(state.m_RenderStateType, &dwOld);
@@ -83,7 +83,7 @@ void UnkType_StateRestorer::FUN_10021e47(const RenderState &state)
 }
 
 // FUNCTION: D3DREN 0x10021e80
-void UnkType_StateRestorer::FUN_10021e80(const TextureState &state, uint32 nStage)
+void UnkType_StateRestorer::SaveTextureStageState(const TextureState &state, uint32 nStage)
 {
 	DWORD dwOld;
 	g_pD3DDevice->GetTextureStageState(nStage, state.m_TextureStateType, &dwOld);
@@ -91,7 +91,7 @@ void UnkType_StateRestorer::FUN_10021e80(const TextureState &state, uint32 nStag
 }
 
 // FUNCTION: D3DREN 0x10021ec9
-void UnkType_StateRestorer::FUN_10021ec9()
+void UnkType_StateRestorer::RestoreRenderStates()
 {
 	if (g_pD3DDevice)
 	{
@@ -104,7 +104,7 @@ void UnkType_StateRestorer::FUN_10021ec9()
 }
 
 // FUNCTION: D3DREN 0x10021f09
-void UnkType_StateRestorer::FUN_10021f09()
+void UnkType_StateRestorer::RestoreTextureStageStates()
 {
 	if (g_pD3DDevice)
 	{

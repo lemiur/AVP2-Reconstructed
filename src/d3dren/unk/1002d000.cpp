@@ -28,10 +28,10 @@ ConVar g_CV_BlockersOnly("BlockersOnly", 0.0f);
 
 // 4 bytes `xor eax,eax; ret`.  The linker folded (/OPT:ICF) every identical function into this copy: the stub called (with the file name
 // argument: `push [argv+4]; call; add esp,4` in 0x1001b8a0)
-// by RenderCommand "PortalFile" with a result ignored (FUN_1002d07c() in 0x1001b8a0), and the CRT's
+// by RenderCommand "PortalFile" with a result ignored (d3d_PortalFileCommand() in 0x1001b8a0), and the CRT's
 // `int __cdecl _matherr(struct _exception *)` (libraries.json).
 // FUNCTION: D3DREN 0x1002d07c
-int FUN_1002d07c(char *pFileName)
+int d3d_PortalFileCommand(char *pFileName)
 {
 	return 0;
 }

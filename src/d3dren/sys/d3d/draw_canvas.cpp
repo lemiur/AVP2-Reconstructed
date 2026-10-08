@@ -1,5 +1,5 @@
 // d3d.ren sys/d3d/draw_canvas (0x10022424-0x10022bc5): P (packed COMDATs) object of config/d3dren/objects_v2.csv.
-// FLAGS NOTE: this P object uses /O1 /Ob2.  The 0x10022424 initializer wrapper now matches; FUN_10022803 is kept out of line by the narrow pragma below.
+// FLAGS NOTE: this P object uses /O1 /Ob2.  The 0x10022424 initializer wrapper now matches; ConvertCanvasBlendToD3DBlend is kept out of line by the narrow pragma below.
 // The remaining non-match is the source-shape difference in DrawPrimitive.
 // FLAGS: /O1 /Ob2 /D__STL_NO_EXCEPTION_HEADER /D__STL_NO_NEW_NEW_HEADER /D__STL_NO_BAD_ALLOC /IE:/AVP2Source/build/proj/LT2/lithshared/stl /IE:/MSVC6/VC98/MFC
 #define D3DREN_STATERESTORER_FULL	// d3ddevice.h: the real vector<RenderState>/vector<TextureState> members of UnkType_StateRestorer
@@ -39,7 +39,7 @@
 #include "counter.h"
 
 // callees and globals of other units
-void FUN_100062e0(float *pDest, float *pSrc, float fScale);			// unit unk/10001000
+void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fScale);			// unit unk/10001000
 
 class CanvasDrawMgr : public ILTCustomDraw
 {
@@ -54,8 +54,8 @@ public:
 
 	void	DrawCanvas(Canvas *pCanvas);											// 0x1002246e
 
-	void	FUN_100224ae(Canvas *pCanvas);											// save the device states, set the canvas defaults
-	void	FUN_10022645();															// put the saved device states back
+	void	SaveAndSetCanvasStates(Canvas *pCanvas);											// save the device states, set the canvas defaults
+	void	RestoreCanvasStates();															// put the saved device states back
 
 	// the device states DrawCanvas changes, saved before and restored after (names invented)
 	uint32	m_Unk04;			// ALPHABLENDENABLE
@@ -92,15 +92,15 @@ void CanvasDrawMgr::DrawCanvas(Canvas *pCanvas)
 {
 	if (pCanvas->m_Fn)
 	{
-		DAT_10063c90.FUN_10021da6();
-		FUN_100224ae(pCanvas);
+		g_TextureStateRestorer.RestoreAllStates();
+		SaveAndSetCanvasStates(pCanvas);
 		pCanvas->m_Fn(this, (HLOCALOBJ)pCanvas, pCanvas->m_pFnUserData);
-		FUN_10022645();
+		RestoreCanvasStates();
 	}
 }
 
 // FUNCTION: D3DREN 0x100224ae
-void CanvasDrawMgr::FUN_100224ae(Canvas *pCanvas)
+void CanvasDrawMgr::SaveAndSetCanvasStates(Canvas *pCanvas)
 {
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, &m_Unk04);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 0);
@@ -130,11 +130,11 @@ void CanvasDrawMgr::FUN_100224ae(Canvas *pCanvas)
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	m_States[LTRSTATE_ALPHAOP] = LTOP_SELECTDIFFUSE;
 	m_Unk28 = (pCanvas->m_Flags >> 6) & 1;
-	FUN_1000a27b(g_NormalTextureStage);
+	d3d_UnsetTexture(g_NormalTextureStage);
 }
 
 // FUNCTION: D3DREN 0x10022645
-void CanvasDrawMgr::FUN_10022645()
+void CanvasDrawMgr::RestoreCanvasStates()
 {
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, m_Unk04);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, m_Unk08);
@@ -161,7 +161,7 @@ LTRESULT CanvasDrawMgr::DrawPrimitive(LTVertex *pVerts, uint32 nVerts, uint32 fl
 	g_ClipFlags = 0x3f;
 	if (!m_Unk28 && !(flags & 0x40))
 	{
-		if (FUN_1000af16(&pVertices, &nVertices, &g_ViewParams, 0))
+		if (d3d_ClipAndProjectTLVertices(&pVertices, &nVertices, &g_ViewParams, 0))
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, D3DFVF_TLVERTEX, pVertices, nVertices, 0);
 	}
 	else
@@ -169,12 +169,12 @@ LTRESULT CanvasDrawMgr::DrawPrimitive(LTVertex *pVerts, uint32 nVerts, uint32 fl
 		float fOldNearZ = g_ViewParams.m_NearZ;
 		g_ViewParams.m_NearZ = g_CV_ReallyCloseNearZ.m_FloatVal;
 		for (i = 0; i < nVertices; i++)
-			FUN_10008719((float *)((uint8 *)pVertices + i * 0x20), &g_ViewParams.m_mReallyCloseClipTransform.m[0][0]);
+			TransformPositionInPlace((float *)((uint8 *)pVertices + i * 0x20), &g_ViewParams.m_mReallyCloseClipTransform.m[0][0]);
 		if (!ClipPoly(g_ClipFlags, &pVertices, &nVertices))
 			return 0;
 		{
 			for (i = 0; i < nVertices; i++)
-				FUN_100062e0((float *)((uint8 *)pVertices + i * 0x20), (float *)((uint8 *)pVertices + i * 0x20), g_CV_NearZ.m_FloatVal);
+				ProjectPositionWithDepthBias((float *)((uint8 *)pVertices + i * 0x20), (float *)((uint8 *)pVertices + i * 0x20), g_CV_NearZ.m_FloatVal);
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, D3DFVF_TLVERTEX, pVertices, nVertices, 0);
 			g_ViewParams.m_NearZ = fOldNearZ;
 		}
@@ -186,7 +186,7 @@ LTRESULT CanvasDrawMgr::DrawPrimitive(LTVertex *pVerts, uint32 nVerts, uint32 fl
 // Matching compiler control: the /O1 /Ob2 object keeps calls to this out-of-line helper.
 #pragma auto_inline(off)
 // FUNCTION: D3DREN 0x10022803
-static int FUN_10022803(int blend)
+static int ConvertCanvasBlendToD3DBlend(int blend)
 {
 	int d3dBlend = D3DBLEND_ONE;
 	if (blend == LTBLEND_SRCALPHA)
@@ -205,8 +205,8 @@ static int FUN_10022803(int blend)
 
 // guess: LTTEXADDR_* to D3DTADDRESS and LTOP_* to D3DTOP; an unknown value retries with the default (tail recursion, which the
 // compiler turned into a loop in the exe's out-of-line copies).
-inline int FUN_10022990(int addr, int dflt);
-inline int FUN_100229a8(int op, int dflt);
+inline int ConvertCanvasTextureAddressToD3D(int addr, int dflt);
+inline int ConvertCanvasTextureOpToD3D(int op, int dflt);
 
 // FUNCTION: D3DREN 0x10022832
 LTRESULT CanvasDrawMgr::SetState(LTRState state, uint32 val)
@@ -227,32 +227,32 @@ LTRESULT CanvasDrawMgr::SetState(LTRState state, uint32 val)
 		break;
 	case LTRSTATE_SRCBLEND:
 		{
-			int d3dBlend = FUN_10022803(val);
+			int d3dBlend = ConvertCanvasBlendToD3DBlend(val);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, d3dBlend);
 		}
 		break;
 	case LTRSTATE_DESTBLEND:
 		{
-			int d3dBlend = FUN_10022803(val);
+			int d3dBlend = ConvertCanvasBlendToD3DBlend(val);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DESTBLEND, d3dBlend);
 		}
 		break;
 	case LTRSTATE_TEXADDR:
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, FUN_10022990(val, LTTEXADDR_WRAP));
+		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, ConvertCanvasTextureAddressToD3D(val, LTTEXADDR_WRAP));
 		break;
 	case LTRSTATE_COLOROP:
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, FUN_100229a8(val, LTOP_MODULATE));
+		g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, ConvertCanvasTextureOpToD3D(val, LTOP_MODULATE));
 		break;
 	case LTRSTATE_ALPHAOP:
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, FUN_100229a8(val, LTOP_SELECTTEXTURE));
+		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, ConvertCanvasTextureOpToD3D(val, LTOP_SELECTTEXTURE));
 		break;
 	}
 	m_States[state] = val;
 	return 0;
 }
 
-// FUNCTION: D3DREN 0x10022990 ?FUN_10022990@@YAHHH@Z
-inline int FUN_10022990(int addr, int dflt)
+// FUNCTION: D3DREN 0x10022990 ?ConvertCanvasTextureAddressToD3D@@YAHHH@Z
+inline int ConvertCanvasTextureAddressToD3D(int addr, int dflt)
 {
 	switch (addr)
 	{
@@ -261,11 +261,11 @@ inline int FUN_10022990(int addr, int dflt)
 	case LTTEXADDR_CLAMP:
 		return D3DTADDRESS_CLAMP;
 	}
-	return FUN_10022990(dflt, dflt);
+	return ConvertCanvasTextureAddressToD3D(dflt, dflt);
 }
 
-// FUNCTION: D3DREN 0x100229a8 ?FUN_100229a8@@YAHHH@Z
-inline int FUN_100229a8(int op, int dflt)
+// FUNCTION: D3DREN 0x100229a8 ?ConvertCanvasTextureOpToD3D@@YAHHH@Z
+inline int ConvertCanvasTextureOpToD3D(int op, int dflt)
 {
 	switch (op)
 	{
@@ -280,7 +280,7 @@ inline int FUN_100229a8(int op, int dflt)
 	case LTOP_ADDSIGNED:
 		return D3DTOP_ADDSIGNED;
 	}
-	return FUN_100229a8(dflt, dflt);
+	return ConvertCanvasTextureOpToD3D(dflt, dflt);
 }
 
 // FUNCTION: D3DREN 0x100229d5
@@ -297,29 +297,29 @@ LTRESULT CanvasDrawMgr::GetState(LTRState state, uint32 &val)
 LTRESULT CanvasDrawMgr::SetTexture(const char *pTexture)
 {
 	if (!pTexture) {
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_UnsetTexture(g_NormalTextureStage);
 		return 0;
 	}
 	SharedTexture *pShared = g_pStruct->GetSharedTexture(pTexture);
 	if (!pShared) {
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_UnsetTexture(g_NormalTextureStage);
 		return 1;
 	}
 	if (!d3d_SetTexture(pShared, g_NormalTextureStage, 0)) {
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_UnsetTexture(g_NormalTextureStage);
 		return 1;
 	}
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 	if (pShared->m_pStateChange)
-		DAT_10063c90.FUN_10021db7(pShared->m_pStateChange, g_NormalTextureStage);
+		g_TextureStateRestorer.ApplyStateChange(pShared->m_pStateChange, g_NormalTextureStage);
 	return 0;
 }
 
 // FUNCTION: D3DREN 0x10022a73
 LTRESULT CanvasDrawMgr::GetTexelSize(float &fSizeU, float &fSizeV)
 {
-	fSizeU = DAT_10061810[0].m_Unk00;
-	fSizeV = DAT_10061810[0].m_Unk04;
+	fSizeU = g_TextureStageTexelSizes[0].m_Unk00;
+	fSizeV = g_TextureStageTexelSizes[0].m_Unk04;
 	return 0;
 }
 
@@ -342,27 +342,27 @@ void d3d_DrawSolidCanvases()
 	if (g_CV_DrawCanvases.m_IntVal)
 	{
 		VisibleSet *pSet = d3d_GetVisibleSet();
-		pSet->m_SolidCanvases.FUN_10022b50(&g_ViewParams, d3d_DrawCanvasCB, &dummy, &pSet->m_TranslucentCanvases);
+		pSet->m_SolidCanvases.DrawSolidCanvasesAndCollectTranslucent(&g_ViewParams, d3d_DrawCanvasCB, &dummy, &pSet->m_TranslucentCanvases);
 	}
 }
 
 // guess: queues one translucent canvas on the sorted list (Jupiter's BaseObjectSet::Queue, open-coded per object type in Talon).
 // FUNCTION: D3DREN 0x10022b3b
-static void FUN_10022b3b(ViewParams *pParams, LTObject *pObject)
+static void d3d_QueueCanvasDraw(ViewParams *pParams, LTObject *pObject)
 {
-	DAT_1006b934->Add(pObject, d3d_DrawCanvasCB);
+	g_pTranslucentObjectDrawList->Add(pObject, d3d_DrawCanvasCB);
 }
 
 // FUNCTION: D3DREN 0x10022b15
 void d3d_QueueTranslucentCanvases()
 {
 	if (g_CV_DrawCanvases.m_IntVal)
-		d3d_GetVisibleSet()->m_TranslucentCanvases.Draw(&g_ViewParams, FUN_10022b3b);
+		d3d_GetVisibleSet()->m_TranslucentCanvases.Draw(&g_ViewParams, d3d_QueueCanvasDraw);
 }
 
 // FUNCTION: D3DREN 0x10022ab6 ?Add@BaseObjectSet@@QAEXPAVLTObject@@@Z
 // FUNCTION: D3DREN 0x10022b50
-void BaseObjectSet::FUN_10022b50(ViewParams *pParams, DrawObjectFn fn, char *pUnused, BaseObjectSet *pTranslucent)
+void BaseObjectSet::DrawSolidCanvasesAndCollectTranslucent(ViewParams *pParams, DrawObjectFn fn, char *pUnused, BaseObjectSet *pTranslucent)
 {
 	uint32 i;
 

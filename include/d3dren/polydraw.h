@@ -25,24 +25,24 @@
 
 // ---- globals read by the world polygon code ------------------------------------------------------------------------------
 // GLOBAL: D3DREN 0x10056770
-extern MainWorld *DAT_10056770;			// guess: g_pMainWorld (m_LMGridSize at +0xf8 is the lightmap grid spacing)
+extern MainWorld *g_pFrameMainWorld;			// guess: g_pMainWorld (m_LMGridSize at +0xf8 is the lightmap grid spacing)
 
 // GLOBAL: D3DREN 0x1005872c
 extern void (__fastcall *g_pfnCalcFogAlpha)(LTVector *pPos, uint32 *pSpecular);	// guess: per-vertex fog alpha hook (the vertex position and its specular colour)
 // GLOBAL: D3DREN 0x10058c40
-extern void (__fastcall *DAT_10058c40)(LTVector *pPos, uint32 *pSpecular);	// guess: the sky's per-vertex fog hook (same signature; added by W6: d3d_drawsky and drawpolymgr use it)
+extern void (__fastcall *g_pfnCalcSkyFogAlpha)(LTVector *pPos, uint32 *pSpecular);	// guess: the sky's per-vertex fog hook (same signature; added by W6: d3d_drawsky and drawpolymgr use it)
 // GLOBAL: D3DREN 0x100566bc
-extern RGBColor DAT_100566bc;			// guess: the diffuse colour the poly vertices are drawn with
+extern RGBColor g_GlobalVertexTintColor;			// guess: the diffuse colour the poly vertices are drawn with
 // guess: sphere map (environment) texture coordinates of a point seen from pViewPos on a surface with normal pNormal: *pU, *pV.
-void FUN_1001085e(LTVector *pViewPos, LTVector *pPos, LTVector *pNormal, float *pU, float *pV);
+void d3d_CalcWorldReflectionUVs(LTVector *pViewPos, LTVector *pPos, LTVector *pNormal, float *pU, float *pV);
 // GLOBAL: D3DREN 0x100566ac
-extern int DAT_100566ac;				// guess: number of polys drawn (statistics)
+extern int g_nWorldPolysDrawn;				// guess: number of polys drawn (statistics)
 // GLOBAL: D3DREN 0x10058040
-extern uint8 DAT_10058040;				// guess: fog colour byte 0 (FUN_10013990 / FUN_100139d0 pack three of them)
+extern uint8 g_u8FogColorR;				// guess: fog colour byte 0 (d3d_PackSqrtRGB / d3d_PackRGB pack three of them)
 // GLOBAL: D3DREN 0x10058041
-extern uint8 DAT_10058041;				// guess: fog colour byte 1
+extern uint8 g_u8FogColorG;				// guess: fog colour byte 1
 // GLOBAL: D3DREN 0x10058042
-extern uint8 DAT_10058042;				// guess: fog colour byte 2
+extern uint8 g_u8FogColorB;				// guess: fog colour byte 2
 
 // Per-stage texture coordinate scale pair (u, v), indexed by the device stage: [0] = 0x10061810/14 scales the lightmap
 // coordinates, [1] = 0x10061818/1c the detail texture coordinates.  Same type and GLOBAL as unit unk/10007930 (W2) declares
@@ -52,43 +52,43 @@ struct UnkType_StageUV
 	float	m_Unk00;
 	float	m_Unk04;
 };
-extern UnkType_StageUV DAT_10061810[8];
+extern UnkType_StageUV g_TextureStageTexelSizes[8];
 
-// Detail texture state shared by FUN_1000a538 / FUN_1000a8c0: the scale and the cos / sin of the angle of the current detail texture.
+// Detail texture state shared by d3d_DrawWorldTextureBucket / d3d_DrawDualTextureWorldBucket: the scale and the cos / sin of the angle of the current detail texture.
 // GLOBAL: D3DREN 0x100514a8
-extern float DAT_100514a8;				// guess: detail texture scale (DetailTextureScale * the texture's own scale)
+extern float g_WorldDetailTextureScale;				// guess: detail texture scale (DetailTextureScale * the texture's own scale)
 // GLOBAL: D3DREN 0x100518d0
-extern float DAT_100518d0;				// guess: cos of the detail texture angle
+extern float g_WorldDetailTextureAngleCos;				// guess: cos of the detail texture angle
 // GLOBAL: D3DREN 0x100513e0
-extern float DAT_100513e0;				// guess: sin of the detail texture angle
+extern float g_WorldDetailTextureAngleSin;				// guess: sin of the detail texture angle
 
-// The vertex scratch array: DAT_100587e4 vertices (0x20 bytes each) are in use, room for DAT_1005a368.
+// The vertex scratch array: g_nQueuedWorldPolyVertices vertices (0x20 bytes each) are in use, room for g_nQueuedWorldPolyVertexCapacity.
 // GLOBAL: D3DREN 0x100587e4
-extern uint32 DAT_100587e4;
+extern uint32 g_nQueuedWorldPolyVertices;
 // GLOBAL: D3DREN 0x100587fc
-extern TLVertex *DAT_100587fc;
+extern TLVertex *g_pQueuedWorldPolyVertices;
 // GLOBAL: D3DREN 0x1005a368
-extern uint32 DAT_1005a368;
+extern uint32 g_nQueuedWorldPolyVertexCapacity;
 
 // guess: grows the scratch array to nVertices elements (keeps the old ones); returns 0 when the allocation failed.
-int FUN_10013e80(int nVertices);
-// guess: packs three colour bytes (each through the gamma table at 0x10082068) into an RGB value; FUN_100139d0 packs them as given.
-uint32 FUN_10013990(uint8 r, uint8 g, uint8 b);
-uint32 FUN_100139d0(uint8 r, uint8 g, uint8 b);
+int d3d_GrowTLVertexBuffer(int nVertices);
+// guess: packs three colour bytes (each through the gamma table at 0x10082068) into an RGB value; d3d_PackRGB packs them as given.
+uint32 d3d_PackSqrtRGB(uint8 r, uint8 g, uint8 b);
+uint32 d3d_PackRGB(uint8 r, uint8 g, uint8 b);
 
 // guess: returns the "fullbrite" flag of the SharedTexture's renderer texture (loading it when missing); the second argument is 0 here.
-int FUN_100211d0(SharedTexture *pTexture, uint32 nStageFlags);
+int d3d_EnsureTextureAndGetFlags(SharedTexture *pTexture, uint32 nStageFlags);
 // guess: gives every node of the list (linked through m_Unk10) back to the node pool.
-void FUN_100142b0(UnkType_PoolNode *pList);
+void d3d_FreeWorldPolyQueue(UnkType_PoolNode *pList);
 
 // guess: draws the poly as a flat polygon later (DrawFlat console variable path): queues it on the deferred list.
-void FUN_10013ef0(WorldPoly *pPoly);
+void d3d_QueueWorldPoly(WorldPoly *pPoly);
 // guess: uploads / refreshes the lightmap of the poly into its page (bFirst: the page record was just set up); returns 0 when the poly has none.
-int FUN_10020ff0(WorldPoly *pPoly, int bFirst);
+int d3d_RefreshWorldPolyLightmap(WorldPoly *pPoly, int bFirst);
 
 // ---- the lightmap page of a world polygon (WorldPoly +0x48, LightmapPage of d3dren/lightmap.h) and the queued polys ------------
 // Members of the lightmap page that lightmap.h (W9) leaves untyped (m_Unk04 / m_Unk08 / m_Unk20), seen by the world poly queue:
-//   +0x04 the next page in the list of pages that have polys waiting (DAT_100528d4)
+//   +0x04 the next page in the list of pages that have polys waiting (g_pQueuedLightmapPageHead)
 //   +0x08 the polys waiting for this page (nodes of the pool at 0x10058758, linked through m_Unk10)
 //   +0x20 non-zero once the page has been set up by the first draw
 #define LMPAGE_NEXT(p)		(*(LightmapPage **)&(p)->m_Unk04)
@@ -98,13 +98,13 @@ int FUN_10020ff0(WorldPoly *pPoly, int bFirst);
 
 // The pools the queued polys and their buckets come from (StructBanks; +0x18 of the first is the free list at 0x10058770).
 // GLOBAL: D3DREN 0x10058758
-extern UnkType_Pool DAT_10058758;
+extern UnkType_Pool g_WorldPolyNodeBank;
 // GLOBAL: D3DREN 0x10058c98
-extern UnkType_Pool DAT_10058c98;
+extern UnkType_Pool g_WorldPolyBucketBank;
 // GLOBAL: D3DREN 0x1005a308
-extern UnkType_PoolBucket *DAT_1005a308;	// guess: list of buckets (polys queued per texture, linked through m_Unk08)
+extern UnkType_PoolBucket *g_pTexturedWorldPolyBuckets;	// guess: list of buckets (polys queued per texture, linked through m_Unk08)
 // GLOBAL: D3DREN 0x100528d4
-extern LightmapPage *DAT_100528d4;	// guess: lightmap pages with polys waiting to be drawn (linked through LMPAGE_NEXT)
+extern LightmapPage *g_pQueuedLightmapPageHead;	// guess: lightmap pages with polys waiting to be drawn (linked through LMPAGE_NEXT)
 
 // A vertex of a world polygon (SPolyVertex of de_objects.h, same layout) with the members the engine header leaves in padding
 // named at their offsets: 0x0c/0x10 are the lightmap texture coordinates.  (lightmap.h's SPOLYVERTEX_UNK0C macros compile to
@@ -119,13 +119,13 @@ struct UnkType_PolyVertex
 
 // ---- the 0x20-byte vertex clip helpers (unit unk/10001000 and this one) --------------------------------------------------------
 // The inside[] arrays of the polyclip.h expansions are function-local statics of the original that the near/left plane code
-// here shares with FUN_10001530.
+// here shares with ClipModelPolygon32.
 // GLOBAL: D3DREN 0x10094de0
-extern int DAT_10094de0[56];	// guess: inside flags of the near plane clip
+extern int g_ClipNearInsideFlagsTLVertex[56];	// guess: inside flags of the near plane clip
 // GLOBAL: D3DREN 0x10094ec0
-extern int DAT_10094ec0[56];	// guess: inside flags of the left plane clip
-float FUN_10001a50(float *p1, float *p2, float *pOut);
-float FUN_10001ac0(float *p1, float *p2, float *pOut);
+extern int g_ClipLeftInsideFlagsTLVertex[56];	// guess: inside flags of the left plane clip
+float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
+float IntersectLeftClipPlane(float *p1, float *p2, float *pOut);
 void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 // Plane clippers for the flag bits 8, 0x10, 0x20, 2 (unit unk/10001000); the first argument is unused.
 int ClipPolyTop(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
@@ -134,22 +134,22 @@ int ClipPolyBottom(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **p
 int ClipPolyFar(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 
 // ---- the functions of this unit (0x100099b9-0x1000b20c) --------------------------------------------------------------------------
-void FUN_100099b9(WorldPoly *pPoly);
-void FUN_10009e80(MainWorld *pWorld, WorldPoly *pPoly);
-void FUN_10009f0b(uint32 nFlags, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
-void FUN_10009f6c(uint32 nFlags, WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
-void FUN_1000a066(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
-TLVertex *FUN_1000a134(int nVerts);
-void FUN_1000a16b(WorldPoly *pPoly);
-void FUN_1000a2a7(void);
-void FUN_1000a538(UnkType_PoolBucket *pBucket, SharedTexture *pTexture, int a3, int a4);
-void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3);
-void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3);
-void FUN_1000ac7b(void);
-void FUN_1000ac8a(void);
-void FUN_1000ad48(TLVertex *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF);
-void FUN_1000ae2f(UnkType_TLVertex40 *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF);
-int FUN_1000af16(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int param_4);
+void DrawLightmappedWorldPoly(WorldPoly *pPoly);
+void RelightWorldPolyIfNeeded(MainWorld *pWorld, WorldPoly *pPoly);
+void d3d_BuildDualTextureWorldVertices(uint32 nFlags, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
+void d3d_BuildLightmappedWorldVertices(uint32 nFlags, WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
+void d3d_UpdateWorldVertexLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
+TLVertex *d3d_ReservePolyScratchVertices(int nVerts);
+void d3d_DrawOrQueueLightmappedWorldPoly(WorldPoly *pPoly);
+void d3d_FlushWorldTextureBuckets(void);
+void d3d_DrawWorldTextureBucket(UnkType_PoolBucket *pBucket, SharedTexture *pTexture, int a3, int a4);
+void d3d_DrawSingleTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3);
+void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3);
+void d3d_FlushPendingWorldTextureBuckets(void);
+void d3d_FlushLightmapPageQueues(void);
+void d3d_DrawClippedTriangleFan(TLVertex *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF);
+void d3d_DrawClippedDualTextureTriangleFan(UnkType_TLVertex40 *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF);
+int d3d_ClipAndProjectTLVertices(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int param_4);
 int ClipPoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts);
 int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 int ClipPolyLeft(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);

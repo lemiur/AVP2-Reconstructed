@@ -1,8 +1,8 @@
-// d3d.ren model vertex fillers: small __fastcall functions that the model drawer (FUN_10004270, UnkType_ModelDrawer in
+// d3d.ren model vertex fillers: small __fastcall functions that the model drawer (DrawPiecesWithCallbacks, UnkType_ModelDrawer in
 // modeldraw.h) stores as function pointers and calls per vertex.  Two families, both with the vertex in the destination
 // buffer in ecx or on the stack:
-//   texture coordinate fillers:  (TLVertex *pDest, void *pSrc, float *pUV)       FUN_10001370, 10001390, 100013d0, 100013e0, 10001410
-//   normal based generators:     (drawer view *pThis, model vertex *pSrc, TLVertex *pDest)   FUN_10001420, 10001490
+//   texture coordinate fillers:  (TLVertex *pDest, void *pSrc, float *pUV)       FillModelBaseTexCoords, 10001390, 100013d0, 100013e0, 10001410
+//   normal based generators:     (drawer view *pThis, model vertex *pSrc, TLVertex *pDest)   GenerateModelEnvMapCoords, 10001490
 // All type and member names are invented; roles in the guess comments.
 #ifndef __D3DREN_VERTFILL_H__
 #define __D3DREN_VERTFILL_H__
@@ -10,7 +10,7 @@
 #include "ltbasedefs.h"
 #include "d3dren/tlvertex.h"
 
-// A plain 3 float vector (copied by value into a local by FUN_10001490).
+// A plain 3 float vector (copied by value into a local by GenerateModelSpecularCoords).
 struct UnkType_Vec3
 {
 	float	x, y, z;
@@ -43,8 +43,8 @@ struct UnkType_ModelDrawerVertexView
 };
 
 // GLOBAL: D3DREN 0x1004eb40
-extern float DAT_1004eb40;		// guess: u offset added to the model texture coordinates
+extern float g_ModelTextureUOffset;		// guess: u offset added to the model texture coordinates
 // GLOBAL: D3DREN 0x1004eb44
-extern float DAT_1004eb44;		// guess: v offset
+extern float g_ModelTextureVOffset;		// guess: v offset
 
 #endif

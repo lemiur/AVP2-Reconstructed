@@ -80,45 +80,45 @@ class UnkType_PlaneClipper
 {
 public:
 	// guess: Jupiter's CLIPTEST for a plane: true when the point is on the front side (distance > 0).
-	int FUN_10026300(LTVector *pVec);		// 0x10026300 thiscall, ret 4 (returns 0 or 1 in eax; bool would add a movzx at the callers)
+	int IsInsidePlane(LTVector *pVec);		// 0x10026300 thiscall, ret 4 (returns 0 or 1 in eax; bool would add a movzx at the callers)
 	// guess: Jupiter's DOCLIP for a plane: intersects the edge pt1-pt2 with the plane, writes the point to *pOut and returns
 	// the parameter t (in st(0)); |d1 - d2| <= CLIP_EPSILON gives t = 0.
-	float FUN_10026343(LTVector *pt1, LTVector *pt2, LTVector *pOut);	// 0x10026343 thiscall, ret 0xc
+	float IntersectEdgeWithPlane(LTVector *pt1, LTVector *pt2, LTVector *pOut);	// 0x10026343 thiscall, ret 0xc
 
 	LTPlane		*m_Unk00;				// 0x00 the clip plane
 };
 
 // Jupiter polyclip.h T::ClipExtra for the 0x24-byte vertex: interpolates tu, tv, m_Unk20 and rounds r, g, b, a of the colour and
 // the alpha of the specular colour (0x10026300 .. 0x100261f9 are in address order).  Plain cdecl.
-void FUN_100261f9(UnkType_Vertex36 *pPrev, UnkType_Vertex36 *pCur, UnkType_Vertex36 *pOut, float t);		// 0x100261f9
+void InterpolateShadowVertexAttributes(UnkType_Vertex36 *pPrev, UnkType_Vertex36 *pCur, UnkType_Vertex36 *pOut, float t);		// 0x100261f9
 
 // Jupiter polyclip.h expanded for the plane of *pClipper: clips the polygon *ppVerts (*pnVerts vertices) against it, writing the
 // clipped polygon to **ppOut (then *ppOut advances past it).  Returns 0 when nothing is left (all outside), else 1 (*ppVerts and
 // *pnVerts then describe the polygon, in place when it was fully inside).  cdecl; the first argument is a plane clipper.
-int FUN_100260ce(UnkType_PlaneClipper *pClipper, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x100260ce
+int ClipShadowPolygonToPlane(UnkType_PlaneClipper *pClipper, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x100260ce
 
 // guess: the same view-space clippers for the six view frustum planes (flag bit 1 near z == g_ViewParams.m_NearZ, 4 left x+z == 0, 8 y == z,
 // 0x10 x == z, 0x20 y == -z, 2 far z == g_ViewParams.m_ClipFarZ); the first argument is unused (the address of a dummy local). cdecl; same contract
-// as FUN_100260ce.
-int FUN_100265c9(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x100265c9 near
-int FUN_10026700(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026700 left
-int FUN_10026835(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026835 y == z
-int FUN_10026969(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026969 x == z
-int FUN_10026a9c(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026a9c y == -z
-int FUN_10026bd2(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026bd2 far
+// as ClipShadowPolygonToPlane.
+int ClipShadowPolygonToNearPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x100265c9 near
+int ClipShadowPolygonToLeftPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026700 left
+int ClipShadowPolygonToTopPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026835 y == z
+int ClipShadowPolygonToRightPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026969 x == z
+int ClipShadowPolygonToBottomPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026a9c y == -z
+int ClipShadowPolygonToFarPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut);	// 0x10026bd2 far
 
 // guess: clips the polygon against the planes selected by the bits of flags (g_ClipFlags holds 0x3f when the shadow code calls it).
 // With the console variable that makes the renderer use the D3D clipper (DAT_1005c818) only bit 1 is processed.
-int FUN_100264ad(uint32 flags, UnkType_Vertex36 **ppVerts, int *pnVerts);	// 0x100264ad
+int ClipShadowPolygonToViewFrustum(uint32 flags, UnkType_Vertex36 **ppVerts, int *pnVerts);	// 0x100264ad
 
 // guess: transforms the polygon into view space and clips it like Jupiter's polyclip, or only projects it when g_ClipFlags is 0
-// (the vertex type counterpart of FUN_100085f2).  pViewParams is g_ViewParams (0x10055cf8).  The fourth argument is not used.
-int FUN_10026412(UnkType_Vertex36 **ppVerts, int *pnVerts, ViewParams *pViewParams, int nUnused);	// 0x10026412
+// (the vertex type counterpart of TransformClipProjectPolygon40).  pViewParams is g_ViewParams (0x10055cf8).  The fourth argument is not used.
+int TransformClipAndProjectShadowPolygon(UnkType_Vertex36 **ppVerts, int *pnVerts, ViewParams *pViewParams, int nUnused);	// 0x10026412
 
 // Draws the shadow of the model onto one world polygon and the projected-texture variant: both are members of ModelDraw
-// (setupmodel.h declares ModelDraw::FUN_10025078 and ::FUN_10026d6a, thiscall with an unused `this`):
-//   void ModelDraw::FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly);				// 0x10025078 ret 8
-//   void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist);	// 0x10026d6a ret 0xc
+// (setupmodel.h declares ModelDraw::DrawBlobShadowOnWorldPoly and ::DrawProjectedShadowOnWorldPoly, thiscall with an unused `this`):
+//   void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly);				// 0x10025078 ret 8
+//   void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist);	// 0x10026d6a ret 0xc
 
 // NAME: NUM_MODEL_SHADOWS: Jupiter render_a/src/sys/d3d/drawmodelshadows.cpp (the value 8: the per-light arrays of both shadow paths)
 #ifndef NUM_MODEL_SHADOWS
@@ -135,7 +135,7 @@ int FUN_10026412(UnkType_Vertex36 **ppVerts, int *pnVerts, ViewParams *pViewPara
 #define CPLANE_BOTTOM_INDEX		5
 #endif
 
-// guess (role names invented): the polygons found for one shadow light, filled by the callback FUN_10035917 (the world-tree
+// guess (role names invented): the polygons found for one shadow light, filled by the callback CollectWorldModelSegmentPolys (the world-tree
 // FindObjectsOnPoint callback of both shadow paths): the polygon array at +0x00 with its count at +0x400.
 struct UnkType_ShadowPolys
 {
@@ -143,7 +143,7 @@ struct UnkType_ShadowPolys
 	uint32		m_nPolys;			// 0x400
 };
 
-// guess: the user record of the callback FUN_10035917: the polygon list and the segment from the light.  0x3c bytes: with the
+// guess: the user record of the callback CollectWorldModelSegmentPolys: the polygon list and the segment from the light.  0x3c bytes: with the
 // trailing dword the frame of ModelDraw::DrawModelShadows has the exe's layout.
 struct UnkType_ShadowPolyQuery
 {

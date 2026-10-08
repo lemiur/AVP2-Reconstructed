@@ -23,14 +23,14 @@
 #include "d3dren/d3ddevice.h"
 #include "pixelformat.h"
 // GLOBAL: D3DREN 0x10057b58
-extern int DAT_10057b58;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
+extern int g_nRenderFrameCount;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
 
 // ------------------------------------------------------------------ //
 // The lists of polygons touched by dynamic lights (names unknown, shapes in the comments).
 // ------------------------------------------------------------------ //
 
-// The per-poly record of a dynamic light touching it (StructBank DAT_10056220, 0x14 bytes) and the list of lit polys
-// (StructBank DAT_10056240, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
+// The per-poly record of a dynamic light touching it (StructBank g_PolyLightBank, 0x14 bytes) and the list of lit polys
+// (StructBank g_LitPolyBank, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
 struct UnkType_PolyLight
 {
 	UnkType_PolyLight	*m_pNext;		// 0x00
@@ -48,18 +48,18 @@ struct UnkType_PolyLight
 // unit unk/10030bb0).  names_proposal: guess_g_DeviceList (low), so the Ghidra name stays.
 // FUNCTION: D3DREN 0x1001094c _$E2
 // GLOBAL: D3DREN 0x10057800
-LTLink DAT_10057800(LTLink_Init);
+LTLink g_EnumeratedDeviceList(LTLink_Init);
 
 // The screen pixel format (its inline constructor stores the PFormat vtable).
 // FUNCTION: D3DREN 0x1001095c _$E5
 // GLOBAL: D3DREN 0x100577c8
-PFormat DAT_100577c8;
+PFormat g_ScreenPixelFormat;
 
 // guess: frees the device list (the node data is dalloc'ed) and ties the head off again
 // FUNCTION: D3DREN 0x10010967
-void FUN_10010967()
+void d3d_FreeDeviceList()
 {
-	LTLink *pHead = &DAT_10057800;
+	LTLink *pHead = &g_EnumeratedDeviceList;
 	LTLink *pCur, *pNext;
 
 	for (pCur = pHead->m_pNext; pCur != pHead; pCur = pNext)
@@ -76,7 +76,7 @@ void d3d_ListDevices()
 {
 	LTLink *pCur;
 
-	for (pCur = DAT_10057800.m_pPrev; pCur != &DAT_10057800; pCur = pCur->m_pPrev)
+	for (pCur = g_EnumeratedDeviceList.m_pPrev; pCur != &g_EnumeratedDeviceList; pCur = pCur->m_pPrev)
 	{
 		g_pStruct->ConsolePrint("Device: %s", ((UnkType_DeviceNode *)pCur->m_pData)->m_Unk24);
 	}
@@ -126,10 +126,10 @@ LTBOOL r_GetBufferFormatOfSurface(LPDIRECTDRAWSURFACE7 pSurface, PFormat *pForma
 }
 
 // Functions of the device bring-up unit (sys/d3d/d3d_init) and of this unit further down.
-void FUN_10012eaf(char *pStr);
+void UppercaseStringInPlace(char *pStr);
 void CD3D_Device_FreeDevice();
-void FUN_1001b840();
-int FUN_1001b870();
+void d3d_TermRendererModules();
+int d3d_InitRendererModules();
 int d3d_CreateDevice(UnkType_DeviceNode *pDevice, RenderStructInit *pInit);
 
 // guess: releases the DirectDraw objects (clipper, primary/offscreen surfaces, IDirectDraw7) and shows the cursor again
@@ -180,32 +180,32 @@ void d3d_FreeDDraw()
 // FUNCTION: D3DREN 0x10010b13
 void d3d_Term()
 {
-	FUN_10010967();
-	FUN_1001b840();
+	d3d_FreeDeviceList();
+	d3d_TermRendererModules();
 	d3d_FreeDDraw();
 }
 
 
 // Globals of d3d_Init.
 // GLOBAL: D3DREN 0x10057e30
-extern int DAT_10057e30;				// guess: the "SysMem" console parameter as an int
+extern int g_nSysMemParameter;				// guess: the "SysMem" console parameter as an int
 // GLOBAL: D3DREN 0x10057e28
-extern int DAT_10057e28;				// guess: vertical divisor of the RenderStruct height (1)
+extern int g_nWindowBlitScaleY;				// guess: vertical divisor of the RenderStruct height (1)
 // GLOBAL: D3DREN 0x10057e24
-extern int DAT_10057e24;				// guess: horizontal divisor of the RenderStruct width (1)
+extern int g_nWindowBlitScaleX;				// guess: horizontal divisor of the RenderStruct width (1)
 // GLOBAL: D3DREN 0x100584e4
-extern int DAT_100584e4;
+extern int g_bWarbleTableInitialized;
 // GLOBAL: D3DREN 0x100584e8
-extern int DAT_100584e8;
+extern int g_bFogStateInitialized;
 // GLOBAL: D3DREN 0x100584ec
-extern int DAT_100584ec;
+extern int g_bDitherStateInitialized;
 // GLOBAL: D3DREN 0x100584f0
-extern int DAT_100584f0;
+extern int g_bTextureFilterStateInitialized;
 
-BOOL FUN_10031d18();
-int FUN_1001b870();
+BOOL EnumerateDirectDrawDevices();
+int d3d_InitRendererModules();
 LTBOOL d3d_IsNullRenderOn();
-UnkType_DeviceNode *FUN_10010e36(char *pName);
+UnkType_DeviceNode *d3d_FindDeviceByName(char *pName);
 // Minimal view of VisibleSet (include/d3dren/visibleset.h, unit sys/d3d/tagnodes): that header's CMoArray members make this object
 // emit an extra static initialiser, which would shift the _$E numbers of the whole unit, so only the two declarations d3d_Init needs
 // are repeated here (same mangled names).
@@ -232,23 +232,23 @@ int d3d_Init(RenderStructInit *pInit)
 	pWindowed = g_pStruct->GetParameterValueString(g_pStruct->GetParameter("windowed"));
 	g_bRunWindowed = (pWindowed && atoi(pWindowed) == 1);
 
-	DAT_10057e30 = (int)g_pStruct->GetParameterValueFloat(g_pStruct->GetParameter("SysMem"));
+	g_nSysMemParameter = (int)g_pStruct->GetParameterValueFloat(g_pStruct->GetParameter("SysMem"));
 
 	g_hWnd = (HWND)pInit->m_hWnd;
-	DAT_10057a10 = 0;
-	DAT_10057828 = 0x4000;
-	DAT_10057e28 = 1;
-	DAT_10057e24 = 1;
+	g_bSpecialRenderMode = 0;
+	g_RenderSurfaceMemoryCaps = 0x4000;
+	g_nWindowBlitScaleY = 1;
+	g_nWindowBlitScaleX = 1;
 	g_ScreenWidth = pInit->m_Mode.m_Width;
 	g_ScreenHeight = pInit->m_Mode.m_Height;
 
-	if (!FUN_10031d18())
+	if (!EnumerateDirectDrawDevices())
 		return 10;
 
 	pDevice = 0;
 	if (pInit->m_Mode.m_InternalName[0])
 	{
-		pDevice = FUN_10010e36(pInit->m_Mode.m_InternalName);
+		pDevice = d3d_FindDeviceByName(pInit->m_Mode.m_InternalName);
 		if (pDevice)
 		{
 			if (d3d_CreateDevice(pDevice, pInit))
@@ -262,22 +262,22 @@ int d3d_Init(RenderStructInit *pInit)
 		}
 	}
 
-	for (pCur = DAT_10057800.m_pNext; pCur != &DAT_10057800; pCur = pCur->m_pNext)
+	for (pCur = g_EnumeratedDeviceList.m_pNext; pCur != &g_EnumeratedDeviceList; pCur = pCur->m_pNext)
 	{
 		pDevice = (UnkType_DeviceNode *)pCur->m_pData;
 		if (d3d_CreateDevice(pDevice, pInit))
 			goto DeviceReady;
 	}
 
-	if (pCur == &DAT_10057800)
+	if (pCur == &g_EnumeratedDeviceList)
 		goto NoDevice;
 
 DeviceReady:
 	if (pDevice == 0)
 	{
 NoDevice:
-		FUN_10010967();
-		FUN_1001b840();
+		d3d_FreeDeviceList();
+		d3d_TermRendererModules();
 		d3d_FreeDDraw();
 		AddDebugMessage(0, "Can't find any d3d devices to use!");
 		return 1;
@@ -288,11 +288,11 @@ NoDevice:
 		strncpy(pInit->m_Mode.m_Description, pDevice->m_Unk88, 127);
 		AddDebugMessage(0, "Using Direct3D Device %s", pDevice->m_Unk24);
 
-		DAT_10057b58 = 0;
-		DAT_100584e4 = 0;
-		DAT_100584e8 = 0;
-		DAT_100584ec = 0;
-		DAT_100584f0 = 0;
+		g_nRenderFrameCount = 0;
+		g_bWarbleTableInitialized = 0;
+		g_bFogStateInitialized = 0;
+		g_bDitherStateInitialized = 0;
+		g_bTextureFilterStateInitialized = 0;
 
 		if (!g_bRunWindowed && !d3d_IsNullRenderOn())
 		{
@@ -321,24 +321,24 @@ NoDevice:
 			rcWindow.right - rcWindow.left, rcWindow.bottom - rcWindow.top, SWP_NOOWNERZORDER);
 		}
 
-		if (!r_GetBufferFormatOfSurface(g_pBackBuffer, &DAT_100577c8))
+		if (!r_GetBufferFormatOfSurface(g_pBackBuffer, &g_ScreenPixelFormat))
 		{
-			FUN_10010967();
-			FUN_1001b840();
+			d3d_FreeDeviceList();
+			d3d_TermRendererModules();
 			d3d_FreeDDraw();
 			AddDebugMessage(0, "r_GetBufferFormatOfSurface failed.");
 			return 1;
 		}
 		else
 		{
-			FUN_1001b870();
-			g_pStruct->m_Width = g_pStruct->m_Width / DAT_10057e24;
-			g_pStruct->m_Height = g_pStruct->m_Height / DAT_10057e28;
+			d3d_InitRendererModules();
+			g_pStruct->m_Width = g_pStruct->m_Width / g_nWindowBlitScaleX;
+			g_pStruct->m_Height = g_pStruct->m_Height / g_nWindowBlitScaleY;
 
 			if (!d3d_GetVisibleSet()->Init())
 			{
-				FUN_10010967();
-				FUN_1001b840();
+				d3d_FreeDeviceList();
+				d3d_TermRendererModules();
 				d3d_FreeDDraw();
 				AddDebugMessage(0, "VisibleSet::Init failed (invalid object list size?).");
 				return 1;
@@ -357,7 +357,7 @@ LTBOOL d3d_IsNullRenderOn()
 
 // guess: finds an enumerated device by (upper-cased) name; names_proposal: guess_d3d_FindDevice (low)
 // FUNCTION: D3DREN 0x10010e36
-UnkType_DeviceNode *FUN_10010e36(char *pName)
+UnkType_DeviceNode *d3d_FindDeviceByName(char *pName)
 {
 	char szRequested[100];
 	char szDevice[100];
@@ -365,13 +365,13 @@ UnkType_DeviceNode *FUN_10010e36(char *pName)
 	UnkType_DeviceNode *pDevice;
 
 	strncpy(szRequested, pName, 100);
-	FUN_10012eaf(szRequested);
+	UppercaseStringInPlace(szRequested);
 
-	for (pCur = DAT_10057800.m_pNext; pCur != &DAT_10057800; pCur = pCur->m_pNext)
+	for (pCur = g_EnumeratedDeviceList.m_pNext; pCur != &g_EnumeratedDeviceList; pCur = pCur->m_pNext)
 	{
 		pDevice = (UnkType_DeviceNode *)pCur->m_pData;
 		strncpy(szDevice, pDevice->m_Unk24, 100);
-		FUN_10012eaf(szDevice);
+		UppercaseStringInPlace(szDevice);
 		if (strcmp(szRequested, szDevice) == 0)
 			return pDevice;
 	}
@@ -382,12 +382,12 @@ UnkType_DeviceNode *FUN_10010e36(char *pName)
 // GLOBAL: D3DREN 0x100577c0
 RMode *g_pModeList;						// the list GetSupportedModes returns (head; RMode::m_pNext)
 // GLOBAL: D3DREN 0x1005780c
-UnkType_DeviceNode *DAT_1005780c;		// guess: the device whose display modes are being enumerated
+UnkType_DeviceNode *g_pModeEnumerationDevice;		// guess: the device whose display modes are being enumerated
 
 // guess: IDirectDraw4::EnumDisplayModes callback of GetSupportedModes (names_proposal: guess_EnumDisplayModesCallback, low):
 // adds a 16/32 bit mode of the current device to g_pModeList
 // FUNCTION: D3DREN 0x10010eb3
-HRESULT WINAPI FUN_10010eb3(LPDDSURFACEDESC2 pDesc, LPVOID pContext)
+HRESULT WINAPI d3d_EnumDisplayModeCallback(LPDDSURFACEDESC2 pDesc, LPVOID pContext)
 {
 	RMode *pMode;
 
@@ -397,8 +397,8 @@ HRESULT WINAPI FUN_10010eb3(LPDDSURFACEDESC2 pDesc, LPVOID pContext)
 		if (pMode)
 		{
 			pMode->m_bHardware = 1;
-			strncpy(pMode->m_InternalName, DAT_1005780c->m_Unk24, 127);
-			strncpy(pMode->m_Description, DAT_1005780c->m_Unk88, 127);
+			strncpy(pMode->m_InternalName, g_pModeEnumerationDevice->m_Unk24, 127);
+			strncpy(pMode->m_Description, g_pModeEnumerationDevice->m_Unk88, 127);
 			pMode->m_Width = pDesc->dwWidth;
 			pMode->m_Height = pDesc->dwHeight;
 			pMode->m_BitDepth = pDesc->ddpfPixelFormat.dwRGBBitCount;
@@ -411,7 +411,7 @@ HRESULT WINAPI FUN_10010eb3(LPDDSURFACEDESC2 pDesc, LPVOID pContext)
 }
 
 // The enumeration of the DirectDraw devices (0x10031d18, unit unk/10030bb0).
-BOOL FUN_10031d18();
+BOOL EnumerateDirectDrawDevices();
 
 // Export of the DLL: the engine calls it through GetProcAddress ("GetSupportedModes", dsys_interface.cpp).
 // FUNCTION: D3DREN 0x10010f44
@@ -423,24 +423,24 @@ extern "C" RMode *GetSupportedModes()
 	LPDIRECTDRAW4 pDD4;
 
 	g_pModeList = 0;
-	FUN_10031d18();
+	EnumerateDirectDrawDevices();
 
-	for (pCur = DAT_10057800.m_pNext; pCur != &DAT_10057800; pCur = pCur->m_pNext)
+	for (pCur = g_EnumeratedDeviceList.m_pNext; pCur != &g_EnumeratedDeviceList; pCur = pCur->m_pNext)
 	{
 		pDevice = (UnkType_DeviceNode *)pCur->m_pData;
 		if (DirectDrawCreate(pDevice->m_pGuid, &pDD, 0) == 0)
 		{
 			if (pDD->QueryInterface(IID_IDirectDraw4, (void **)&pDD4) == 0)
 			{
-				DAT_1005780c = pDevice;
-				pDD4->EnumDisplayModes(0, 0, 0, FUN_10010eb3);
+				g_pModeEnumerationDevice = pDevice;
+				pDD4->EnumDisplayModes(0, 0, 0, d3d_EnumDisplayModeCallback);
 				pDD4->Release();
 			}
 			pDD->Release();
 		}
 	}
 
-	FUN_10010967();
+	d3d_FreeDeviceList();
 	return g_pModeList;
 }
 
@@ -562,7 +562,7 @@ int g_bRunWindowed;
 uint32 g_ScreenWidth, g_ScreenHeight;
 extern RenderStruct *g_pStruct;
 // (defined in sys/d3d/common_stuff)
-void FUN_10012eaf(char *pStr);
+void UppercaseStringInPlace(char *pStr);
 
 #define QUOTE_CHAR		'\"'
 #define SPECIAL_CHAR	'%'

@@ -1,0 +1,1002 @@
+[
+ {
+  "va": "10029d5a",
+  "old": "FUN_10029d5a",
+  "new": "BindNoTexture",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Success-only callback in the no-texture binding slot; the observed address is also folded with DllMain, so menu observation does not prove callback use.",
+  "primary_draft": "DllMain",
+  "prior_evidence": "_DllMain@12 called by __DllMainCRTStartup@12 (0x1003d06f); body returns TRUE",
+  "independent_opinion": {
+   "va": "10029d5a",
+   "old": "FUN_10029d5a",
+   "new": "BindNoTexture",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Success-only callback in the no-texture binding slot; the observed address is also folded with DllMain, so menu observation does not prove callback use."
+  },
+  "dossier": "build/d3dren/dossier/10029d5a.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001a50",
+  "old": "FUN_10001a50",
+  "new": "IntersectNearClipPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes segment interpolation parameter at z = ViewParams NearZ, writes intersection XYZ, and returns that parameter to multiple polygon and line clippers. Arithmetic directly identifies the plane despite unhit coverage.",
+  "primary_draft": "ClipEdgeNearZ",
+  "prior_evidence": "Edge/plane intersection returning t: z==current near Z (DAT_10055d80), out.xy lerped, |dz|<=1e-5 gives t=0 (Jupiter 3d_ops.h CLIP_EPSILON); callers 10001530/10001b30/100088ec/1000b0cd and line system 100265c9.",
+  "independent_opinion": {
+   "va": "10001a50",
+   "old": "FUN_10001a50",
+   "new": "IntersectNearClipPlane",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Computes segment interpolation parameter at z = ViewParams NearZ, writes intersection XYZ, and returns that parameter to multiple polygon and line clippers. Arithmetic directly identifies the plane despite unhit coverage."
+  },
+  "dossier": "build/d3dren/dossier/10001a50.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001ac0",
+  "old": "FUN_10001ac0",
+  "new": "IntersectLeftClipPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes the segment intersection with x + z = 0, interpolates y/z, forces x = -z, and returns the interpolation parameter. Caller relationships agree with the left-plane role; runtime unhit.",
+  "primary_draft": "ClipEdgeLeftPlane",
+  "prior_evidence": "Edge/plane intersection for the left frustum plane x+z==0 (returns t, out.x=-out.z); callers 10001530/10001b30/10008a23/1000b20c and line system 10026700.",
+  "independent_opinion": {
+   "va": "10001ac0",
+   "old": "FUN_10001ac0",
+   "new": "IntersectLeftClipPlane",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Computes the segment intersection with x + z = 0, interpolates y/z, forces x = -z, and returns the interpolation parameter. Caller relationships agree with the left-plane role; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10001ac0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100062e0",
+  "old": "FUN_100062e0",
+  "new": "ProjectPositionWithDepthBias",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Projects x/y using original camera-space position while projecting z and RHW with a supplied z bias. Called by really-close model and canvas paths, so the name describes the shared operation; unhit runtime.",
+  "primary_draft": "ProjectVertexReallyClose",
+  "prior_evidence": "Cdecl(dest,src,zBias): projects src xyz with the matrix at 0x10055e94 using a second w/z from z+zBias (DAT_10055cb4), writing x,y,z,rhw; called after clipping in the really-close path of 10002050.",
+  "independent_opinion": {
+   "va": "100062e0",
+   "old": "FUN_100062e0",
+   "new": "ProjectPositionWithDepthBias",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Projects x/y using original camera-space position while projecting z and RHW with a supplied z bias. Called by really-close model and canvas paths, so the name describes the shared operation; unhit runtime."
+  },
+  "dossier": "build/d3dren/dossier/100062e0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10006e40",
+  "old": "FUN_10006e40",
+  "new": "ClipPolyTop40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips 40-byte two-UV polygons against y < z and interpolates all extra attributes. Uses the established ClipPolyTop convention with a stride suffix to avoid collision with the 32-byte helper; runtime unhit.",
+  "primary_draft": "ClipPolyTop40",
+  "prior_evidence": "0x28-byte variant of the top-plane clipper (flag 8); static inside[] 0x100947c0; called by 10001b30 and 10008779.",
+  "independent_opinion": {
+   "va": "10006e40",
+   "old": "FUN_10006e40",
+   "new": "ClipPolyTop40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clips 40-byte two-UV polygons against y < z and interpolates all extra attributes. Uses the established ClipPolyTop convention with a stride suffix to avoid collision with the 32-byte helper; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10006e40.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10007100",
+  "old": "FUN_10007100",
+  "new": "ClipPolyRight40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips 40-byte polygons against x < z and writes intersection x = z with interpolated attributes. Matches the right-plane convention and uses a format suffix to distinguish the existing 32-byte helper; runtime unhit.",
+  "primary_draft": "ClipPolyRight40",
+  "prior_evidence": "0x28-byte right-plane clipper (flag 0x10); static inside[] 0x100946e0.",
+  "independent_opinion": {
+   "va": "10007100",
+   "old": "FUN_10007100",
+   "new": "ClipPolyRight40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clips 40-byte polygons against x < z and writes intersection x = z with interpolated attributes. Matches the right-plane convention and uses a format suffix to distinguish the existing 32-byte helper; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10007100.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100073b0",
+  "old": "FUN_100073b0",
+  "new": "ClipPolyBottom40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips 40-byte polygons against y > -z and writes intersection y = -z while interpolating both UV sets and colors. Format suffix follows existing ClipPolyBottom naming without collision; runtime unhit.",
+  "primary_draft": "ClipPolyBottom40",
+  "prior_evidence": "0x28-byte bottom-plane clipper (flag 0x20); static inside[] 0x10094600.",
+  "independent_opinion": {
+   "va": "100073b0",
+   "old": "FUN_100073b0",
+   "new": "ClipPolyBottom40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clips 40-byte polygons against y > -z and writes intersection y = -z while interpolating both UV sets and colors. Format suffix follows existing ClipPolyBottom naming without collision; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/100073b0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10007670",
+  "old": "FUN_10007670",
+  "new": "ClipPolyFar40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips 40-byte polygons against z <= ClipFarZ, using that depth at intersections and interpolating extra attributes. Format-specific spelling distinguishes the 32-byte helper; runtime unhit.",
+  "primary_draft": "ClipPolyFar40",
+  "prior_evidence": "0x28-byte far-plane clipper (flag 2, z<=DAT_10055d88); static inside[] 0x10094520.",
+  "independent_opinion": {
+   "va": "10007670",
+   "old": "FUN_10007670",
+   "new": "ClipPolyFar40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clips 40-byte polygons against z <= ClipFarZ, using that depth at intersections and interpolating extra attributes. Format-specific spelling distinguishes the 32-byte helper; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10007670.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10007976",
+  "old": "FUN_10007976",
+  "new": "FlushWorldTexturePolys",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Binds the current texture, sets its coordinates, restores each deferred polygon clip mask, draws it and frees its queue node, finally clearing the list. The source shows a complete queue flush; runtime unhit.",
+  "primary_draft": "FlushQueuedWorldPolys",
+  "prior_evidence": "Binds DAT_10055ce0's texture, walks the queued poly list (head 0x1004ffb8, node +0xc -> g_ClipFlags), draws each with 10007b41 and returns the node to the pool (0x10058770).",
+  "independent_opinion": {
+   "va": "10007976",
+   "old": "FUN_10007976",
+   "new": "FlushWorldTexturePolys",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Binds the current texture, sets its coordinates, restores each deferred polygon clip mask, draws it and frees its queue node, finally clearing the list. The source shows a complete queue flush; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10007976.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10007a89",
+  "old": "FUN_10007a89",
+  "new": "d3d_BindRTexture",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Binds the supplied renderer texture on its own stage, updates bound-texture cache and LRU/frame-byte accounting, sets alpha reference and stage UV scale, and counts a texture change. Distinct from SharedTexture d3d_SetTexture; runtime unhit.",
+  "primary_draft": "BindRenderTexture",
+  "prior_evidence": "Binds a render texture record on its stage (+0x42): moves it to the LRU list, adds its size to the per-frame RenderStruct counter (+0x48), IDirect3DDevice7::SetTexture (slot 0x8c), stores its UV scale in 0x10061810/14[stage].",
+  "independent_opinion": {
+   "va": "10007a89",
+   "old": "FUN_10007a89",
+   "new": "d3d_BindRTexture",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Binds the supplied renderer texture on its own stage, updates bound-texture cache and LRU/frame-byte accounting, sets alpha reference and stage UV scale, and counts a texture change. Distinct from SharedTexture d3d_SetTexture; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10007a89.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10008719",
+  "old": "FUN_10008719",
+  "new": "TransformPositionInPlace",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Captures all XYZ affine matrix results before writing any components back to the input position. It does no perspective division and is shared by numerous geometry paths; runtime unhit.",
+  "primary_draft": "TransformVertexToView",
+  "prior_evidence": "Cdecl(vec,matrix): in-place 3x4 transform of a vertex position by the matrix at g_ViewParams+0x15c (world->camera).",
+  "independent_opinion": {
+   "va": "10008719",
+   "old": "FUN_10008719",
+   "new": "TransformPositionInPlace",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Captures all XYZ affine matrix results before writing any components back to the input position. It does no perspective division and is shared by numerous geometry paths; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10008719.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100088ec",
+  "old": "FUN_100088ec",
+  "new": "ClipPolyNear40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Classifies two-UV vertices against NearZ, emits surviving edges and near-plane intersections, and updates polygon/output pointers. Uses the existing ClipPolyNear convention with a format suffix; runtime unhit.",
+  "primary_draft": "ClipPolyNear40",
+  "prior_evidence": "Out-of-line near-plane clipper for 0x28-byte vertices (10001a50 + 10001f20); shares inside[] 0x10094c20 with 10001b30.",
+  "independent_opinion": {
+   "va": "100088ec",
+   "old": "FUN_100088ec",
+   "new": "ClipPolyNear40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Classifies two-UV vertices against NearZ, emits surviving edges and near-plane intersections, and updates polygon/output pointers. Uses the existing ClipPolyNear convention with a format suffix; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/100088ec.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10008a23",
+  "old": "FUN_10008a23",
+  "new": "ClipPolyLeft40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips two-UV vertices against x > -z, using the shared left-plane intersection and extra-attribute interpolation. Format suffix distinguishes the existing 32-byte ClipPolyLeft; runtime unhit.",
+  "primary_draft": "ClipPolyLeft40",
+  "prior_evidence": "Out-of-line left-plane clipper for 0x28-byte vertices (10001ac0 + 10001f20); shares inside[] 0x10094d00 with 10001b30.",
+  "independent_opinion": {
+   "va": "10008a23",
+   "old": "FUN_10008a23",
+   "new": "ClipPolyLeft40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clips two-UV vertices against x > -z, using the shared left-plane intersection and extra-attribute interpolation. Format suffix distinguishes the existing 32-byte ClipPolyLeft; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10008a23.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10009350",
+  "old": "FUN_10009350",
+  "new": "d3d_FindRTextureForStage",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Walks renderer-texture next links at +0x30, returning the first record whose uint16 stage at +0x42 equals the requested stage or null. Particle/sprite/world-model binding callers confirm the texture-chain role; runtime unhit.",
+  "primary_draft": "FindTextureStageRecord",
+  "prior_evidence": "Walks the record chain (next at +0x30) for the record whose stage word (+0x42) equals the argument; used in 10008ce0 before 1001fff0 creates a missing one.",
+  "independent_opinion": {
+   "va": "10009350",
+   "old": "FUN_10009350",
+   "new": "d3d_FindRTextureForStage",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Walks renderer-texture next links at +0x30, returning the first record whose uint16 stage at +0x42 equals the requested stage or null. Particle/sprite/world-model binding callers confirm the texture-chain role; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10009350.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000a27b",
+  "old": "FUN_1000a27b",
+  "new": "d3d_UnsetTexture",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clears a bound device texture for a stage and resets the corresponding cached texture pointer; runtime observed across render callers.",
+  "primary_draft": "d3d_DisableTexture",
+  "prior_evidence": "Jupiter d3d_DisableTexture(stage) semantics: if a texture is current on the stage, IDirect3DDevice7::SetTexture(stage,NULL) (slot 0x8c) and clear the per-stage current-texture array 0x100617d8.",
+  "independent_opinion": {
+   "va": "1000a27b",
+   "old": "FUN_1000a27b",
+   "new": "d3d_UnsetTexture",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clears a bound device texture for a stage and resets the corresponding cached texture pointer; runtime observed across render callers."
+  },
+  "dossier": "build/d3dren/dossier/1000a27b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000ac7b",
+  "old": "FUN_1000ac7b",
+  "new": "d3d_FlushPendingWorldTextureBuckets",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Checks whether the texture-bucket queue is nonempty before invoking its full flush. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "FlushLightmapQueueIfAny",
+  "prior_evidence": "If the lightmap queue head 0x1005a308 is non-null calls 1000a2a7.",
+  "independent_opinion": {
+   "va": "1000ac7b",
+   "old": "FUN_1000ac7b",
+   "new": "d3d_FlushPendingWorldTextureBuckets",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Checks whether the texture-bucket queue is nonempty before invoking its full flush. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000ac7b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000ac8a",
+  "old": "FUN_1000ac8a",
+  "new": "d3d_FlushLightmapPageQueues",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draws and frees every polygon queued under each lightmap page, restoring saved clip flags and clearing links. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "FlushDeferredWorldPolys",
+  "prior_evidence": "Walks the deferred list at 0x100528d4 (per texture record +4 next, +8 poly nodes), sets g_ClipFlags from each node, draws it with 100099b9 and clears the list.",
+  "independent_opinion": {
+   "va": "1000ac8a",
+   "old": "FUN_1000ac8a",
+   "new": "d3d_FlushLightmapPageQueues",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Draws and frees every polygon queued under each lightmap page, restoring saved clip flags and clearing links. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000ac8a.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000af16",
+  "old": "FUN_1000af16",
+  "new": "d3d_ClipAndProjectTLVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Transforms 32-byte vertices to camera space, clips when required, then projects surviving vertices and writes reciprocal W. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ClipAndProjectPoly32",
+  "prior_evidence": "0x20-byte twin of 100085f2 (stride 8 floats, clipper 1000afb1).",
+  "independent_opinion": {
+   "va": "1000af16",
+   "old": "FUN_1000af16",
+   "new": "d3d_ClipAndProjectTLVertices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Transforms 32-byte vertices to camera space, clips when required, then projects surviving vertices and writes reciprocal W. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000af16.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000b584",
+  "old": "FUN_1000b584",
+  "new": "d3d_TestModelFrustum",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes the model instance scaled global radius and tests it against normal or really-close view clip planes. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_ModelInFrustum",
+  "prior_evidence": "Radius = Model::m_GlobalRadius(+0xa4) * max(instance scale +0xac..0xb4) stored at this+0x634, then sphere test of instance pos against g_ViewParams clip planes (really-close set if FLAG_REALLYCLOSE) into the clip-flag word",
+  "independent_opinion": {
+   "va": "1000b584",
+   "old": "FUN_1000b584",
+   "new": "d3d_TestModelFrustum",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Computes the model instance scaled global radius and tests it against normal or really-close view clip planes. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000b584.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000b63b",
+  "old": "FUN_1000b63b",
+  "new": "d3d_TestSphereClipPlanes",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Tests a sphere against six supplied planes and returns the mask of planes it intersects. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "SphereInClipPlanes",
+  "prior_evidence": "Sets *flags=0x3f, per plane: dist<-radius returns 0 (outside), dist>radius clears that plane bit; 6 planes of 4 floats (g_ViewParams m_ClipPlanes)",
+  "independent_opinion": {
+   "va": "1000b63b",
+   "old": "FUN_1000b63b",
+   "new": "d3d_TestSphereClipPlanes",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Tests a sphere against six supplied planes and returns the mask of planes it intersects. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000b63b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000b6cd",
+  "old": "FUN_1000b6cd",
+  "new": "d3d_BuildModelWarbleTables",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Fills a 32-entry sinusoidal vertex-scale table and its adjacent-entry differences from WarbleScale. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_BuildWarbleTables",
+  "prior_evidence": "Builds a 32 entry sin-based table at 0x10053730 scaled by WarbleScale and the delta table at 0x10052900 (used by the warble vertex transform 1000ddc5)",
+  "independent_opinion": {
+   "va": "1000b6cd",
+   "old": "FUN_1000b6cd",
+   "new": "d3d_BuildModelWarbleTables",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Fills a 32-entry sinusoidal vertex-scale table and its adjacent-entry differences from WarbleScale. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000b6cd.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000b9b1",
+  "old": "FUN_1000b9b1",
+  "new": "ResetStageRecord",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clears the texture-stage record fields and its float field to zero; called by draw-state/cache constructors. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1000b9b1",
+   "old": "FUN_1000b9b1",
+   "new": "ResetStageRecord",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Clears the texture-stage record fields and its float field to zero; called by draw-state/cache constructors. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000b9b1.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1000bafe",
+  "old": "FUN_1000bafe",
+  "new": "AddModelLight",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Tests capacity, radius and spotlight cone, then transforms and stores a color-scaled model-light record. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_AddLight",
+  "prior_evidence": "Adds one point/spot light (radius test dist-Model::m_VisRadius<radius, colour*global model light scale, pos transformed by matrix via MatVMul) to the 16-entry light array at this+0x3c, count at +0x2bc, max at +0x2c0",
+  "independent_opinion": {
+   "va": "1000bafe",
+   "old": "FUN_1000bafe",
+   "new": "AddModelLight",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Tests capacity, radius and spotlight cone, then transforms and stores a color-scaled model-light record. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000bafe.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000d340",
+  "old": "FUN_1000d340",
+  "new": "d3d_DrawDevicePrimitive",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Thin forwarding wrapper for IDirect3DDevice7 DrawPrimitive with identical arguments. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "d3d_DrawPrimitive",
+  "prior_evidence": "Thin wrapper (type,fvf,verts,count,flags) calling IDirect3DDevice7::DrawPrimitive (vtable +0x64) on DAT_1005de30",
+  "independent_opinion": {
+   "va": "1000d340",
+   "old": "FUN_1000d340",
+   "new": "d3d_DrawDevicePrimitive",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Thin forwarding wrapper for IDirect3DDevice7 DrawPrimitive with identical arguments. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000d340.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000d3a7",
+  "old": "FUN_1000d3a7",
+  "new": "DrawModel",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sets current instance, fade/LOD/cache/transforms/lights and projection callbacks, then invokes model drawing; header also describes this role. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "DrawModel",
+  "prior_evidence": "2129-byte per-model entry: sets this->m_pModel/m_pInstance/m_pTracker, DrawModelsRigid/DrawGuns/FadeRange/alpha, LOD, ModelCacheRigid, FovOffset/ModelFovTest/ModelUseTnL, light setup 1000c100, instance hook clip plane, then FUN_1002476b; Jupiter QueueModel analogue",
+  "independent_opinion": {
+   "va": "1000d3a7",
+   "old": "FUN_1000d3a7",
+   "new": "DrawModel",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Sets current instance, fade/LOD/cache/transforms/lights and projection callbacks, then invokes model drawing; header also describes this role. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000d3a7.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000f40a",
+  "old": "FUN_1000f40a",
+  "new": "d3d_ClearWorldBspFrameCodes",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Zeros the 16-bit leaf and polygon frame-code fields when the frame counter wraps. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ResetBspFrameCodes",
+  "prior_evidence": "Called per world model BSP when the frame code wraps: zeroes the u16 at +0x2c of every leaf (0x30 each at +0x88) and +0x46 of every WorldPoly (+0xa0)",
+  "independent_opinion": {
+   "va": "1000f40a",
+   "old": "FUN_1000f40a",
+   "new": "d3d_ClearWorldBspFrameCodes",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Zeros the 16-bit leaf and polygon frame-code fields when the frame counter wraps. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000f40a.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000f6de",
+  "old": "FUN_1000f6de",
+  "new": "d3d_CacheProjectionCoefficients",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Extracts X/Y/Z projection scales and offsets from DeviceTimesProjection into ViewParams cached scalar fields. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ViewParams_CacheProjectionTerms",
+  "prior_evidence": "Copies m_mProjection-style elements 0x19c,0x1a4,0x1b0,0x1b4,0x1c4,0x1c8 of the ViewParams to +0x31c..0x330; called once at the end of d3d_InitFrustum2",
+  "independent_opinion": {
+   "va": "1000f6de",
+   "old": "FUN_1000f6de",
+   "new": "d3d_CacheProjectionCoefficients",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Extracts X/Y/Z projection scales and offsets from DeviceTimesProjection into ViewParams cached scalar fields. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000f6de.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10010777",
+  "old": "FUN_10010777",
+  "new": "d3d_FreeLitPolyList",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Counts and frees all lit-polygon records and their per-poly light lists, then clears the list head. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ClearLitPolyLists",
+  "prior_evidence": "Frame-start reset (called from 10014a40 after d3d_InitObjectQueues): walks list DAT_100577b4 counting nodes in DAT_10056214 (\"Num Lit Polies\") and returns the nodes and their 0x14-byte records (100107c3) to the StructBank free lists 0x10056240/0x10056220",
+  "independent_opinion": {
+   "va": "10010777",
+   "old": "FUN_10010777",
+   "new": "d3d_FreeLitPolyList",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Counts and frees all lit-polygon records and their per-poly light lists, then clears the list head. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10010777.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100107fb",
+  "old": "FUN_100107fb",
+  "new": "d3d_ClearFrameLitPolys",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Tail-call entry used by FullDrawScene to release the frame lit-polygon list through its full cleanup routine. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ClearLitPolyLists_thunk",
+  "prior_evidence": "5-byte jmp thunk to 10010777 (the caller 10014a40 calls the thunk)",
+  "independent_opinion": {
+   "va": "100107fb",
+   "old": "FUN_100107fb",
+   "new": "d3d_ClearFrameLitPolys",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Tail-call entry used by FullDrawScene to release the frame lit-polygon list through its full cleanup routine. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100107fb.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10010800",
+  "old": "FUN_10010800",
+  "new": "d3d_InitLitPolyPools",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initializes three StructBanks used for polygon light records, lit-poly list records and lit drawing records. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "InitLitPolyStructBanks",
+  "prior_evidence": "Calls sb_Init2-like 1003b570 on the StructBanks 0x10056220 (0x14 bytes), 0x10056240 (8 bytes) and 0x10057778 (0xc bytes); caller 100184f0 initialises the draw banks",
+  "independent_opinion": {
+   "va": "10010800",
+   "old": "FUN_10010800",
+   "new": "d3d_InitLitPolyPools",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Initializes three StructBanks used for polygon light records, lit-poly list records and lit drawing records. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10010800.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001083a",
+  "old": "FUN_1001083a",
+  "new": "d3d_TermLitPolyPools",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Terminates the same three StructBanks initialized for lit polygon records and drawing. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "TermLitPolyStructBanks",
+  "prior_evidence": "Calls sb_Term-like 1003b5e0 on the three StructBanks created by 10010800; caller 10018550",
+  "independent_opinion": {
+   "va": "1001083a",
+   "old": "FUN_1001083a",
+   "new": "d3d_TermLitPolyPools",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Terminates the same three StructBanks initialized for lit polygon records and drawing. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1001083a.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10010967",
+  "old": "FUN_10010967",
+  "new": "d3d_FreeDeviceList",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Frees all device-list payloads and ties off the sentinel; observed during initialization and shutdown paths.",
+  "primary_draft": "FreeDeviceList",
+  "prior_evidence": "Walks the device GLink list 0x10057800 freeing each node data with dfree (10012d44) and re-ties the head; called from d3d_Term, d3d_Init, GetSupportedModes and the enumerator 10031d18",
+  "independent_opinion": {
+   "va": "10010967",
+   "old": "FUN_10010967",
+   "new": "d3d_FreeDeviceList",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Frees all device-list payloads and ties off the sentinel; observed during initialization and shutdown paths."
+  },
+  "dossier": "build/d3dren/dossier/10010967.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10010e36",
+  "old": "FUN_10010e36",
+  "new": "d3d_FindDeviceByName",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uppercases request and enumerated device names and returns the case-insensitive matching device record; runtime observed during init.",
+  "primary_draft": "d3d_FindDevice",
+  "prior_evidence": "[role evidence: string/low] Copies the requested name and each device name (+0x24) to buffers, upper-cases both with 10012eaf and strcmp; returns the device (d3d_Init message \"Can't find hardware device '%s'\")",
+  "independent_opinion": {
+   "va": "10010e36",
+   "old": "FUN_10010e36",
+   "new": "d3d_FindDeviceByName",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Uppercases request and enumerated device names and returns the case-insensitive matching device record; runtime observed during init."
+  },
+  "dossier": "build/d3dren/dossier/10010e36.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10012edf",
+  "old": "FUN_10012edf",
+  "new": "CountMaskBits",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Counts all set bits across a 32-bit mask; observed for DDPIXELFORMAT channel masks during texture-format enumeration.",
+  "primary_draft": "CountSetBits",
+  "prior_evidence": "Popcount of a 32-bit mask (32 iterations); used by 1001f0d0 to compute bit counts of the DDPIXELFORMAT colour masks",
+  "independent_opinion": {
+   "va": "10012edf",
+   "old": "FUN_10012edf",
+   "new": "CountMaskBits",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Counts all set bits across a 32-bit mask; observed for DDPIXELFORMAT channel masks during texture-format enumeration."
+  },
+  "dossier": "build/d3dren/dossier/10012edf.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100139f0",
+  "old": "FUN_100139f0",
+  "new": "d3d_SetModulateAlphaTextureStates",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sets texture and diffuse modulation for both color and alpha, using texture-stage states or the legacy blend state.",
+  "primary_draft": "d3d_SetTextureBlendModulate",
+  "prior_evidence": "UseDX6Commands (10048730): stage0 COLOROP=MODULATE,COLORARG1=TEXTURE,COLORARG2=DIFFUSE,ALPHAOP=MODULATE,ALPHAARG1=TEXTURE,ALPHAARG2=DIFFUSE (the six states Jupiter sets in d3d_SetTranslucentObjectStates / VerifyModulateAlpha), else SetRenderState(TEXTUREMAPBLEND=0x15, MODULATE); callers 1001acc0, 1001c627",
+  "independent_opinion": {
+   "va": "100139f0",
+   "old": "FUN_100139f0",
+   "new": "d3d_SetModulateAlphaTextureStates",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Sets texture and diffuse modulation for both color and alpha, using texture-stage states or the legacy blend state."
+  },
+  "dossier": "build/d3dren/dossier/100139f0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10013e00",
+  "old": "FUN_10013e00",
+  "new": "d3d_BeginChromaKeyPolyPass",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Enables alpha testing or color keying and marks the polygon drawer as in the chroma-key pass. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_BeginAlphaTestPass",
+  "prior_evidence": "AlphaTest cvar (100587c0) ? ALPHATESTENABLE=1 + ALPHAFUNC=GREATER : COLORKEYENABLE=1, then sets the mode flag 100528d8 via 100099a9(1); called in FlushObjectQueues 10028660 around the draw calls 1002fed0/10024dc0 (extra poly pass with alpha test or color key)",
+  "independent_opinion": {
+   "va": "10013e00",
+   "old": "FUN_10013e00",
+   "new": "d3d_BeginChromaKeyPolyPass",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Enables alpha testing or color keying and marks the polygon drawer as in the chroma-key pass. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10013e00.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10013e40",
+  "old": "FUN_10013e40",
+  "new": "d3d_EndChromaKeyPolyPass",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Disables alpha testing or color keying and clears the polygon drawer chroma-key pass flag. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_EndAlphaTestPass",
+  "prior_evidence": "undo of 10013e00: ALPHATESTENABLE=0 or COLORKEYENABLE=0 and flag 100528d8 = 0",
+  "independent_opinion": {
+   "va": "10013e40",
+   "old": "FUN_10013e40",
+   "new": "d3d_EndChromaKeyPolyPass",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Disables alpha testing or color keying and clears the polygon drawer chroma-key pass flag. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10013e40.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100144b0",
+  "old": "FUN_100144b0",
+  "new": "d3d_SetWorldPolyDrawMode",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Selects polygon callbacks and updates lightmap pass controls for the supplied world draw mode. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_BeginWorldPolyDraw",
+  "prior_evidence": "selects the 4 poly draw hooks (DAT_100587e8/10058cd8/1005a304/10058c24) from DrawFlat/ShowFillInfo/LightMap/RenderStruct+0x110 state (same as 10014e40), sets DAT_10058730/10058734/10058d00, then flushes; called by the per-world-model draw 1002fa80 before its polys",
+  "independent_opinion": {
+   "va": "100144b0",
+   "old": "FUN_100144b0",
+   "new": "d3d_SetWorldPolyDrawMode",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Selects polygon callbacks and updates lightmap pass controls for the supplied world draw mode. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100144b0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100147b0",
+  "old": "FUN_100147b0",
+  "new": "d3d_GetWorldPolyVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Returns either the T-junction-fixed vertex array and count or the original inline vertices and count. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_GetPolyVerts",
+  "prior_evidence": "returns the poly vertex array and count: FixTJunc (DAT_1005811c) ? {*(poly+0x50), ushort(poly+0x56)} : {poly+0x58, ushort(poly+0x54)}",
+  "independent_opinion": {
+   "va": "100147b0",
+   "old": "FUN_100147b0",
+   "new": "d3d_GetWorldPolyVertices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Returns either the T-junction-fixed vertex array and count or the original inline vertices and count. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100147b0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100147f0",
+  "old": "FUN_100147f0",
+  "new": "d3d_ProjectAndDrawTriangleFan",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Transforms and optionally clips the supplied TL vertices, projects them, and submits a triangle fan. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_ClipAndDrawTLPoly",
+  "prior_evidence": "projects (DAT_10056274==0) or clips an array of 0x20-byte TL verts with the full transform, then DrawPrimitive(TRIANGLEFAN,0x1c4) and ++DAT_100566ac (World Polies Drawn)",
+  "independent_opinion": {
+   "va": "100147f0",
+   "old": "FUN_100147f0",
+   "new": "d3d_ProjectAndDrawTriangleFan",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Transforms and optionally clips the supplied TL vertices, projects them, and submits a triangle fan. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100147f0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10014980",
+  "old": "FUN_10014980",
+  "new": "d3d_CopyLTMatrixToD3D",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies an LTMatrix into a D3DMATRIX with the required transpose; it is the copy part of Jupiter d3d_SetD3DMat. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_LTMatrixToD3DMatrix",
+  "prior_evidence": "transposes 16 dwords src->dst (row/column swap LTMatrix -> D3DMATRIX) before each SetTransform in FullDrawScene; the transposition half of Jupiter d3d_SetD3DMat",
+  "independent_opinion": {
+   "va": "10014980",
+   "old": "FUN_10014980",
+   "new": "d3d_CopyLTMatrixToD3D",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Copies an LTMatrix into a D3DMATRIX with the required transpose; it is the copy part of Jupiter d3d_SetD3DMat. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10014980.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10014ce0",
+  "old": "FUN_10014ce0",
+  "new": "d3d_FlushFlatWorldPolys",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draws every queued WorldPoly with address-derived flat color and frees its pool node. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_DrawQueuedFlatPolys",
+  "prior_evidence": "walks the deferred poly list passed in, transforms each poly vertex with 10055f14 (FUN_1000dd34), colors by surface/poly pointer, clips (FUN_1000af16) and draws TRIANGLEFAN, then returns the node to the pool; called by FullDrawScene",
+  "independent_opinion": {
+   "va": "10014ce0",
+   "old": "FUN_10014ce0",
+   "new": "d3d_FlushFlatWorldPolys",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Draws every queued WorldPoly with address-derived flat color and frees its pool node. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10014ce0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10014e40",
+  "old": "FUN_10014e40",
+  "new": "d3d_SelectWorldPolyDrawCallbacks",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Assigns world polygon callbacks according to fill debugging, flat draw, lightmap support and mode. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_SelectPolyDrawFunctions",
+  "prior_evidence": "assigns the 4 poly draw hooks: 10013f40 if ShowFillInfo (100584b4), 10013ef0 if DrawFlat (100584dc), else 10022be4/1000a16b/100356b8 by LightMap/DX mode; param 1 selects the plain path; called by FullDrawScene (inline copy in 100144b0)",
+  "independent_opinion": {
+   "va": "10014e40",
+   "old": "FUN_10014e40",
+   "new": "d3d_SelectWorldPolyDrawCallbacks",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Assigns world polygon callbacks according to fill debugging, flat draw, lightmap support and mode. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10014e40.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100161e0",
+  "old": "FUN_100161e0",
+  "new": "d3d_ClipTLVertexLine",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips two camera-space TL vertices against the requested frustum planes, interpolating their extra channels. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_ClipLine",
+  "prior_evidence": "clips a 2-vertex 0x20-byte TL line against near z (DAT_10055d80) / far z (DAT_10055d88) and the side planes selected by the mask bits (1,4,8,0x10,0x20), interpolating rgb/specular/tu/tv; returns 0 if fully outside; callers 10017150, 100173e0, 10023d80, 10024427 (Jupiter clipline.h macro)",
+  "independent_opinion": {
+   "va": "100161e0",
+   "old": "FUN_100161e0",
+   "new": "d3d_ClipTLVertexLine",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Clips two camera-space TL vertices against the requested frustum planes, interpolating their extra channels. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100161e0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10017980",
+  "old": "FUN_10017980",
+  "new": "d3d_DrawTerrainSectionBounds",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Traverses world BSP terrain sections and draws each resolved world-tree-node bounding box. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_DrawTerrainSections",
+  "prior_evidence": "if DrawTerrainSections (ConVar 100587a0) and a world: ZENABLE=1, DisableTexture, for each WorldBsp in MainWorld::m_WorldModels (+0x188) that is not IsUntransformed it walks m_TerrainSections (+0x138, 0xc0 stride, m_NodePath at +0x48), looks the world-tree node up and draws its bbox with 100173e0",
+  "independent_opinion": {
+   "va": "10017980",
+   "old": "FUN_10017980",
+   "new": "d3d_DrawTerrainSectionBounds",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Traverses world BSP terrain sections and draws each resolved world-tree-node bounding box. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10017980.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100185a0",
+  "old": "FUN_100185a0",
+  "new": "d3d_AddLightAnimVertexColors",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds interpolated LightAnim frame vertex RGB values to polygon data using multiply and saturating-add tables. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_ApplyLightAnimVertexColors",
+  "prior_evidence": "blends the per-vertex colors (LAPolyFrame m_pVertR/G/B +8/+0xc/+0x10, m_nVerts +0x14) of the two LightAnim key frames (m_iFrames +0x34/+0x38, weight m_PercentBetween +0x3c) of one poly into the byte vertex colors with the saturating-add (10092168) and multiply (10082168) tables; callers 1002f440/10030370/10039540",
+  "independent_opinion": {
+   "va": "100185a0",
+   "old": "FUN_100185a0",
+   "new": "d3d_AddLightAnimVertexColors",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds interpolated LightAnim frame vertex RGB values to polygon data using multiply and saturating-add tables. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100185a0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001955e",
+  "old": "FUN_1001955e",
+  "new": "d3d_DrawSkyWorldModel",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Traverses a sky WorldModelInstance BSP and draws camera-facing visible polygons with object color scaling. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_DrawSkyWorldModel",
+  "prior_evidence": "stack-based BSP traversal of a sky world model (obj+0x1b0 WorldBsp, m_RootNode +0x9c) choosing front/back child by the plane test against the sky camera (10073e6c..74) and calling 10019351 per node poly; only caller is d3d_DrawSkyObjects 10019691 for OT_WORLDMODEL(2)",
+  "independent_opinion": {
+   "va": "1001955e",
+   "old": "FUN_1001955e",
+   "new": "d3d_DrawSkyWorldModel",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Traverses a sky WorldModelInstance BSP and draws camera-facing visible polygons with object color scaling. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001955e.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001aa70",
+  "old": "FUN_1001aa70",
+  "new": "d3d_CreateDeviceWithZBuffer",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Enumerates z-buffer formats, prefers stencil support, creates and attaches a z-buffer and tries device creation.",
+  "primary_draft": "d3d_CreateZBufferAndDevice",
+  "prior_evidence": "IDirect3D7::EnumZBufferFormats (cb 1001a860), prefers a format with a stencil mask, CreateSurface z-buffer (DDSCAPS_ZBUFFER|memtype), AddAttachedSurface to g_pOffscreen, IDirect3D7::CreateDevice (slot 0x10) with a retry loop marking failed formats; strings \"Unable to find an acceptable z-buffer format.\"/\"Failed to make z-buffer.\"/\"ZBuffer: Z Mask: %d, Stencil mask: %d\"; original name unknown (overlaps Jupiter GetDefaultDepthStencilFormat + CreateDevice)",
+  "independent_opinion": {
+   "va": "1001aa70",
+   "old": "FUN_1001aa70",
+   "new": "d3d_CreateDeviceWithZBuffer",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Enumerates z-buffer formats, prefers stencil support, creates and attaches a z-buffer and tries device creation."
+  },
+  "dossier": "build/d3dren/dossier/1001aa70.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001b840",
+  "old": "FUN_1001b840",
+  "new": "d3d_TermRendererModules",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Terminates polygon pools and object modules and deletes the shadow-texture factory. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_TermModules",
+  "prior_evidence": "called from d3d_Term (10010b13): calls 100235e1/1002cc80 (empty), 10018550 (frees pools set up by 100184f0), d3d_TermObjectModules 10028610 (table 1004ba78 stride 0x14: m_ModuleTerm when m_bModuleInitted) and deletes the D3DShadowTextureFactory singleton (100323f9 = Get, virtual dtor); mirrors Jupiter d3d_Term; original name unknown",
+  "independent_opinion": {
+   "va": "1001b840",
+   "old": "FUN_1001b840",
+   "new": "d3d_TermRendererModules",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Terminates polygon pools and object modules and deletes the shadow-texture factory. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001b840.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001b870",
+  "old": "FUN_1001b870",
+  "new": "d3d_InitRendererModules",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initializes polygon pools and object modules and creates the shadow-texture factory. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_InitModules",
+  "prior_evidence": "called from d3d_Init (10010b22) before VisibleSet::Init: 100184f0 (init pools), 1002cc80 (empty), d3d_InitObjectModules 100285e0 (loops table 1004ba78 stride 0x14: m_ModuleInit, m_bModuleInitted=1) and creates the D3DShadowTextureFactory (operator new(8)+1001d8ff) as Jupiter d3d_PostInitializeDevice/d3d_Init do; original name unknown",
+  "independent_opinion": {
+   "va": "1001b870",
+   "old": "FUN_1001b870",
+   "new": "d3d_InitRendererModules",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Initializes polygon pools and object modules and creates the shadow-texture factory. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001b870.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ }
+]

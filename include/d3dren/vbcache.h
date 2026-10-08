@@ -46,16 +46,16 @@ class UnkType_VertexBufferCache : public UnkType_VertexBufferPool
 public:
 	UnkType_VertexBufferCache();				// FUN_1003a994 (out of line)
 
-	virtual int		FUN_1003a6fb(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices);	// slot 1 override FUN_1003ac2e
-	virtual void	FUN_1003a805();												// slot 3 override FUN_1003ac8f
+	virtual int		DrawPrimitive(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices);	// slot 1 override FUN_1003ac2e
+	virtual void	Term();												// slot 3 override FUN_1003ac8f
 	virtual int		Lock();												// slot 5 override Lock
 	virtual int		vfn_Unk18() { return m_Unk54; }								// slot 6 FUN_1003a9d0
 	virtual int		vfn_Unk1c(IDirect3D7 *pD3D);								// slot 7 FUN_1003aa6d
 
-	int				FUN_1003aabb(uint32 nKey1, uint32 nKey2);							// guess: find the entry with these keys and make it the current buffer
-	int				FUN_1003ab02(uint32 nKey1, uint32 nKey2, uint32 nVertices, int bGrow);	// guess: claim an entry for these keys (grow the pool when bGrow)
-	void			FUN_1003ac15();												// guess: optimize the filled buffer (Optimize(m_Unk68, 0))
-	void			FUN_1003acb0();												// guess: age every entry by one frame
+	int				SelectEntry(uint32 nKey1, uint32 nKey2);							// guess: find the entry with these keys and make it the current buffer
+	int				AllocateEntry(uint32 nKey1, uint32 nKey2, uint32 nVertices, int bGrow);	// guess: claim an entry for these keys (grow the pool when bGrow)
+	void			OptimizeCurrentBuffer();												// guess: optimize the filled buffer (Optimize(m_Unk68, 0))
+	void			AgeEntries();												// guess: age every entry by one frame
 
 	CMoArray<UnkType_VBCacheEntry>	m_Unk3c;	// 0x3c  guess: one entry per buffer (0x3c-0x4f)
 	uint32	m_Unk50;	// 0x50  guess: round-robin position of the next entry to try
@@ -67,12 +67,12 @@ public:
 	IDirect3DDevice7	*m_Unk68;	// 0x68 the device of the last draw call
 };
 
-// The owner of the one instance of the cache (defined in unk/1003a680).  Ghidra name of the object: DAT_10093b10.
+// The owner of the one instance of the cache (defined in unk/1003a680).  Ghidra name of the object: s_ModelVertexBufferCache.
 class UnkType_ModelVBCacheHolder
 {
 public:
-	// GLOBAL: D3DREN 0x10093b10 ?DAT_10093b10@UnkType_ModelVBCacheHolder@@2VUnkType_VertexBufferCache@@A
-	static UnkType_VertexBufferCache DAT_10093b10;
+	// GLOBAL: D3DREN 0x10093b10 ?s_ModelVertexBufferCache@UnkType_ModelVBCacheHolder@@2VUnkType_VertexBufferCache@@A
+	static UnkType_VertexBufferCache s_ModelVertexBufferCache;
 };
 
 #endif

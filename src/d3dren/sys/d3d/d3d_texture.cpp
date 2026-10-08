@@ -24,19 +24,19 @@
 #include "counter.h"
 #include "../../build/proj/LT2/lithshared/stdlith/object_bank.h"
 
-int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat);
-void FUN_10032a30();	// 0x10032a30 (lightmap unit unk/100329b0)
-int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit);	// 0x10032c40 (unit unk/100329b0)
-// guess: counters of the dynamic lightmap refresh (FUN_10020ff0): staging lightmaps locked, and lightmaps where no light changed a texel
+int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat);
+void InitLightColorClampTable();	// 0x10032a30 (lightmap unit unk/100329b0)
+int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit);	// 0x10032c40 (unit unk/100329b0)
+// guess: counters of the dynamic lightmap refresh (d3d_RefreshWorldPolyLightmap): staging lightmaps locked, and lightmaps where no light changed a texel
 // GLOBAL: D3DREN 0x10056278
-extern int DAT_10056278;
+extern int g_nDynamicLightmapsRefreshed;
 // GLOBAL: D3DREN 0x10055cdc
-extern int DAT_10055cdc;
+extern int g_nTextureUploadSaves;
 
 // RenderStruct::GetTexture as the renderer calls it: with a second (output) argument that the engine's function ignores
 // (renderstruct.h declares one parameter).
 typedef TextureData *(*PFN_GetTexture2)(SharedTexture *pTexture, uint32 *pUnused);
-#define FUN_GetTextureData(pTexture, pUnused)	(((PFN_GetTexture2)g_pStruct->GetTexture)((pTexture), (pUnused)))
+#define GetEngineTextureDataWithOutputArg(pTexture, pUnused)	(((PFN_GetTexture2)g_pStruct->GetTexture)((pTexture), (pUnused)))
 IDirectDrawSurface7 *d3d_CreateTextureFromPixels(uint32 *pPixels, uint32 width, uint32 height, uint32 pitch);
 void DDPFToPFormat(DDPIXELFORMAT *pDDPF, PFormat *pFormat);	// 0x100109fd (the engine's cutil.cpp copy)
 
@@ -49,7 +49,7 @@ LTLink g_TextureFormatList(LTLink_Init);
 // guess: an LTList (count at 0x100613a8, head at 0x100613ac) that the texture manager Init clears; nothing in this unit uses it.
 // FUNCTION: D3DREN 0x1001e5b0 _$E5
 // GLOBAL: D3DREN 0x100613a8
-LTList DAT_100613a8(LTLink_Init);
+LTList g_TextureManagerResetList(LTLink_Init);
 // guess: Jupiter CTextureManager::m_RTextureBank (a member there; the Talon code keeps it as a global).
 // FUNCTION: D3DREN 0x1001e5d0 _$E10
 // FUNCTION: D3DREN 0x1001e600 _$E8
@@ -66,14 +66,14 @@ FormatMgr g_FormatMgr;
 ConVar g_CV_S3TCEnable("S3TCEnable", 1.0f);
 
 TextureFormat *g_TextureFormats[NUM_TEXTUREFORMATS];
-// guess: the exponent of the shadow blob alpha falloff (FUN_1001f670): an initialised float of this object (.data, 0x1004b5d8).
+// guess: the exponent of the shadow blob alpha falloff (d3d_CreateShadowBlobTexture): an initialised float of this object (.data, 0x1004b5d8).
 // GLOBAL: D3DREN 0x1004b5d8
-float DAT_1004b5d8 = 3.0f;
-int DAT_10062854;
-int DAT_10062850;
-int DAT_1006284c;
+float g_fShadowBlobFalloffExponent = 3.0f;
+int g_bDXT1Supported;
+int g_bDXT3Supported;
+int g_bDXT5Supported;
 int g_bTextureManagerInitialized;
-IDirectDrawSurface7 *DAT_10062878;
+IDirectDrawSurface7 *g_pLightmapScratchSurface;
 IDirectDrawSurface7 *g_pShadowBlobTexture;
 IDirectDrawSurface7 *g_pSpecularTexture;
 float g_fSpecularTexturePower;
@@ -136,14 +136,14 @@ TextureFormat *d3d_GetLightmapTextureFormat()
 }
 
 // Creates a lightmap page texture surface (the DirectDraw surface in the lightmap format, DDSD_TEXTURESTAGE for one-pass lightmapping)
-// and an RTexture for it: the allocator callback the lightmap texture pools use (UnkType_LMTexturePools::FUN_10034db8).
+// and an RTexture for it: the allocator callback the lightmap texture pools use (UnkType_LMTexturePools::CreateTexturePools).
 // NAME: names_proposal.csv guess_CreateLightmapPageTexture (low, invented): not used
 // NOT MATCHING (400 vs 432 bytes, 306 strict differences): earlier reciprocal stores improve scheduling, but the native width
 // reciprocal remains live across overriding assignments whereas ours is stored sooner. The native out-of-line data constructor,
 // separate failure epilogues, and saved-width register assignment remain unresolved. Nested/goto/else failure shapes and local
 // width/height aliases do not recover those differences. All other owning-unit function bytes and relocations are preserved.
 // STUB: D3DREN 0x1001e750
-RTexture *FUN_1001e750(uint32 width, uint32 height, uint32 flags)
+RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 {
 	TextureFormat *pFormat;
 	DDSURFACEDESC2 ddsd;
@@ -156,7 +156,7 @@ RTexture *FUN_1001e750(uint32 width, uint32 height, uint32 flags)
 	memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwHeight = height;
 	ddsd.ddsCaps.dwCaps = flags | DDSCAPS_TEXTURE;
-	ddsd.dwTextureStage = DAT_1005c838;
+	ddsd.dwTextureStage = g_LightmapTextureStage;
 	ddsd.dwSize = sizeof(ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_TEXTURESTAGE;
 	ddsd.dwWidth = width;
@@ -272,17 +272,17 @@ void d3d_ReinitLightmapTextureSupport()
 	TextureFormat *pFormat;
 	DDSURFACEDESC2 ddsd;
 
-	if (DAT_10062878)
+	if (g_pLightmapScratchSurface)
 	{
-		DAT_10062878->Release();
-		DAT_10062878 = 0;
+		g_pLightmapScratchSurface->Release();
+		g_pLightmapScratchSurface = 0;
 	}
-	DAT_1007abe4.FUN_10034e61();
-	DAT_1007abe4.FUN_10034db8(FUN_1001e750);
-	if (DAT_10062878)
+	g_LightmapTexturePools.FreeTexturePools();
+	g_LightmapTexturePools.CreateTexturePools(d3d_CreateLightmapRTexture);
+	if (g_pLightmapScratchSurface)
 	{
-		DAT_10062878->Release();
-		DAT_10062878 = 0;
+		g_pLightmapScratchSurface->Release();
+		g_pLightmapScratchSurface = 0;
 	}
 	if ((g_b32BitLightmaps && (pFormat = g_TextureFormats[FORMAT_32BIT])) || (pFormat = g_TextureFormats[FORMAT_LIGHTMAP]))
 	{
@@ -293,7 +293,7 @@ void d3d_ReinitLightmapTextureSupport()
 		ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
 		ddsd.ddpfPixelFormat = pFormat->m_PF;
-		g_pDD->CreateSurface(&ddsd, &DAT_10062878, 0);
+		g_pDD->CreateSurface(&ddsd, &g_pLightmapScratchSurface, 0);
 	}
 }
 
@@ -301,7 +301,7 @@ void d3d_ReinitLightmapTextureSupport()
 // every FORMAT_* use; prints "FORMAT_x texture format missing." and fails when a required one is missing.  (The Jupiter CTextureManager::
 // Init + SelectTextureFormats; the lightmap texture support reset of d3d_ReinitLightmapTextureSupport is inlined at its end.)
 // NAME: names_proposal.csv CTextureManager::Init (medium, Jupiter): a global function in d3d.ren
-// NOT MATCHING (1216 vs 1152 bytes): all seven wanted-format tables are initialized before selection, and FUN_1001f600 is kept
+// NOT MATCHING (1216 vs 1152 bytes): all seven wanted-format tables are initialized before selection, and DetectDXTTextureFormatSupport is kept
 // out of line as in the exe.  The remaining difference is register and stack-slot selection: the exe reuses table storage for
 // the later surface description and writes repeated values from registers, while this compilation uses a larger frame and some
 // immediate stores.
@@ -311,13 +311,13 @@ int CTextureManager_Init()
 	memset(g_TextureFormats, 0, sizeof(g_TextureFormats));
 	g_pBoundTextures[0] = 0;
 	g_pBoundTextures[1] = 0;
-	DAT_100613a8.m_nElements = 0;
+	g_TextureManagerResetList.m_nElements = 0;
 	g_pBoundTextures[2] = 0;
 	g_pBoundTextures[3] = 0;
 	g_TextureFormatList.TieOff();
-	DAT_100613a8.m_Head.TieOff();
+	g_TextureManagerResetList.m_Head.TieOff();
 	g_Textures.TieOff();
-	DAT_1007abe4.FUN_10034e3d();
+	g_LightmapTexturePools.ResetTexturePoolLists();
 	g_RTextureBank.Init(0x40, 0);
 	g_bTextureManagerInitialized = 1;
 	g_pD3DDevice->EnumTextureFormats(d3d_EnumTextureFormatsCallback, 0);
@@ -333,54 +333,54 @@ int CTextureManager_Init()
 	TextureFormatSpec specNormal[3] = { { 5, 6, 5, 0, DDPF_RGB, DDPF_LUMINANCE }, { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE },
 		{ 4, 4, 4, 4, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
 
-	g_TextureFormats[FORMAT_32BIT] = FUN_1001f590(spec32, 1);
-	g_TextureFormats[FORMAT_FULLBRITE] = FUN_1001f590(specFullbrite, 2);
+	g_TextureFormats[FORMAT_32BIT] = d3d_FindTextureFormatBySpecs(spec32, 1);
+	g_TextureFormats[FORMAT_FULLBRITE] = d3d_FindTextureFormatBySpecs(specFullbrite, 2);
 	if (!g_TextureFormats[FORMAT_FULLBRITE])
 	{
 		AddDebugMessage(0, "FORMAT_FULLBRITE texture format missing.");
 		return 0;
 	}
-	g_TextureFormats[FORMAT_4444] = FUN_1001f590(spec4444, 2);
+	g_TextureFormats[FORMAT_4444] = d3d_FindTextureFormatBySpecs(spec4444, 2);
 	if (!g_TextureFormats[FORMAT_4444])
 	{
 		AddDebugMessage(0, "FORMAT_4444 texture format missing.");
 		return 0;
 	}
-	g_TextureFormats[FORMAT_NORMAL] = FUN_1001f590(specNormal, 3);
+	g_TextureFormats[FORMAT_NORMAL] = d3d_FindTextureFormatBySpecs(specNormal, 3);
 	if (!g_TextureFormats[FORMAT_NORMAL])
 	{
 		AddDebugMessage(0, "FORMAT_NORMAL texture format missing.");
 		return 0;
 	}
-	g_TextureFormats[FORMAT_INTERFACE] = FUN_1001f590(specInterface, 2);
+	g_TextureFormats[FORMAT_INTERFACE] = d3d_FindTextureFormatBySpecs(specInterface, 2);
 	if (!g_TextureFormats[FORMAT_INTERFACE])
 	{
 		AddDebugMessage(0, "FORMAT_INTERFACE texture format missing.");
 		return 0;
 	}
-	g_TextureFormats[FORMAT_LIGHTMAP] = FUN_1001f590(specLightmap, 2);
+	g_TextureFormats[FORMAT_LIGHTMAP] = d3d_FindTextureFormatBySpecs(specLightmap, 2);
 	if (!g_TextureFormats[FORMAT_LIGHTMAP])
 	{
 		AddDebugMessage(0, "Warning: device not lightmap capable.");
-		DAT_1005de20 = 0;
+		g_bLightmapCapable = 0;
 	}
-	g_TextureFormats[FORMAT_BUMPMAP] = FUN_1001f590(specBump, 1);
-	FUN_1001f600();
+	g_TextureFormats[FORMAT_BUMPMAP] = d3d_FindTextureFormatBySpecs(specBump, 1);
+	DetectDXTTextureFormatSupport();
 	{
 		TextureFormat *pLightmapFormat;
 		DDSURFACEDESC2 ddsd;
 
-		if (DAT_10062878)
+		if (g_pLightmapScratchSurface)
 		{
-			DAT_10062878->Release();
-			DAT_10062878 = 0;
+			g_pLightmapScratchSurface->Release();
+			g_pLightmapScratchSurface = 0;
 		}
-		DAT_1007abe4.FUN_10034e61();
-		DAT_1007abe4.FUN_10034db8(FUN_1001e750);
-		if (DAT_10062878)
+		g_LightmapTexturePools.FreeTexturePools();
+		g_LightmapTexturePools.CreateTexturePools(d3d_CreateLightmapRTexture);
+		if (g_pLightmapScratchSurface)
 		{
-			DAT_10062878->Release();
-			DAT_10062878 = 0;
+			g_pLightmapScratchSurface->Release();
+			g_pLightmapScratchSurface = 0;
 		}
 		if ((g_b32BitLightmaps && (pLightmapFormat = g_TextureFormats[FORMAT_32BIT])) || (pLightmapFormat = g_TextureFormats[FORMAT_LIGHTMAP]))
 		{
@@ -391,11 +391,11 @@ int CTextureManager_Init()
 			ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
 			ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
 			ddsd.ddpfPixelFormat = pLightmapFormat->m_PF;
-			g_pDD->CreateSurface(&ddsd, &DAT_10062878, 0);
+			g_pDD->CreateSurface(&ddsd, &g_pLightmapScratchSurface, 0);
 		}
 	}
-	FUN_10032a30();
-	FUN_1001f670();
+	InitLightColorClampTable();
+	d3d_CreateShadowBlobTexture();
 	d3d_BuildSpecularLookupTexture(5.0f);
 	return 1;
 }
@@ -404,7 +404,7 @@ int CTextureManager_Init()
 // NAME: names_proposal.csv guess_GetMaskBitRange (low, invented): not used
 // An inline function in the original: the callback below calls the copy that follows it (0x1001f540) from its first sites and
 // expands it in the later ones.
-inline void FUN_1001f540(uint32 mask, uint32 *pEnd, uint32 *pStart)
+inline void GetColorMaskBitRange(uint32 mask, uint32 *pEnd, uint32 *pStart)
 {
 	*pStart = 0;
 	uint32 bit = 1;
@@ -428,12 +428,12 @@ inline void FUN_1001f540(uint32 mask, uint32 *pEnd, uint32 *pStart)
 // The shifts that convert a colour channel with the mask refMask into the channel of a format with the mask `mask`:
 // *pRight bits to the right when the reference reaches higher, else *pLeft bits to the left.  (Inlined at its ten uses in the
 // callback below.)
-static void FUN_CalcShift(uint32 refMask, uint32 mask, int *pRight, int *pLeft)
+static void CalcColorMaskAlignmentShifts(uint32 refMask, uint32 mask, int *pRight, int *pLeft)
 {
 	uint32 refEnd, refStart, end, start;
 
-	FUN_1001f540(refMask, &refEnd, &refStart);
-	FUN_1001f540(mask, &end, &start);
+	GetColorMaskBitRange(refMask, &refEnd, &refStart);
+	GetColorMaskBitRange(mask, &end, &start);
 	if (refEnd > end)
 	{
 		*pRight = refEnd - end;
@@ -451,14 +451,14 @@ static void FUN_CalcShift(uint32 refMask, uint32 mask, int *pRight, int *pLeft)
 // IDirect3DDevice7::EnumTextureFormats callback: records every enumerated pixel format in the list g_TextureFormatList with its bit counts
 // and the channel shifts for the conversion routines.
 // NAME: d3d_EnumTextureFormatsCallback: names_proposal.csv (medium, LPD3DENUMPIXELFORMATSCALLBACK shape)
-// NOT MATCHING (1152 vs 1136 bytes): same statements and order as the exe.  FUN_1001f540 (the bit range of a mask; its out-of-line copy
+// NOT MATCHING (1152 vs 1136 bytes): same statements and order as the exe.  GetColorMaskBitRange (the bit range of a mask; its out-of-line copy
 // follows this function at 0x1001f540, so it is an inline function in the original) is called at the first seven of the ten
-// shift calculations (two calls each) in the exe and the same in ours up to there, but ours expands FUN_1001f540 from the seventh site
+// shift calculations (two calls each) in the exe and the same in ours up to there, but ours expands GetColorMaskBitRange from the seventh site
 // on, while the exe expands only the constant-mask call at some later sites (the 0x7c00 and 0x3e0 ones) and keeps calling for the
 // variable-mask one.  With a free inline call after the 7th site and one after the 10th the first seven sites are byte-identical to the
 // exe, registers included (pNode in ebx, pFormat in ebp; without them ours swaps the two), and the size is the exe's; no placement of
 // pending calls or ballast reproduces the exe's pattern of expansions after that (about 40 placements and counts tried), so the
-// original nests the shift helper differently from FUN_CalcShift (inline, two FUN_1001f540 calls).
+// original nests the shift helper differently from CalcColorMaskAlignmentShifts (inline, two GetColorMaskBitRange calls).
 // STUB: D3DREN 0x1001f0d0
 HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pContext)
 {
@@ -478,21 +478,21 @@ HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pC
 				pNode->m_BytesPPShift = 2;
 		}
 		pNode->m_BytesPP = 1 << pNode->m_BytesPPShift;
-		pNode->m_RBits = (uint16)FUN_10012edf(pFormat->dwRBitMask);
-		pNode->m_GBits = (uint16)FUN_10012edf(pFormat->dwGBitMask);
-		pNode->m_BBits = (uint16)FUN_10012edf(pFormat->dwBBitMask);
-		pNode->m_ABits = (uint16)FUN_10012edf(pFormat->dwRGBAlphaBitMask);
+		pNode->m_RBits = (uint16)CountMaskBits(pFormat->dwRBitMask);
+		pNode->m_GBits = (uint16)CountMaskBits(pFormat->dwGBitMask);
+		pNode->m_BBits = (uint16)CountMaskBits(pFormat->dwBBitMask);
+		pNode->m_ABits = (uint16)CountMaskBits(pFormat->dwRGBAlphaBitMask);
 
-		FUN_CalcShift(0xff, pFormat->dwRBitMask, &pNode->m_Shifts[0], &pNode->m_Shifts[1]);
-		FUN_CalcShift(0xff, pFormat->dwGBitMask, &pNode->m_Shifts[2], &pNode->m_Shifts[3]);
-		FUN_CalcShift(0xff, pFormat->dwBBitMask, &pNode->m_Shifts[4], &pNode->m_Shifts[5]);
-		FUN_CalcShift(0xff, pFormat->dwRGBAlphaBitMask, &pNode->m_Shifts[6], &pNode->m_Shifts[7]);
-		FUN_CalcShift(0xf800, pFormat->dwRBitMask, &pNode->m_Shifts[8], &pNode->m_Shifts[9]);
-		FUN_CalcShift(0x7e0, pFormat->dwGBitMask, &pNode->m_Shifts[10], &pNode->m_Shifts[11]);
-		FUN_CalcShift(0x1f, pFormat->dwBBitMask, &pNode->m_Shifts[12], &pNode->m_Shifts[13]);
-		FUN_CalcShift(0x7c00, pFormat->dwRBitMask, &pNode->m_Shifts[14], &pNode->m_Shifts[15]);
-		FUN_CalcShift(0x3e0, pFormat->dwGBitMask, &pNode->m_Shifts[16], &pNode->m_Shifts[17]);
-		FUN_CalcShift(0x1f, pFormat->dwBBitMask, &pNode->m_Shifts[18], &pNode->m_Shifts[19]);
+		CalcColorMaskAlignmentShifts(0xff, pFormat->dwRBitMask, &pNode->m_Shifts[0], &pNode->m_Shifts[1]);
+		CalcColorMaskAlignmentShifts(0xff, pFormat->dwGBitMask, &pNode->m_Shifts[2], &pNode->m_Shifts[3]);
+		CalcColorMaskAlignmentShifts(0xff, pFormat->dwBBitMask, &pNode->m_Shifts[4], &pNode->m_Shifts[5]);
+		CalcColorMaskAlignmentShifts(0xff, pFormat->dwRGBAlphaBitMask, &pNode->m_Shifts[6], &pNode->m_Shifts[7]);
+		CalcColorMaskAlignmentShifts(0xf800, pFormat->dwRBitMask, &pNode->m_Shifts[8], &pNode->m_Shifts[9]);
+		CalcColorMaskAlignmentShifts(0x7e0, pFormat->dwGBitMask, &pNode->m_Shifts[10], &pNode->m_Shifts[11]);
+		CalcColorMaskAlignmentShifts(0x1f, pFormat->dwBBitMask, &pNode->m_Shifts[12], &pNode->m_Shifts[13]);
+		CalcColorMaskAlignmentShifts(0x7c00, pFormat->dwRBitMask, &pNode->m_Shifts[14], &pNode->m_Shifts[15]);
+		CalcColorMaskAlignmentShifts(0x3e0, pFormat->dwGBitMask, &pNode->m_Shifts[16], &pNode->m_Shifts[17]);
+		CalcColorMaskAlignmentShifts(0x1f, pFormat->dwBBitMask, &pNode->m_Shifts[18], &pNode->m_Shifts[19]);
 
 		pNode->m_rgbaMask[0] = (uint16)pFormat->dwRBitMask;
 		pNode->m_rgbaMask[1] = (uint16)pFormat->dwGBitMask;
@@ -509,12 +509,12 @@ HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pC
 	return D3DENUMRET_OK;
 }
 
-// FUNCTION: D3DREN 0x1001f540 ?FUN_1001f540@@YAXKPAK0@Z
+// FUNCTION: D3DREN 0x1001f540 ?GetColorMaskBitRange@@YAXKPAK0@Z
 
 // Finds the first enumerated texture format that matches one of the nSpecs wanted formats (bits per colour channel, flags).
 // NAME: names_proposal.csv guess_FindTextureFormat (low, invented): not used
 // FUNCTION: D3DREN 0x1001f590
-TextureFormat *FUN_1001f590(const TextureFormatSpec *pSpecs, uint32 nSpecs)
+TextureFormat *d3d_FindTextureFormatBySpecs(const TextureFormatSpec *pSpecs, uint32 nSpecs)
 {
 	for (uint32 i = 0; i < nSpecs; i++)
 	{
@@ -537,22 +537,22 @@ TextureFormat *FUN_1001f590(const TextureFormatSpec *pSpecs, uint32 nSpecs)
 // NAME: names_proposal.csv guess_DetectS3TCSupport (low, invented): not used
 // FUNCTION: D3DREN 0x1001f600
 #pragma auto_inline(off)
-void FUN_1001f600()
+void DetectDXTTextureFormatSupport()
 {
-	DAT_1006284c = 0;
-	DAT_10062850 = 0;
-	DAT_10062854 = 0;
+	g_bDXT5Supported = 0;
+	g_bDXT3Supported = 0;
+	g_bDXT1Supported = 0;
 	for (LTLink *pCur = g_TextureFormatList.m_pNext; pCur != &g_TextureFormatList; pCur = pCur->m_pNext)
 	{
 		TextureFormat *pFormat = (TextureFormat *)pCur->m_pData;
 		if (pFormat->m_PF.dwFlags & DDPF_FOURCC)
 		{
 			if (pFormat->m_PF.dwFourCC == 0x31545844)
-				DAT_10062854 = 1;
+				g_bDXT1Supported = 1;
 			else if (pFormat->m_PF.dwFourCC == 0x33545844)
-				DAT_10062850 = 1;
+				g_bDXT3Supported = 1;
 			else if (pFormat->m_PF.dwFourCC == 0x35545844)
-				DAT_1006284c = 1;
+				g_bDXT5Supported = 1;
 		}
 	}
 }
@@ -561,7 +561,7 @@ void FUN_1001f600()
 // Builds the 16x16 shadow blob texture: white with an alpha of 1 - (distance from the centre / 7.5)^3.
 // NAME: names_proposal.csv guess_BuildShadowBlobTexture (low, invented): not used
 // FUNCTION: D3DREN 0x1001f670
-void FUN_1001f670()
+void d3d_CreateShadowBlobTexture()
 {
 	FMConvertRequest cRequest;
 	uint32 pixels[16 * 16];
@@ -581,7 +581,7 @@ void FUN_1001f670()
 			float fDist = (float)sqrt(dx * dx + dy * dy);
 			if (fDist > 7.5f)
 				fDist = 7.5f;
-			pixels[y * 16 + x] = ((uint32)(uint8)(uint32)((1.0f - (float)pow(fDist * 0.13333334f, DAT_1004b5d8)) * 255.9f) << 24) | 0xffffff;
+			pixels[y * 16 + x] = ((uint32)(uint8)(uint32)((1.0f - (float)pow(fDist * 0.13333334f, g_fShadowBlobFalloffExponent)) * 255.9f) << 24) | 0xffffff;
 		}
 	}
 	g_pShadowBlobTexture = d3d_CreateTextureFromPixels(pixels, 16, 16, 64);
@@ -666,7 +666,7 @@ void CTextureManager_FreeTexture(RTexture *pTexture, int bChained)
 // FreeTexture on every RTexture of an LTLink list (the head's m_pData is not used), then ties the head off.
 // NAME: names_proposal.csv guess_FreeRTextureList (low, invented): not used
 // FUNCTION: D3DREN 0x1001f920
-void FUN_1001f920(LTLink *pList)
+void CTextureManager_FreeTextureList(LTLink *pList)
 {
 	LTLink *pCur = pList->m_pNext;
 	while (pCur != pList)
@@ -797,7 +797,7 @@ char *d3d_AddToString(char *pStr, const char *pToAdd)
 }
 
 // Creates the RTexture of a SharedTexture for the device stage nStageFlags (stage in the low byte, 0x100 = bump map stage): picks the
-// format from the DTX flags, the first mipmap and the number of mipmaps from the header, builds the surface (FUN_10020ab0) and the
+// format from the DTX flags, the first mipmap and the number of mipmaps from the header, builds the surface (d3d_CreateMipmapTextureSurface) and the
 // RTexture, links it into g_Textures and uploads the mipmaps (r_TransferTexture).  Returns 0 on failure.  The older of the two
 // creation functions of the object (10021290 does the same with everything expanded in place).
 // NAME: names_proposal.csv d3d_CreateAndLoadTexture (medium, Jupiter d3d_texture.cpp)
@@ -819,7 +819,7 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 	Counter cCount1(0);
 	Counter cCount2(0);
 	uint32 dwDummy;
-	TextureData *pTextureData = FUN_GetTextureData(pSharedTexture, &dwDummy);
+	TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummy);
 	if (!pTextureData)
 		return 0;
 
@@ -887,7 +887,7 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 	else if (nMipmaps > nAvailable)
 		nMipmaps = nAvailable;
 
-	if (!FUN_10020ab0(&build, &data, iStartMipmap, nMipmaps, iFormat))
+	if (!d3d_CreateMipmapTextureSurface(&build, &data, iStartMipmap, nMipmaps, iFormat))
 		goto done;
 
 	pRTexture = (RTexture *)g_RTextureBank.AllocVoid();
@@ -1205,10 +1205,10 @@ Fail:
 static inline int InlineIsS3TCSupported(uint32 bpp)
 {
 	if (bpp == 4)
-		return DAT_10062854;
+		return g_bDXT1Supported;
 	if (bpp == 5)
-		return DAT_10062850;
-	return bpp == 6 ? DAT_1006284c : 0;
+		return g_bDXT3Supported;
+	return bpp == 6 ? g_bDXT5Supported : 0;
 }
 
 // Creates the DirectDraw texture surface of an RTexture (iStartMipmap, nMipmaps and the format iFormat chosen by the caller) and fills
@@ -1224,7 +1224,7 @@ static inline int InlineIsS3TCSupported(uint32 bpp)
 // jne, with ebp = bpp; ours emits the DXT path first and jumps to the shared one.  Tried: `if (bpp == 0) bpp = 3; else if (...)`
 // against two separate ifs, nesting the DXT test inside `if (bpp != 0)`.
 // STUB: D3DREN 0x10020ab0
-int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
+int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
 {
 	TextureData *pTextureData = pBuild->m_pTextureData;
 	DDSURFACEDESC2 ddsd;
@@ -1271,7 +1271,7 @@ int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uin
 	ddsd.ddpfPixelFormat = g_TextureFormats[iFormat]->m_PF;
 	width = ddsd.dwWidth;
 	height = ddsd.dwHeight;
-	if (DAT_1005c984 & D3DPTEXTURECAPS_SQUAREONLY)
+	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 	{
 		width = height = LTMAX(width, height);
 	}
@@ -1322,7 +1322,7 @@ ParseColorKey:
 	height = pTextureData->m_Mips[iStartMipmap].m_Height;
 	uOutWidth = width;
 	uOutHeight = height;
-	if (DAT_1005c984 & D3DPTEXTURECAPS_SQUAREONLY)
+	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 	{
 		uOutWidth = uOutHeight = LTMAX(width, height);
 	}
@@ -1351,14 +1351,14 @@ ParseColorKey:
 // FUNCTION: D3DREN 0x10020f20
 int d3d_GetFirstUsableMipmap(TextureData *pTexture)
 {
-	uint32 maxWidth = LTMIN((uint32)g_MaxTextureSize, DAT_1005c8fc);
-	uint32 maxHeight = LTMIN((uint32)g_MaxTextureSize, DAT_1005c900);
+	uint32 maxWidth = LTMIN((uint32)g_MaxTextureSize, g_DeviceMaxTextureWidth);
+	uint32 maxHeight = LTMIN((uint32)g_MaxTextureSize, g_DeviceMaxTextureHeight);
 	if (!maxWidth)
 		maxWidth = 256;
 	if (!maxHeight)
 		maxHeight = 256;
 
-	if (!DAT_1005c874)
+	if (!g_bSurfacesLargerThanScreenSupported)
 	{
 		maxWidth = LTMIN(maxWidth, g_ScreenWidth);
 		maxHeight = LTMIN(maxWidth, g_ScreenHeight);
@@ -1373,7 +1373,7 @@ int d3d_GetFirstUsableMipmap(TextureData *pTexture)
 }
 
 // Refreshes the lightmap of a world polygon with its dynamic lights (list at WorldPoly+0x30): bFirst = the poly's lightmap lives in the
-// currently bound texture of the lightmap stage (it is locked and the lights are added into it in place, FUN_10032c40); otherwise a
+// currently bound texture of the lightmap stage (it is locked and the lights are added into it in place, ApplyPolyDynamicLightsToLightmap); otherwise a
 // staging lightmap is locked (UnkType_LMLock), the lights are added into it and it is copied into the next pool texture and bound.
 // Returns 1 when the lightmap was updated (0 when the poly has none / nothing was built).  The time spent is added to the scene's
 // polygrid tick counter.
@@ -1381,13 +1381,13 @@ int d3d_GetFirstUsableMipmap(TextureData *pTexture)
 // The early-return form for the missing surface / failed lock and the final lock result reduces the aligned diff to 66 instructions
 // (45 ignoring stack offsets), from 121. Current source is 464 bytes with 362 byte differences; local/register layout still differs.
 // STUB: D3DREN 0x10020ff0
-int FUN_10020ff0(WorldPoly *pPoly, int bFirst)
+int d3d_RefreshWorldPolyLightmap(WorldPoly *pPoly, int bFirst)
 {
 	CountAdder cntAdd(g_pSceneDesc->m_pTicks_Render_PolyGrids);
 
 	if (bFirst)
 	{
-		RTexture *pBound = (RTexture *)g_pBoundTextures[DAT_1005c838];
+		RTexture *pBound = (RTexture *)g_pBoundTextures[g_LightmapTextureStage];
 		if (!pBound)
 			return 1;
 
@@ -1400,7 +1400,7 @@ int FUN_10020ff0(WorldPoly *pPoly, int bFirst)
 		if (pSurface->Lock(0, &ddsd, DDLOCK_WAIT | DDLOCK_NOSYSLOCK, 0) < 0)
 			return 1;
 
-		FUN_10032c40(DAT_10056770, pPoly, (uint8 *)ddsd.lpSurface, ddsd.lPitch, ddsd.dwWidth, ddsd.dwHeight,
+		ApplyPolyDynamicLightsToLightmap(g_pFrameMainWorld, pPoly, (uint8 *)ddsd.lpSurface, ddsd.lPitch, ddsd.dwWidth, ddsd.dwHeight,
 			ddsd.ddpfPixelFormat.dwRGBBitCount != 32);
 		pSurface->Unlock(0);
 		return 1;
@@ -1408,17 +1408,17 @@ int FUN_10020ff0(WorldPoly *pPoly, int bFirst)
 	else
 	{
 		UnkType_LMLock lock;
-		if (!lock.FUN_10034af0(pPoly, 1, 0, 0))
+		if (!lock.LockStagingLightmap(pPoly, 1, 0, 0))
 			return 0;
 
 		int nBuild;
-		DAT_10056278++;
-		nBuild = FUN_10032c40(DAT_10056770, pPoly, lock.m_Unk00, lock.m_Unk04, pPoly->m_LMWidth, pPoly->m_LMHeight,
+		g_nDynamicLightmapsRefreshed++;
+		nBuild = ApplyPolyDynamicLightsToLightmap(g_pFrameMainWorld, pPoly, lock.m_Unk00, lock.m_Unk04, pPoly->m_LMWidth, pPoly->m_LMHeight,
 			lock.m_Unk0c.GetType() != BPP_32);
 		if (!nBuild)
-			DAT_10055cdc++;
+			g_nTextureUploadSaves++;
 		int result;
-		if (lock.FUN_10034c7c(nBuild) && nBuild)
+		if (lock.UnlockStagingLightmap(nBuild) && nBuild)
 			result = 1;
 		else
 			result = 0;
@@ -1428,14 +1428,14 @@ int FUN_10020ff0(WorldPoly *pPoly, int bFirst)
 
 // NAME: names_proposal.csv guess_d3d_IsTextureFullbrite (low, invented): not used
 // FUNCTION: D3DREN 0x100211d0
-int FUN_100211d0(SharedTexture *pSharedTexture, uint32 nStageFlags)
+int d3d_EnsureTextureAndGetFlags(SharedTexture *pSharedTexture, uint32 nStageFlags)
 {
 	if (!pSharedTexture->m_pRenderData)
 	{
 		Counter cCount1(0);
 		Counter cCount2(0);
 		uint32 dwDummy;
-		TextureData *pTextureData = FUN_GetTextureData(pSharedTexture, &dwDummy);
+		TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummy);
 		if (pTextureData)
 		{
 			UnkType_RTextureBuild build;
@@ -1461,7 +1461,7 @@ done:
 
 // Creates the RTexture of a SharedTexture's TextureData for a device stage (UnkType_RTextureBuild: SharedTexture, TextureData, stage flags;
 // bAdditional bit 0: an additional-stage texture that is not stored in the SharedTexture): the newer generation of d3d_CreateAndLoadTexture +
-// FUN_10020ab0 with the surface creation written out in place (DXT / aspect ratio through the helpers 0x10021a50 / 0x10021960 /
+// d3d_CreateMipmapTextureSurface with the surface creation written out in place (DXT / aspect ratio through the helpers 0x10021a50 / 0x10021960 /
 // 0x100219b0), the RTexture taken from the bank and linked into g_Textures.  The mipmaps are not transferred here.  Returns the
 // RTexture or 0.  The 0x1608 byte frame is the ConParse of the command string.
 // NOT MATCHING: first transcription from the disassembly (the check output gives the sizes); the first usable mipmap search and the
@@ -1667,7 +1667,7 @@ int CTextureManager_S3TCFormatConv(BPPIdent bpp, uint32 *pFourCC)
 // FUNCTION: D3DREN 0x100219b0
 void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *outHeight)
 {
-	if (DAT_1005c984 & D3DPTEXTURECAPS_SQUAREONLY)
+	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 	{
 		width = height = LTMAX(width, height);
 	}
@@ -1692,22 +1692,22 @@ void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *ou
 int CTextureManager_IsS3TCFormatSupported(BPPIdent bpp)
 {
 	if (bpp == BPP_S3TC_DXT1)
-		return DAT_10062854;
+		return g_bDXT1Supported;
 	if (bpp == BPP_S3TC_DXT3)
-		return DAT_10062850;
-	return bpp == BPP_S3TC_DXT5 ? DAT_1006284c : 0;
+		return g_bDXT3Supported;
+	return bpp == BPP_S3TC_DXT5 ? g_bDXT5Supported : 0;
 }
 
 // NAME: names_proposal.csv guess_d3d_GetTextureUVScale (low, invented): not used
 // FUNCTION: D3DREN 0x10021a80
-int FUN_10021a80(SharedTexture *pSharedTexture, uint32 nStageFlags, float *pU, float *pV)
+int d3d_EnsureTextureAndGetUVScale(SharedTexture *pSharedTexture, uint32 nStageFlags, float *pU, float *pV)
 {
 	if (!pSharedTexture->m_pRenderData)
 	{
 		Counter cCount1(0);
 		Counter cCount2(0);
 		uint32 dwDummy;
-		TextureData *pTextureData = FUN_GetTextureData(pSharedTexture, &dwDummy);
+		TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummy);
 		if (pTextureData)
 		{
 			UnkType_RTextureBuild build;
@@ -1735,28 +1735,32 @@ done:
 }
 
 // NAME: d3d_BindTexture: names_proposal.csv (medium: RenderStruct::BindTexture, installed at RenderStruct+0x78 by RenderDLLSetup)
-// NOT MATCHING (256 vs 272 bytes, 14 mismatching instructions of 91): the code is the exe's, with one exception: the exe tests the
-// RTexture pointer again at the top of the retransfer loop (`test esi,esi; je` right after the GetTexture call; the loop is entered
-// from the `if (pRTexture)` above), our build folds that second test because the first one dominates it.  Tried: for loop, a copy of the
-// pointer, reloading m_pRenderData after the call (this reloads esi, which the exe does not), an inline helper for the loop.
-// STUB: D3DREN 0x10021b50
+// The guarded do-loop retains the native entry test after GetTexture and the trailing next-texture test.
+// The two unused DWORD callback outputs have separate function-scope storage; VC6 places them in the native dead argument homes.
+// FUNCTION: D3DREN 0x10021b50
 void d3d_BindTexture(SharedTexture *pSharedTexture, LTBOOL bTextureChanged)
 {
+	uint32 dwDummyFirst;
+	uint32 dwDummySecond;
 	RTexture *pRTexture = (RTexture *)pSharedTexture->m_pRenderData;
 	if (pRTexture)
 	{
 		if (bTextureChanged)
 		{
-			uint32 dwDummy;
-			TextureData *pTextureData = FUN_GetTextureData(pSharedTexture, &dwDummy);
+			TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummyFirst);
 			if (pTextureData)
 			{
-				while (pRTexture)
+				do
 				{
-					if (!r_TransferTexture(pRTexture, pTextureData))
-						AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-					pRTexture = pRTexture->m_Unk30;
-				}
+					if (pRTexture)
+					{
+						if (!r_TransferTexture(pRTexture, pTextureData))
+							AddDebugMessage(4, "Unable to transfer texture data to video memory.");
+						pRTexture = pRTexture->m_Unk30;
+					}
+					else
+						break;
+				} while (pRTexture);
 				g_pStruct->FreeTexture(pSharedTexture);
 			}
 		}
@@ -1766,8 +1770,7 @@ void d3d_BindTexture(SharedTexture *pSharedTexture, LTBOOL bTextureChanged)
 		uint32 nStage = g_NormalTextureStage;
 		Counter cCount1(0);
 		Counter cCount2(0);
-		uint32 dwDummy;
-		TextureData *pTextureData = FUN_GetTextureData(pSharedTexture, &dwDummy);
+		TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummySecond);
 		if (pTextureData)
 		{
 			UnkType_RTextureBuild build;

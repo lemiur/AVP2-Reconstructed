@@ -31,8 +31,8 @@ inline int MulHigh(int a, int b)
 	return nResult;
 }
 
-// guess: the context of one dynamic light on one polygon's lightmap (0x64 bytes, a stack object of FUN_10032c40 and
-// FUN_100338d0 that FUN_10032a60 fills): the poly's lightmap origin, the world step of one texel in lightmap x / y (P, Q
+// guess: the context of one dynamic light on one polygon's lightmap (0x64 bytes, a stack object of ApplyPolyDynamicLightsToLightmap and
+// BuildShadowMappedLightAnimTexels that SetupLightmapLightContext fills): the poly's lightmap origin, the world step of one texel in lightmap x / y (P, Q
 // scaled by the lightmap grid size / |P|^2), the light, the squared radius and its inverse, the destination and the
 // colour of the light as fixed point (c<<17)-0xff0000 and as packed RGB555 / RGB888.
 struct UnkType_LightCtx
@@ -51,7 +51,7 @@ struct UnkType_LightCtx
 	int			m_Unk4c;		// 0x4c light colour r as 16.16: (r << 16) - (0xff0000 - (r << 16))
 	int			m_Unk50;		// 0x50 same for g
 	int			m_Unk54;		// 0x54 same for b
-	int			m_Unk58;		// 0x58 set when a texel was written (the result of FUN_10032c40)
+	int			m_Unk58;		// 0x58 set when a texel was written (the result of ApplyPolyDynamicLightsToLightmap)
 	uint16		m_Unk5c;		// 0x5c light colour as RGB555
 	uint32		m_Unk60;		// 0x60 light colour as RGB888
 };
@@ -66,19 +66,19 @@ struct UnkType_PolyLightNode
 #define WORLDPOLY_UNK30(p)		(*(UnkType_PolyLightNode **)((uint8 *)(p) + 0x30))
 
 // forward declarations (the unit's functions are in address order)
-void FUN_10033e00(UnkType_LightCtx *pCtx, int, int);
-void FUN_10033140(uint16 *pTexel, UnkType_LightCtx *pCtx);
-int FUN_100338d0(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut);
-int FUN_10033c00(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut);
+void AddLightmapLightToRGB32Rect(UnkType_LightCtx *pCtx, int, int);
+void AddLightmapLightToRGB555Texel(uint16 *pTexel, UnkType_LightCtx *pCtx);
+int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut);
+int BuildColorLightAnimTexels(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut);
 void DDPFToPFormat(DDPIXELFORMAT *pDDPF, PFormat *pFormat);		// 0x100109fd (the engine's cutil.cpp copy)
-void FUN_10032a60(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pLightPos, uint8 *pDest, long pitch, uint32 w, uint32 h,
+void SetupLightmapLightContext(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pLightPos, uint8 *pDest, long pitch, uint32 w, uint32 h,
 	float fRadius, uint32 r, uint32 g, uint32 b, UnkType_LightCtx *pCtx);
 
 // ---- light animation lightmaps ---------------------------------------------------------------------------------------------------
 // The decompression of a light animation frame's lightmap (unit unk/10030bb0, W3): 0x10032503 yields one byte per texel (shadow
 // map frames), 0x1003249f 32 bit texels; both return 0 when the data is bad.
-int FUN_10032503(uint8 *pData, int nSize, uint8 *pOut);
-int FUN_1003249f(uint32 *pData, int nSize, uint32 *pOut);
+int DecompressLightmapMaskRuns(uint8 *pData, int nSize, uint8 *pOut);
+int DecompressLightmapTexelRuns(uint32 *pData, int nSize, uint32 *pOut);
 
 // The lightmap format conversion (FormatMgr::ConvertPixels, g_FormatMgr 0x10060710, d3d_texture.cpp).
 // GLOBAL: D3DREN 0x10060710
@@ -90,22 +90,22 @@ extern FormatMgr g_FormatMgr;
 
 // The 16-bit colour clamp table: three uint16[256] runs (0, 0..255, 255), the code indexes it from element 255.
 // GLOBAL: D3DREN 0x10077bc8
-uint16 DAT_10077bc8[768];
+uint16 g_LightmapColorClampTable[768];
 
-// guess: light falloff table, 64 entries 16.16 fixed point (FUN_100329d0): [i] = min(1, i / 63 * scale) * 65536
+// guess: light falloff table, 64 entries 16.16 fixed point (InitLightFalloffScaleTable): [i] = min(1, i / 63 * scale) * 65536
 // GLOBAL: D3DREN 0x100781c8
-int DAT_100781c8[64];
+int g_LightmapLightFalloffTable[64];
 
 // FUNCTION: D3DREN 0x100329b0 _$E2
 // GLOBAL: D3DREN 0x100782c8
 ConVar g_CV_LMAnimStatic("LMAnimStatic", 0.0f);
 
-// guess: fills the falloff table DAT_100781c8 (d3d_RenderScene calls it once per frame with a scale)
+// guess: fills the falloff table g_LightmapLightFalloffTable (d3d_RenderScene calls it once per frame with a scale)
 // FUNCTION: D3DREN 0x100329d0
-void FUN_100329d0(float fScale)
+void InitLightFalloffScaleTable(float fScale)
 {
 	int i = 0;
-	int *p = DAT_100781c8;
+	int *p = g_LightmapLightFalloffTable;
 	int n = 64;
 	do
 	{
@@ -119,17 +119,17 @@ void FUN_100329d0(float fScale)
 	} while (n);
 }
 
-// guess: fills the colour clamp table DAT_10077bc8 (device lightmap init)
+// guess: fills the colour clamp table g_LightmapColorClampTable (device lightmap init)
 // FUNCTION: D3DREN 0x10032a30
-void FUN_10032a30()
+void InitLightColorClampTable()
 {
 	uint16 i;
 
 	for (i = 0; i < 256; i++)
 	{
-		DAT_10077bc8[i] = 0;
-		DAT_10077bc8[256 + i] = i;
-		DAT_10077bc8[512 + i] = 255;
+		g_LightmapColorClampTable[i] = 0;
+		g_LightmapColorClampTable[256 + i] = i;
+		g_LightmapColorClampTable[512 + i] = 255;
 	}
 }
 
@@ -139,7 +139,7 @@ void FUN_10032a30()
 // source to `shl ecx,17; sub ecx,0xff0000` (locals, casts and a separate difference variable tried: no change), and the exe orders the
 // two |P|, |Q| normalisations (fsqrt, fdivr, fmulp) with the P*f / Q*f products interleaved differently.
 // STUB: D3DREN 0x10032a60
-void FUN_10032a60(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pLightPos, uint8 *pDest, long pitch, uint32 w, uint32 h,
+void SetupLightmapLightContext(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pLightPos, uint8 *pDest, long pitch, uint32 w, uint32 h,
 	float fRadius, uint32 r, uint32 g, uint32 b, UnkType_LightCtx *pCtx)
 {
 	LTVector P, Q;
@@ -168,15 +168,15 @@ void FUN_10032a60(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pLightPos, uint
 }
 
 // guess: applies the dynamic lights of a polygon (the list at WorldPoly+0x30) to its locked lightmap pBits (w x h texels, 32 bit
-// unless bNot32Bit): per light the context is built (FUN_10032a60), then every texel inside the light's radius gets the light added
-// with its falloff (FUN_10033e00 for a 32 bit rectangle, FUN_10033140 per 16 bit texel) or, with the FastLight console variable or a
+// unless bNot32Bit): per light the context is built (SetupLightmapLightContext), then every texel inside the light's radius gets the light added
+// with its falloff (AddLightmapLightToRGB32Rect for a 32 bit rectangle, AddLightmapLightToRGB555Texel per 16 bit texel) or, with the FastLight console variable or a
 // light that has FLAG 0x10, the flat colour.  Returns 1 when any texel was changed.
 // Not matching (size 1040 vs 1280): first pass only (semantics from the disassembly; not yet diffed instruction by instruction).  The exe
 // keeps the three per-light flat/falloff branches, the light colour bytes read as r = +0x94, g = +0x95, b = +0x96 of the DynamicLight and the
 // LTVector walk of the texel position (operator- / operator+ out-of-line copies 0x1000e06c/0x1002ce70, MagSqr 0x100085d3) which our
 // inlining does not reproduce yet (our walk is inlined).
 // STUB: D3DREN 0x10032c40
-int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit)
+int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit)
 {
 	UnkType_LightCtx ctx;
 	UnkType_PolyLightNode *pNode;
@@ -189,14 +189,14 @@ int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, 
 	for (pNode = WORLDPOLY_UNK30(pPoly); pNode; pNode = pNode->m_Unk00)
 	{
 		pLight = pNode->m_Unk04;
-		FUN_10032a60(pWorld, pPoly, &pNode->m_Unk08, pBits, pitch, w, h, pLight->m_LightRadius,
+		SetupLightmapLightContext(pWorld, pPoly, &pNode->m_Unk08, pBits, pitch, w, h, pLight->m_LightRadius,
 			pLight->m_ColorR, pLight->m_ColorG, pLight->m_ColorB, &ctx);
 
 		if (g_FastLight == 0 && !(pLight->m_Flags & 0x10) && ctx.m_Unk3c != 0)
 		{
 			if (!bNot32Bit)
 			{
-				FUN_10033e00(&ctx, 0, 0);
+				AddLightmapLightToRGB32Rect(&ctx, 0, 0);
 				continue;
 			}
 
@@ -212,7 +212,7 @@ int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, 
 					ctx.m_Unk30 = (vCol - ctx.m_Unk24).MagSqr();
 					if (ctx.m_Unk30 < ctx.m_Unk34)
 					{
-						FUN_10033140(pTexel, &ctx);
+						AddLightmapLightToRGB555Texel(pTexel, &ctx);
 						ctx.m_Unk58 = 1;
 					}
 					pTexel++;
@@ -259,28 +259,28 @@ int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, 
 // pTexel, [ebp+0xc] = pCtx become the helper's `b` and `a`, result at [ebp-4]); ours spills to [ebp-4]/[ebp-8]/[ebp-0xc]. The data flow
 // (falloff index, three table lookups, 5-6-5/5-5-5 pack) is the exe's.
 // STUB: D3DREN 0x10033140
-void FUN_10033140(uint16 *pTexel, UnkType_LightCtx *pCtx)
+void AddLightmapLightToRGB555Texel(uint16 *pTexel, UnkType_LightCtx *pCtx)
 {
-	int a = DAT_100781c8[-(int)((1.0f - pCtx->m_Unk38 * pCtx->m_Unk30) * -63.0f)];
+	int a = g_LightmapLightFalloffTable[-(int)((1.0f - pCtx->m_Unk38 * pCtx->m_Unk30) * -63.0f)];
 
-	*pTexel = (uint16)((((DAT_10077bc8[255 + ((*pTexel >> 7) & 0xf8) + MulHigh(a, pCtx->m_Unk4c)] & 0xf8) << 5 |
-		(DAT_10077bc8[255 + ((*pTexel >> 2) & 0xf8) + MulHigh(a, pCtx->m_Unk50)] & 0xf8)) << 2) |
-		(DAT_10077bc8[255 + (*pTexel & 0x1f) * 8 + MulHigh(a, pCtx->m_Unk54)] >> 3));
+	*pTexel = (uint16)((((g_LightmapColorClampTable[255 + ((*pTexel >> 7) & 0xf8) + MulHigh(a, pCtx->m_Unk4c)] & 0xf8) << 5 |
+		(g_LightmapColorClampTable[255 + ((*pTexel >> 2) & 0xf8) + MulHigh(a, pCtx->m_Unk50)] & 0xf8)) << 2) |
+		(g_LightmapColorClampTable[255 + (*pTexel & 0x1f) * 8 + MulHigh(a, pCtx->m_Unk54)] >> 3));
 }
 
 // guess: (re)builds the lightmap of a polygon from the light animations that touch it and puts it in its page.  The animations of
 // the polygon (WorldPoly::m_pLMAnimRefs) are visited in order: each one whose frame index is valid and whose blend is at least
-// 0.02 gives a layer (FUN_100338d0 for a shadow map animation, FUN_10033c00 for a plain one); the first layer is the base, every
+// 0.02 gives a layer (BuildShadowMappedLightAnimTexels for a shadow map animation, BuildColorLightAnimTexels for a plain one); the first layer is the base, every
 // later one is scaled by its blend (m_fBlendPercent * 255) through the multiply table and added with the saturating add table.
 // With no layer the lightmap is black.  With bPageIn or the LMAnimStatic console variable the result is converted into the
-// page's surface directly (through the scratch surface DAT_10062878); otherwise it is only built when more than one layer
+// page's surface directly (through the scratch surface g_pLightmapScratchSurface); otherwise it is only built when more than one layer
 // contributed (and then converted into a staging texture that the poly's lightmap is drawn from, UnkType_LMLock): a poly
 // with a single plain layer keeps the page as it is.
 // Not matching (size 1536 vs 1728): first pass (semantics from the disassembly; not yet diffed in detail).  The exe builds the
 // FMConvertRequest through its constructor (0x10036761) and copies the source PFormat with member-wise stores (unrolled for the first,
 // 3 x 4-dword loops for the second request); both conversion paths and the layer accumulation follow the exe.
 // STUB: D3DREN 0x10033210
-int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
+int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 {
 	FMConvertRequest request;
 	uint32 accum[0x400];
@@ -295,7 +295,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 	pPage = WORLDPOLY_LMPAGE(pPoly);
 	if (!pPage)
 		return 0;
-	if (!DAT_10062878)
+	if (!g_pLightmapScratchSurface)
 		return 0;
 
 	pPage->m_Unk20 = 1;
@@ -322,9 +322,9 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 			continue;
 
 		if (pAnim->m_bShadowMap)
-			bOk = FUN_100338d0(pWorld, pPoly, pAnim, pRef, temp);
+			bOk = BuildShadowMappedLightAnimTexels(pWorld, pPoly, pAnim, pRef, temp);
 		else
-			bOk = FUN_10033c00(pPoly, pAnim, pRef, temp);
+			bOk = BuildColorLightAnimTexels(pPoly, pAnim, pRef, temp);
 		if (!bOk)
 			continue;
 
@@ -341,9 +341,9 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 			{
 				uint32 a = accum[i];
 				uint32 t = temp[i];
-				uint8 r = DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[(t >> 16 & 0xff) * 0x100 + scale] + (a >> 16 & 0xff)];
-				uint8 g = DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[(t >> 8 & 0xff) * 0x100 + scale] + (a >> 8 & 0xff)];
-				uint8 b = DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[(t & 0xff) * 0x100 + scale] + (a & 0xff)];
+				uint8 r = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(t >> 16 & 0xff) * 0x100 + scale] + (a >> 16 & 0xff)];
+				uint8 g = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(t >> 8 & 0xff) * 0x100 + scale] + (a >> 8 & 0xff)];
+				uint8 b = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(t & 0xff) * 0x100 + scale] + (a & 0xff)];
 
 				accum[i] = (r << 8 | g) << 8 | b;
 			}
@@ -365,7 +365,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 			return 1;
 		}
 
-		if (!lock.FUN_10034af0(pPoly, 0))
+		if (!lock.LockStagingLightmap(pPoly, 0))
 			return 0;
 
 		srcFormat.InitPValueFormat();
@@ -381,7 +381,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 
 		pPage->m_Unk20 = 0;
 		pPoly->m_Flags |= 0x8000;
-		return lock.FUN_10034c7c(1);
+		return lock.UnlockStagingLightmap(1);
 	}
 	else
 	{
@@ -393,7 +393,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = sizeof(ddsd);
-		if (DAT_10062878->Lock(NULL, &ddsd, 0, NULL) != DD_OK)
+		if (g_pLightmapScratchSurface->Lock(NULL, &ddsd, 0, NULL) != DD_OK)
 			return 0;
 
 		srcFormat.InitPValueFormat();
@@ -407,13 +407,13 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 		request.m_Width = pPoly->m_LMWidth;
 		request.m_Height = pPoly->m_LMHeight;
 		g_FormatMgr.ConvertPixels(&request);
-		DAT_10062878->Unlock(NULL);
+		g_pLightmapScratchSurface->Unlock(NULL);
 
 		rc.left = 0;
 		rc.top = 0;
 		rc.right = pPoly->m_LMWidth;
 		rc.bottom = pPoly->m_LMHeight;
-		hr = pPage->m_pSurface->BltFast(WORLDPOLY_UNK4E(pPoly), WORLDPOLY_UNK4F(pPoly), DAT_10062878, &rc, DDBLTFAST_WAIT);
+		hr = pPage->m_pSurface->BltFast(WORLDPOLY_UNK4E(pPoly), WORLDPOLY_UNK4F(pPoly), g_pLightmapScratchSurface, &rc, DDBLTFAST_WAIT);
 		return hr == DD_OK;
 	}
 }
@@ -424,7 +424,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 // Not matching (size 864 vs 816): first pass (semantics from the disassembly; not yet diffed in detail).  The exe lays out the single-frame
 // path before the blend tests (the `||` of iF0 == iF1 / blend <= 0 jumps back into it) and has one shared failure return.
 // STUB: D3DREN 0x100338d0
-int FUN_100338d0(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
+int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
 {
 	uint8 maskA[0x400];
 	uint8 maskB[0x400];
@@ -453,9 +453,9 @@ int FUN_100338d0(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRe
 		pFrame1 = LAFRAME(pAnim, iFrame1, pRef);
 		if (!pFrame0->m_LightmapSize && !pFrame1->m_LightmapSize)
 			return 0;
-		if (!FUN_10032503(pFrame0->m_pLightmap, pFrame0->m_LightmapSize, maskA))
+		if (!DecompressLightmapMaskRuns(pFrame0->m_pLightmap, pFrame0->m_LightmapSize, maskA))
 			return 0;
-		if (!FUN_10032503(pFrame1->m_pLightmap, pFrame1->m_LightmapSize, maskB))
+		if (!DecompressLightmapMaskRuns(pFrame1->m_pLightmap, pFrame1->m_LightmapSize, maskB))
 			return 0;
 
 		nTexels = pPoly->m_LMHeight * pPoly->m_LMWidth;
@@ -464,11 +464,11 @@ int FUN_100338d0(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRe
 		goto Lit;
 	}
 
-	if (!pFrame0->m_LightmapSize || !FUN_10032503(pFrame0->m_pLightmap, pFrame0->m_LightmapSize, mask))
+	if (!pFrame0->m_LightmapSize || !DecompressLightmapMaskRuns(pFrame0->m_pLightmap, pFrame0->m_LightmapSize, mask))
 		return 0;
 
 Lit:
-	FUN_10032a60(pWorld, pPoly, &pAnim->m_vLightPos, (uint8 *)pOut, pPoly->m_LMWidth * 4, pPoly->m_LMWidth, pPoly->m_LMHeight,
+	SetupLightmapLightContext(pWorld, pPoly, &pAnim->m_vLightPos, (uint8 *)pOut, pPoly->m_LMWidth * 4, pPoly->m_LMWidth, pPoly->m_LMHeight,
 		pAnim->m_fLightRadius, (uint32)pAnim->m_vLightColor.x, (uint32)pAnim->m_vLightColor.y, (uint32)pAnim->m_vLightColor.z, &ctx);
 
 	pMask = mask;
@@ -483,11 +483,11 @@ Lit:
 			ctx.m_Unk30 = (vCol - ctx.m_Unk24).MagSqr();
 			if (*pMask && ctx.m_Unk30 < ctx.m_Unk34)
 			{
-				int a = (int)((uint32)DAT_100781c8[-(int)((1.0f - ctx.m_Unk38 * ctx.m_Unk30) * -63.0f)] * *pMask >> 8);
+				int a = (int)((uint32)g_LightmapLightFalloffTable[-(int)((1.0f - ctx.m_Unk38 * ctx.m_Unk30) * -63.0f)] * *pMask >> 8);
 
-				*pTexel = ((DAT_10077bc8[255 + MulHigh(a, ctx.m_Unk4c)] << 8) |
-					DAT_10077bc8[255 + MulHigh(a, ctx.m_Unk50)]) << 8 |
-					DAT_10077bc8[255 + MulHigh(a, ctx.m_Unk54)];
+				*pTexel = ((g_LightmapColorClampTable[255 + MulHigh(a, ctx.m_Unk4c)] << 8) |
+					g_LightmapColorClampTable[255 + MulHigh(a, ctx.m_Unk50)]) << 8 |
+					g_LightmapColorClampTable[255 + MulHigh(a, ctx.m_Unk54)];
 			}
 			else
 				*pTexel = 0;
@@ -508,7 +508,7 @@ Lit:
 // right after the first compare (`cmp esi,edi; jne`) and tests the blend (`jle`, `cmp 0xff`/`jl`) after it, ours tests all three up
 // front; everything else (frame pair, lerp of the three colour channels with the clamp at 0xff) is the exe's.
 // STUB: D3DREN 0x10033c00
-int FUN_10033c00(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
+int BuildColorLightAnimTexels(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
 {
 	uint32 buf0[0x400];
 	uint32 buf1[0x400];
@@ -537,9 +537,9 @@ int FUN_10033c00(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pO
 			pFrame1 = LAFRAME(pAnim, iFrame1, pRef);
 			if (pFrame0->m_LightmapSize || pFrame1->m_LightmapSize)
 			{
-				if (FUN_1003249f((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, buf0))
+				if (DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, buf0))
 				{
-					if (FUN_1003249f((uint32 *)pFrame1->m_pLightmap, pFrame1->m_LightmapSize, buf1))
+					if (DecompressLightmapTexelRuns((uint32 *)pFrame1->m_pLightmap, pFrame1->m_LightmapSize, buf1))
 					{
 						nTexels = pPoly->m_LMHeight * pPoly->m_LMWidth;
 						for (i = 0; i < nTexels; i++)
@@ -566,7 +566,7 @@ int FUN_10033c00(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pO
 		}
 
 		if (pFrame0->m_LightmapSize)
-			return FUN_1003249f((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, pOut);
+			return DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, pOut);
 	}
 
 	return 0;
@@ -576,9 +576,9 @@ int FUN_10033c00(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pO
 // Not matching (size 496 vs 512, 417 bytes differ): the exe evaluates the texel distance with the light position copied to a stack temporary
 // per texel (`fsub [ebp-0x40]`: operator- taking its vector by value, inlined) and walks the position in stack slots
 // [ebp-0x28..-0x20] with `fld step; fadd pos; fstp` updates; our operator+/- walk keeps registers.  The MulHigh helper again differs in
-// slot placement (see FUN_10033140).
+// slot placement (see AddLightmapLightToRGB555Texel).
 // STUB: D3DREN 0x10033e00
-void FUN_10033e00(UnkType_LightCtx *pCtx, int, int)
+void AddLightmapLightToRGB32Rect(UnkType_LightCtx *pCtx, int, int)
 {
 	uint32 *pRow = (uint32 *)pCtx->m_Unk3c;
 	LTVector vRow = pCtx->m_Unk00;
@@ -594,11 +594,11 @@ void FUN_10033e00(UnkType_LightCtx *pCtx, int, int)
 			pCtx->m_Unk30 = (vCol - pCtx->m_Unk24).MagSqr();
 			if (pCtx->m_Unk30 < pCtx->m_Unk34)
 			{
-				int a = DAT_100781c8[-(int)((1.0f - pCtx->m_Unk38 * pCtx->m_Unk30) * -63.0f)];
+				int a = g_LightmapLightFalloffTable[-(int)((1.0f - pCtx->m_Unk38 * pCtx->m_Unk30) * -63.0f)];
 
-				*pTexel = ((DAT_10077bc8[255 + ((uint8 *)pTexel)[2] + MulHigh(a, pCtx->m_Unk4c)] << 8) |
-					DAT_10077bc8[255 + ((uint8 *)pTexel)[1] + MulHigh(a, pCtx->m_Unk50)]) << 8 |
-					DAT_10077bc8[255 + (*pTexel & 0xff) + MulHigh(a, pCtx->m_Unk54)];
+				*pTexel = ((g_LightmapColorClampTable[255 + ((uint8 *)pTexel)[2] + MulHigh(a, pCtx->m_Unk4c)] << 8) |
+					g_LightmapColorClampTable[255 + ((uint8 *)pTexel)[1] + MulHigh(a, pCtx->m_Unk50)]) << 8 |
+					g_LightmapColorClampTable[255 + (*pTexel & 0xff) + MulHigh(a, pCtx->m_Unk54)];
 				pCtx->m_Unk58 = 1;
 			}
 			pTexel++;

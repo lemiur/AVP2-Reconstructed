@@ -26,7 +26,7 @@
 #include <math.h>
 #include "world_tree.h"
 
-// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by FUN_100356b8) --------------
+// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by QueueLightmappedPoly) --------------
 // The queued polys' texture: node -> poly -> surface -> SharedTexture.
 #define BUCKET_TEXTURE(pBucket)	(((Surface *)((WorldPoly *)(pBucket)->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture)
 
@@ -73,7 +73,7 @@ struct UnkType_SegStack
 // (the exe: 0x8c bytes, locals p1/p2 at [ebp-0x30]/[ebp-0x14], the stack pointer in a parameter slot [ebp+8]) and the order of the x87
 // plane-distance evaluation (the exe evaluates both distances with the plane pointer reloaded per use).
 // STUB: D3DREN 0x10035917
-void FUN_10035917(WorldModelInstance *pObj, UnkType_SegRequest *pReq)
+void CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest *pReq)
 {
 	static UnkType_SegStack s_Stack;
 	UnkType_SegStackEntry *pStack;
@@ -184,7 +184,7 @@ void FUN_10035917(WorldModelInstance *pObj, UnkType_SegRequest *pReq)
 // ---- colour lookup tables (instances of data classes whose constructors fill them) ---------------------------------------------
 // FUNCTION: D3DREN 0x10035ce6 _$E2
 // FUNCTION: D3DREN 0x10035ce7 _$E4
-UnkType_AddClampTable DAT_10092168;
+UnkType_AddClampTable g_ByteSaturatingAddTable;
 
 // FUNCTION: D3DREN 0x10035cf1
 UnkType_AddClampTable::UnkType_AddClampTable()
@@ -199,7 +199,7 @@ UnkType_AddClampTable::UnkType_AddClampTable()
 }
 
 // FUNCTION: D3DREN 0x10035d13 _$E7
-UnkType_MulTable DAT_10082168;
+UnkType_MulTable g_ByteMultiplyTable;
 
 // FUNCTION: D3DREN 0x10035d1d
 UnkType_MulTable::UnkType_MulTable()
@@ -214,7 +214,7 @@ UnkType_MulTable::UnkType_MulTable()
 }
 
 // FUNCTION: D3DREN 0x10035d75 _$E10
-UnkType_SqrtTable DAT_10082068;
+UnkType_SqrtTable g_ColorSqrtTable;
 
 // FUNCTION: D3DREN 0x10035d7f
 UnkType_SqrtTable::UnkType_SqrtTable()

@@ -61,7 +61,7 @@ ViewParams g_SkyParams;
 ConVar g_CV_AllSkyPortals("AllSkyPortals", 0.0f);
 
 // GLOBAL: D3DREN 0x100566b8
-extern int DAT_100566b8;
+extern int g_nSkyPortals;
 // ---- drawsky: the sky pass --------------------------------------------------------------------------------------------------------
 
 // GLOBAL: D3DREN 0x10072d08
@@ -79,7 +79,7 @@ void d3d_InitViewBox2(ViewBoxDef *pDef, float nearZ, float farZ, const ViewParam
 	float screenMaxX, float screenMaxY);
 LTBOOL d3d_InitFrustum2(ViewParams *pParams, ViewBoxDef *pViewBox, float screenMinX, float screenMinY, float screenMaxX, float screenMaxY,
 	LTMatrix *pMat, LTVector vScale);
-int FUN_1002d0d0();
+int CalcVisibleSkyPortalExtents();
 
 
 // guess: Jupiter polyclip.h's clipper dispatch as an inline function of the original (the exe expands it in several of this unit's
@@ -115,7 +115,7 @@ static inline int ClipPoly_Inline(uint32 nFlags, TLVertex **ppVerts, int *pnVert
 	return 0;
 }
 
-static inline float FUN_1002d0d0_Transform(LTVector *pDest, const LTMatrix *pMat, const LTVector *pSrc)
+static inline float TransformSkyPortalPosition(LTVector *pDest, const LTMatrix *pMat, const LTVector *pSrc)
 {
 	float fW = pMat->m[3][2] * pSrc->z;
 	fW += pMat->m[3][1] * pSrc->y;
@@ -140,7 +140,7 @@ static inline float FUN_1002d0d0_Transform(LTVector *pDest, const LTMatrix *pMat
 	return fW;
 }
 
-static inline float FUN_1002d0d0_Project(LTVector *pDest, const LTMatrix *pMat, const LTVector *pSrc)
+static inline float ProjectSkyPortalPosition(LTVector *pDest, const LTMatrix *pMat, const LTVector *pSrc)
 {
 	float fW = pMat->m[3][2] * pSrc->z;
 	fW += pMat->m[3][0] * pSrc->x;
@@ -174,7 +174,7 @@ static inline float FUN_1002d0d0_Project(LTVector *pDest, const LTMatrix *pMat, 
 // (including/ignoring stack offsets). Remaining differences are in list-selection and clipping control flow, register allocation,
 // and projection/extent scheduling; no unsafe access or changed vertex bounds is involved.
 // STUB: D3DREN 0x1002d0d0
-int FUN_1002d0d0()
+int CalcVisibleSkyPortalExtents()
 {
 	VisibleSet *pVisibleSet = d3d_GetVisibleSet();
 	WorldPoly **ppPolys;
@@ -187,10 +187,10 @@ int FUN_1002d0d0()
 	g_SkyMaxY = -10000.0f;
 	g_SkyMaxX = -10000.0f;
 
-	if (g_CV_AllSkyPortals.m_IntVal && DAT_10056770)
+	if (g_CV_AllSkyPortals.m_IntVal && g_pFrameMainWorld)
 	{
-		nPolys = DAT_10056770->m_SkyPolies.GetSize();
-		ppPolys = DAT_10056770->m_SkyPolies.GetArray();
+		nPolys = g_pFrameMainWorld->m_SkyPolies.GetSize();
+		ppPolys = g_pFrameMainWorld->m_SkyPolies.GetArray();
 		nClipFlags = 0x3d;
 	}
 	else
@@ -211,7 +211,7 @@ int FUN_1002d0d0()
 		{
 			UnkType_PolyVertex *pCurSrc = pSrc++;
 			TLVertex *pCurDest = pDest++;
-			FUN_1002d0d0_Transform(&pCurDest->m_Vec, pMat, pCurSrc->m_Vec);
+			TransformSkyPortalPosition(&pCurDest->m_Vec, pMat, pCurSrc->m_Vec);
 		}
 
 		TLVertex *pVerts = aVerts;
@@ -221,7 +221,7 @@ int FUN_1002d0d0()
 			for (i = 0; i < nVerts; i++)
 			{
 				LTVector v;
-				float fW = FUN_1002d0d0_Project(&v, (LTMatrix *)&g_ViewParams.m_DeviceTimesProjection, &pVerts[i].m_Vec);
+				float fW = ProjectSkyPortalPosition(&v, (LTMatrix *)&g_ViewParams.m_DeviceTimesProjection, &pVerts[i].m_Vec);
 				float fX = v.x;
 				float fY = v.y;
 				if (fX <= g_SkyMinX)
@@ -233,7 +233,7 @@ int FUN_1002d0d0()
 				if (g_SkyMaxY <= fY)
 					g_SkyMaxY = fY;
 			}
-			DAT_100566b8++;
+			g_nSkyPortals++;
 		}
 		ppPolys++;
 	}
@@ -253,7 +253,7 @@ void d3d_DrawSky()
 
 	if (!g_DrawSky || !g_EnableSky || g_pSceneDesc->m_nSkyObjects <= 0)
 		return;
-	if (!FUN_1002d0d0())
+	if (!CalcVisibleSkyPortalExtents())
 		return;
 	{
 		ViewBoxDef viewBox;

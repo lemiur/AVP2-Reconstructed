@@ -59,7 +59,7 @@ public:
 
 	// Added by the W3 agent (defined in unit unk/10021d70, 0x10022b50): draws the visible objects of this canvas set at once when
 	// their client flags say CF_SOLIDCANVAS, else adds them to pTranslucent.  pUnused is a dummy char the caller passes (never read).
-	void			FUN_10022b50(ViewParams *pParams, DrawObjectFn fn, char *pUnused, BaseObjectSet *pTranslucent);
+	void			DrawSolidCanvasesAndCollectTranslucent(ViewParams *pParams, DrawObjectFn fn, char *pUnused, BaseObjectSet *pTranslucent);
 
 public:
 	LTObject		**m_pObjects;				// 0x00

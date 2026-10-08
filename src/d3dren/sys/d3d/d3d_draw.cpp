@@ -57,8 +57,8 @@ ConVar g_CV_ShowTexInfo("ShowTexInfo", 0.0f);
 // GLOBAL: D3DREN 0x10058780
 ConVar g_CV_RenderToFront("RenderToFront", 0.0f);
 
-// (the plain inline d3d_SetTexture of d3d_texture.h was tried for this object: the vector destructors of FUN_100155b0 come out of line but the node allocator
-//  deallocate copy 0x10018f80 is no longer emitted separately, see the diagnosis of FUN_100155b0; D3DREN_SETTEXTURE_EXTERN keeps the out-of-line call)
+// (the plain inline d3d_SetTexture of d3d_texture.h was tried for this object: the vector destructors of d3d_DrawMirrorSurfaceOverlay come out of line but the node allocator
+//  deallocate copy 0x10018f80 is no longer emitted separately, see the diagnosis of d3d_DrawMirrorSurfaceOverlay; D3DREN_SETTEXTURE_EXTERN keeps the out-of-line call)
 #define D3DREN_STATERESTORER_FULL	// d3ddevice.h: the real vector<RenderState>/vector<TextureState> members of UnkType_StateRestorer
 #define D3DREN_SETTEXTURE_EXTERN	// d3d_texture.h: the plain inline changes the STLport node allocator copies at the end of the object
 #include <windows.h>
@@ -94,26 +94,26 @@ ConVar g_CV_RenderToFront("RenderToFront", 0.0f);
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 // GLOBAL: D3DREN 0x10057990
-extern float DAT_10057990;		// guess: 255 / (FogFarZ - FogNearZ)
+extern float g_fFogAlphaScale;		// guess: 255 / (FogFarZ - FogNearZ)
 // GLOBAL: D3DREN 0x10058620
-extern float DAT_10058620;		// guess: 255 / (SkyFogFarZ - SkyFogNearZ)
+extern float g_fSkyFogAlphaScale;		// guess: 255 / (SkyFogFarZ - SkyFogNearZ)
 
 // guess: the global the exe's static initialiser 0x10013480 sets to (5, 5, 5): the light scale RenderScene last handed to the lightmap
 // colour tables (compared with SceneDesc::m_GlobalLightScale each frame, see d3d_RenderScene).
 // FUNCTION: D3DREN 0x10013480 _$E49
 // GLOBAL: D3DREN 0x1005a338
-LTVector DAT_1005a338(5.0f, 5.0f, 5.0f);
+LTVector g_vLastColorTableLightScale(5.0f, 5.0f, 5.0f);
 
 // The exe has a second static initialiser here (0x100134a0, a bare `ret`): the constructor of a global that is default-constructed with an
 // empty constructor (an LTVector / class with an empty inline constructor, the global itself is not identified: it has no other writer in this
 // unit).  Reproduced as an empty function; nothing in the source of this object is known that would emit it.
 // FUNCTION: D3DREN 0x100134a0
-void FUN_100134a0()
+void d3d_EmptyDrawGlobalInitializer()
 {
 }
 
 // FUNCTION: D3DREN 0x100134b0
-void __fastcall FUN_100134b0(LTVector *pPos, uint32 *pSpecular)
+void __fastcall d3d_CalcDistanceFogAlpha(LTVector *pPos, uint32 *pSpecular)
 {
 	float fDist = (*pPos - g_ViewParams.m_FogViewPos).Mag();
 
@@ -127,12 +127,12 @@ void __fastcall FUN_100134b0(LTVector *pPos, uint32 *pSpecular)
 		*pSpecular = 0;
 		return;
 	}
-	fDist = (fDist - g_FogNearZ) * DAT_10057990;
+	fDist = (fDist - g_FogNearZ) * g_fFogAlphaScale;
 	((uint8 *)pSpecular)[3] = (uint8)(0xff - (uint8)RoundFloatToInt(fDist));
 }
 
 // FUNCTION: D3DREN 0x10013560
-void __fastcall FUN_10013560(LTVector *pPos, uint32 *pSpecular)
+void __fastcall d3d_CalcSkyFogAlpha(LTVector *pPos, uint32 *pSpecular)
 {
 	float fFog;
 
@@ -146,7 +146,7 @@ void __fastcall FUN_10013560(LTVector *pPos, uint32 *pSpecular)
 		((uint8 *)pSpecular)[3] = 0;
 		return;
 	}
-	fFog = (pPos->z - g_SkyFogNearZ) * DAT_10058620;
+	fFog = (pPos->z - g_SkyFogNearZ) * g_fSkyFogAlphaScale;
 	((uint8 *)pSpecular)[3] = (uint8)(0xff - (uint8)RoundFloatToInt(fFog));
 }
 
@@ -168,7 +168,7 @@ float g_fVFogDensityScale;				// guess: 255 / VFogDensity (set by RenderScene wh
 //   built at the slot of a dead local) and the last operator- out of line (0x1000e06c); ours inlines all of them (fsqrt expanded).  inline_scan
 //   (ballast 8/16/32, 1-2 pending sites after each statement) got at best 462 bytes (ballast 8 before `nZone = 1`); no single insertion matches.
 // STUB: D3DREN 0x100135c0
-void __fastcall FUN_100135c0(LTVector *pPos, uint32 *pSpecular)
+void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 {
 	LTVector vEye = g_ViewParams.m_Pos;
 	LTVector vPos = *pPos;
@@ -249,19 +249,19 @@ void __fastcall FUN_100135c0(LTVector *pPos, uint32 *pSpecular)
 }
 
 // FUNCTION: D3DREN 0x10013990
-uint32 FUN_10013990(uint8 r, uint8 g, uint8 b)
+uint32 d3d_PackSqrtRGB(uint8 r, uint8 g, uint8 b)
 {
-	return (DAT_10082068.m_Unk00[r] << 16) | (DAT_10082068.m_Unk00[g] << 8) | DAT_10082068.m_Unk00[b];
+	return (g_ColorSqrtTable.m_Unk00[r] << 16) | (g_ColorSqrtTable.m_Unk00[g] << 8) | g_ColorSqrtTable.m_Unk00[b];
 }
 
 // FUNCTION: D3DREN 0x100139d0
-uint32 FUN_100139d0(uint8 r, uint8 g, uint8 b)
+uint32 d3d_PackRGB(uint8 r, uint8 g, uint8 b)
 {
 	return (r << 16) | (g << 8) | b;
 }
 
 // FUNCTION: D3DREN 0x100139f0
-void FUN_100139f0(void)
+void d3d_SetModulateAlphaTextureStates(void)
 {
 	if (g_UseDX6Commands)
 	{
@@ -286,54 +286,54 @@ void FUN_100139f0(void)
 // out-of-line copies are 0x10021d86 / 0x100198bc).
 // FUNCTION: D3DREN 0x10013a80 _$E54
 // FUNCTION: D3DREN 0x10013ad0 _$E52
-// (static initialiser and atexit function of DAT_10058c28: both match once the constructor and destructor are inline members, see the
+// (static initialiser and atexit function of g_TranslucentObjectStateRestorer: both match once the constructor and destructor are inline members, see the
 // inline constructor and destructor of UnkType_StateRestorer in d3ddevice.h)
 // GLOBAL: D3DREN 0x10058c28
-UnkType_StateRestorer DAT_10058c28;
+UnkType_StateRestorer g_TranslucentObjectStateRestorer;
 
 // The two lazily created StateChange objects (heap, never freed).
 // GLOBAL: D3DREN 0x1005a370
-StateChange *DAT_1005a370;	// alpha blending: ALPHABLENDENABLE 1, ZWRITEENABLE 0, SRCBLEND SRCALPHA, DESTBLEND INVSRCALPHA
+StateChange *g_pAlphaObjectStateChange;	// alpha blending: ALPHABLENDENABLE 1, ZWRITEENABLE 0, SRCBLEND SRCALPHA, DESTBLEND INVSRCALPHA
 // GLOBAL: D3DREN 0x1005a36c
-StateChange *DAT_1005a36c;	// additive: ALPHABLENDENABLE 1, ZWRITEENABLE 0, SRCBLEND ONE, DESTBLEND ONE
+StateChange *g_pAdditiveObjectStateChange;	// additive: ALPHABLENDENABLE 1, ZWRITEENABLE 0, SRCBLEND ONE, DESTBLEND ONE
 
 // guess: switches the device to the render states of translucent objects (bAdditive: additive blending), remembering the old values
-// in the saver DAT_10058c28.  The StateChange objects are built on first use.
+// in the saver g_TranslucentObjectStateRestorer.  The StateChange objects are built on first use.
 // NAME: d3d_SetTranslucentObjectStates: Jupiter d3d_draw.cpp d3d_SetTranslucentObjectStates (names_proposal high); Talon has the StateChange form.
-// STUB diagnosis (W2): d3d_SetTranslucentObjectStates: 608 of 592 bytes, 159 aligned mismatches.  Structure is right (lazily built StateChange objects DAT_1005a36c /
-//   DAT_1005a370, RenderState(type, state) temporaries, Add() = vector::push_back, the global re-read after each call).  Remaining: the STLport inline decisions:
+// STUB diagnosis (W2): d3d_SetTranslucentObjectStates: 608 of 592 bytes, 159 aligned mismatches.  Structure is right (lazily built StateChange objects g_pAdditiveObjectStateChange /
+//   g_pAlphaObjectStateChange, RenderState(type, state) temporaries, Add() = vector::push_back, the global re-read after each call).  Remaining: the STLport inline decisions:
 //   the exe calls the vector(n, value) constructor (0x100187e0) and the FIRST push_back (0x10018940) out of line, expands the second push_back with a call
 //   of _Construct (0x10018db0) and the third fully inline; ours expands the constructor and calls push_back twice.  Same helper set (all 9 STLport
 //   copies below match), different budget share per site.
 // STUB: D3DREN 0x10013ba0
 void d3d_SetTranslucentObjectStates(int bAdditive)
 {
-	DAT_10058c28.FUN_10021da6();
+	g_TranslucentObjectStateRestorer.RestoreAllStates();
 	if (bAdditive)
 	{
-		if (!DAT_1005a36c)
+		if (!g_pAdditiveObjectStateChange)
 		{
-			DAT_1005a36c = new StateChange(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
-			DAT_1005a36c->Add(RenderState(D3DRENDERSTATE_ZWRITEENABLE, 0));
-			DAT_1005a36c->Add(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE));
-			DAT_1005a36c->Add(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE));
-			if (!DAT_1005a36c)
+			g_pAdditiveObjectStateChange = new StateChange(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
+			g_pAdditiveObjectStateChange->Add(RenderState(D3DRENDERSTATE_ZWRITEENABLE, 0));
+			g_pAdditiveObjectStateChange->Add(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE));
+			g_pAdditiveObjectStateChange->Add(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE));
+			if (!g_pAdditiveObjectStateChange)
 				return;
 		}
-		DAT_10058c28.FUN_10021db7(DAT_1005a36c, 0);
+		g_TranslucentObjectStateRestorer.ApplyStateChange(g_pAdditiveObjectStateChange, 0);
 	}
 	else
 	{
-		if (!DAT_1005a370)
+		if (!g_pAlphaObjectStateChange)
 		{
-			DAT_1005a370 = new StateChange(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
-			DAT_1005a370->Add(RenderState(D3DRENDERSTATE_ZWRITEENABLE, 0));
-			DAT_1005a370->Add(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA));
-			DAT_1005a370->Add(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA));
-			if (!DAT_1005a370)
+			g_pAlphaObjectStateChange = new StateChange(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
+			g_pAlphaObjectStateChange->Add(RenderState(D3DRENDERSTATE_ZWRITEENABLE, 0));
+			g_pAlphaObjectStateChange->Add(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA));
+			g_pAlphaObjectStateChange->Add(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA));
+			if (!g_pAlphaObjectStateChange)
 				return;
 		}
-		DAT_10058c28.FUN_10021db7(DAT_1005a370, 0);
+		g_TranslucentObjectStateRestorer.ApplyStateChange(g_pAlphaObjectStateChange, 0);
 	}
 }
 
@@ -342,11 +342,11 @@ void d3d_SetTranslucentObjectStates(int bAdditive)
 // FUNCTION: D3DREN 0x10013df0
 void d3d_UnsetTranslucentObjectStates(int bChangeZ)
 {
-	DAT_10058c28.FUN_10021da6();
+	g_TranslucentObjectStateRestorer.RestoreAllStates();
 }
 
 // FUNCTION: D3DREN 0x10013e00
-void FUN_10013e00(void)
+void d3d_BeginChromaKeyPolyPass(void)
 {
 	if (g_CV_AlphaTest.m_IntVal)
 	{
@@ -362,7 +362,7 @@ void FUN_10013e00(void)
 
 // guess: ends the alpha tested pass.
 // FUNCTION: D3DREN 0x10013e40
-void FUN_10013e40(void)
+void d3d_EndChromaKeyPolyPass(void)
 {
 	if (g_CV_AlphaTest.m_IntVal)
 	{
@@ -375,57 +375,57 @@ void FUN_10013e40(void)
 	d3d_SetChromaKeyPass(0);
 }
 
-// guess: grows the TL vertex scratch array DAT_100587fc to nVertices entries (keeping the old ones); 0 when the allocation fails.
+// guess: grows the TL vertex scratch array g_pQueuedWorldPolyVertices to nVertices entries (keeping the old ones); 0 when the allocation fails.
 // FUNCTION: D3DREN 0x10013e80
-int FUN_10013e80(int nVertices)
+int d3d_GrowTLVertexBuffer(int nVertices)
 {
 	TLVertex *pNew = (TLVertex *)dalloc(nVertices * sizeof(TLVertex));
 
 	if (!pNew)
 		return 0;
-	memcpy(pNew, DAT_100587fc, DAT_1005a368 * sizeof(TLVertex));
-	if (DAT_100587fc)
-		dfree(DAT_100587fc);
-	DAT_1005a368 = nVertices;
-	DAT_100587fc = pNew;
+	memcpy(pNew, g_pQueuedWorldPolyVertices, g_nQueuedWorldPolyVertexCapacity * sizeof(TLVertex));
+	if (g_pQueuedWorldPolyVertices)
+		dfree(g_pQueuedWorldPolyVertices);
+	g_nQueuedWorldPolyVertexCapacity = nVertices;
+	g_pQueuedWorldPolyVertices = pNew;
 	return 1;
 }
 
 // GLOBAL: D3DREN 0x10058c68
-extern UnkType_PoolNode *DAT_10058c68;	// guess: head of a list of polys (nodes of the pool 0x10058758)
+extern UnkType_PoolNode *g_pFlatWorldPolyQueue;	// guess: head of a list of polys (nodes of the pool 0x10058758)
 
-// guess: adds pPoly (with the current clip mask) to the list DAT_10058c68.
+// guess: adds pPoly (with the current clip mask) to the list g_pFlatWorldPolyQueue.
 // FUNCTION: D3DREN 0x10013ef0
-void FUN_10013ef0(WorldPoly *pPoly)
+void d3d_QueueWorldPoly(WorldPoly *pPoly)
 {
-	UnkType_PoolNode *pNode = (UnkType_PoolNode *)sb_Allocate(&DAT_10058758);
+	UnkType_PoolNode *pNode = (UnkType_PoolNode *)sb_Allocate(&g_WorldPolyNodeBank);
 
 	pNode->m_Unk00 = pPoly;
-	pNode->m_Unk10 = DAT_10058c68;
+	pNode->m_Unk10 = g_pFlatWorldPolyQueue;
 	pNode->m_Unk0c = g_ClipFlags;
-	DAT_10058c68 = pNode;
+	g_pFlatWorldPolyQueue = pNode;
 }
 
 // guess: gives every node of the list (linked through m_Unk10) back to the node pool.
 // FUNCTION: D3DREN 0x100142b0
-void FUN_100142b0(UnkType_PoolNode *pList)
+void d3d_FreeWorldPolyQueue(UnkType_PoolNode *pList)
 {
 	while (pList)
 	{
 		UnkType_PoolNode *pNext = pList->m_Unk10;
 
-		sb_Free(&DAT_10058758, pList);
+		sb_Free(&g_WorldPolyNodeBank, pList);
 		pList = pNext;
 	}
 }
 
 // GLOBAL: D3DREN 0x100577c8
-extern PFormat DAT_100577c8;	// the screen format (filled by the device bring-up)
+extern PFormat g_ScreenPixelFormat;	// the screen format (filled by the device bring-up)
 extern FormatMgr g_FormatMgr;	// 0x10060710
 // NAME: InvalidateRect: names_proposal.csv (high, Jupiter dirtyrect.cpp InvalidateRect; unit dirtyrect)
 void InvalidateRect(LTRect *pRect);		// 0x10022151
 // GLOBAL: D3DREN 0x10058728
-int DAT_10058728;				// guess: only ever cleared by d3d_Clear
+int g_nRenderScenesSinceClear;				// guess: only ever cleared by d3d_Clear
 
 // NAME: d3d_Clear: RenderStruct::Clear (slot 0x8c; names_proposal.csv medium, Jupiter's d3d_ prefix); this version takes the
 // colour as LTVector (0..255 per channel) where Jupiter's has an LTRGBColor.
@@ -467,10 +467,10 @@ void d3d_Clear(LTRect *pRect, uint32 flags, LTVector *pColor)
 			DDBLTFX fx;
 			memset(&fx, 0, sizeof(fx));
 			fx.dwSize = sizeof(fx);
-			if (DAT_100577c8.m_eType == BPP_16)
+			if (g_ScreenPixelFormat.m_eType == BPP_16)
 			{
 				GenericColor cColor;
-				g_FormatMgr.PValueToFormatColor(&DAT_100577c8, dwColor, cColor);
+				g_FormatMgr.PValueToFormatColor(&g_ScreenPixelFormat, dwColor, cColor);
 				fx.dwFillColor = cColor.wVal;
 			}
 			else
@@ -493,27 +493,27 @@ void d3d_Clear(LTRect *pRect, uint32 flags, LTVector *pColor)
 	if (realFlags)
 		g_pD3DDevice->Clear(nRects, pClearRect, realFlags, dwColor, 1.0f, 0);
 
-	DAT_10058728 = 0;
+	g_nRenderScenesSinceClear = 0;
 	InvalidateRect(pRect);
 }
 
 // GLOBAL: D3DREN 0x100584bc
 extern int g_ShowSplits;	// g_CV_ShowSplits mirror
 // GLOBAL: D3DREN 0x100566b0
-extern int DAT_100566b0;	// guess: triangles of the polys drawn this frame
+extern int g_nPolygonTriangles;	// guess: triangles of the polys drawn this frame
 // GLOBAL: D3DREN 0x10056694
-extern float DAT_10056694;	// guess: accumulated screen area of the drawn polys ("Overdraw")
-// FUN_10008719 (world space -> camera space), ClipPoly (clip by the plane mask), ProjectVertexToScreen (camera -> screen): declared in pool.h / polydraw.h.
+extern float g_fScreenTriangleArea;	// guess: accumulated screen area of the drawn polys ("Overdraw")
+// TransformPositionInPlace (world space -> camera space), ClipPoly (clip by the plane mask), ProjectVertexToScreen (camera -> screen): declared in pool.h / polydraw.h.
 // MatVMul_InPlace_H: ltmatrix.h.
 
-// guess: transforms the poly's vertices to the screen, adds its screen area to DAT_10056694 (for the "Overdraw" statistic) and
-// queues the poly on the list DAT_10058c68.
+// guess: transforms the poly's vertices to the screen, adds its screen area to g_fScreenTriangleArea (for the "Overdraw" statistic) and
+// queues the poly on the list g_pFlatWorldPolyQueue.
 #pragma inline_depth(0)
-inline float FUN_10013f40_Project(LTMatrix *pMat, LTVector *pVec) { return MatVMul_InPlace_H(pMat,pVec); }
+inline float ProjectFillAreaVertex(LTMatrix *pMat, LTVector *pVec) { return MatVMul_InPlace_H(pMat,pVec); }
 #pragma inline_depth()
 // VC6's x87 operand order is reproduced by a separate vertex-array pointer and loop counters for the clipped projection passes.
 // FUNCTION: D3DREN 0x10013f40
-void FUN_10013f40(WorldPoly *pPoly)
+void d3d_AccumulateWorldPolyFillArea(WorldPoly *pPoly)
 {
 	D3DTLVERTEX aVertsRaw[30];	// plain POD storage: TLVertex has an LTVector member whose constructor would make the array call ??_H
 	TLVertex *aVerts = (TLVertex *)aVertsRaw;
@@ -545,7 +545,7 @@ void FUN_10013f40(WorldPoly *pPoly)
 		pDest = pVerts2;
 		for (i = nVerts; i; i--)
 		{
-			pDest->rhw = FUN_10013f40_Project(&g_ViewParams.m_FullTransform, &pDest->m_Vec);
+			pDest->rhw = ProjectFillAreaVertex(&g_ViewParams.m_FullTransform, &pDest->m_Vec);
 			pDest++;
 		}
 	}
@@ -554,7 +554,7 @@ void FUN_10013f40(WorldPoly *pPoly)
 		pDest = pVerts2;
 		for (k = nVerts; k; k--)
 		{
-			FUN_10008719((float *)pDest, (const float *)&g_ViewParams.m_mClipTransform);
+			TransformPositionInPlace((float *)pDest, (const float *)&g_ViewParams.m_mClipTransform);
 			pDest++;
 		}
 		if (!ClipPoly(g_ClipFlags, &pVerts2, &nVerts))
@@ -579,17 +579,17 @@ void FUN_10013f40(WorldPoly *pPoly)
 	}
 	if (((Surface *)pPoly->m_pSurface)->m_Flags & 0x80)
 		fArea += fArea;
-	DAT_10056694 += fArea * 0.5f;
+	g_fScreenTriangleArea += fArea * 0.5f;
 
-	FUN_10013ef0(pPoly);
+	d3d_QueueWorldPoly(pPoly);
 }
 
 // guess: draws the poly as one flat coloured triangle fan (ShowSplits debug view: the colour is the address of the poly, or of its
 // surface when ShowSplits is 0), without texture; returns 1 when something was drawn.
 // FUNCTION: D3DREN 0x10014100
-int FUN_10014100(WorldPoly *pPoly)
+int d3d_DrawFlatWorldPoly(WorldPoly *pPoly)
 {
-	D3DTLVERTEX aVertsRaw[40];	// see FUN_10013f40
+	D3DTLVERTEX aVertsRaw[40];	// see d3d_AccumulateWorldPolyFillArea
 	TLVertex *aVerts = (TLVertex *)aVertsRaw;
 	TLVertex *pVerts;
 	int nVerts;
@@ -628,120 +628,120 @@ int FUN_10014100(WorldPoly *pPoly)
 		pSrc++;
 	}
 
-	DAT_100566b0 += nVerts - 2;
+	g_nPolygonTriangles += nVerts - 2;
 	pVerts = aVerts;
-	if (FUN_1000af16(&pVerts, &nVerts, &g_ViewParams, 0))
+	if (d3d_ClipAndProjectTLVertices(&pVerts, &nVerts, &g_ViewParams, 0))
 	{
 		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-		DAT_100566ac++;
+		g_nWorldPolysDrawn++;
 		return 1;
 	}
 	return 0;
 }
 
-// ---- the poly draw callbacks (selected per frame by FUN_10014e40) and the world poly flush -------------------------------------
+// ---- the poly draw callbacks (selected per frame by d3d_SelectWorldPolyDrawCallbacks) and the world poly flush -------------------------------------
 // GLOBAL: D3DREN 0x1005c7e0
-extern int DAT_1005c7e0;	// guess: one-pass lightmapping enabled (set from the g_Force1Pass console variable unless the device cannot do it)
+extern int g_bOnePassLightmappingEnabled;	// guess: one-pass lightmapping enabled (set from the g_Force1Pass console variable unless the device cannot do it)
 // GLOBAL: D3DREN 0x10058730
-extern int DAT_10058730;	// guess: member of the object at 0x1005872c (the fog alpha hook g_pfnCalcFogAlpha is its first member)
+extern int g_bPolyDrawModeOne;	// guess: member of the object at 0x1005872c (the fog alpha hook g_pfnCalcFogAlpha is its first member)
 // GLOBAL: D3DREN 0x10058734
-extern int DAT_10058734;	// guess: member of the object at 0x1005872c
+extern int g_bPolyDrawSetupComplete;	// guess: member of the object at 0x1005872c
 // GLOBAL: D3DREN 0x10058d00
-extern int DAT_10058d00;	// guess: draw state flag (Gouraud fullbrites in use)
+extern int g_bDrawGouraudFullbritePass;	// guess: draw state flag (Gouraud fullbrites in use)
 // GLOBAL: D3DREN 0x10058c90
-extern UnkType_PoolBucket *DAT_10058c90;	// guess: list of ... (head of a list whose nodes come from the pool at 0x10058c98)
+extern UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of ... (head of a list whose nodes come from the pool at 0x10058c98)
 // GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *DAT_10055ce0;	// &g_pStruct->m_GlobalPans
+extern GlobalPanInfo *g_pGlobalPanInfo;	// &g_pStruct->m_GlobalPans
 
-extern void (*DAT_10058cd8)(WorldPoly *pPoly);
-extern void (*DAT_100587e8)(WorldPoly *pPoly);
-extern void (*DAT_1005a304)(WorldPoly *pPoly);
-extern void (*DAT_10058c24)(WorldPoly *pPoly);
-void FUN_10022be4(WorldPoly *pPoly);		// 0x10022be4 (unit unk/10021d70): queues the poly under its texture (bucket list DAT_10058c90)
-void FUN_100356b8(WorldPoly *pPoly);		// 0x100356b8 (unit unk/10034000)
-void FUN_100356d5();						// 0x100356d5
-void FUN_10034ebb();						// 0x10034ebb
-void FUN_10035771();						// 0x10035771
-void FUN_100235bb(int a1);					// 0x100235bb
+extern void (*g_pfnDrawUntexturedWorldPoly)(WorldPoly *pPoly);
+extern void (*g_pfnDrawTexturedWorldPoly)(WorldPoly *pPoly);
+extern void (*g_pfnDrawPanningSkyWorldPoly)(WorldPoly *pPoly);
+extern void (*g_pfnDrawLightmappedWorldPoly)(WorldPoly *pPoly);
+void QueueWorldPolyWithClipFlags(WorldPoly *pPoly);		// 0x10022be4 (unit unk/10021d70): queues the poly under its texture (bucket list g_pMultipassWorldPolyBuckets)
+void QueueLightmappedPoly(WorldPoly *pPoly);		// 0x100356b8 (unit unk/10034000)
+void SetLightmapTextureStageStates();						// 0x100356d5
+void DrawQueuedLightmappedPolys();						// 0x10034ebb
+void ResetLightmapTextureStageStates();						// 0x10035771
+void SetAdditiveAlphaBlendForMode(int a1);					// 0x100235bb
 void d3d_NullCallback();						// 0x100235e1 (empty)
-void FUN_100235e2();						// 0x100235e2
+void FlushQueuedWorldPolyPages();						// 0x100235e2
 
 
-// guess: selects the poly draw callbacks for the frame (nMode 1: only the queueing callback FUN_10022be4).  The exe has these statements
-// in FUN_100144b0 and in the separate function FUN_10014e40 (every caller expanded them); one inline helper here.
+// guess: selects the poly draw callbacks for the frame (nMode 1: only the queueing callback QueueWorldPolyWithClipFlags).  The exe has these statements
+// in d3d_SetWorldPolyDrawMode and in the separate function d3d_SelectWorldPolyDrawCallbacks (every caller expanded them); one inline helper here.
 // FUNCTION: D3DREN 0x10014e40
-inline void FUN_10014e40(int nMode)
+inline void d3d_SelectWorldPolyDrawCallbacks(int nMode)
 {
-	DAT_100587e8 = FUN_10022be4;
-	DAT_10058cd8 = FUN_10013ef0;
-	DAT_1005a304 = FUN_100083bf;
-	if (DAT_1005c7e0)
+	g_pfnDrawTexturedWorldPoly = QueueWorldPolyWithClipFlags;
+	g_pfnDrawUntexturedWorldPoly = d3d_QueueWorldPoly;
+	g_pfnDrawPanningSkyWorldPoly = QueueWorldTexturePoly;
+	if (g_bOnePassLightmappingEnabled)
 	{
-		DAT_1005a304 = FUN_100356b8;
-		DAT_10058c24 = FUN_100356b8;
+		g_pfnDrawPanningSkyWorldPoly = QueueLightmappedPoly;
+		g_pfnDrawLightmappedWorldPoly = QueueLightmappedPoly;
 	}
 	else
 	{
-		DAT_10058c24 = FUN_1000a16b;
+		g_pfnDrawLightmappedWorldPoly = d3d_DrawOrQueueLightmappedWorldPoly;
 	}
 	if (g_ShowFillInfo)
 	{
-		DAT_1005a304 = FUN_10013f40;
-		DAT_10058c24 = FUN_10013f40;
-		DAT_100587e8 = FUN_10013f40;
-		DAT_10058cd8 = FUN_10013f40;
+		g_pfnDrawPanningSkyWorldPoly = d3d_AccumulateWorldPolyFillArea;
+		g_pfnDrawLightmappedWorldPoly = d3d_AccumulateWorldPolyFillArea;
+		g_pfnDrawTexturedWorldPoly = d3d_AccumulateWorldPolyFillArea;
+		g_pfnDrawUntexturedWorldPoly = d3d_AccumulateWorldPolyFillArea;
 	}
 	else if (g_DrawFlat)
 	{
-		DAT_1005a304 = FUN_10013ef0;
-		DAT_10058c24 = FUN_10013ef0;
-		DAT_100587e8 = FUN_10013ef0;
-		DAT_10058cd8 = FUN_10013ef0;
+		g_pfnDrawPanningSkyWorldPoly = d3d_QueueWorldPoly;
+		g_pfnDrawLightmappedWorldPoly = d3d_QueueWorldPoly;
+		g_pfnDrawTexturedWorldPoly = d3d_QueueWorldPoly;
+		g_pfnDrawUntexturedWorldPoly = d3d_QueueWorldPoly;
 	}
-	else if (!(g_LightMap && DAT_1005de20 && (DAT_10056770->m_WorldFlags & WORLD_HASBASELIGHT)))
+	else if (!(g_LightMap && g_bLightmapCapable && (g_pFrameMainWorld->m_WorldFlags & WORLD_HASBASELIGHT)))
 	{
-		DAT_10058c24 = FUN_10022be4;
-		DAT_1005a304 = FUN_10022be4;
+		g_pfnDrawLightmappedWorldPoly = QueueWorldPolyWithClipFlags;
+		g_pfnDrawPanningSkyWorldPoly = QueueWorldPolyWithClipFlags;
 	}
 	if (nMode == 1)
 	{
-		DAT_10058c24 = FUN_10022be4;
-		DAT_1005a304 = FUN_10022be4;
+		g_pfnDrawLightmappedWorldPoly = QueueWorldPolyWithClipFlags;
+		g_pfnDrawPanningSkyWorldPoly = QueueWorldPolyWithClipFlags;
 	}
-	if (!DAT_10055ce0->m_pTexture)
-		DAT_1005a304 = FUN_10022be4;
+	if (!g_pGlobalPanInfo->m_pTexture)
+		g_pfnDrawPanningSkyWorldPoly = QueueWorldPolyWithClipFlags;
 }
 
 // guess: selects the poly draw callbacks for the world (nMode 1 = ...), and the lightmap pass flags.
 // FUNCTION: D3DREN 0x100144b0
-void FUN_100144b0(int nMode)
+void d3d_SetWorldPolyDrawMode(int nMode)
 {
-	FUN_10014e40(nMode);
+	d3d_SelectWorldPolyDrawCallbacks(nMode);
 	if (nMode == 1)
 	{
-		DAT_10058734 = 1;
-		DAT_10058730 = 1;
+		g_bPolyDrawSetupComplete = 1;
+		g_bPolyDrawModeOne = 1;
 	}
 	else
 	{
-		DAT_10058730 = 0;
-		DAT_10058734 = 1;
+		g_bPolyDrawModeOne = 0;
+		g_bPolyDrawSetupComplete = 1;
 	}
-	if (DAT_1005cdf0)
-		DAT_10058d00 = (nMode != 1);
+	if (g_bGouraudFullbriteCapable)
+		g_bDrawGouraudFullbritePass = (nMode != 1);
 	else
-		DAT_10058d00 = 0;
-	if (DAT_1005c7e0)
-		FUN_100356d5();
+		g_bDrawGouraudFullbritePass = 0;
+	if (g_bOnePassLightmappingEnabled)
+		SetLightmapTextureStageStates();
 	else
 		d3d_NullCallback();
 }
 
-void FUN_100147b0(WorldPoly *pPoly, UnkType_PolyVertex **ppVerts, int *pnVerts);
-int FUN_100147f0(TLVertex **ppVerts, int *pnVerts);
+void d3d_GetWorldPolyVertices(WorldPoly *pPoly, UnkType_PolyVertex **ppVerts, int *pnVerts);
+int d3d_ProjectAndDrawTriangleFan(TLVertex **ppVerts, int *pnVerts);
 
 // The original expansion uses this term order in its homogeneous projection.
-inline float FUN_100147f0_Project(LTMatrix *pMat, LTVector *pSrc)
+inline float ProjectTriangleFanVertex(LTMatrix *pMat, LTVector *pSrc)
 {
 	float one_over_w = 1.0f / (((pMat->m[3][2] * pSrc->z + pMat->m[3][0] * pSrc->x) + pMat->m[3][1] * pSrc->y) + pMat->m[3][3]);
 	LTVector temp;
@@ -762,31 +762,31 @@ struct UnkType_FlushVertex : TLVertex
 UnkType_FlushVertex::UnkType_FlushVertex() {}
 #pragma auto_inline(on)
 
-// guess: draws the queued polys (list DAT_10058c68, nodes {poly, mask, next}) one by one with the lightmap pass states.
+// guess: draws the queued polys (list g_pFlatWorldPolyQueue, nodes {poly, mask, next}) one by one with the lightmap pass states.
 // The array iterator and SDK calls remain out of line here. The first texture disable and the pool free
 // are expanded explicitly, preserving the original call boundaries and per-node construction timing.
 // FUNCTION: D3DREN 0x100145f0
 #pragma inline_depth(0)
-void FUN_100145f0(int a1)
+void d3d_FlushQueuedWorldDrawPasses(int a1)
 {
-	if (DAT_10058c90)
+	if (g_pMultipassWorldPolyBuckets)
 	{
-		FUN_100235bb(a1);
-		FUN_100235e2();
+		SetAdditiveAlphaBlendForMode(a1);
+		FlushQueuedWorldPolyPages();
 		d3d_NullCallback();
 	}
-	FUN_1000ac8a();
-	FUN_10007976();
-	if (DAT_1005c7e0)
-		FUN_10034ebb();
+	d3d_FlushLightmapPageQueues();
+	FlushWorldTexturePolys();
+	if (g_bOnePassLightmappingEnabled)
+		DrawQueuedLightmappedPolys();
 	else
-		FUN_1000ac7b();
-	if (DAT_1005c7e0)
-		FUN_10035771();
+		d3d_FlushPendingWorldTextureBuckets();
+	if (g_bOnePassLightmappingEnabled)
+		ResetLightmapTextureStageStates();
 	else
 		d3d_NullCallback();
 
-	if (DAT_10058c68)
+	if (g_pFlatWorldPolyQueue)
 	{
 		UnkType_PoolNode *pNode;
 		UnkType_PoolNode *pNext;
@@ -797,7 +797,7 @@ void FUN_100145f0(int a1)
 			g_pD3DDevice->SetTexture(nStage, 0);
 			g_pBoundTextures[nStage] = 0;
 		}
-		pNode = DAT_10058c68;
+		pNode = g_pFlatWorldPolyQueue;
 		while (pNode)
 		{
 			TLVertex *pVerts;
@@ -813,8 +813,8 @@ void FUN_100145f0(int a1)
 			pPoly = (WorldPoly *)pNode->m_Unk00;
 			UnkType_FlushVertex aVerts[40];
 			dwColor = g_ShowSplits ? (uint32)pPoly : (uint32)pPoly->m_pSurface;
-			FUN_1000a27b(g_NormalTextureStage);
-			FUN_100147b0(pPoly, &pSrc, &nVerts);
+			d3d_UnsetTexture(g_NormalTextureStage);
+			d3d_GetWorldPolyVertices(pPoly, &pSrc, &nVerts);
 			pDest = aVerts;
 			for (i = nVerts; i > 0; i--)
 			{
@@ -824,27 +824,27 @@ void FUN_100145f0(int a1)
 				pDest++;
 				pSrc++;
 			}
-			DAT_100566b0 += nVerts - 2;
+			g_nPolygonTriangles += nVerts - 2;
 			pVerts = aVerts;
-			FUN_100147f0(&pVerts, &nVerts);
-			if (pNode && &DAT_10058758)
+			d3d_ProjectAndDrawTriangleFan(&pVerts, &nVerts);
+			if (pNode && &g_WorldPolyNodeBank)
 			{
 				StructLink *pLink = (StructLink*)pNode;
-				pLink->m_pSLNext = DAT_10058758.m_FreeListHead;
-				DAT_10058758.m_FreeListHead = pLink;
+				pLink->m_pSLNext = g_WorldPolyNodeBank.m_FreeListHead;
+				g_WorldPolyNodeBank.m_FreeListHead = pLink;
 			}
 			pNode = pNext;
 		}
-		DAT_10058c68 = 0;
+		g_pFlatWorldPolyQueue = 0;
 	}
 	if (g_CV_DrawPolyMgr.m_IntVal)
-		g_DrawPolyMgr.FUN_1002a0c2();
+		g_DrawPolyMgr.FlushQueuedPolys();
 }
 
 #pragma inline_depth()
 // guess: the vertex array and the vertex count of the poly (honours FixTJunc).
 // FUNCTION: D3DREN 0x100147b0
-void FUN_100147b0(WorldPoly *pPoly, UnkType_PolyVertex **ppVerts, int *pnVerts)
+void d3d_GetWorldPolyVertices(WorldPoly *pPoly, UnkType_PolyVertex **ppVerts, int *pnVerts)
 {
 	if (g_FixTJunc)
 	{
@@ -860,7 +860,7 @@ void FUN_100147b0(WorldPoly *pPoly, UnkType_PolyVertex **ppVerts, int *pnVerts)
 
 // guess: projects (clipping when g_ClipFlags is set) and draws the vertices as a triangle fan; 0 when nothing is left.
 // FUNCTION: D3DREN 0x100147f0
-int FUN_100147f0(TLVertex **ppVerts, int *pnVerts)
+int d3d_ProjectAndDrawTriangleFan(TLVertex **ppVerts, int *pnVerts)
 {
 	TLVertex *pVert;
 	int i;
@@ -870,7 +870,7 @@ int FUN_100147f0(TLVertex **ppVerts, int *pnVerts)
 		pVert = *ppVerts;
 		for (i = *pnVerts; i != 0; i--)
 		{
-			pVert->rhw = FUN_100147f0_Project(&g_ViewParams.m_FullTransform, &pVert->m_Vec);
+			pVert->rhw = ProjectTriangleFanVertex(&g_ViewParams.m_FullTransform, &pVert->m_Vec);
 			pVert++;
 		}
 	}
@@ -879,7 +879,7 @@ int FUN_100147f0(TLVertex **ppVerts, int *pnVerts)
 		pVert = *ppVerts;
 		for (i = *pnVerts; i != 0; i--)
 		{
-			FUN_10008719((float *)pVert, (const float *)&g_ViewParams.m_mClipTransform);
+			TransformPositionInPlace((float *)pVert, (const float *)&g_ViewParams.m_mClipTransform);
 			pVert++;
 		}
 		if (ClipPoly(g_ClipFlags, ppVerts, pnVerts))
@@ -895,14 +895,14 @@ int FUN_100147f0(TLVertex **ppVerts, int *pnVerts)
 			goto Empty;
 	}
 	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, *ppVerts, *pnVerts, 0);
-	DAT_100566ac++;
+	g_nWorldPolysDrawn++;
 	return 1;
 Empty:
 	return 0;
 }
 
 // Taking the elements by value preserves the target's complete source snapshot before writing the transpose.
-inline void FUN_10014980_Transpose(D3DMATRIX *out,
+inline void StoreTransposedD3DMatrixElements(D3DMATRIX *out,
 	float m00, float m01, float m02, float m03,
 	float m10, float m11, float m12, float m13,
 	float m20, float m21, float m22, float m23,
@@ -916,9 +916,9 @@ inline void FUN_10014980_Transpose(D3DMATRIX *out,
 
 // guess: LTMatrix -> D3DMATRIX (transposes: D3D's rows are the columns of the LTMatrix; Jupiter d3d_SetD3DMat's copy).
 // FUNCTION: D3DREN 0x10014980
-void FUN_10014980(const LTMatrix *pSrc, D3DMATRIX *pOut)
+void d3d_CopyLTMatrixToD3D(const LTMatrix *pSrc, D3DMATRIX *pOut)
 {
-	FUN_10014980_Transpose(pOut,
+	StoreTransposedD3DMatrixElements(pOut,
 		pSrc->m[0][0], pSrc->m[0][1], pSrc->m[0][2], pSrc->m[0][3],
 		pSrc->m[1][0], pSrc->m[1][1], pSrc->m[1][2], pSrc->m[1][3],
 		pSrc->m[2][0], pSrc->m[2][1], pSrc->m[2][2], pSrc->m[2][3],
@@ -926,21 +926,21 @@ void FUN_10014980(const LTMatrix *pSrc, D3DMATRIX *pOut)
 }
 
 // ---- d3d_FullDrawScene and the world poly flush ---------------------------------------------------------------------------------
-void FUN_10014ce0(UnkType_PoolNode *pList);
+void d3d_FlushFlatWorldPolys(UnkType_PoolNode *pList);
 void d3d_DrawLightAddPoly(const LTVector &vAdd);
 void d3d_DrawLightScalePoly(const LTVector &vScale);
-// FUN_100107fb (the wrapper) / FUN_10010777: ends the lit lists of the frame (sys/d3d/common_stuff.cpp).
-void FUN_100107fb();
-void FUN_10010777();
-void FUN_10039510();
-void FUN_1000ac8a(void);
+// d3d_ClearFrameLitPolys (the wrapper) / d3d_FreeLitPolyList: ends the lit lists of the frame (sys/d3d/common_stuff.cpp).
+void d3d_ClearFrameLitPolys();
+void d3d_FreeLitPolyList();
+void TagWorldVisibility();
+void d3d_FlushLightmapPageQueues(void);
 
-// Jupiter d3d_SetD3DMat: the transposed LTMatrix as a D3D transform (FUN_10014980 does the copy, out of line here).
+// Jupiter d3d_SetD3DMat: the transposed LTMatrix as a D3D transform (d3d_CopyLTMatrixToD3D does the copy, out of line here).
 static inline void d3d_SetD3DMat(D3DTRANSFORMSTATETYPE iTransform, LTMatrix *pSrc)
 {
 	D3DMATRIX Out;
 
-	FUN_10014980(pSrc, &Out);
+	d3d_CopyLTMatrixToD3D(pSrc, &Out);
 	g_pD3DDevice->SetTransform(iTransform, &Out);
 }
 
@@ -964,9 +964,9 @@ static inline void d3d_ProcessObjectList(LTObject **pObjectList, int objectListS
 	}
 }
 
-// FullDrawScene calls this helper out of line; FUN_100144b0 expands the same body.
+// FullDrawScene calls this helper out of line; d3d_SetWorldPolyDrawMode expands the same body.
 #pragma inline_depth(0)
-inline void FUN_10014e40_Call(int nMode) { FUN_10014e40(nMode); }
+inline void SelectWorldPolyDrawCallbacksForScene(int nMode) { d3d_SelectWorldPolyDrawCallbacks(nMode); }
 #pragma inline_depth()
 
 // NAME: d3d_FullDrawScene: Ghidra name (high; Jupiter d3d_draw.cpp d3d_FullDrawScene).  The Talon version takes only the SceneDesc (the view is
@@ -981,7 +981,7 @@ void d3d_FullDrawScene(SceneDesc *pDesc)
 	d3d_SetD3DMat(D3DTRANSFORMSTATE_VIEW, &g_ViewParams.m_mView);
 	d3d_SetD3DMat(D3DTRANSFORMSTATE_PROJECTION, &g_ViewParams.m_mProjection);
 	d3d_InitObjectQueues();
-	FUN_100107fb();
+	d3d_ClearFrameLitPolys();
 
 	if (pDesc->m_DrawMode == DRAWMODE_OBJECTLIST)
 	{
@@ -992,40 +992,40 @@ void d3d_FullDrawScene(SceneDesc *pDesc)
 	{
 		CountAdder cntAdd(&g_pStruct->m_Ticks_TagVisibleLeaves);
 
-		FUN_10014e40_Call(0);
-		DAT_10058730 = 0;
-		DAT_10058d00 = (DAT_1005cdf0 != 0);
-		DAT_10058734 = 1;
-		if (DAT_1005c7e0)
-			FUN_100356d5();
+		SelectWorldPolyDrawCallbacksForScene(0);
+		g_bPolyDrawModeOne = 0;
+		g_bDrawGouraudFullbritePass = (g_bGouraudFullbriteCapable != 0);
+		g_bPolyDrawSetupComplete = 1;
+		if (g_bOnePassLightmappingEnabled)
+			SetLightmapTextureStageStates();
 		else
 			d3d_NullCallback();
-		FUN_10039510();
+		TagWorldVisibility();
 
-		if (DAT_10058c90)
+		if (g_pMultipassWorldPolyBuckets)
 		{
-			FUN_100235bb(0);
-			FUN_100235e2();
+			SetAdditiveAlphaBlendForMode(0);
+			FlushQueuedWorldPolyPages();
 			d3d_NullCallback();
 		}
-		FUN_1000ac8a();
-		FUN_10007976();
-		if (DAT_1005c7e0)
-			FUN_10034ebb();
+		d3d_FlushLightmapPageQueues();
+		FlushWorldTexturePolys();
+		if (g_bOnePassLightmappingEnabled)
+			DrawQueuedLightmappedPolys();
 		else
-			FUN_1000ac7b();
-		if (DAT_1005c7e0)
-			FUN_10035771();
+			d3d_FlushPendingWorldTextureBuckets();
+		if (g_bOnePassLightmappingEnabled)
+			ResetLightmapTextureStageStates();
 		else
 			d3d_NullCallback();
-		if (DAT_10058c68)
+		if (g_pFlatWorldPolyQueue)
 		{
-			FUN_1000a27b(g_NormalTextureStage);	// the exe calls the out-of-line copy (unit unk/100098d0) here
-			FUN_10014ce0(DAT_10058c68);
-			DAT_10058c68 = 0;
+			d3d_UnsetTexture(g_NormalTextureStage);	// the exe calls the out-of-line copy (unit unk/100098d0) here
+			d3d_FlushFlatWorldPolys(g_pFlatWorldPolyQueue);
+			g_pFlatWorldPolyQueue = 0;
 		}
 		if (g_CV_DrawPolyMgr.m_IntVal)
-			g_DrawPolyMgr.FUN_1002a0c2();
+			g_DrawPolyMgr.FlushQueuedPolys();
 	}
 
 	{
@@ -1034,7 +1034,7 @@ void d3d_FullDrawScene(SceneDesc *pDesc)
 
 		d3d_FlushObjectQueues();
 	}
-	FUN_10010777();
+	d3d_FreeLitPolyList();
 	d3d_DrawLightScalePoly(pDesc->m_GlobalLightScale);
 	d3d_DrawLightAddPoly(pDesc->m_GlobalLightAdd);
 }
@@ -1043,16 +1043,16 @@ void d3d_FullDrawScene(SceneDesc *pDesc)
 // gives the nodes back.
 // Preserve the original out-of-line projection call within the vertex loop.
 #pragma inline_depth(0)
-inline float FUN_10014ce0_MatVMul(LTVector *pDest, LTMatrix *pMat, LTVector *pSrc)
+inline float TransformFlatPolyPosition(LTVector *pDest, LTMatrix *pMat, LTVector *pSrc)
 {
 	return MatVMul_H(pDest, pMat, pSrc);
 }
 #pragma inline_depth()
 
 // FUNCTION: D3DREN 0x10014ce0
-void FUN_10014ce0(UnkType_PoolNode *pList)
+void d3d_FlushFlatWorldPolys(UnkType_PoolNode *pList)
 {
-	D3DTLVERTEX aVertsRaw[40];	// see FUN_10013f40
+	D3DTLVERTEX aVertsRaw[40];	// see d3d_AccumulateWorldPolyFillArea
 	TLVertex *aVerts = (TLVertex *)aVertsRaw;
 	TLVertex *pVerts;
 	int nVerts;
@@ -1087,20 +1087,20 @@ void FUN_10014ce0(UnkType_PoolNode *pList)
 		pDest = aVerts;
 		for (i = nVerts; i > 0; i--)
 		{
-			FUN_10014ce0_MatVMul(&pDest->m_Vec, &g_ViewParams.m_mIdentity, pSrc->m_Vec);
+			TransformFlatPolyPosition(&pDest->m_Vec, &g_ViewParams.m_mIdentity, pSrc->m_Vec);
 			pDest->color = dwColor;
 			pDest->specular = 0xffffffff;
 			pDest++;
 			pSrc++;
 		}
-		DAT_100566b0 += nVerts - 2;
+		g_nPolygonTriangles += nVerts - 2;
 		pVerts = aVerts;
-		if (FUN_1000af16(&pVerts, &nVerts, &g_ViewParams, 0))
+		if (d3d_ClipAndProjectTLVertices(&pVerts, &nVerts, &g_ViewParams, 0))
 		{
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-			DAT_100566ac++;
+			g_nWorldPolysDrawn++;
 		}
-		sb_Free(&DAT_10058758, pNode);
+		sb_Free(&g_WorldPolyNodeBank, pNode);
 	}
 }
 
@@ -1120,7 +1120,7 @@ void d3d_DrawLightAddPoly(const LTVector &vAdd)
 	static UnkType_TLVertexCD verts[6];
 	union { TLRGB rgb; uint32 color; } theColor;
 
-	if (!g_LightAddPoly || !DAT_1005cdc8)
+	if (!g_LightAddPoly || !g_bLightAddPolyCapable)
 		return;
 	if ((vAdd.x < 0.001f) && (vAdd.y < 0.001f) && (vAdd.z < 0.001f))
 		return;
@@ -1230,13 +1230,13 @@ void d3d_DrawLightScalePoly(const LTVector &vScale)
 // vertex uv, the per-vertex fog hook for the specular alpha, clipped with the plane mask 0x3f and drawn as a triangle fan.  Only called by the mirror pass
 // when the surface has the overlay bit.  The exe expands the inline d3d_SetTexture here; the call below is the out-of-line one.
 // STUB diagnosis (W2): 560 of 624 bytes, 198 aligned mismatches.  Statement order, calls, constants and the loop are those of the exe.  Differences: (1) the exe expands the
-//   inline d3d_SetTexture (`mov edi,[pTexture+0xc]` ... d3d_CreateAndLoadTexture / FUN_10007a89 / SetLOD), ours calls the out-of-line copy; (2) the exe calls the two vector member
-//   destructors out of line (0x10018aa0 / 0x100188e0, the node allocator's deallocate expanded inside them) after the inline ~UnkType_StateRestorer body (FUN_10021da6),
+//   inline d3d_SetTexture (`mov edi,[pTexture+0xc]` ... d3d_CreateAndLoadTexture / d3d_BindRTexture / SetLOD), ours calls the out-of-line copy; (2) the exe calls the two vector member
+//   destructors out of line (0x10018aa0 / 0x100188e0, the node allocator's deallocate expanded inside them) after the inline ~UnkType_StateRestorer body (RestoreAllStates),
 //   ours expands them.  With the plain inline d3d_SetTexture of d3d_texture.h (tried) the destructors do come out of line (as
 //   ??1?$_Vector_base@URenderState, 80 bytes) but the function grows to 672 bytes and the copy of __node_alloc::deallocate (0x10018f80) is no longer emitted separately,
 //   so the option is left off; the exe's ~_Vector_base copies (96 / 112 bytes) have `_STL_alloc_proxy::deallocate` and the node allocator inlined, ours differ in that.
 // STUB: D3DREN 0x100155b0
-void FUN_100155b0(WorldPoly *pPoly, LTMatrix *pMatrix)
+void d3d_DrawMirrorSurfaceOverlay(WorldPoly *pPoly, LTMatrix *pMatrix)
 {
 	D3DTLVERTEX aVerts[0x80];
 	UnkType_PolyVert *pSrc;
@@ -1251,7 +1251,7 @@ void FUN_100155b0(WorldPoly *pPoly, LTMatrix *pMatrix)
 	UnkType_StateRestorer saver;
 	RenderState rsBlend(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
 
-	saver.FUN_10021e28(rsBlend);
+	saver.ApplyRenderState(rsBlend);
 
 	if (g_FixTJunc)
 	{
@@ -1272,24 +1272,24 @@ void FUN_100155b0(WorldPoly *pPoly, LTMatrix *pMatrix)
 
 		MatVMul_H((LTVector *)&pDest->m_Vec, pMatrix, pPos);
 		pDest->color = 0xffffffff;
-		pDest->tu = DAT_10061810[0].m_Unk00 * pSrc->m_Unk04;
-		pDest->tv = DAT_10061810[0].m_Unk04 * pSrc->m_Unk08;
+		pDest->tu = g_TextureStageTexelSizes[0].m_Unk00 * pSrc->m_Unk04;
+		pDest->tv = g_TextureStageTexelSizes[0].m_Unk04 * pSrc->m_Unk08;
 		g_pfnCalcFogAlpha(pPos, &pDest->specular);
 		pSrc++;
 	}
 
 	g_ClipFlags = 0x3f;
-	if (FUN_1000af16((TLVertex **)&pVerts, &nVerts, &g_ViewParams, 0))
+	if (d3d_ClipAndProjectTLVertices((TLVertex **)&pVerts, &nVerts, &g_ViewParams, 0))
 	{
-		DAT_100566b0 += nVerts - 2;
+		g_nPolygonTriangles += nVerts - 2;
 		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 	}
-	saver.FUN_10021da6();
+	saver.RestoreAllStates();
 	}
 }
 
 extern uint32 g_CurObjectFrameCode;
-extern void (*DAT_1006cd70)();
+extern void (*g_pfnDrawVisibleReflections)();
 void d3d_IncrementFrameCode(RenderContext *pContext);
 void d3d_InitViewBox2(ViewBoxDef *pDef, float nearZ, float farZ,
 	const ViewParams &prevParams, float minX, float minY, float maxX, float maxY);
@@ -1297,21 +1297,21 @@ LTBOOL d3d_InitFrustum2(ViewParams *pParams, ViewBoxDef *pViewBox,
 	float minX, float minY, float maxX, float maxY, LTMatrix *pMat, LTVector vScale);
 
 // GLOBAL: D3DREN 0x10048c50
-int DAT_10048c50 = 1;
+int g_bPortalStencilClipEnabled = 1;
 
 // Local matching forms preserve the target's render-state call sequence and SDK call depth.
 // These helpers expand inline; they add no stand-in code or data.
-inline void FUN_10015820_SetState(D3DRENDERSTATETYPE state, DWORD value)
+inline void SetReflectionRenderState(D3DRENDERSTATETYPE state, DWORD value)
 {
 	g_pD3DDevice->SetRenderState(state, value);
 }
 
 #pragma inline_depth(0)
-inline float FUN_10015820_VMul(LTVector *d, LTMatrix *a, LTVector *v) { return MatVMul_H(d, a, v); }
-inline void FUN_10015820_Verts(WorldPoly *p, UnkType_PolyVertex **v, int *n) { FUN_100147b0(p, v, n); }
+inline float TransformReflectionPolyPosition(LTVector *d, LTMatrix *a, LTVector *v) { return MatVMul_H(d, a, v); }
+inline void GetReflectionPolyVertices(WorldPoly *p, UnkType_PolyVertex **v, int *n) { d3d_GetWorldPolyVertices(p, v, n); }
 #pragma inline_depth()
 
-inline float FUN_10015820_CullSign(uint32 flip)
+inline float GetReflectedViewCullSign(uint32 flip)
 {
 	float sign;
 	if (flip)
@@ -1324,7 +1324,7 @@ inline float FUN_10015820_CullSign(uint32 flip)
 // Reflect each front-facing mirror polygon into a stencil-bounded recursive scene draw.
 // The local polygon list survives the recursive visible-set rebuild; the full view and lightmap setting are restored.
 // FUNCTION: D3DREN 0x10015820
-void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
+void d3d_DrawReflectedWorldScenes(SceneDesc *pDesc, VisibleSet *pSet)
 {
 	ViewParams backupView;
 	D3DTLVERTEX vertices[40];
@@ -1332,7 +1332,7 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 	uint32 nPolys;
 	uint32 i;
 
-	DAT_1006cd70 = 0;
+	g_pfnDrawVisibleReflections = 0;
 	nPolys = pSet->m_nUnk140;
 	if (!nPolys)
 		return;
@@ -1367,10 +1367,10 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 		g_CurFrameCode = pContext->m_CurFrameCode;
 		g_CurObjectFrameCode = g_pStruct->IncObjectFrameCode();
 
-		FUN_10015820_SetState(D3DRENDERSTATE_STENCILENABLE, 1);
-		FUN_10015820_SetState(D3DRENDERSTATE_STENCILPASS, D3DSTENCILOP_REPLACE);
-		FUN_10015820_SetState(D3DRENDERSTATE_STENCILFUNC, D3DCMP_ALWAYS);
-		FUN_10015820_SetState(D3DRENDERSTATE_STENCILREF, 1);
+		SetReflectionRenderState(D3DRENDERSTATE_STENCILENABLE, 1);
+		SetReflectionRenderState(D3DRENDERSTATE_STENCILPASS, D3DSTENCILOP_REPLACE);
+		SetReflectionRenderState(D3DRENDERSTATE_STENCILFUNC, D3DCMP_ALWAYS);
+		SetReflectionRenderState(D3DRENDERSTATE_STENCILREF, 1);
 		g_ClipFlags = 0x3f;
 
 		uint32 dwColor;
@@ -1378,28 +1378,28 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 			dwColor = (uint32)pPoly;
 		else
 			dwColor = (uint32)pPoly->m_pSurface;
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_UnsetTexture(g_NormalTextureStage);
 
 		UnkType_PolyVertex *pSrc;
 		int nVerts;
-		FUN_10015820_Verts(pPoly, &pSrc, &nVerts);
+		GetReflectionPolyVertices(pPoly, &pSrc, &nVerts);
 		TLVertex *pDest = (TLVertex *)vertices;
 		for (int j = nVerts; j > 0; --j)
 		{
-			FUN_10015820_VMul(&pDest->m_Vec, pMatrix, pSrc->m_Vec);
+			TransformReflectionPolyPosition(&pDest->m_Vec, pMatrix, pSrc->m_Vec);
 			pDest->color = dwColor;
 			pDest->specular = 0xffffffff;
 			++pDest;
 			++pSrc;
 		}
-		DAT_100566b0 += nVerts - 2;
+		g_nPolygonTriangles += nVerts - 2;
 
 		TLVertex *pVerts = (TLVertex *)vertices;
-		if (FUN_100147f0(&pVerts, &nVerts))
+		if (d3d_ProjectAndDrawTriangleFan(&pVerts, &nVerts))
 		{
-			FUN_10015820_SetState(D3DRENDERSTATE_STENCILREF, 1);
-			FUN_10015820_SetState(D3DRENDERSTATE_STENCILPASS, D3DSTENCILOP_KEEP);
-			FUN_10015820_SetState(D3DRENDERSTATE_STENCILFUNC, D3DCMP_EQUAL);
+			SetReflectionRenderState(D3DRENDERSTATE_STENCILREF, 1);
+			SetReflectionRenderState(D3DRENDERSTATE_STENCILPASS, D3DSTENCILOP_KEEP);
+			SetReflectionRenderState(D3DRENDERSTATE_STENCILFUNC, D3DCMP_EQUAL);
 
 			LTVector vMin(100000.0f, 100000.0f, 100000.0f);
 			LTVector vMax(-100000.0f, -100000.0f, -100000.0f);
@@ -1418,16 +1418,16 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 				VEC_MAX(vMax, vMax, pVert->m_Vec);
 			}
 
-			FUN_10015820_SetState(D3DRENDERSTATE_ZENABLE, 1);
-			FUN_10015820_SetState(D3DRENDERSTATE_ZWRITEENABLE, 1);
-			FUN_10015820_SetState(D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
+			SetReflectionRenderState(D3DRENDERSTATE_ZENABLE, 1);
+			SetReflectionRenderState(D3DRENDERSTATE_ZWRITEENABLE, 1);
+			SetReflectionRenderState(D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-			FUN_10015820_SetState(D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
+			SetReflectionRenderState(D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
 
-			if (!DAT_10048c50 || g_CV_ShowPortalBounds.m_IntVal)
+			if (!g_bPortalStencilClipEnabled || g_CV_ShowPortalBounds.m_IntVal)
 			{
-				FUN_10015820_SetState(D3DRENDERSTATE_STENCILENABLE, 0);
-				FUN_10015820_SetState(D3DRENDERSTATE_STENCILFUNC, D3DCMP_EQUAL);
+				SetReflectionRenderState(D3DRENDERSTATE_STENCILENABLE, 0);
+				SetReflectionRenderState(D3DRENDERSTATE_STENCILFUNC, D3DCMP_EQUAL);
 			}
 
 			backupView = g_ViewParams;
@@ -1438,7 +1438,7 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 				&copiedCamera, LTVector(1.0f, 1.0f, 1.0f));
 			*(LTVector *)g_ViewParams.m_Pad4d8 = pPoly->m_Center;
 			g_ViewParams.m_bCullFlip = !backupView.m_bCullFlip;
-			g_ViewParams.m_fCullSign = FUN_10015820_CullSign(g_ViewParams.m_bCullFlip);
+			g_ViewParams.m_fCullSign = GetReflectedViewCullSign(g_ViewParams.m_bCullFlip);
 			g_ViewParams.m_bPortalView = 1;
 
 			int oldLightMap = g_LightMap;
@@ -1448,20 +1448,20 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 			g_LightMap = oldLightMap;
 			g_ViewParams = backupView;
 
-			FUN_10015820_SetState(D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
+			SetReflectionRenderState(D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
 			if (pSurface->m_Unknown3A & 0x8000)
-				FUN_100155b0(pPoly, pMatrix);
-			FUN_10015820_SetState(D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
+				d3d_DrawMirrorSurfaceOverlay(pPoly, pMatrix);
+			SetReflectionRenderState(D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL);
 		}
 
-		FUN_10015820_SetState(D3DRENDERSTATE_STENCILENABLE, 0);
+		SetReflectionRenderState(D3DRENDERSTATE_STENCILENABLE, 0);
 	}
 }
 
 
 // ---- (merged from the scratch unit w2scratch/drawB) ----
 // Prototypes of functions of other parts / units (identical to the declarations the other units use).
-int FUN_100161e0(float *pVerts, int nMask);					// 0x100161e0 (scratch unit scene): clips the 2 TL vertices of a line
+int d3d_ClipTLVertexLine(float *pVerts, int nMask);					// 0x100161e0 (scratch unit scene): clips the 2 TL vertices of a line
 void ProjectVertexToScreen(float *pVert, const void *pViewParams);	// 0x10008895 (unit unk/10007930)
 
 // d3d_DrawLine expands ProjectVertexToScreen (camera space -> screen space, out-of-line copy in unit unk/10007930) inline while the other callers in this
@@ -1477,7 +1477,7 @@ inline void ProjectVertexToScreen_inline(float *pVert, const void *pViewParams)
 	pVert[2] = (pView->m_fProjZScale * pVert[2] + pView->m_fProjZOffset) * pVert[3];
 }
 
-// ---- FUN_100161e0: clips the 3D line of two TL vertices ---------------------------------------------------------------------------
+// ---- d3d_ClipTLVertexLine: clips the 3D line of two TL vertices ---------------------------------------------------------------------------
 // Jupiter's clipline.h (the line version of polyclip.h) expanded once per plane with CLIPTEST/DOCLIP; the exe's ClipExtra (Jupiter polyclip.h
 // TLVertex::ClipExtra: interpolates tu, tv and the colour bytes r, g, b, a and the specular alpha) is expanded inline each time.
 static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t)
@@ -1570,7 +1570,7 @@ static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVe
 //   Tried: channel order permutations (rgbas is the best), macro instead of inline ClipExtra (669 bytes), int locals / byte-through-color forms of the alpha line,
 //   swapped sum order, dummy early references to x/y/z.
 // STUB: D3DREN 0x100161e0
-int FUN_100161e0(float *pVertsRaw, int nMask)
+int d3d_ClipTLVertexLine(float *pVertsRaw, int nMask)
 {
 	TLVertex *pVerts = (TLVertex *)pVertsRaw;
 	TLVertex *pOut;
@@ -1618,7 +1618,7 @@ void d3d_DrawLine(LTVector vSrc, LTVector vDest, uint32 color1, uint32 color2)
 	verts[1].color = color2;
 	verts[1].specular = 0xffffffff;
 
-	if (FUN_100161e0(&verts[0].sx, 0x3f))
+	if (d3d_ClipTLVertexLine(&verts[0].sx, 0x3f))
 	{
 		ProjectVertexToScreen_inline(&verts[0].sx, &g_ViewParams);
 		{
@@ -1638,7 +1638,7 @@ void d3d_DrawLine(LTVector vSrc, LTVector vDest, uint32 color1, uint32 color2)
 // Matching source form for the last edge's inline expansion.  The target keeps the matrix projection and screen projection
 // calls out of line in this expansion; this scoped compiler control preserves that call depth.
 #pragma inline_depth(0)
-inline void FUN_100173e0_inline(LTVector vSrc, LTVector vDest, uint32 color1, uint32 color2)
+inline void DrawWireframeBoxEdgeInline(LTVector vSrc, LTVector vDest, uint32 color1, uint32 color2)
 {
 	D3DTLVERTEX verts[2];
 
@@ -1648,7 +1648,7 @@ inline void FUN_100173e0_inline(LTVector vSrc, LTVector vDest, uint32 color1, ui
 	MatVMul_H((LTVector *)&verts[1].sx, &g_ViewParams.m_mClipTransform, &vDest);
 	verts[1].color = color2;
 	verts[1].specular = 0xffffffff;
-	if (FUN_100161e0(&verts[0].sx, 0x3f))
+	if (d3d_ClipTLVertexLine(&verts[0].sx, 0x3f))
 	{
 		ProjectVertexToScreen(&verts[0].sx, &g_ViewParams);
 		ProjectVertexToScreen(&verts[1].sx, &g_ViewParams);
@@ -1677,7 +1677,7 @@ void d3d_DrawWireframeBox(const LTVector &Min, const LTVector &Max, uint32 color
 	d3d_DrawLine(LTVector(Min.x, Min.y, Min.z), LTVector(Min.x, Max.y, Min.z), color, color);
 	d3d_DrawLine(LTVector(Max.x, Min.y, Min.z), LTVector(Max.x, Max.y, Min.z), color, color);
 	d3d_DrawLine(LTVector(Max.x, Min.y, Max.z), LTVector(Max.x, Max.y, Max.z), color, color);
-	FUN_100173e0_inline(LTVector(Min.x, Min.y, Max.z), LTVector(Min.x, Max.y, Max.z), color, color);
+	DrawWireframeBoxEdgeInline(LTVector(Min.x, Min.y, Max.z), LTVector(Min.x, Max.y, Max.z), color, color);
 }
 
 // Recurses and renders the world tree nodes down to depth iMaxDepth.
@@ -1703,12 +1703,12 @@ void d3d_DrawWorldTree_R(WorldTreeNode *pNode, uint32 iDepth, uint32 iMaxDepth)
 // FUNCTION: D3DREN 0x10016180 ??DLTMatrix@@QAE?AV0@AAV0@@Z
 
 
-// guess: the mirror pass hook (stored in DAT_1006cd70 by d3d_RenderScene for the duration of d3d_FullDrawScene): runs the mirror pass for the
+// guess: the mirror pass hook (stored in g_pfnDrawVisibleReflections by d3d_RenderScene for the duration of d3d_FullDrawScene): runs the mirror pass for the
 // current scene through the mirror pass above.
 // FUNCTION: D3DREN 0x100161c0
-void FUN_100161c0()
+void d3d_DrawVisibleReflections()
 {
-	FUN_10015820(g_pSceneDesc, d3d_GetVisibleSet());
+	d3d_DrawReflectedWorldScenes(g_pSceneDesc, d3d_GetVisibleSet());
 }
 
 // ---- (merged from the scratch unit w2scratch/scene) ----
@@ -1720,7 +1720,7 @@ void d3d_DrawWireframeBox(const LTVector &Min, const LTVector &Max, uint32 color
 // The original unbinds the normal stage through d3d_DisableTexture, caching the stage across SetTexture.
 // Its debug colour is the sum of the section and BSP addresses (add esi,edi at 0x10017a35).
 // FUNCTION: D3DREN 0x10017980
-void FUN_10017980(MainWorld *pWorld)
+void d3d_DrawTerrainSectionBounds(MainWorld *pWorld)
 {
 	struct { D3DRENDERSTATETYPE m_Type; DWORD m_Val; } saved;
 	uint32 i;
@@ -1753,90 +1753,90 @@ void FUN_10017980(MainWorld *pWorld)
 
 // ---- d3d_RenderScene ------------------------------------------------------------------------------------------------------------------
 // GLOBAL: D3DREN 0x1005a378
-int DAT_1005a378;				// guess: the RenderToFront value the surfaces were last swapped for (0 after the module init)
+int g_nLastRenderToFront;				// guess: the RenderToFront value the surfaces were last swapped for (0 after the module init)
 // GLOBAL: D3DREN 0x10058474
-int DAT_10058474;				// guess: the light falloff table was built (cleared at module init)
+int g_bLightFalloffTableInitialized;				// guess: the light falloff table was built (cleared at module init)
 // GLOBAL: D3DREN 0x10057c94
-float DAT_10057c94;				// guess: the scale the falloff table was built for
+float g_fLightFalloffTableSaturation;				// guess: the scale the falloff table was built for
 // GLOBAL: D3DREN 0x10052f9c
-float DAT_10052f9c;				// guess: environment map pan offset u (EnvPanSpeed * camera x + 0.5)
+float g_fEnvPanUOffset;				// guess: environment map pan offset u (EnvPanSpeed * camera x + 0.5)
 // GLOBAL: D3DREN 0x10052fa0
-float DAT_10052fa0;				// guess: same, v (camera z)
+float g_fEnvPanVOffset;				// guess: same, v (camera z)
 // GLOBAL: D3DREN 0x10052fa4
-float DAT_10052fa4;				// guess: environment map scale u (stored twice)
+float g_fEnvMapUScale;				// guess: environment map scale u (stored twice)
 // GLOBAL: D3DREN 0x10052fa8
-float DAT_10052fa8;				// guess: environment map scale v
+float g_fEnvMapVScale;				// guess: environment map scale v
 // GLOBAL: D3DREN 0x100587f0
-LTVector DAT_100587f0;			// guess: the negated global light direction (g_pStruct->m_GlobalLightDir)
+LTVector g_vNegatedGlobalLightDirection;			// guess: the negated global light direction (g_pStruct->m_GlobalLightDir)
 // GLOBAL: D3DREN 0x100578a0
-float DAT_100578a0;				// guess: FogFarZ - FogNearZ
+float g_fFogDepthRange;				// guess: FogFarZ - FogNearZ
 // GLOBAL: D3DREN 0x10057a58
-float DAT_10057a58;				// guess: the warble value the warble table was built for
+float g_fWarbleTableScale;				// guess: the warble value the warble table was built for
 
 // GLOBAL: D3DREN 0x1005ce18
-extern int DAT_1005ce18;
+extern int g_bPortalsEnabled;
 // GLOBAL: D3DREN 0x10058cdc
-extern int DAT_10058cdc;
+extern int g_nUnclippedModelsDrawn;
 // GLOBAL: D3DREN 0x100587e0
-extern int DAT_100587e0;
+extern int g_nClippedModelsDrawn;
 // GLOBAL: D3DREN 0x100561f8
-extern LTVector DAT_100561f8;	// guess: the global light scale (SceneDesc +0x50, "GlobalLightScale")
+extern LTVector g_GlobalLightScale;	// guess: the global light scale (SceneDesc +0x50, "GlobalLightScale")
 // GLOBAL: D3DREN 0x1005a330
-extern int DAT_1005a330;
+extern int g_nLastColorTableVertexTint;
 // GLOBAL: D3DREN 0x10055ce8
-extern LTVector DAT_10055ce8;	// guess: colour scale of the model lighting
+extern LTVector g_GlobalVertexTint;	// guess: colour scale of the model lighting
 // GLOBAL: D3DREN 0x10059d04
-extern uint8 DAT_10059d04[256];	// guess: red lighting table (multipass / dynamic light pass); the next two are green and blue
+extern uint8 g_MultipassVertexTintTableR[256];	// guess: red lighting table (multipass / dynamic light pass); the next two are green and blue
 // GLOBAL: D3DREN 0x10059e04
-extern uint8 DAT_10059e04[256];
+extern uint8 g_MultipassVertexTintTableG[256];
 // GLOBAL: D3DREN 0x10059f04
-extern uint8 DAT_10059f04[256];
+extern uint8 g_MultipassVertexTintTableB[256];
 // GLOBAL: D3DREN 0x1005a004
-extern uint8 DAT_1005a004[256];	// guess: red lighting table
+extern uint8 g_VertexTintTableR[256];	// guess: red lighting table
 // GLOBAL: D3DREN 0x1005a104
-extern uint8 DAT_1005a104[256];
+extern uint8 g_VertexTintTableG[256];
 // GLOBAL: D3DREN 0x1005a204
-extern uint8 DAT_1005a204[256];
+extern uint8 g_VertexTintTableB[256];
 // GLOBAL: D3DREN 0x1006cd70
-extern void (*DAT_1006cd70)();	// guess: optional callback run after the solid objects (RenderScene sets it)
+extern void (*g_pfnDrawVisibleReflections)();	// guess: optional callback run after the solid objects (RenderScene sets it)
 void __fastcall d3d_NullPreFrameCallback(LTVector *pPos, uint32 *pSpecular);	// 0x1002cc80: the table fog hook
 // GLOBAL: D3DREN 0x10057794
-extern int DAT_10057794;
+extern int g_nTextureChanges;
 // GLOBAL: D3DREN 0x10056280
-extern int DAT_10056280;
+extern int g_nTextureUploads;
 // GLOBAL: D3DREN 0x10056688
-extern int DAT_10056688;
+extern int g_nWorldPolysProcessed;
 // GLOBAL: D3DREN 0x100566cc
-extern int DAT_100566cc;
+extern int g_nLightTests;
 // GLOBAL: D3DREN 0x10056214
-extern int DAT_10056214;
+extern int g_nLitPolies;
 // GLOBAL: D3DREN 0x10056278
-extern int DAT_10056278;
+extern int g_nDynamicLightmapsRefreshed;
 // GLOBAL: D3DREN 0x10055cd8
-extern int DAT_10055cd8;
+extern int g_nParticlesDrawn;
 // GLOBAL: D3DREN 0x10055cf4
-extern int DAT_10055cf4;
+extern int g_nVisibleLeaves;
 // GLOBAL: D3DREN 0x100566b8
-extern int DAT_100566b8;
+extern int g_nSkyPortals;
 // GLOBAL: D3DREN 0x10056270
-extern int DAT_10056270;
+extern int g_nSkyPolyFragments;
 // GLOBAL: D3DREN 0x10056218
 extern uint32 g_nNumObjectDynamicLights;
 // GLOBAL: D3DREN 0x10056690
-extern int DAT_10056690;
+extern int g_nRejectedPolyLightTests;
 // GLOBAL: D3DREN 0x10055cdc
-extern int DAT_10055cdc;
+extern int g_nTextureUploadSaves;
 // GLOBAL: D3DREN 0x100584e4
-extern int DAT_100584e4;
+extern int g_bWarbleTableInitialized;
 // GLOBAL: D3DREN 0x10053278
-extern float DAT_10053278;	// guess: warble phase
+extern float g_fModelWarblePhase;	// guess: warble phase
 // GLOBAL: D3DREN 0x10054870
-extern float DAT_10054870;	// guess: warble fraction
-void FUN_1000b6cd();	// 0x1000b6cd: fills the warble tables
+extern float g_fModelWarbleFraction;	// guess: warble fraction
+void d3d_BuildModelWarbleTables();	// 0x1000b6cd: fills the warble tables
 int CanDrawPortals();
-void FUN_100161c0();
+void d3d_DrawVisibleReflections();
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk);
-void FUN_100329d0(float fScale);
+void InitLightFalloffScaleTable(float fScale);
 
 // guess: one channel of the lightmap colour tables: table[i] = min(i * fScale, 255) with 16.16 fixed point accumulation
 // (the exe expands this nine times).
@@ -1861,7 +1861,7 @@ static inline void BuildColorTable(uint8 *pTable, float fStep)
 // STUB diagnosis (W2): first transcription from the disassembly, 2624 of 2640 bytes (1358 differ, the exe's order of calls, strings, constants and branches is
 //   the same).  Known differences: (1) our frame is 0x5044, the exe's 0x5040: the exe shares the 12-byte temporary of `-g_pStruct->m_GlobalLightDir` and the
 //   8-byte saved ZENABLE state, ours does not; (2) the DrawPortals / CanDrawPortals block: the exe keeps the constant 1 in edi (`mov edi,1` before the call,
-//   `mov [DAT_1005ce18],edi`) and loads g_CV_DrawPortals into eax first; (3) the three light scale compares: the exe branches on a<b (`fld a; fcomp b; test ah,1`),
+//   `mov [g_bPortalsEnabled],edi`) and loads g_CV_DrawPortals into eax first; (3) the three light scale compares: the exe branches on a<b (`fld a; fcomp b; test ah,1`),
 //   fabsf gives fabs, and a hand-written a<b / b<=a helper inflates the function to 2720 bytes; the rest follows from these shifts.  The strings
 //   "ShowTexInfo ----------------------------" (28 dashes) and "ModelProfile: %d clipped, %d unclipped" were checked against the DLL's bytes (file offsets 0x48e0c / 0x48e38).
 // STUB: D3DREN 0x10017aa0
@@ -1880,7 +1880,7 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		return 0;
 	}
 
-	if (g_CV_RenderToFront.m_IntVal != DAT_1005a378)
+	if (g_CV_RenderToFront.m_IntVal != g_nLastRenderToFront)
 	{
 		IDirectDrawSurface7 *pOld = g_pOffscreen;
 
@@ -1889,124 +1889,124 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		g_pOffscreen->AddAttachedSurface(g_pZBuffer);
 		g_pBackBuffer->DeleteAttachedSurface(0, g_pZBuffer);
 		g_pD3DDevice->SetRenderTarget(g_pOffscreen, 0);
-		DAT_1005a378 = g_CV_RenderToFront.m_IntVal;
+		g_nLastRenderToFront = g_CV_RenderToFront.m_IntVal;
 	}
 
 	if (g_CV_DrawPortals.m_IntVal)
 	{
 		int bPortals = CanDrawPortals();
 
-		DAT_1005ce18 = 1;
+		g_bPortalsEnabled = 1;
 		if (!bPortals)
-			DAT_1005ce18 = 0;
+			g_bPortalsEnabled = 0;
 	}
 	else
-		DAT_1005ce18 = 0;
+		g_bPortalsEnabled = 0;
 
-	if (!DAT_10058474 || g_LightSaturate != DAT_10057c94)
+	if (!g_bLightFalloffTableInitialized || g_LightSaturate != g_fLightFalloffTableSaturation)
 	{
-		FUN_100329d0(g_LightSaturate);
-		DAT_10057c94 = g_LightSaturate;
-		DAT_10058474 = 1;
+		InitLightFalloffScaleTable(g_LightSaturate);
+		g_fLightFalloffTableSaturation = g_LightSaturate;
+		g_bLightFalloffTableInitialized = 1;
 	}
 
-	DAT_10052f9c = g_EnvPanSpeed * pDesc->m_Pos.x + 0.5f;
-	DAT_10058cdc = 0;
-	DAT_100587e0 = 0;
-	DAT_10052fa0 = g_EnvPanSpeed * pDesc->m_Pos.z + 0.5f;
-	DAT_10052fa4 = (1.0f / g_EnvScale) * 0.5f;
-	DAT_10052fa8 = DAT_10052fa4;
-	DAT_100587f0 = -g_pStruct->m_GlobalLightDir;
+	g_fEnvPanUOffset = g_EnvPanSpeed * pDesc->m_Pos.x + 0.5f;
+	g_nUnclippedModelsDrawn = 0;
+	g_nClippedModelsDrawn = 0;
+	g_fEnvPanVOffset = g_EnvPanSpeed * pDesc->m_Pos.z + 0.5f;
+	g_fEnvMapUScale = (1.0f / g_EnvScale) * 0.5f;
+	g_fEnvMapVScale = g_fEnvMapUScale;
+	g_vNegatedGlobalLightDirection = -g_pStruct->m_GlobalLightDir;
 
 	if (d3d_InitFrame(pDesc, (TLVertex *)aScratch, 0x5000))
 	{
-		DAT_10058c40 = FUN_10013560;
-		DAT_10058620 = (1.0f / (g_SkyFogFarZ - g_SkyFogNearZ)) * 255.0f;
-		DAT_100578a0 = g_FogFarZ - g_FogNearZ;
-		DAT_10057990 = (1.0f / DAT_100578a0) * 255.0f;
+		g_pfnCalcSkyFogAlpha = d3d_CalcSkyFogAlpha;
+		g_fSkyFogAlphaScale = (1.0f / (g_SkyFogFarZ - g_SkyFogNearZ)) * 255.0f;
+		g_fFogDepthRange = g_FogFarZ - g_FogNearZ;
+		g_fFogAlphaScale = (1.0f / g_fFogDepthRange) * 255.0f;
 
 		if (g_CV_TableFog.m_IntVal)
 			g_pfnCalcFogAlpha = d3d_NullPreFrameCallback;
 		else if (g_CV_VFog.m_IntVal)
 		{
 			g_fVFogValueRange = g_CV_VFogMaxYVal.m_FloatVal - g_CV_VFogMinYVal.m_FloatVal;
-			g_pfnCalcFogAlpha = FUN_100135c0;
+			g_pfnCalcFogAlpha = d3d_CalcVerticalFogAlpha;
 			g_fInvVFogHeightRange = 1.0f / (g_CV_VFogMaxY.m_FloatVal - g_CV_VFogMinY.m_FloatVal);
 			g_fVFogDensityScale = 255.0f / g_CV_VFogDensity.m_FloatVal;
 		}
 		else
-			g_pfnCalcFogAlpha = FUN_100134b0;
+			g_pfnCalcFogAlpha = d3d_CalcDistanceFogAlpha;
 
-		if (fabsf(DAT_100561f8.x - DAT_1005a338.x) > 0.001f ||
-			fabsf(DAT_100561f8.y - DAT_1005a338.y) > 0.001f ||
-			fabsf(DAT_100561f8.z - DAT_1005a338.z) > 0.001f ||
-			*(uint32 *)&DAT_100566bc != (uint32)DAT_1005a330)
+		if (fabsf(g_GlobalLightScale.x - g_vLastColorTableLightScale.x) > 0.001f ||
+			fabsf(g_GlobalLightScale.y - g_vLastColorTableLightScale.y) > 0.001f ||
+			fabsf(g_GlobalLightScale.z - g_vLastColorTableLightScale.z) > 0.001f ||
+			*(uint32 *)&g_GlobalVertexTintColor != (uint32)g_nLastColorTableVertexTint)
 		{
 			if (g_Saturate)
 			{
-				BuildColorTable(DAT_10059d04, (DAT_10055ce8.x + DAT_10055ce8.x) * 65536.0f);
-				BuildColorTable(DAT_10059e04, (DAT_10055ce8.y + DAT_10055ce8.y) * 65536.0f);
-				BuildColorTable(DAT_10059f04, (DAT_10055ce8.z + DAT_10055ce8.z) * 65536.0f);
+				BuildColorTable(g_MultipassVertexTintTableR, (g_GlobalVertexTint.x + g_GlobalVertexTint.x) * 65536.0f);
+				BuildColorTable(g_MultipassVertexTintTableG, (g_GlobalVertexTint.y + g_GlobalVertexTint.y) * 65536.0f);
+				BuildColorTable(g_MultipassVertexTintTableB, (g_GlobalVertexTint.z + g_GlobalVertexTint.z) * 65536.0f);
 			}
 			else
 			{
-				BuildColorTable(DAT_10059d04, DAT_10055ce8.x * 65536.0f);
-				BuildColorTable(DAT_10059e04, DAT_10055ce8.y * 65536.0f);
-				BuildColorTable(DAT_10059f04, DAT_10055ce8.z * 65536.0f);
+				BuildColorTable(g_MultipassVertexTintTableR, g_GlobalVertexTint.x * 65536.0f);
+				BuildColorTable(g_MultipassVertexTintTableG, g_GlobalVertexTint.y * 65536.0f);
+				BuildColorTable(g_MultipassVertexTintTableB, g_GlobalVertexTint.z * 65536.0f);
 			}
-			BuildColorTable(DAT_1005a004, DAT_10055ce8.x * 65536.0f);
-			BuildColorTable(DAT_1005a104, DAT_10055ce8.y * 65536.0f);
-			BuildColorTable(DAT_1005a204, DAT_10055ce8.z * 65536.0f);
-			DAT_1005a338.x = DAT_100561f8.x;
-			DAT_1005a338.y = DAT_100561f8.y;
-			DAT_1005a338.z = DAT_100561f8.z;
-			DAT_1005a330 = *(uint32 *)&DAT_100566bc;
+			BuildColorTable(g_VertexTintTableR, g_GlobalVertexTint.x * 65536.0f);
+			BuildColorTable(g_VertexTintTableG, g_GlobalVertexTint.y * 65536.0f);
+			BuildColorTable(g_VertexTintTableB, g_GlobalVertexTint.z * 65536.0f);
+			g_vLastColorTableLightScale.x = g_GlobalLightScale.x;
+			g_vLastColorTableLightScale.y = g_GlobalLightScale.y;
+			g_vLastColorTableLightScale.z = g_GlobalLightScale.z;
+			g_nLastColorTableVertexTint = *(uint32 *)&g_GlobalVertexTintColor;
 		}
 
-		DAT_1005a308 = 0;
-		DAT_10058c90 = 0;
-		DAT_10058c68 = 0;
-		DAT_100587e4 = 0;
+		g_pTexturedWorldPolyBuckets = 0;
+		g_pMultipassWorldPolyBuckets = 0;
+		g_pFlatWorldPolyQueue = 0;
+		g_nQueuedWorldPolyVertices = 0;
 		*(uint32 *)&g_pStruct->m_Pad48[4] = 0;
 		*(uint32 *)&g_pStruct->m_Pad48[0] = 0;
 
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, g_Wireframe ? D3DFILL_WIREFRAME : D3DFILL_SOLID);
 		if (!g_CV_ShowPortalBounds.m_IntVal)
 		{
-			DAT_1006cd70 = FUN_100161c0;
+			g_pfnDrawVisibleReflections = d3d_DrawVisibleReflections;
 			d3d_FullDrawScene(pDesc);
-			DAT_1006cd70 = 0;
+			g_pfnDrawVisibleReflections = 0;
 		}
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID);
 
 		if (g_ShowTextureCounts)
 		{
-			AddDebugMessage(0, "Texture changes: %d", DAT_10057794);
-			AddDebugMessage(0, "Texture uploads: %d", DAT_10056280);
+			AddDebugMessage(0, "Texture changes: %d", g_nTextureChanges);
+			AddDebugMessage(0, "Texture uploads: %d", g_nTextureUploads);
 		}
 
 		if (g_ShowPolyCounts)
 		{
-			g_pStruct->ConsolePrint("World Polies Processed: %d", DAT_10056688);
-			g_pStruct->ConsolePrint("World Polies Drawn: %d", DAT_100566ac);
-			g_pStruct->ConsolePrint("Num Light Tests: %d", DAT_100566cc);
-			g_pStruct->ConsolePrint("Num Lit Polies: %d (textured and uploaded: %d)", DAT_10056214, DAT_10056278);
-			g_pStruct->ConsolePrint("Model triangles drawn: %d", DAT_1005626c);
-			g_pStruct->ConsolePrint("Particles drawn: %d", DAT_10055cd8);
-			g_pStruct->ConsolePrint("Num Clip Tests: %d", DAT_1005668c);
-			g_pStruct->ConsolePrint("Visible Leaves: %d", DAT_10055cf4);
-			g_pStruct->ConsolePrint("Sky Portals: %d", DAT_100566b8);
-			g_pStruct->ConsolePrint("Sky Polies (fragments): %d", DAT_10056270);
+			g_pStruct->ConsolePrint("World Polies Processed: %d", g_nWorldPolysProcessed);
+			g_pStruct->ConsolePrint("World Polies Drawn: %d", g_nWorldPolysDrawn);
+			g_pStruct->ConsolePrint("Num Light Tests: %d", g_nLightTests);
+			g_pStruct->ConsolePrint("Num Lit Polies: %d (textured and uploaded: %d)", g_nLitPolies, g_nDynamicLightmapsRefreshed);
+			g_pStruct->ConsolePrint("Model triangles drawn: %d", g_nModelTrianglesDrawn);
+			g_pStruct->ConsolePrint("Particles drawn: %d", g_nParticlesDrawn);
+			g_pStruct->ConsolePrint("Num Clip Tests: %d", g_nPlaneClipTests);
+			g_pStruct->ConsolePrint("Visible Leaves: %d", g_nVisibleLeaves);
+			g_pStruct->ConsolePrint("Sky Portals: %d", g_nSkyPortals);
+			g_pStruct->ConsolePrint("Sky Polies (fragments): %d", g_nSkyPolyFragments);
 			g_pStruct->ConsolePrint("Portals: %d", d3d_GetVisibleSet()->m_nUnk140);
-			g_pStruct->ConsolePrint("Visible lights: %d, rejected: %d", g_nNumObjectDynamicLights, DAT_10056690);
-			g_pStruct->ConsolePrint("Texture upload saves: %d", DAT_10055cdc);
-			g_pStruct->ConsolePrint("Triangles: %d", DAT_100566b0);
+			g_pStruct->ConsolePrint("Visible lights: %d, rejected: %d", g_nNumObjectDynamicLights, g_nRejectedPolyLightTests);
+			g_pStruct->ConsolePrint("Texture upload saves: %d", g_nTextureUploadSaves);
+			g_pStruct->ConsolePrint("Triangles: %d", g_nPolygonTriangles);
 		}
 
 		if (g_ShowFillInfo)
 		{
-			g_pStruct->ConsolePrint("Tri area drawn: %.3f", DAT_10056694);
-			g_pStruct->ConsolePrint("Overdraw: %.3f", DAT_10056694 / (float)((g_ViewParams.m_Rect.bottom - g_ViewParams.m_Rect.top) * (g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left)));
+			g_pStruct->ConsolePrint("Tri area drawn: %.3f", g_fScreenTriangleArea);
+			g_pStruct->ConsolePrint("Overdraw: %.3f", g_fScreenTriangleArea / (float)((g_ViewParams.m_Rect.bottom - g_ViewParams.m_Rect.top) * (g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left)));
 		}
 
 		if (g_CV_ShowTexInfo.m_IntVal)
@@ -2029,10 +2029,10 @@ int d3d_RenderScene(SceneDesc *pDesc)
 	}
 
 	// Draw the world tree?
-	if ((int)g_CV_DrawWorldTree.m_IntVal > -1 && DAT_10056770)
+	if ((int)g_CV_DrawWorldTree.m_IntVal > -1 && g_pFrameMainWorld)
 	{
 		int nDepth = g_CV_DrawWorldTree.m_IntVal;
-		WorldTreeNode *pTree = DAT_10056770->m_WorldTree.GetRootNode();
+		WorldTreeNode *pTree = g_pFrameMainWorld->m_WorldTree.GetRootNode();
 		struct { D3DRENDERSTATETYPE m_Type; DWORD m_Val; } saved;
 		uint32 i;
 
@@ -2053,70 +2053,70 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		g_pD3DDevice->SetRenderState(saved.m_Type, saved.m_Val);
 	}
 
-	if (g_CV_DrawTerrainSections.m_IntVal && DAT_10056770)
-		FUN_10017980(DAT_10056770);
+	if (g_CV_DrawTerrainSections.m_IntVal && g_pFrameMainWorld)
+		d3d_DrawTerrainSectionBounds(g_pFrameMainWorld);
 
 	d3d_NullCallback();
 
-	if (!DAT_100584e4 || g_WarbleScale != DAT_10057a58)
+	if (!g_bWarbleTableInitialized || g_WarbleScale != g_fWarbleTableScale)
 	{
 		AddDebugMessage(9, "Rebuilding warble table");
-		FUN_1000b6cd();
-		DAT_100584e4 = 1;
-		DAT_10057a58 = g_WarbleScale;
+		d3d_BuildModelWarbleTables();
+		g_bWarbleTableInitialized = 1;
+		g_fWarbleTableScale = g_WarbleScale;
 	}
 
-	DAT_10053278 = g_WarbleSpeed * g_pSceneDesc->m_FrameTime + DAT_10053278;
-	DAT_10054870 = DAT_10053278 - (float)floor(DAT_10053278);
+	g_fModelWarblePhase = g_WarbleSpeed * g_pSceneDesc->m_FrameTime + g_fModelWarblePhase;
+	g_fModelWarbleFraction = g_fModelWarblePhase - (float)floor(g_fModelWarblePhase);
 
 	if (g_ModelProfile)
-		g_pStruct->ConsolePrint("ModelProfile: %d clipped, %d unclipped", DAT_100587e0, DAT_10058cdc);
+		g_pStruct->ConsolePrint("ModelProfile: %d clipped, %d unclipped", g_nClippedModelsDrawn, g_nUnclippedModelsDrawn);
 
-	DAT_10058728++;
+	g_nRenderScenesSinceClear++;
 	return 0;
 }
 
 // ---- (merged from the scratch unit w2scratch/stl) ----
 // Callees of other units (names with provenance: struct_bank.h sb_Init/sb_Init2/sb_Term from the StdLith library objects at 0x1003b520...).
-void FUN_10010800();	// unit sys/d3d/common_stuff: inits the three struct banks at 0x10056220/0x10056240/0x10057778
-void FUN_1001083a();	// ... and tears them down
+void d3d_InitLitPolyPools();	// unit sys/d3d/common_stuff: inits the three struct banks at 0x10056220/0x10056240/0x10057778
+void d3d_TermLitPolyPools();	// ... and tears them down
 
 // GLOBAL: D3DREN 0x10058648
-extern StructBank DAT_10058648;		// guess: the 0x100-byte-element pool
+extern StructBank g_PolyDrawBlockBank;		// guess: the 0x100-byte-element pool
 // GLOBAL: D3DREN 0x10058800
-extern uint32 DAT_10058800;
+extern uint32 g_PolyDrawPoolResetValue;
 // GLOBAL: D3DREN 0x1005a330
-extern int DAT_1005a330;
+extern int g_nLastColorTableVertexTint;
 
 // guess: initialises the pools the poly drawing code allocates its queue nodes and buckets from.
 // FUNCTION: D3DREN 0x100184f0
 void d3d_InitPolyDrawPools()
 {
-	FUN_10010800();
-	DAT_10058800 = 0;
-	sb_Init(&DAT_10058648, 0x100, 0x10);
-	sb_Init(&DAT_10058c98, 0xc, 100);
-	sb_Init2(&DAT_10058758, 0x18, 0x80, 0x300);
-	DAT_100587fc = 0;
-	DAT_1005a330 = 0;
+	d3d_InitLitPolyPools();
+	g_PolyDrawPoolResetValue = 0;
+	sb_Init(&g_PolyDrawBlockBank, 0x100, 0x10);
+	sb_Init(&g_WorldPolyBucketBank, 0xc, 100);
+	sb_Init2(&g_WorldPolyNodeBank, 0x18, 0x80, 0x300);
+	g_pQueuedWorldPolyVertices = 0;
+	g_nLastColorTableVertexTint = 0;
 }
 
 // guess: tears the pools down again.
 // FUNCTION: D3DREN 0x10018550
 void d3d_TermPolyDrawPools()
 {
-	FUN_1001083a();
-	sb_Term(&DAT_10058648);
-	sb_Term(&DAT_10058c98);
-	sb_Term(&DAT_10058758);
-	if (DAT_100587fc)
+	d3d_TermLitPolyPools();
+	sb_Term(&g_PolyDrawBlockBank);
+	sb_Term(&g_WorldPolyBucketBank);
+	sb_Term(&g_WorldPolyNodeBank);
+	if (g_pQueuedWorldPolyVertices)
 	{
-		dfree(DAT_100587fc);
-		DAT_100587fc = 0;
+		dfree(g_pQueuedWorldPolyVertices);
+		g_pQueuedWorldPolyVertices = 0;
 	}
 }
 
-// Look-up tables (lightmap.h, package W9): DAT_10092168 saturating add (index = a + b, 0..0x1ff), DAT_10082168 multiplication (index = a * 0x100 + b).
+// Look-up tables (lightmap.h, package W9): g_ByteSaturatingAddTable saturating add (index = a + b, 0..0x1ff), g_ByteMultiplyTable multiplication (index = a * 0x100 + b).
 
 // guess: adds the per-vertex colours of the light animation frames (blended by m_PercentBetween) of one poly to the vertex colours of
 // pPolyData (0x18-byte poly vertices, colour bytes at +0x14/+0x15/+0x16); returns 0 when the poly index is outside the animation.
@@ -2125,7 +2125,7 @@ void d3d_TermPolyDrawPools()
 //   nPolyData differs (exe: `mov al,[f0+0x14]; mov dl,[f1+0x14]; cmp al,dl; mov cl,al; jb; mov cl,dl` then the compare with nPolyData against ecx; ours compares per
 //   byte first), which shifts the register allocation of both loops (the exe keeps the count in edi and the table byte reads as `mov dl,[ebx+edx+0x10092168]`).
 // STUB: D3DREN 0x100185a0
-int FUN_100185a0(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef)
+int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef)
 {
 	LAPolyRef *pPolyRef = (LAPolyRef *)pRef;
 	uint8 percent;
@@ -2151,9 +2151,9 @@ int FUN_100185a0(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pR
 	{
 		for (i = 0; i < nPolyData; i++, pColor += 0x18)
 		{
-			pColor[2] = DAT_10092168.m_Unk00[pColor[2] + pFrame0->m_pVertR[i]];
-			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + pFrame0->m_pVertG[i]];
-			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + pFrame0->m_pVertB[i]];
+			pColor[2] = g_ByteSaturatingAddTable.m_Unk00[pColor[2] + pFrame0->m_pVertR[i]];
+			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + pFrame0->m_pVertG[i]];
+			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + pFrame0->m_pVertB[i]];
 		}
 	}
 	else
@@ -2162,9 +2162,9 @@ int FUN_100185a0(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pR
 
 		for (i = 0; i < nPolyData; i++, pColor += 0x18)
 		{
-			pColor[2] = DAT_10092168.m_Unk00[pColor[2] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + DAT_10082168.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
-			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
-			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
+			pColor[2] = g_ByteSaturatingAddTable.m_Unk00[pColor[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
+			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
+			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
 		}
 	}
 	return 1;
@@ -2199,7 +2199,7 @@ int FUN_100185a0(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pR
 // without changing those callers; remove this stand-in once a recovered caller emits them naturally.
 #pragma inline_depth(0)
 // STANDIN: forces the out-of-line RenderState/TextureState vector destructors (not in d3d.ren).
-void FUN_100188e0_standin(std::vector<RenderState> *pRenderStates, std::vector<TextureState> *pTextureStates)
+void EmitStateVectorDestructors(std::vector<RenderState> *pRenderStates, std::vector<TextureState> *pTextureStates)
 {
 	pRenderStates->~vector();
 	pTextureStates->~vector();

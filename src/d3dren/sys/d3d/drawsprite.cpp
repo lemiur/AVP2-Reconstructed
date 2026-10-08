@@ -53,7 +53,7 @@ void d3d_ProcessSprite(LTObject *pObject)
 }
 
 void d3d_DrawSprite(ViewParams *pParams, LTObject *pObject);
-void FUN_1002ea70(ViewParams *pParams, LTObject *pObject);
+void d3d_QueueSprite(ViewParams *pParams, LTObject *pObject);
 
 // NAME: d3d_QueueTranslucentSprites: Jupiter drawsprite.cpp (names_proposal.csv, medium; no arguments in Talon)
 // FUNCTION: D3DREN 0x1002ea40
@@ -62,19 +62,19 @@ void d3d_QueueTranslucentSprites()
 	if (g_DrawSprites)	// the DrawSprites console variable's mirror
 	{
 		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_TranslucentSprites;
-		pSet->Draw(&g_ViewParams, FUN_1002ea70);
+		pSet->Draw(&g_ViewParams, d3d_QueueSprite);
 	}
 }
 
 // guess: BaseObjectSet::Draw callback that queues the sprite in the sorted list of translucent objects
 // FUNCTION: D3DREN 0x1002ea70
-void FUN_1002ea70(ViewParams *pParams, LTObject *pObject)
+void d3d_QueueSprite(ViewParams *pParams, LTObject *pObject)
 {
-	DAT_1006b934->Add(pObject, d3d_DrawSprite);
+	g_pTranslucentObjectDrawList->Add(pObject, d3d_DrawSprite);
 }
 
 // GLOBAL: D3DREN 0x1005c9a0
-extern uint32 DAT_1005c9a0;		// guess: the device's normal D3DRENDERSTATE_ZENABLE value (the no-z sprites restore it)
+extern uint32 g_DefaultZEnableState;		// guess: the device's normal D3DRENDERSTATE_ZENABLE value (the no-z sprites restore it)
 
 // NAME: d3d_DrawNoZSprites: Jupiter drawsprite.cpp (names_proposal.csv, high)
 // FUNCTION: D3DREN 0x1002ea90
@@ -87,7 +87,7 @@ void d3d_DrawNoZSprites()
 		{
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, 0);
 			pSet->Draw(&g_ViewParams, d3d_DrawSprite);
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, DAT_1005c9a0);
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, g_DefaultZEnableState);
 		}
 	}
 }
@@ -188,7 +188,7 @@ void d3d_DrawSprite(ViewParams *pParams, LTObject *pObject)
 // guess: projects nVerts 0x20-byte vertices (x, y, z at +0) through the matrix pMat with the homogeneous divide (the SDK's
 // MatVMul_InPlace_H inline, three sums per component and a temporary); only d3d_DrawRotatableSprite calls it
 // FUNCTION: D3DREN 0x1002eaf0
-void FUN_1002eaf0(TLVertex *pVerts, int nVerts, LTMatrix *pMat)
+void TransformVertexPositionsHomogeneous(TLVertex *pVerts, int nVerts, LTMatrix *pMat)
 {
 	while (nVerts != 0)
 	{
@@ -208,13 +208,13 @@ void FUN_1002eaf0(TLVertex *pVerts, int nVerts, LTMatrix *pMat)
 // ---- d3d_DrawSolidWorldModel ----------------------------------------------------------------------------------------------------------
 
 // GLOBAL: D3DREN 0x10055ce8
-extern LTVector DAT_10055ce8;	// guess: the global light colour (unit unk/10019350 declares it the same way)
+extern LTVector g_GlobalVertexTint;	// guess: the global light colour (unit unk/10019350 declares it the same way)
 
 // ---- d3d_DrawTranslucentWorldPoly ----------------------------------------------------------------------------------------------------
 
 #define WORLDPOLY_LIGHTS(p)	((UnkType_PolyLightRef *)*(uint32 *)((uint8 *)(p) + 0x30))
 // GLOBAL: D3DREN 0x100577b8
-extern uint16 DAT_100577b8;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
+extern uint16 g_CurTextureFrameCode;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
 
 void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x1000c860 (W4, unit unk/1000c860: the light grid lookup)
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
@@ -251,12 +251,12 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 	uint32 nVerts;
 	WorldPoly *pPoly;
 
-	if (!DAT_10056770)
+	if (!g_pFrameMainWorld)
 		return 0;
 
 	// Get the correct poly.
-	if ((hPoly >> 16) < DAT_10056770->m_WorldModels.GetSize() && DAT_10056770->m_WorldModels[hPoly >> 16])
-		pPoly = DAT_10056770->m_WorldModels[hPoly >> 16]->m_pOriginalBsp->GetPolyFromHPoly(hPoly);
+	if ((hPoly >> 16) < g_pFrameMainWorld->m_WorldModels.GetSize() && g_pFrameMainWorld->m_WorldModels[hPoly >> 16])
+		pPoly = g_pFrameMainWorld->m_WorldModels[hPoly >> 16]->m_pOriginalBsp->GetPolyFromHPoly(hPoly);
 	else
 		return 0;
 	if (!pPoly)
@@ -278,7 +278,7 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 		VEC_SUB(vecTo, *pCurPoint->m_Vec, *pPrevPoint->m_Vec);
 		VEC_CROSS(thePlane.m_Normal, vecTo, pPoly->GetPlane()->m_Normal);
 		VEC_NORM(thePlane.m_Normal);
-		DAT_1005668c++;
+		g_nPlaneClipTests++;
 		thePlane.m_Dist = VEC_DOT(thePlane.m_Normal, *pCurPoint->m_Vec);
 
 		{
@@ -355,14 +355,14 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 // guess: transforms the 0x20-byte vertices *ppVerts (*pnVerts of them) to camera space, clips them against the planes of the current
 // clip mask (g_ClipFlags; 0 when nothing is left) and projects them to the screen; the z (and the reciprocal w) is that of the vertex
 // moved fBias along z, but not in front of the near plane (the sprite bias: Jupiter SPRITE_POSITION_ZBIAS).  The fourth argument is not
-// used (the callers pass 0, as for FUN_1000af16, its sibling without the bias).
+// used (the callers pass 0, as for d3d_ClipAndProjectTLVertices, its sibling without the bias).
 // NAME: guess_d3d_ProjectBiasedSpriteVerts (names_proposal.csv, low)
 // STUB diagnosis (W6): 784 vs 800 bytes.  The exe expands MatVMul_InPlace (one temporary: y goes through the stack, x and z stay on the
-// x87 stack, z/x/y term order) in the first loop; ours calls the SDK's out-of-line MatVMul (same finding as W2's FUN_10008719: no
+// x87 stack, z/x/y term order) in the first loop; ours calls the SDK's out-of-line MatVMul (same finding as W2's TransformPositionInPlace: no
 // source form of the SDK call or of an explicit expansion gives the exe's code).  The clip dispatch and the biased projection loop
 // are the exe's.
 // STUB: D3DREN 0x1002f010
-int FUN_1002f010(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int a4, float fBias)
+int ClipAndProjectPolyWithDepthBias(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int a4, float fBias)
 {
 	TLVertex *pVert;
 	int i;
@@ -428,7 +428,7 @@ static inline int SpriteSetTexture(SharedTexture *pTexture, uint32 nStage)
 		return 0;
 
 	pFirst = (RTexture *)pTexture->m_pRenderData;
-	pTexture->m_Unknown30 = DAT_100577b8;
+	pTexture->m_Unknown30 = g_CurTextureFrameCode;
 	for (pRTexture = pFirst; pRTexture; pRTexture = pRTexture->m_Unk30)
 	{
 		if (pRTexture->m_Unk42 == (uint8)nStage)
@@ -457,7 +457,7 @@ static inline int SpriteSetTexture(SharedTexture *pTexture, uint32 nStage)
 				pFirst->m_Unk30 = pRTexture;
 			}
 		}
-		FUN_10007a89(pRTexture);
+		d3d_BindRTexture(pRTexture);
 	}
 
 	if (pRTexture->m_Unk44 != 0)
@@ -476,16 +476,16 @@ static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
 	TLRGB color;
 
 	color.a = pInstance->m_ColorA;
-	if (!(pInstance->m_Flags & FLAG_NOLIGHT) && DAT_10056770)
+	if (!(pInstance->m_Flags & FLAG_NOLIGHT) && g_pFrameMainWorld)
 	{
 		LTRGB lightRGB;
 		LTVector vAdd;
 		LTVector c;
 
-		w_GetLightVal(&DAT_10056770->m_LightTable, &pInstance->m_Pos, &lightRGB);
+		w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &pInstance->m_Pos, &lightRGB);
 		d3d_CalcLightAdd(pInstance, &vAdd);
 
-		c.x = (float)lightRGB.r * 0.003921569f * ((float)pInstance->m_ColorR * DAT_10055ce8.x + vAdd.x);
+		c.x = (float)lightRGB.r * 0.003921569f * ((float)pInstance->m_ColorR * g_GlobalVertexTint.x + vAdd.x);
 		if (c.x >= 0.0f)
 		{
 			if (c.x > 255.0f)
@@ -494,7 +494,7 @@ static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
 		else
 			c.x = 0.0f;
 
-		c.y = (float)lightRGB.g * 0.003921569f * ((float)pInstance->m_ColorG * DAT_10055ce8.y + vAdd.y);
+		c.y = (float)lightRGB.g * 0.003921569f * ((float)pInstance->m_ColorG * g_GlobalVertexTint.y + vAdd.y);
 		if (c.y >= 0.0f)
 		{
 			if (c.y > 255.0f)
@@ -503,7 +503,7 @@ static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
 		else
 			c.y = 0.0f;
 
-		c.z = (float)lightRGB.b * 0.003921569f * ((float)pInstance->m_ColorB * DAT_10055ce8.z + vAdd.z);
+		c.z = (float)lightRGB.b * 0.003921569f * ((float)pInstance->m_ColorB * g_GlobalVertexTint.z + vAdd.z);
 		if (c.z >= 0.0f)
 		{
 			if (c.z > 255.0f)
@@ -518,9 +518,9 @@ static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
 	}
 	else
 	{
-		color.r = (uint8)RoundFloatToInt((float)pInstance->m_ColorR * DAT_10055ce8.x);
-		color.g = (uint8)RoundFloatToInt((float)pInstance->m_ColorG * DAT_10055ce8.y);
-		color.b = (uint8)RoundFloatToInt((float)pInstance->m_ColorB * DAT_10055ce8.z);
+		color.r = (uint8)RoundFloatToInt((float)pInstance->m_ColorR * g_GlobalVertexTint.x);
+		color.g = (uint8)RoundFloatToInt((float)pInstance->m_ColorG * g_GlobalVertexTint.y);
+		color.b = (uint8)RoundFloatToInt((float)pInstance->m_ColorB * g_GlobalVertexTint.z);
 	}
 	return *(uint32 *)&color;
 }
@@ -574,10 +574,10 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 	pBound = (RTexture *)g_pBoundTextures[g_NormalTextureStage];
 	fWidth = (float)pBound->m_Data.GetBaseWidth();
 	fHeight = (float)pBound->m_Data.GetBaseHeight();
-	uMin = DAT_10061810[0].m_Unk00 + DAT_10061810[0].m_Unk00;
-	uMax = (fWidth - 2.0f) * DAT_10061810[0].m_Unk00;
-	vMin = DAT_10061810[0].m_Unk04 + DAT_10061810[0].m_Unk04;
-	vMax = (fHeight - 2.0f) * DAT_10061810[0].m_Unk04;
+	uMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
+	uMax = (fWidth - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
+	vMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
+	vMax = (fHeight - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
 
 	fHalfX = fWidth * pParams->m_fFovXScale * fScaleX;
 	fHalfY = fHeight * pParams->m_fFovYScale * fScaleY;
@@ -701,9 +701,9 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 			}
 		}
 
-		DAT_10063c90.FUN_10021da6();
+		g_TextureStateRestorer.RestoreAllStates();
 		if (pTexture->m_pStateChange)
-			DAT_10063c90.FUN_10021db7(pTexture->m_pStateChange, g_NormalTextureStage);
+			g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
 		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 	}
 
@@ -714,7 +714,7 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 
 // ---- d3d_DrawRotatableSprite ------------------------------------------------------------------------------------------------------------
 
-void FUN_1000d340(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags);	// 0x1000d340 (W4, unit unk/100098d0): DrawPrimitive wrapper
+void d3d_DrawDevicePrimitive(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags);	// 0x1000d340 (W4, unit unk/100098d0): DrawPrimitive wrapper
 
 // the order the four corners of the rotatable sprite are stored in, for a viewer in front of / behind it (two int[4] tables at
 // 0x1004bd9c and 0x1004bdac)
@@ -726,7 +726,7 @@ static int s_CornerOrderBack[4] = { 3, 2, 1, 0 };
 // NAME: d3d_DrawRotatableSprite: Jupiter drawsprite.cpp d3d_DrawRotatableSprite (names_proposal.csv, high): the sprite quad (the size of its
 // texture) is turned by the object rotation and scale, placed at the object position, optionally clipped to a clipper poly
 // (d3d_ClipSprite), projected (with the z bias for FLAG_SPRITEBIAS) and drawn as a fan
-// STUB diagnosis (W6): written from the disassembly: 1824 vs 1760 bytes (the exe's d3d_SetTexture expansion calls FUN_10009350 for the
+// STUB diagnosis (W6): written from the disassembly: 1824 vs 1760 bytes (the exe's d3d_SetTexture expansion calls d3d_FindRTextureForStage for the
 // chain walk and its TL vertex array is built differently); not iterated.
 // STUB: D3DREN 0x1002e310
 void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
@@ -754,9 +754,9 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 	if (!SpriteSetTexture(pTexture, g_NormalTextureStage))
 		return;
 
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 	if (pTexture->m_pStateChange)
-		DAT_10063c90.FUN_10021db7(pTexture->m_pStateChange, g_NormalTextureStage);
+		g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
 
 	pBound = (RTexture *)g_pBoundTextures[g_NormalTextureStage];
 	fWidth = (float)(pBound->m_Data.GetBaseWidth() >> pTexture->m_Unknown3C);
@@ -764,10 +764,10 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 
 	g_pfnCalcFogAlpha(&pInstance->m_Pos, &nSpecular);
 
-	uMin = DAT_10061810[0].m_Unk00 + DAT_10061810[0].m_Unk00;
-	uMax = (fWidth - 2.0f) * DAT_10061810[0].m_Unk00;
-	vMin = DAT_10061810[0].m_Unk04 + DAT_10061810[0].m_Unk04;
-	vMax = (fHeight - 2.0f) * DAT_10061810[0].m_Unk04;
+	uMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
+	uMax = (fWidth - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
+	vMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
+	vMax = (fHeight - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
 
 	d3d_SetupTransformation(&pInstance->m_Pos, (float *)&pInstance->m_Rotation, &pInstance->m_Scale, &mRotation);
 
@@ -817,7 +817,7 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 	aVerts[iVert].tu = uMin;
 	aVerts[iVert].tv = vMax;
 
-	FUN_1002eaf0(aVerts, 4, &mRotation);
+	TransformVertexPositionsHomogeneous(aVerts, 4, &mRotation);
 
 	pVerts = aVerts;
 	nVerts = 4;
@@ -828,10 +828,10 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 	}
 
 	if (!(pInstance->m_Flags & FLAG_SPRITEBIAS))
-		bResult = FUN_1000af16(&pVerts, (int *)&nVerts, &g_ViewParams, 0);
+		bResult = d3d_ClipAndProjectTLVertices(&pVerts, (int *)&nVerts, &g_ViewParams, 0);
 	else
-		bResult = FUN_1002f010(&pVerts, (int *)&nVerts, &g_ViewParams, 0, SPRITE_POSITION_ZBIAS);
+		bResult = ClipAndProjectPolyWithDepthBias(&pVerts, (int *)&nVerts, &g_ViewParams, 0, SPRITE_POSITION_ZBIAS);
 
 	if (bResult)
-		FUN_1000d340(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
+		d3d_DrawDevicePrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 }

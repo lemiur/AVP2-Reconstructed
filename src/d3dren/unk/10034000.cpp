@@ -40,11 +40,11 @@ TextureFormat *d3d_GetLightmapTextureFormat();
 
 // Counters of the lightmap page code (cleared by PageInLightmaps): texture memory of the pages, texels assigned, (unused).
 // GLOBAL: D3DREN 0x100796e8
-int DAT_100796e8;
+int g_LightmapPageBytesAllocated;
 // GLOBAL: D3DREN 0x100796ec
-int DAT_100796ec;
+int g_LightmapBytesAssigned;
 // GLOBAL: D3DREN 0x100796f0
-int DAT_100796f0;
+int g_LightmapPagingResetState;
 
 // ---- lightmap pages (the RenderContext holds the page list; PageInLightmaps builds it, FreeLightmapPages frees it) ----------------------
 
@@ -52,7 +52,7 @@ int DAT_100796f0;
 // of the context; on success returns 1 with the position and the page.  (The declaration order and `h * w` pin the register allocation:
 // found with tools/permute.py.)
 // FUNCTION: D3DREN 0x10034000
-int FUN_10034000(RenderContext *pContext, uint32 w, uint32 h, uint32 *pX, uint32 *pY, LightmapPage **ppPage)
+int FindLightmapPageSpace(RenderContext *pContext, uint32 w, uint32 h, uint32 *pX, uint32 *pY, LightmapPage **ppPage)
 {
 	uint32 nTexels;
 	LightmapPage *pPage;
@@ -112,7 +112,7 @@ int FUN_10034000(RenderContext *pContext, uint32 w, uint32 h, uint32 *pX, uint32
 
 // guess: allocates a lightmap page with its 64x64 texture surface and puts it at the head of the context's page list.
 // FUNCTION: D3DREN 0x10034142
-LightmapPage *FUN_10034142(RenderContext *pContext)
+LightmapPage *CreateLightmapPage(RenderContext *pContext)
 {
 	LightmapPage *pPage = new LightmapPage;
 	if (!pPage)
@@ -137,7 +137,7 @@ LightmapPage *FUN_10034142(RenderContext *pContext)
 	DDSURFACEDESC2 ddsd;
 	memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd);
-	ddsd.dwTextureStage = DAT_1005c838;
+	ddsd.dwTextureStage = g_LightmapTextureStage;
 	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_TEXTURESTAGE;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE;
 	ddsd.ddsCaps.dwCaps2 = DDSCAPS2_DONOTPERSIST | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_HINTDYNAMIC;
@@ -156,7 +156,7 @@ LightmapPage *FUN_10034142(RenderContext *pContext)
 	pPage->m_pNext = pContext->m_pLightmapPages;
 	pContext->m_nLightmapPages++;
 	pContext->m_pLightmapPages = pPage;
-	DAT_100796e8 += 0x2000;
+	g_LightmapPageBytesAllocated += 0x2000;
 	*(int *)((uint8 *)g_pStruct + 0x50) += pPage->m_nMemoryUse;
 	return pPage;
 }
@@ -206,7 +206,7 @@ int LightmapPage::GetBaseHeight()
 // The behavior audit reports no difference. Remaining codegen differences include the extent checks, occupancy-map pointer access, and
 // one retained x87 intermediate store in the exe.
 // STUB: D3DREN 0x1003429b
-int FUN_1003429b(RenderContext *pContext, WorldPoly *pPoly)
+int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 {
 	LightmapPage *pPage;
 	int x, y;
@@ -228,9 +228,9 @@ int FUN_1003429b(RenderContext *pContext, WorldPoly *pPoly)
 
 		pPoly->m_Flags = (pPoly->m_Flags & 0xffc1) | 1;
 
-		if (!FUN_10034000(pContext, pPoly->m_LMWidth, pPoly->m_LMHeight, (uint32 *)&x, (uint32 *)&y, &pPage))
+		if (!FindLightmapPageSpace(pContext, pPoly->m_LMWidth, pPoly->m_LMHeight, (uint32 *)&x, (uint32 *)&y, &pPage))
 		{
-			pPage = FUN_10034142(pContext);
+			pPage = CreateLightmapPage(pContext);
 			if (!pPage)
 				return 0;
 			y = 0;
@@ -281,7 +281,7 @@ int FUN_1003429b(RenderContext *pContext, WorldPoly *pPoly)
 
 		WORLDPOLY_UNK4E(pPoly) = (uint8)x;
 		WORLDPOLY_UNK4F(pPoly) = (uint8)y;
-		DAT_100796ec += pPoly->m_LMHeight * pPoly->m_LMWidth * 2;
+		g_LightmapBytesAssigned += pPoly->m_LMHeight * pPoly->m_LMWidth * 2;
 		WORLDPOLY_LMPAGE(pPoly) = pPage;
 	}
 
@@ -292,16 +292,16 @@ int FUN_1003429b(RenderContext *pContext, WorldPoly *pPoly)
 
 // guess: leaf callback of the visibility query below: assigns the pages of every polygon of the leaf.
 // GLOBAL: D3DREN 0x1007aaf4
-RenderContext *DAT_1007aaf4;
+RenderContext *g_pLightmapPagingContext;
 
 // FUNCTION: D3DREN 0x100344c8
-void FUN_100344c8(Leaf *pLeaf)
+void AssignLeafLightmapPages(Leaf *pLeaf)
 {
 	uint32 i;
 
 	for (i = 0; i < pLeaf->m_nPolies; i++)
 	{
-		if (!FUN_1003429b(DAT_1007aaf4, pLeaf->m_Polies[i]))
+		if (!AssignPolyLightmapPage(g_pLightmapPagingContext, pLeaf->m_Polies[i]))
 			return;
 	}
 }
@@ -359,7 +359,7 @@ void FreeLightmapPageBitmaps(RenderContext *pContext)
 // guess: clears the renderer's per-frame data of a BSP before the pages are built: the 16 bit tag at +0x2c of every leaf
 // (Leaf::m_Pad2C) and the lightmap/light animation bits of the polygon flags.
 // FUNCTION: D3DREN 0x10034543
-void FUN_10034543(WorldBsp *pBsp)
+void ClearBspLightmapPageFlags(WorldBsp *pBsp)
 {
 	uint32 i, j;
 
@@ -372,7 +372,7 @@ void FUN_10034543(WorldBsp *pBsp)
 
 // guess: builds the lightmap pages of a context: assigns every polygon of the world a page position (the polygons of the
 // "LightAnim_BASE" light animation first when the world has one, in leaf order for a VisBSP), then relights them
-// (FUN_10033210).  Returns 0 (and frees the pages again) when a page could not be made.
+// (UpdatePolyAnimatedLightmap).  Returns 0 (and frees the pages again) when a page could not be made.
 // Not matching (10 of 492 bytes differ; 14 aligned instruction mismatches, 0 ignoring stack offsets; 148 vs 148 instructions). The remaining
 // byte differences come from the query/list phase counters occupying opposite stack slots; the instruction sequence otherwise aligns.
 // STUB: D3DREN 0x10034597
@@ -386,14 +386,14 @@ int PageInLightmaps(RenderContext *pContext)
 	uint32 tElapsed;
 	uint32 iClear;
 
-	DAT_100796f0 = 0;
-	DAT_100796e8 = 0;
-	DAT_100796ec = 0;
+	g_LightmapPagingResetState = 0;
+	g_LightmapPageBytesAllocated = 0;
+	g_LightmapBytesAssigned = 0;
 
 	tStart = timeGetTime();
 
 	for (iClear = 0; iClear < pWorld->m_WorldModels.GetSize(); iClear++)
-		FUN_10034543(pWorld->m_WorldModels[iClear]->m_pOriginalBsp);
+		ClearBspLightmapPageFlags(pWorld->m_WorldModels[iClear]->m_pOriginalBsp);
 
 	pAnim = pWorld->FindLightAnim("LightAnim_BASE", LTNULL);
 	if (!pAnim || pAnim->m_nFrames < 1)
@@ -410,10 +410,10 @@ int PageInLightmaps(RenderContext *pContext)
 				Leaf *pLeaf = &pBsp->m_Leafs[i];
 				UnkType_LMVisQuery query;
 
-				DAT_1007aaf4 = pContext;
+				g_pLightmapPagingContext = pContext;
 				query.m_pLeaf = pLeaf;
 				query.m_pBsp = pBsp;
-				query.m_Unknown0C = (void *)FUN_100344c8;
+				query.m_Unknown0C = (void *)AssignLeafLightmapPages;
 				query.m_Unknown10 = (void *)vq_DefaultFn1;
 				pBsp->WBSlot11(&query);
 			}
@@ -422,7 +422,7 @@ int PageInLightmaps(RenderContext *pContext)
 		{
 			for (; i < pBsp->m_nPolies; i++)
 			{
-				if (!FUN_1003429b(pContext, pBsp->m_Polies[i]))
+				if (!AssignPolyLightmapPage(pContext, pBsp->m_Polies[i]))
 					goto Failed;
 			}
 		}
@@ -443,7 +443,7 @@ int PageInLightmaps(RenderContext *pContext)
 			{
 				WORLDPOLY_LMPAGE(pPoly) = 0;
 			}
-			else if (!FUN_10033210(pWorld, pPoly, 1))
+			else if (!UpdatePolyAnimatedLightmap(pWorld, pPoly, 1))
 			{
 				goto Failed;
 			}
@@ -497,7 +497,7 @@ void FreeLightmapPages(RenderContext *pContext)
 		ClearPolyLightmapPages(pContext->m_pWorld->m_WorldModels[i]->m_pOriginalBsp);
 }
 
-// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by FUN_100356b8) --------------
+// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by QueueLightmappedPoly) --------------
 // The queued polys' texture: node -> poly -> surface -> SharedTexture.
 #define BUCKET_TEXTURE(pBucket)	(((Surface *)((WorldPoly *)(pBucket)->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture)
 

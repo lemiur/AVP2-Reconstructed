@@ -1,0 +1,802 @@
+[
+ {
+  "va": "10061810",
+  "old": "DAT_10061810",
+  "new": "g_TextureStageTexelSizes",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Eight two-float stage records; texture binding stores reciprocal texture sizes and CanvasDrawMgr::GetTexelSize and UV setup read the active stage record. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10061810",
+   "old": "DAT_10061810",
+   "new": "g_TextureStageTexelSizes",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Eight two-float stage records; texture binding stores reciprocal texture sizes and CanvasDrawMgr::GetTexelSize and UV setup read the active stage record. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10061810.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10063ca8",
+  "old": "DAT_10063ca8",
+  "new": "g_TiedListType1",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: UnkType_TiedList constructor receives 1, stores it in its byte discriminator, clears pointers and ties off its embedded head; no recovered later use establishes a more specific role. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10063ca8",
+   "old": "DAT_10063ca8",
+   "new": "g_TiedListType1",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "UnkType_TiedList constructor receives 1, stores it in its byte discriminator, clears pointers and ties off its embedded head; no recovered later use establishes a more specific role. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10063ca8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10063cc0",
+  "old": "DAT_10063cc0",
+  "new": "g_TiedListType2",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Same constructor as the adjacent list, with discriminator 2; static initialization is the only recovered user, so the name describes evidenced storage only. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10063cc0",
+   "old": "DAT_10063cc0",
+   "new": "g_TiedListType2",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Same constructor as the adjacent list, with discriminator 2; static initialization is the only recovered user, so the name describes evidenced storage only. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10063cc0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10067be8",
+  "old": "DAT_10067be8",
+  "new": "g_ModelStage1ColorOp",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: ModelDraw and validation helpers assign D3DTOP_ADD, ADDSIGNED or DISABLE; model texture setup submits it as stage 1 D3DTSS_COLOROP and also saves the current operation into it. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10067be8",
+   "old": "DAT_10067be8",
+   "new": "g_ModelStage1ColorOp",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "ModelDraw and validation helpers assign D3DTOP_ADD, ADDSIGNED or DISABLE; model texture setup submits it as stage 1 D3DTSS_COLOROP and also saves the current operation into it. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10067be8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10068030",
+  "old": "DAT_10068030",
+  "new": "g_ModelSavedFillMode",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Model setup GetRenderState(FILLMODE) writes here before the optional wireframe override; the paired restore function SetRenderState(FILLMODE) reads it. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10068030",
+   "old": "DAT_10068030",
+   "new": "g_ModelSavedFillMode",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Model setup GetRenderState(FILLMODE) writes here before the optional wireframe override; the paired restore function SetRenderState(FILLMODE) reads it. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10068030.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10069034",
+  "old": "DAT_10069034",
+  "new": "g_bModelBumpMappingEnabled",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Its only recovered read gates the model bump-environment drawing path; there is no enabling writer, and the runtime scenarios did not exercise the branch. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10069034",
+   "old": "DAT_10069034",
+   "new": "g_bModelBumpMappingEnabled",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Its only recovered read gates the model bump-environment drawing path; there is no enabling writer, and the runtime scenarios did not exercise the branch. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10069034.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10069038",
+  "old": "DAT_10069038",
+  "new": "g_ModelBumpEnvMat01",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The bump path assigns negative sine of its computed angle and passes the float bits to D3DTSS_BUMPENVMAT01. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10069038",
+   "old": "DAT_10069038",
+   "new": "g_ModelBumpEnvMat01",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The bump path assigns negative sine of its computed angle and passes the float bits to D3DTSS_BUMPENVMAT01. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10069038.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1006903c",
+  "old": "DAT_1006903c",
+  "new": "g_ModelBumpEnvMat10",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The bump path assigns sine of its computed angle and passes the float bits to D3DTSS_BUMPENVMAT10. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1006903c",
+   "old": "DAT_1006903c",
+   "new": "g_ModelBumpEnvMat10",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The bump path assigns sine of its computed angle and passes the float bits to D3DTSS_BUMPENVMAT10. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1006903c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1006d1b8",
+  "old": "DAT_1006d1b8",
+  "new": "g_ParticleQuadIndices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Pre-frame setup fills 128 repetitions of the six triangle-list indices for a four-vertex quad; d3d_DrawParticleBatch submits the shared array with nQuads*6 indices. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_ParticleQuadIndices",
+  "prior_evidence": "128*6 shorts built by 100296a6 (quad index pattern for particle batches).",
+  "independent_opinion": {
+   "va": "1006d1b8",
+   "old": "DAT_1006d1b8",
+   "new": "g_ParticleQuadIndices",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Pre-frame setup fills 128 repetitions of the six triangle-list indices for a four-vertex quad; d3d_DrawParticleBatch submits the shared array with nQuads*6 indices. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1006d1b8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1006e7b8",
+  "old": "DAT_1006e7b8",
+  "new": "g_bParticleQuadIndicesInitialized",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Particle pre-frame setup checks it, writes 1 on the first call, and builds the adjacent particle quad index array only in that branch. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1006e7b8",
+   "old": "DAT_1006e7b8",
+   "new": "g_bParticleQuadIndicesInitialized",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Particle pre-frame setup checks it, writes 1 on the first call, and builds the adjacent particle quad index array only in that branch. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1006e7b8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10070438",
+  "old": "DAT_10070438",
+  "new": "g_PolyGridUScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Polygrid draw computes its U scale from grid xScale, object scale, active-stage texel size and width adjustment; both vertex builders multiply U by this float. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10070438",
+   "old": "DAT_10070438",
+   "new": "g_PolyGridUScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Polygrid draw computes its U scale from grid xScale, object scale, active-stage texel size and width adjustment; both vertex builders multiply U by this float. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10070438.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1007043c",
+  "old": "DAT_1007043c",
+  "new": "g_PolyGridUOffset",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Polygrid draw stores xPan multiplied by stage U texel size; vertex builders add it to U before applying the U scale. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1007043c",
+   "old": "DAT_1007043c",
+   "new": "g_PolyGridUOffset",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Polygrid draw stores xPan multiplied by stage U texel size; vertex builders add it to U before applying the U scale. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1007043c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10070440",
+  "old": "DAT_10070440",
+  "new": "g_PolyGridVOffset",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Polygrid draw stores yPan multiplied by stage V texel size; vertex builders add it to V before applying the V scale. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10070440",
+   "old": "DAT_10070440",
+   "new": "g_PolyGridVOffset",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Polygrid draw stores yPan multiplied by stage V texel size; vertex builders add it to V before applying the V scale. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10070440.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10070444",
+  "old": "DAT_10070444",
+  "new": "g_PolyGridVScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Polygrid draw computes its V scale from grid yScale, object Z scale, active-stage texel size and height adjustment; both vertex builders multiply V by this float. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10070444",
+   "old": "DAT_10070444",
+   "new": "g_PolyGridVScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Polygrid draw computes its V scale from grid yScale, object Z scale, active-stage texel size and height adjustment; both vertex builders multiply V by this float. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10070444.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1007044c",
+  "old": "DAT_1007044c",
+  "new": "g_PolyGridClippedIndexCapacity",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Compared against m_nIndices to decide allocation, set to allocated index count, and reset with the clipped-index pointer during init, allocation failure and termination. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_TriIndexListSize",
+  "prior_evidence": "Capacity compared with pGrid->m_nIndices (+0x1e8) before allocating g_TriIndexList.",
+  "independent_opinion": {
+   "va": "1007044c",
+   "old": "DAT_1007044c",
+   "new": "g_PolyGridClippedIndexCapacity",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Compared against m_nIndices to decide allocation, set to allocated index count, and reset with the clipped-index pointer during init, allocation failure and termination. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1007044c.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10070854",
+  "old": "DAT_10070854",
+  "new": "g_PolyGridAlphaScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Polygrid draw writes object alpha divided by 255; vertex builders multiply each palette alpha by it. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10070854",
+   "old": "DAT_10070854",
+   "new": "g_PolyGridAlphaScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Polygrid draw writes object alpha divided by 255; vertex builders multiply each palette alpha by it. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10070854.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10070858",
+  "old": "DAT_10070858",
+  "new": "g_pPolyGridClippedIndices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Allocated as m_nIndices*2 bytes, filled with triangle indices surviving clipping, submitted to DrawIndexedPrimitive and freed by polygrid termination. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_TriIndexList",
+  "prior_evidence": "dalloc'd (m_nIndices*2 bytes) 16-bit index scratch for the clipped-triangle path, freed by d3d_TermPolyGridDraw.",
+  "independent_opinion": {
+   "va": "10070858",
+   "old": "DAT_10070858",
+   "new": "g_pPolyGridClippedIndices",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Allocated as m_nIndices*2 bytes, filled with triangle indices surviving clipping, submitted to DrawIndexedPrimitive and freed by polygrid termination. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10070858.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100756d0",
+  "old": "DAT_100756d0",
+  "new": "g_WorldModelObjectColor",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: WMSetColor writes object RGB normalized to 0..1 and multiplied by global light color; world-model vertex drawing reads its three channels. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100756d0",
+   "old": "DAT_100756d0",
+   "new": "g_WorldModelObjectColor",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "WMSetColor writes object RGB normalized to 0..1 and multiplied by global light color; world-model vertex drawing reads its three channels. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100756d0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10076750",
+  "old": "DAT_10076750",
+  "new": "g_ShadowTextureCacheEntries",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Two records hold texture pointer, width and height; the two cache helpers reuse or replace their corresponding shadow texture when dimensions change. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10076750",
+   "old": "DAT_10076750",
+   "new": "g_ShadowTextureCacheEntries",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Two records hold texture pointer, width and height; the two cache helpers reuse or replace their corresponding shadow texture when dimensions change. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10076750.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10077bc8",
+  "old": "DAT_10077bc8",
+  "new": "g_LightmapColorClampTable",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initialization fills three 256-entry bands with zero, identity and 255; lightmap pixel updates index the table to saturate RGB channels. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10077bc8",
+   "old": "DAT_10077bc8",
+   "new": "g_LightmapColorClampTable",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Initialization fills three 256-entry bands with zero, identity and 255; lightmap pixel updates index the table to saturate RGB channels. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10077bc8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100781c8",
+  "old": "DAT_100781c8",
+  "new": "g_LightmapLightFalloffTable",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Frame setup fills 64 clamped scale values in 16.16 fixed point; dynamic-light lightmap routines index by normalized squared distance and use the result to scale color. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100781c8",
+   "old": "DAT_100781c8",
+   "new": "g_LightmapLightFalloffTable",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Frame setup fills 64 clamped scale values in 16.16 fixed point; dynamic-light lightmap routines index by normalized squared distance and use the result to scale color. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100781c8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100796e8",
+  "old": "DAT_100796e8",
+  "new": "g_LightmapPageBytesAllocated",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: PageInLightmaps resets the integer; successful creation of a 64x64 lightmap page adds 0x2000, the nominal 16-bit page size. Actual format-dependent memory is counted separately in RenderStruct. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_LMPageBytes",
+  "prior_evidence": "zeroed in 10034597, += 0x2000 (64x64x2) per created page in CreateLightmapPage",
+  "independent_opinion": {
+   "va": "100796e8",
+   "old": "DAT_100796e8",
+   "new": "g_LightmapPageBytesAllocated",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "PageInLightmaps resets the integer; successful creation of a 64x64 lightmap page adds 0x2000, the nominal 16-bit page size. Actual format-dependent memory is counted separately in RenderStruct. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100796e8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100796ec",
+  "old": "DAT_100796ec",
+  "new": "g_LightmapBytesAssigned",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: PageInLightmaps clears it; assigning a polygon to a lightmap page adds LMWidth*LMHeight*2, so this tracks assigned bytes rather than texel count. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_LMUsedBytes",
+  "prior_evidence": "zeroed in 10034597, += m_LMWidth*m_LMHeight*2 per poly in AssignPolyLightmapPage",
+  "independent_opinion": {
+   "va": "100796ec",
+   "old": "DAT_100796ec",
+   "new": "g_LightmapBytesAssigned",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "PageInLightmaps clears it; assigning a polygon to a lightmap page adds LMWidth*LMHeight*2, so this tracks assigned bytes rather than texel count. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100796ec.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100796f0",
+  "old": "DAT_100796f0",
+  "new": "g_LightmapPagingResetState",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Only recovered access is PageInLightmaps setting the int to zero alongside two paging statistics; no later access establishes units or counter meaning. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100796f0",
+   "old": "DAT_100796f0",
+   "new": "g_LightmapPagingResetState",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Only recovered access is PageInLightmaps setting the int to zero alongside two paging statistics; no later access establishes units or counter meaning. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100796f0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1007aaf4",
+  "old": "DAT_1007aaf4",
+  "new": "g_pLightmapPagingContext",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: PageInLightmaps assigns its RenderContext before a visibility callback; the callback reads the pointer when assigning polygon lightmaps to pages. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_pLMContext",
+  "prior_evidence": "render-context pointer stored by 10034597 before running the light-anim poly callback 100344c8",
+  "independent_opinion": {
+   "va": "1007aaf4",
+   "old": "DAT_1007aaf4",
+   "new": "g_pLightmapPagingContext",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "PageInLightmaps assigns its RenderContext before a visibility callback; the callback reads the pointer when assigning polygon lightmaps to pages. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1007aaf4.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1007abd0",
+  "old": "DAT_1007abd0",
+  "new": "g_pLightmapStagingTextures",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Five RTexture pointers are allocated per size class with flag 0x800; LMLock selects one as its staging surface, and pool teardown releases them along with pooled textures. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1007abd0",
+   "old": "DAT_1007abd0",
+   "new": "g_pLightmapStagingTextures",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Five RTexture pointers are allocated per size class with flag 0x800; LMLock selects one as its staging surface, and pool teardown releases them along with pooled textures. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1007abd0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1007abe4",
+  "old": "DAT_1007abe4",
+  "new": "g_LightmapTexturePools",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Data-less LMTexturePools singleton dispatches initialization, creation and freeing of the five size-class lightmap texture pools during texture-manager lifecycle. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1007abe4",
+   "old": "DAT_1007abe4",
+   "new": "g_LightmapTexturePools",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Data-less LMTexturePools singleton dispatches initialization, creation and freeing of the five size-class lightmap texture pools during texture-manager lifecycle. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1007abe4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1007bfe8",
+  "old": "DAT_1007bfe8",
+  "new": "g_LightmapTexturePoolLists",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Five LTLink heads are tied off, populated with allocated RTexture links by size class and selected by LMLock; cleanup traverses each list. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1007bfe8",
+   "old": "DAT_1007bfe8",
+   "new": "g_LightmapTexturePoolLists",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Five LTLink heads are tied off, populated with allocated RTexture links by size class and selected by LMLock; cleanup traverses each list. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1007bfe8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1007d424",
+  "old": "DAT_1007d424",
+  "new": "g_bLightmapModulate2X",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Only recovered read switches the lightmap stage COLOROP from D3DTOP_MODULATE to D3DTOP_MODULATE2X; no writer establishes the upstream setting's name. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1007d424",
+   "old": "DAT_1007d424",
+   "new": "g_bLightmapModulate2X",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Only recovered read switches the lightmap stage COLOROP from D3DTOP_MODULATE to D3DTOP_MODULATE2X; no writer establishes the upstream setting's name. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1007d424.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10093f00",
+  "old": "DAT_10093f00",
+  "new": "g_ShadowClipFarInsideFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The 36-byte shadow vertex far-plane clipper stores z<=ClipFarZ per vertex, then reads adjacent flags to copy inside vertices and generate boundary intersections. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10093f00",
+   "old": "DAT_10093f00",
+   "new": "g_ShadowClipFarInsideFlags",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The 36-byte shadow vertex far-plane clipper stores z<=ClipFarZ per vertex, then reads adjacent flags to copy inside vertices and generate boundary intersections. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10093f00.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10093fe0",
+  "old": "DAT_10093fe0",
+  "new": "g_ShadowClipBottomInsideFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The 36-byte shadow vertex bottom-plane clipper stores -z<y per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10093fe0",
+   "old": "DAT_10093fe0",
+   "new": "g_ShadowClipBottomInsideFlags",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The 36-byte shadow vertex bottom-plane clipper stores -z<y per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10093fe0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100940c0",
+  "old": "DAT_100940c0",
+  "new": "g_ShadowClipRightInsideFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The 36-byte shadow vertex right-plane clipper stores x<z per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100940c0",
+   "old": "DAT_100940c0",
+   "new": "g_ShadowClipRightInsideFlags",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The 36-byte shadow vertex right-plane clipper stores x<z per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100940c0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100941a0",
+  "old": "DAT_100941a0",
+  "new": "g_ShadowClipTopInsideFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The 36-byte shadow vertex top-plane clipper stores y<z per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100941a0",
+   "old": "DAT_100941a0",
+   "new": "g_ShadowClipTopInsideFlags",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The 36-byte shadow vertex top-plane clipper stores y<z per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100941a0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10094280",
+  "old": "DAT_10094280",
+  "new": "g_ShadowClipLeftInsideFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The 36-byte shadow vertex left-plane clipper stores -z<x per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10094280",
+   "old": "DAT_10094280",
+   "new": "g_ShadowClipLeftInsideFlags",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The 36-byte shadow vertex left-plane clipper stores -z<x per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10094280.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10094360",
+  "old": "DAT_10094360",
+  "new": "g_ShadowClipNearInsideFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The 36-byte shadow vertex near-plane clipper stores z>=NearZ per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10094360",
+   "old": "DAT_10094360",
+   "new": "g_ShadowClipNearInsideFlags",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "The 36-byte shadow vertex near-plane clipper stores z>=NearZ per vertex and compares adjacent flags when clipping polygon edges. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10094360.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10094440",
+  "old": "DAT_10094440",
+  "new": "g_ShadowClipPlaneInsideFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Arbitrary-plane shadow polygon clipper stores pClipper plane-test results per 36-byte vertex, then uses adjacent flags for Sutherland-Hodgman copying and interpolation. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_bInside",
+  "prior_evidence": "Int array written by 100260ce per vertex (nInside accumulation) = 'int bInside[50]' of Jupiter polyclip.h turned into a global.",
+  "independent_opinion": {
+   "va": "10094440",
+   "old": "DAT_10094440",
+   "new": "g_ShadowClipPlaneInsideFlags",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Arbitrary-plane shadow polygon clipper stores pClipper plane-test results per 36-byte vertex, then uses adjacent flags for Sutherland-Hodgman copying and interpolation. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10094440.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10094c20",
+  "old": "DAT_10094c20",
+  "new": "g_ClipNearInsideFlagsVertex40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Both definitions refer to the same address; the 40-byte vertex near-plane clipper and its expanded multi-plane caller store z>=NearZ and use the results for boundary crossings. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "s_bInside_ClipNear40",
+  "prior_evidence": "Function-local static int[56] (0xe0 bytes, COMDAT .bss placed beyond the normal BSS) holding the per-vertex inside flags of the polyclip.h expansion used by 10001b30/100088ec.",
+  "independent_opinion": {
+   "va": "10094c20",
+   "old": "DAT_10094c20",
+   "new": "g_ClipNearInsideFlagsVertex40",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Both definitions refer to the same address; the 40-byte vertex near-plane clipper and its expanded multi-plane caller store z>=NearZ and use the results for boundary crossings. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10094c20.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10094d00",
+  "old": "DAT_10094d00",
+  "new": "g_ClipLeftInsideFlagsVertex40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Both definitions refer to the same address; the 40-byte vertex left-plane clipper and its expanded multi-plane caller store -z<x and use the results for boundary crossings. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "s_bInside_ClipLeft40",
+  "prior_evidence": "Function-local static int[56] (0xe0 bytes, COMDAT .bss placed beyond the normal BSS) holding the per-vertex inside flags of the polyclip.h expansion used by 10001b30/10008a23.",
+  "independent_opinion": {
+   "va": "10094d00",
+   "old": "DAT_10094d00",
+   "new": "g_ClipLeftInsideFlagsVertex40",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Both definitions refer to the same address; the 40-byte vertex left-plane clipper and its expanded multi-plane caller store -z<x and use the results for boundary crossings. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10094d00.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10094de0",
+  "old": "DAT_10094de0",
+  "new": "g_ClipNearInsideFlagsTLVertex",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: TLVertex near-plane clipper and its expanded multi-plane caller share the array of per-vertex z>=NearZ classification flags; it is distinct from the 40-byte vertex array. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "s_bInside_ClipNear32",
+  "prior_evidence": "Function-local static int[56] (0xe0 bytes, COMDAT .bss placed beyond the normal BSS) holding the per-vertex inside flags of the polyclip.h expansion used by 10001530/1000b0cd.",
+  "independent_opinion": {
+   "va": "10094de0",
+   "old": "DAT_10094de0",
+   "new": "g_ClipNearInsideFlagsTLVertex",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "TLVertex near-plane clipper and its expanded multi-plane caller share the array of per-vertex z>=NearZ classification flags; it is distinct from the 40-byte vertex array. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10094de0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10094ec0",
+  "old": "DAT_10094ec0",
+  "new": "g_ClipLeftInsideFlagsTLVertex",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: TLVertex left-plane clipper and its expanded multi-plane caller share the array of per-vertex -z<x classification flags; it is distinct from the 40-byte vertex array. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "s_bInside_ClipLeft32",
+  "prior_evidence": "Function-local static int[56] (0xe0 bytes, COMDAT .bss placed beyond the normal BSS) holding the per-vertex inside flags of the polyclip.h expansion used by 10001530/1000b20c.",
+  "independent_opinion": {
+   "va": "10094ec0",
+   "old": "DAT_10094ec0",
+   "new": "g_ClipLeftInsideFlagsTLVertex",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "TLVertex left-plane clipper and its expanded multi-plane caller share the array of per-vertex -z<x classification flags; it is distinct from the 40-byte vertex array. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/10094ec0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ }
+]

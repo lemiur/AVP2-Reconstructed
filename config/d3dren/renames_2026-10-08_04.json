@@ -1,0 +1,1002 @@
+[
+ {
+  "va": "10009f0b",
+  "old": "FUN_10009f0b",
+  "new": "d3d_BuildDualTextureWorldVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies position, color, fog alpha and both existing UV sets into 40-byte vertices. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "FillWorldPolyVerts40",
+  "prior_evidence": "Copies xyz and colour (DAT_100566bc) of each poly vertex into 0x28-byte TL vertices, calls the fog/shade function pointer DAT_1005872c and copies the UVs.",
+  "independent_opinion": {
+   "va": "10009f0b",
+   "old": "FUN_10009f0b",
+   "new": "d3d_BuildDualTextureWorldVertices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Copies position, color, fog alpha and both existing UV sets into 40-byte vertices. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10009f0b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10009f6c",
+  "old": "FUN_10009f6c",
+  "new": "d3d_BuildLightmappedWorldVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builds 40-byte world vertices and derives second-stage UVs from lightmap planes, origin and grid size. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "FillWorldPolyVerts40_LM",
+  "prior_evidence": "Like 10009f0b but derives the lightmap UVs from the lightmap plane basis (10034a9d, (poly+0x14&0x3800)>>11, poly origin +0x38..0x40) scaled by the lightmap UV scale 0x10061810/14.",
+  "independent_opinion": {
+   "va": "10009f6c",
+   "old": "FUN_10009f6c",
+   "new": "d3d_BuildLightmappedWorldVertices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Builds 40-byte world vertices and derives second-stage UVs from lightmap planes, origin and grid size. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10009f6c.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000a066",
+  "old": "FUN_1000a066",
+  "new": "d3d_UpdateWorldVertexLightmapUVs",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Rewrites only the lightmap UV pair of an existing 40-byte vertex array. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "FillLightmapUVs40",
+  "prior_evidence": "Writes only the second UV pair (+0x24/+0x28) of existing 0x28-byte vertices from the lightmap plane basis.",
+  "independent_opinion": {
+   "va": "1000a066",
+   "old": "FUN_1000a066",
+   "new": "d3d_UpdateWorldVertexLightmapUVs",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Rewrites only the lightmap UV pair of an existing 40-byte vertex array. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000a066.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000a134",
+  "old": "FUN_1000a134",
+  "new": "d3d_ReservePolyScratchVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Ensures scratch capacity for the requested count and returns the current append position without advancing it. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ReserveGlobalVertices",
+  "prior_evidence": "Returns &DAT_100587fc[DAT_100587e4] (0x20-byte TL vertices), growing the global vertex array (10013e80) when DAT_100587e4+n exceeds DAT_1005a368.",
+  "independent_opinion": {
+   "va": "1000a134",
+   "old": "FUN_1000a134",
+   "new": "d3d_ReservePolyScratchVertices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Ensures scratch capacity for the requested count and returns the current append position without advancing it. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000a134.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000a538",
+  "old": "FUN_1000a538",
+  "new": "d3d_DrawWorldTextureBucket",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Binds the base and optional environment/detail texture, applies texture state changes and dispatches one texture bucket. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "DrawLightmapPolyBatch",
+  "prior_evidence": "Per lightmap texture batch: binds base+lightmap textures (100079e4), takes the multitexture detail path (EnvMapWorld/DetailTextures cvars, 1000a8c0) or the single-texture path 1000a70d.",
+  "independent_opinion": {
+   "va": "1000a538",
+   "old": "FUN_1000a538",
+   "new": "d3d_DrawWorldTextureBucket",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Binds the base and optional environment/detail texture, applies texture state changes and dispatches one texture bucket. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000a538.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000ad48",
+  "old": "FUN_1000ad48",
+  "new": "d3d_DrawClippedTriangleFan",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Projects and clips a 32-byte vertex fan, splitting it into triangles when clipping requires that route. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ClipAndDrawFan32",
+  "prior_evidence": "0x20-byte vertices: if g_ClipFlags==0 (or UseD3DClip set and near flag clear) project via 1000af16 and DrawPrimitive(D3DPT_TRIANGLEFAN, fvf=arg4), otherwise emits each triangle separately through 1000af16.",
+  "independent_opinion": {
+   "va": "1000ad48",
+   "old": "FUN_1000ad48",
+   "new": "d3d_DrawClippedTriangleFan",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Projects and clips a 32-byte vertex fan, splitting it into triangles when clipping requires that route. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000ad48.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10013e80",
+  "old": "FUN_10013e80",
+  "new": "d3d_GrowTLVertexBuffer",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Allocates a larger TLVertex scratch array, preserves existing entries, replaces the buffer and records its capacity. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_GrowVertexScratch",
+  "prior_evidence": "reallocates the 0x20-byte TL vertex scratch array DAT_100587fc to param*32 bytes, copies DAT_1005a368 old elements, frees the old one, stores the new capacity; callers 1000a134 (get N scratch verts) and 10007b41",
+  "independent_opinion": {
+   "va": "10013e80",
+   "old": "FUN_10013e80",
+   "new": "d3d_GrowTLVertexBuffer",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Allocates a larger TLVertex scratch array, preserves existing entries, replaces the buffer and records its capacity. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10013e80.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10013ef0",
+  "old": "FUN_10013ef0",
+  "new": "d3d_QueueWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Allocates a pool node carrying the WorldPoly and current clip flags, then links it at the polygon-list head. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_QueuePolyFlat",
+  "prior_evidence": "DrawFlat path: pops a node from the 0x10058758 pool, stores {poly, DAT_10056274 clip mask} and links it into the deferred list DAT_10058c68; installed in all four draw hooks by 10014e40 when DrawFlat (100584dc) is set; drawn later by 10014ce0",
+  "independent_opinion": {
+   "va": "10013ef0",
+   "old": "FUN_10013ef0",
+   "new": "d3d_QueueWorldPoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Allocates a pool node carrying the WorldPoly and current clip flags, then links it at the polygon-list head. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10013ef0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10019923",
+  "old": "FUN_10019923",
+  "new": "d3d_ApplyWorldPolyVertexLights",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Applies attenuated dynamic-light RGB contributions from a polygon light-reference chain to its TL vertex colors. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_ApplyDynamicLightsToPoly",
+  "prior_evidence": "walks the poly light list (poly+0x30), counts Num Light Tests (DAT_100566cc, printed by RenderScene), adds an attenuated light color to the byte vertex colors with clamp (doubled when Saturate 100578ec) for vertices closer than the light radius (+0x1b0); called by the sky poly draw and by the world poly draw functions 10022c01/10023398/100236ae/10023763",
+  "independent_opinion": {
+   "va": "10019923",
+   "old": "FUN_10019923",
+   "new": "d3d_ApplyWorldPolyVertexLights",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Applies attenuated dynamic-light RGB contributions from a polygon light-reference chain to its TL vertex colors. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10019923.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10020ff0",
+  "old": "FUN_10020ff0",
+  "new": "d3d_RefreshWorldPolyLightmap",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds polygon dynamic lighting into either the bound lightmap surface or a locked staging lightmap, committing the latter through its lock object. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10020ff0",
+   "old": "FUN_10020ff0",
+   "new": "d3d_RefreshWorldPolyLightmap",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds polygon dynamic lighting into either the bound lightmap surface or a locked staging lightmap, committing the latter through its lock object. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10020ff0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10022c01",
+  "old": "FUN_10022c01",
+  "new": "DrawMultipassGouraudWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builds Gouraud vertices, draws the lighting pass and dynamic lights, and queues the texture pass with saturation flags. Unhit in recorded scenarios.",
+  "primary_draft": "DrawPolyMultipassGouraud",
+  "prior_evidence": "Poly (0x54/0x56 vertex count, <=0x80 else 'Error: vertex buffer overflow' 1004842c) converted by 1002329f/1002331b, clipped (1000af16), DrawPrimitive fan (type 6, FVF 0x1c4) with blend states; uses g_CV_MultipassGouraud (10065bc0) in the caller 1002362a; calls the dynamic-light pass 10022f85 when poly+0x30 list non-empty and LMDynamic (10076788).",
+  "independent_opinion": {
+   "va": "10022c01",
+   "old": "FUN_10022c01",
+   "new": "DrawMultipassGouraudWorldPoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Builds Gouraud vertices, draws the lighting pass and dynamic lights, and queues the texture pass with saturation flags. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10022c01.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10023398",
+  "old": "FUN_10023398",
+  "new": "DrawSinglePassGouraudWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builds and clips Gouraud vertices, binds the world texture and draws it, including the fullbrite special pass. Unhit in recorded scenarios.",
+  "primary_draft": "DrawPolyGouraud",
+  "prior_evidence": "Single-pass gouraud/textured poly: builds verts (1002329f), clips (1000af16), scales UVs by current texel size (1002358b), DrawPrimitive fan; falls to 10022c01 when poly has dynamic lights and LMDynamic; 'vertex buffer overflow' guard at 0x81 verts.",
+  "independent_opinion": {
+   "va": "10023398",
+   "old": "FUN_10023398",
+   "new": "DrawSinglePassGouraudWorldPoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Builds and clips Gouraud vertices, binds the world texture and draws it, including the fullbrite special pass. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10023398.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100236ae",
+  "old": "FUN_100236ae",
+  "new": "QueueEnvMappedWorldPolyPass",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Handles EnvMapWorld and queues transformed vertices with state word four for an environment-mapped polygon. Unhit in recorded scenarios.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100236ae",
+   "old": "FUN_100236ae",
+   "new": "QueueEnvMappedWorldPolyPass",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Handles EnvMapWorld and queues transformed vertices with state word four for an environment-mapped polygon. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100236ae.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10023763",
+  "old": "FUN_10023763",
+  "new": "QueueClippedLinkedTextureWorldPolyPass",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: For the linked-texture type-zero branch builds and clips vertices, then queues them with cleared clip flags. Unhit in recorded scenarios.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10023763",
+   "old": "FUN_10023763",
+   "new": "QueueClippedLinkedTextureWorldPolyPass",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "For the linked-texture type-zero branch builds and clips vertices, then queues them with cleared clip flags. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10023763.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1002421e",
+  "old": "FUN_1002421e",
+  "new": "DrawAnimationDimensionsBox",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draws twelve box edges around model position using current animation dimensions, with depth reads and writes disabled. Unhit in recorded scenarios.",
+  "primary_draft": "DrawModelBox",
+  "prior_evidence": "Draws a wireframe box (12 edges as D3DPT_LINELIST via 10024427) of the model dims with ZWRITE/ZENABLE off; called from 1002476b when g_ModelBoxes (100584d0); Jupiter modeldebug.cpp NModelDebug::DrawModelBox is the descendant.",
+  "independent_opinion": {
+   "va": "1002421e",
+   "old": "FUN_1002421e",
+   "new": "DrawAnimationDimensionsBox",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Draws twelve box edges around model position using current animation dimensions, with depth reads and writes disabled. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1002421e.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10024c8b",
+  "old": "FUN_10024c8b",
+  "new": "DrawModelPassWithVertexCallbacks",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Installs UV/shading callbacks, begins the render pass, optionally transforms vertices, dispatches piece drawing and restores fill mode. Unhit in recorded scenarios.",
+  "primary_draft": "DrawPieces",
+  "prior_evidence": "Stores piece callbacks at this+0x5f4/+0x5ec, this+0x4c4=1, runs 100244b3 (states), optionally 10005700, 100045a0 (pick/run draw callbacks), then 10024cd7.",
+  "independent_opinion": {
+   "va": "10024c8b",
+   "old": "FUN_10024c8b",
+   "new": "DrawModelPassWithVertexCallbacks",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Installs UV/shading callbacks, begins the render pass, optionally transforms vertices, dispatches piece drawing and restores fill mode. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10024c8b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100261f9",
+  "old": "FUN_100261f9",
+  "new": "InterpolateShadowVertexAttributes",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Interpolates UVs, projective divisor, RGBA and fog alpha for a generated intersection vertex; position is supplied separately. Unhit in recorded scenarios.",
+  "primary_draft": "Vertex36_ClipExtra",
+  "prior_evidence": "T::ClipExtra(pPrev,pCur,pOut,t) of polyclip.h: lerps +0x18/+0x1c/+0x20 floats and rounds the colour bytes +0x10..+0x13 and +0x17 for a 0x24-byte vertex.",
+  "independent_opinion": {
+   "va": "100261f9",
+   "old": "FUN_100261f9",
+   "new": "InterpolateShadowVertexAttributes",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Interpolates UVs, projective divisor, RGBA and fog alpha for a generated intersection vertex; position is supplied separately. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100261f9.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10026300",
+  "old": "FUN_10026300",
+  "new": "IsInsidePlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Returns whether LTPlane::DistTo is strictly positive. Unhit in recorded scenarios.",
+  "primary_draft": "ClipPlaneTest",
+  "prior_evidence": "CLIPTEST macro as a function: dot(v, plane.xyz) - plane.d > _DAT_100461c0 (epsilon).",
+  "independent_opinion": {
+   "va": "10026300",
+   "old": "FUN_10026300",
+   "new": "IsInsidePlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Returns whether LTPlane::DistTo is strictly positive. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10026300.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10026343",
+  "old": "FUN_10026343",
+  "new": "IntersectEdgeWithPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Calculates the plane crossing fraction from endpoint distances, writes the crossing position and returns that fraction. Unhit in recorded scenarios.",
+  "primary_draft": "ClipPlaneIntersect",
+  "prior_evidence": "DOCLIP macro as a function: t = d0/(d0-d1) (guarded by epsilons _DAT_100461c8/c4) and out = a + (b-a)*t; returns t in st0.",
+  "independent_opinion": {
+   "va": "10026343",
+   "old": "FUN_10026343",
+   "new": "IntersectEdgeWithPlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Calculates the plane crossing fraction from endpoint distances, writes the crossing position and returns that fraction. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10026343.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100264ad",
+  "old": "FUN_100264ad",
+  "new": "ClipShadowPolygonToViewFrustum",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Dispatches Vertex36 clipping to near, side and far planes based on flags and UseD3DClip. Unhit in recorded scenarios.",
+  "primary_draft": "ClipTLPoly_Vertex36",
+  "prior_evidence": "Applies the six plane clippers selected by mask bits: &1 100265c9, &4 10026700, &8 10026835, &0x10 10026969, &0x20 10026a9c, &2 10026bd2; ping-pongs between two buffers.",
+  "independent_opinion": {
+   "va": "100264ad",
+   "old": "FUN_100264ad",
+   "new": "ClipShadowPolygonToViewFrustum",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Dispatches Vertex36 clipping to near, side and far planes based on flags and UseD3DClip. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100264ad.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1003249f",
+  "old": "FUN_1003249f",
+  "new": "DecompressLightmapTexelRuns",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Expands dword texels with high-bit-tagged following byte run counts into at most 1024 dwords and rejects overflow.",
+  "primary_draft": "DecompressLMData32",
+  "prior_evidence": "decodes Talon lightmap RLE (dword value, top bit => count byte follows) into at most 0x400 dwords (32x32 texels), returns 0 on overflow; callers 10033c00 (light-anim lightmaps); Talon form of Jupiter DecompressLMData",
+  "independent_opinion": {
+   "va": "1003249f",
+   "old": "FUN_1003249f",
+   "new": "DecompressLightmapTexelRuns",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Expands dword texels with high-bit-tagged following byte run counts into at most 1024 dwords and rejects overflow."
+  },
+  "dossier": "build/d3dren/dossier/1003249f.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10032503",
+  "old": "FUN_10032503",
+  "new": "DecompressLightmapMaskRuns",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Expands byte run lengths alternating zero and 255 into a bounded 1024-byte light-animation mask.",
+  "primary_draft": "DecompressShadowMapRLE",
+  "prior_evidence": "expands alternating run lengths (bytes) into a 0x400-byte mask of 0x00/0xff, returns 0 on overflow; caller 100338d0 (LightAnim m_bShadowMap frames)",
+  "independent_opinion": {
+   "va": "10032503",
+   "old": "FUN_10032503",
+   "new": "DecompressLightmapMaskRuns",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Expands byte run lengths alternating zero and 255 into a bounded 1024-byte light-animation mask."
+  },
+  "dossier": "build/d3dren/dossier/10032503.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10032a60",
+  "old": "FUN_10032a60",
+  "new": "SetupLightmapLightContext",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Derives per-texel plane steps, light position, squared radius, packed colors, destination pitch, and dimensions for a polygon lightmap. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "SetupDynamicLightContext",
+  "prior_evidence": "fills a light-context struct (0x19 dwords) (light pos, poly texture origin +0x38.., P/Q lightmap vectors via SetupLMPlaneVectors scaled by LMGridSize world+0xf8, radius^2, 565/888 packed colour); callers 10032c40, 100338d0",
+  "independent_opinion": {
+   "va": "10032a60",
+   "old": "FUN_10032a60",
+   "new": "SetupLightmapLightContext",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Derives per-texel plane steps, light position, squared radius, packed colors, destination pitch, and dimensions for a polygon lightmap. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10032a60.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1003ac15",
+  "old": "FUN_1003ac15",
+  "new": "OptimizeCurrentBuffer",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clears the pending-optimization flag and calls Optimize on the current vertex buffer with the last draw device. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "OptimizeBuffer",
+  "prior_evidence": "[role evidence: dx-sdk/medium] Clears pending flag +0x5c and calls IDirect3DVertexBuffer7::Optimize (vslot 7) on the current buffer with the stored device (+0x68)",
+  "independent_opinion": {
+   "va": "1003ac15",
+   "old": "FUN_1003ac15",
+   "new": "OptimizeCurrentBuffer",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Clears the pending-optimization flag and calls Optimize on the current vertex buffer with the last draw device. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003ac15.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10004270",
+  "old": "FUN_10004270",
+  "new": "DrawPiecesWithCallbacks",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Chooses vertex format, pool and clipping/copy functions; rebuilds pools if settings changed; binds piece skins and dispatches one of two supplied piece callbacks according to clip status. Describes the driver without borrowing unrelated Jupiter DrawModel names; runtime unhit.",
+  "primary_draft": "ModelDraw_RunPieceDrawFns",
+  "prior_evidence": "Picks pool/vertex size/FVF (+0x5e8 format, +0x8b0 T&L, +0x8ac cache mode), re-inits pools if ModelVBSize/Count changed, then per non-hidden piece (ModelInstance m_HiddenPieces +0x24c) sets specular power/scale from ModelPiece +0x2c/+0x30 (SpecularPowerTest/SpecularScaleTest override) and calls the callback.",
+  "independent_opinion": {
+   "va": "10004270",
+   "old": "FUN_10004270",
+   "new": "DrawPiecesWithCallbacks",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Chooses vertex format, pool and clipping/copy functions; rebuilds pools if settings changed; binds piece skins and dispatches one of two supplied piece callbacks according to clip status. Describes the driver without borrowing unrelated Jupiter DrawModel names; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10004270.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000a70d",
+  "old": "FUN_1000a70d",
+  "new": "d3d_DrawSingleTextureWorldBucket",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draws queued scratch-vertex triangle fans with a single texture, changing blend/fog state per node. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "DrawPolyBatchSingleTexture",
+  "prior_evidence": "Draws each queued poly (node vertex range +4/+8 in the global TL array) with D3DPT_TRIANGLEFAN (6) and FVF 0x1c4 (device slot 0x64 DrawPrimitive), toggling colour state by node flags and scaling UVs by 0x10061810/14.",
+  "independent_opinion": {
+   "va": "1000a70d",
+   "old": "FUN_1000a70d",
+   "new": "d3d_DrawSingleTextureWorldBucket",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Draws queued scratch-vertex triangle fans with a single texture, changing blend/fog state per node. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000a70d.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000a8c0",
+  "old": "FUN_1000a8c0",
+  "new": "d3d_DrawDualTextureWorldBucket",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builds detail or reflection UVs and draws two-texture polygon fans for a queued texture bucket. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "DrawPolyBatchDetail",
+  "prior_evidence": "Detail-texture batch: builds the 2x2 rotate/scale of the detail UVs from DetailTextureAngle's cos/sin (0x100518d0/0x100513e0) and scale 0x100514a8, per-vertex second UVs, draws the polys with the two-stage state.",
+  "independent_opinion": {
+   "va": "1000a8c0",
+   "old": "FUN_1000a8c0",
+   "new": "d3d_DrawDualTextureWorldBucket",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Builds detail or reflection UVs and draws two-texture polygon fans for a queued texture bucket. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000a8c0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10022f85",
+  "old": "FUN_10022f85",
+  "new": "DrawWorldPolyDynamicLightPasses",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Iterates the polygon light list and draws additive passes with per-light projected lightmap coordinates. Unhit in recorded scenarios.",
+  "primary_draft": "DrawPolyDynamicLightPass",
+  "prior_evidence": "For each dynamic light linked to the poly (list at poly+0x30, light radius via vcall +0x38) computes per-vertex UV = (dot(v-lightpos, axis)*1/r)+0.5 and draws the poly again additively (ALPHABLENDENABLE=1, SRCBLEND=DESTBLEND=D3DBLEND_ONE, FOGCOLOR=0, saving/restoring them); called only from 10022c01 when LMDynamic is on.",
+  "independent_opinion": {
+   "va": "10022f85",
+   "old": "FUN_10022f85",
+   "new": "DrawWorldPolyDynamicLightPasses",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Iterates the polygon light list and draws additive passes with per-light projected lightmap coordinates. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10022f85.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1002329f",
+  "old": "FUN_1002329f",
+  "new": "BuildGouraudWorldPolyVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies world positions and UVs, applies the primary RGB tables, assigns alpha, and calculates fog. Unhit in recorded scenarios.",
+  "primary_draft": "BuildPolyVertices_Opaque",
+  "prior_evidence": "Fills 0x20-byte D3DTLVERTEX-style verts (x,y,z + colour bytes at +0x10..+0x13 via 256-entry LUTs DAT_10059d04/59e04/59f04, tu,tv at +0x18/+0x1c) from the poly's 0x18-byte vertex list.",
+  "independent_opinion": {
+   "va": "1002329f",
+   "old": "FUN_1002329f",
+   "new": "BuildGouraudWorldPolyVertices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Copies world positions and UVs, applies the primary RGB tables, assigns alpha, and calculates fog. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1002329f.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1002331b",
+  "old": "FUN_1002331b",
+  "new": "BuildSaturatedGouraudWorldPolyVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The saturation branch in the multipass draw selects this builder and its second RGB lookup-table set. Unhit in recorded scenarios.",
+  "primary_draft": "BuildPolyVertices_Translucent",
+  "prior_evidence": "Same as 1002329f but with the second LUT set DAT_1005a004/5a104/5a204 (translucent/alt colour tables).",
+  "independent_opinion": {
+   "va": "1002331b",
+   "old": "FUN_1002331b",
+   "new": "BuildSaturatedGouraudWorldPolyVertices",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "The saturation branch in the multipass draw selects this builder and its second RGB lookup-table set. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1002331b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1002358b",
+  "old": "FUN_1002358b",
+  "new": "ScaleWorldPolyStageZeroTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Scales each TLVertex UV by the stage-zero texture scale pair. Unhit in recorded scenarios.",
+  "primary_draft": "ScalePolyUVByTexelSize",
+  "prior_evidence": "Multiplies each vertex tu,tv (+0x18,+0x1c) by DAT_10061810/DAT_10061814 (texel size of bound texture).",
+  "independent_opinion": {
+   "va": "1002358b",
+   "old": "FUN_1002358b",
+   "new": "ScaleWorldPolyStageZeroTexCoords",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Scales each TLVertex UV by the stage-zero texture scale pair. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1002358b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100244b3",
+  "old": "FUN_100244b3",
+  "new": "BeginModelRenderPass",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initializes UV offsets and texturing, saves fill mode, applies wireframe, and returns the fullbrite-pass decision. Unhit in recorded scenarios.",
+  "primary_draft": "BeginModelDraw",
+  "prior_evidence": "Saves D3DRS_FILLMODE (8) into DAT_10068030 and sets WIREFRAME(2) when this+0x898 flag 0x10; decides this+0x4c8 (texturing) from g_TextureModels (10048750) and hook flag bit0; reads ALPHABLENDENABLE; out arg = alpha-blended flag; callers 10004270/10024c8b.",
+  "independent_opinion": {
+   "va": "100244b3",
+   "old": "FUN_100244b3",
+   "new": "BeginModelRenderPass",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Initializes UV offsets and texturing, saves fill mode, applies wireframe, and returns the fullbrite-pass decision. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100244b3.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10024cd7",
+  "old": "FUN_10024cd7",
+  "new": "RestoreModelFillMode",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Restores the D3D fill mode saved by model pass setup. Unhit in recorded scenarios.",
+  "primary_draft": "RestoreFillMode",
+  "prior_evidence": "SetRenderState(D3DRS_FILLMODE=8, DAT_10068030), restoring the value saved by 100244b3.",
+  "independent_opinion": {
+   "va": "10024cd7",
+   "old": "FUN_10024cd7",
+   "new": "RestoreModelFillMode",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Restores the D3D fill mode saved by model pass setup. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10024cd7.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100265c9",
+  "old": "FUN_100265c9",
+  "new": "ClipShadowPolygonToNearPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips Vertex36 polygon edges using z >= NearZ and interpolates resulting shadow attributes. Unhit in recorded scenarios.",
+  "primary_draft": "ClipTLPoly_Vertex36_Near",
+  "prior_evidence": "Plane clipper for mask bit 1: intersection routine 10001a50 solves z = near plane (DAT_10055d80); loop of polyclip.h shape on 0x24-byte verts.",
+  "independent_opinion": {
+   "va": "100265c9",
+   "old": "FUN_100265c9",
+   "new": "ClipShadowPolygonToNearPlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Clips Vertex36 polygon edges using z >= NearZ and interpolates resulting shadow attributes. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100265c9.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10026700",
+  "old": "FUN_10026700",
+  "new": "ClipShadowPolygonToLeftPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses x > -z as its inside test, the view-frustum left boundary. Unhit in recorded scenarios.",
+  "primary_draft": "ClipTLPoly_Vertex36_Side4",
+  "prior_evidence": "Plane clipper for mask bit 4 (intersection 10001ac0), polyclip.h shape.",
+  "independent_opinion": {
+   "va": "10026700",
+   "old": "FUN_10026700",
+   "new": "ClipShadowPolygonToLeftPlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses x > -z as its inside test, the view-frustum left boundary. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10026700.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10026835",
+  "old": "FUN_10026835",
+  "new": "ClipShadowPolygonToTopPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses y < z as its inside test for the top boundary in this renderer's clip coordinates. Unhit in recorded scenarios.",
+  "primary_draft": "ClipTLPoly_Vertex36_Side8",
+  "prior_evidence": "Plane clipper for mask bit 8 (intersection 10008b58 = y - z plane), polyclip.h shape.",
+  "independent_opinion": {
+   "va": "10026835",
+   "old": "FUN_10026835",
+   "new": "ClipShadowPolygonToTopPlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses y < z as its inside test for the top boundary in this renderer's clip coordinates. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10026835.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10026969",
+  "old": "FUN_10026969",
+  "new": "ClipShadowPolygonToRightPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses x < z as its inside test for the view-frustum right boundary. Unhit in recorded scenarios.",
+  "primary_draft": "ClipTLPoly_Vertex36_Side10",
+  "prior_evidence": "Plane clipper for mask bit 0x10 (intersection 10008bb4), polyclip.h shape.",
+  "independent_opinion": {
+   "va": "10026969",
+   "old": "FUN_10026969",
+   "new": "ClipShadowPolygonToRightPlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses x < z as its inside test for the view-frustum right boundary. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10026969.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10026a9c",
+  "old": "FUN_10026a9c",
+  "new": "ClipShadowPolygonToBottomPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses y > -z as its inside test for the bottom boundary in this renderer's clip coordinates. Unhit in recorded scenarios.",
+  "primary_draft": "ClipTLPoly_Vertex36_Side20",
+  "prior_evidence": "Plane clipper for mask bit 0x20 (intersection 10008c10), polyclip.h shape.",
+  "independent_opinion": {
+   "va": "10026a9c",
+   "old": "FUN_10026a9c",
+   "new": "ClipShadowPolygonToBottomPlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses y > -z as its inside test for the bottom boundary in this renderer's clip coordinates. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10026a9c.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10026bd2",
+  "old": "FUN_10026bd2",
+  "new": "ClipShadowPolygonToFarPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clips Vertex36 polygon edges using z <= ClipFarZ. Unhit in recorded scenarios.",
+  "primary_draft": "ClipTLPoly_Vertex36_Far",
+  "prior_evidence": "Plane clipper for mask bit 2: intersection 10008c6e solves z = far plane (DAT_10055d88); polyclip.h shape.",
+  "independent_opinion": {
+   "va": "10026bd2",
+   "old": "FUN_10026bd2",
+   "new": "ClipShadowPolygonToFarPlane",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Clips Vertex36 polygon edges using z <= ClipFarZ. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10026bd2.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100325e8",
+  "old": "FUN_100325e8",
+  "new": "BuildDynamicLightmapPixels",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Checks dynamic-lightmap enablement, plane distance, radius and scaled light color, then dispatches the 16-bit or other pixel filler.",
+  "primary_draft": "RenderDynamicLightmap",
+  "prior_evidence": "gated by LMDynamic ConVar (DAT_10076788); plane distance of the light (obj+0x8..) / size, intensity (1 - 1/size), light colour (light+0x94..96, clamp >=0x7f, optional LMDynamicScale float), then fills the surface via 1003273a (RGB565, surface format==2) or 1003287a (32-bit); callers 10007e5d and 10022f85",
+  "independent_opinion": {
+   "va": "100325e8",
+   "old": "FUN_100325e8",
+   "new": "BuildDynamicLightmapPixels",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Checks dynamic-lightmap enablement, plane distance, radius and scaled light color, then dispatches the 16-bit or other pixel filler."
+  },
+  "dossier": "build/d3dren/dossier/100325e8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10032c40",
+  "old": "FUN_10032c40",
+  "new": "ApplyPolyDynamicLightsToLightmap",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Visits a polygon's dynamic-light list and applies flat or distance-attenuated colors to its locked 16-bit or 32-bit lightmap. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "ApplyDynamicLightsToLightmap",
+  "prior_evidence": "for each dynamic light in the list at poly+0x30: builds the light context, then adds the light per texel into a locked lightmap (16- or 32-bit, honours convar DAT_100584c0); caller 10020ff0 between Lock (10034af0) and Unlock (10034c7c)",
+  "independent_opinion": {
+   "va": "10032c40",
+   "old": "FUN_10032c40",
+   "new": "ApplyPolyDynamicLightsToLightmap",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Visits a polygon's dynamic-light list and applies flat or distance-attenuated colors to its locked 16-bit or 32-bit lightmap. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10032c40.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001230",
+  "old": "FUN_10001230",
+  "new": "d3d_InitModelVertexBufferPools",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clamps and triangle-aligns ModelVBSize, clamps ModelVBCount, initializes the four model vertex pools and the cache, and sets cache delay. Callers initialize or rebuild model drawing resources; runtime coverage is absent.",
+  "primary_draft": "ModelVB_InitPools",
+  "prior_evidence": "Clamps ModelVBSize/ModelVBCount (size rounded up to a multiple of 3), calls Init slot (1003a83d) on the four static pools and slot 4 of the cache pool 0x10093b10 with ModelVBCache, stores ModelVBCacheDelay to 0x10093b70; callers 10004270, 1000b772.",
+  "independent_opinion": {
+   "va": "10001230",
+   "old": "FUN_10001230",
+   "new": "d3d_InitModelVertexBufferPools",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clamps and triangle-aligns ModelVBSize, clamps ModelVBCount, initializes the four model vertex pools and the cache, and sets cache delay. Callers initialize or rebuild model drawing resources; runtime coverage is absent."
+  },
+  "dossier": "build/d3dren/dossier/10001230.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10008b58",
+  "old": "FUN_10008b58",
+  "new": "IntersectTopClipPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes segment interpolation at y = z, writes the intersection and returns the parameter. This is the top-frustum-plane intersection used by the line clipper; runtime unhit.",
+  "primary_draft": "ClipLineTop",
+  "prior_evidence": "Cdecl(p1,p2,out) intersection of an edge with the top plane y==z (out.y=out.z, 1e-5 epsilon); only caller is the line-system clipper 10026835.",
+  "independent_opinion": {
+   "va": "10008b58",
+   "old": "FUN_10008b58",
+   "new": "IntersectTopClipPlane",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Computes segment interpolation at y = z, writes the intersection and returns the parameter. This is the top-frustum-plane intersection used by the line clipper; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10008b58.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10008bb4",
+  "old": "FUN_10008bb4",
+  "new": "IntersectRightClipPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes segment interpolation at x = z, writes interpolated y/z and forces x = z, returning the parameter to the line clipper; runtime unhit.",
+  "primary_draft": "ClipLineRight",
+  "prior_evidence": "Intersection with the right plane x==z; only caller 10026969 (line system).",
+  "independent_opinion": {
+   "va": "10008bb4",
+   "old": "FUN_10008bb4",
+   "new": "IntersectRightClipPlane",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Computes segment interpolation at x = z, writes interpolated y/z and forces x = z, returning the parameter to the line clipper; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10008bb4.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10008c10",
+  "old": "FUN_10008c10",
+  "new": "IntersectBottomClipPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes segment interpolation at y + z = 0, writes interpolated x/z and forces y = -z, returning the parameter to the line clipper; runtime unhit.",
+  "primary_draft": "ClipLineBottom",
+  "prior_evidence": "Intersection with the bottom plane y==-z; only caller 10026a9c (line system).",
+  "independent_opinion": {
+   "va": "10008c10",
+   "old": "FUN_10008c10",
+   "new": "IntersectBottomClipPlane",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Computes segment interpolation at y + z = 0, writes interpolated x/z and forces y = -z, returning the parameter to the line clipper; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10008c10.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10008c6e",
+  "old": "FUN_10008c6e",
+  "new": "IntersectFarClipPlane",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes segment intersection at ViewParams ClipFarZ, interpolates x/y, fixes z at the far depth and returns the interpolation parameter; runtime unhit.",
+  "primary_draft": "ClipLineFar",
+  "prior_evidence": "Intersection with the far plane z==DAT_10055d88; only caller 10026bd2 (line system).",
+  "independent_opinion": {
+   "va": "10008c6e",
+   "old": "FUN_10008c6e",
+   "new": "IntersectFarClipPlane",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Computes segment intersection at ViewParams ClipFarZ, interpolates x/y, fixes z at the far depth and returns the interpolation parameter; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10008c6e.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000ae2f",
+  "old": "FUN_1000ae2f",
+  "new": "d3d_DrawClippedDualTextureTriangleFan",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: The 40-byte, two-UV-set counterpart of the clipped triangle-fan draw dispatcher. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ClipAndDrawFan40",
+  "prior_evidence": "0x28-byte twin of 1000ad48 using 100085f2.",
+  "independent_opinion": {
+   "va": "1000ae2f",
+   "old": "FUN_1000ae2f",
+   "new": "d3d_DrawClippedDualTextureTriangleFan",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "The 40-byte, two-UV-set counterpart of the clipped triangle-fan draw dispatcher. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000ae2f.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100139d0",
+  "old": "FUN_100139d0",
+  "new": "d3d_PackRGB",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Packs r, g and b directly into a 24-bit RGB integer. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100139d0",
+   "old": "FUN_100139d0",
+   "new": "d3d_PackRGB",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Packs r, g and b directly into a 24-bit RGB integer. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100139d0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10024589",
+  "old": "FUN_10024589",
+  "new": "BindModelSkinTextures",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Binds the selected skin on active texture stages, handles linked detail texture and UV offsets, and records skin index. Unhit in recorded scenarios.",
+  "primary_draft": "SetPieceTexture",
+  "prior_evidence": "(this,iSkin<4): binds ModelInstance skin texture (inst+0x1c0+4*i) through 100079e4 if g_ModelTexture (10067bf0) else disables stage; also sets stage-1 states when this+0x30; caller 10004270 (piece loop).",
+  "independent_opinion": {
+   "va": "10024589",
+   "old": "FUN_10024589",
+   "new": "BindModelSkinTextures",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Binds the selected skin on active texture stages, handles linked detail texture and UV offsets, and records skin index. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10024589.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1003273a",
+  "old": "FUN_1003273a",
+  "new": "FillDynamicLightmapRGB555",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Writes 16-bit packed RGB555 lightmap texels for samples within the light sphere using one minus squared distance, with a black border.",
+  "primary_draft": "FillDynamicLightmap16",
+  "prior_evidence": "memset surface, loops (w-2)x(h-2) texels computing 1-(x^2+y^2+d^2) falloff, packs RGB565 via 10032825 into the 16-bit surface (pitch>>1)",
+  "independent_opinion": {
+   "va": "1003273a",
+   "old": "FUN_1003273a",
+   "new": "FillDynamicLightmapRGB555",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Writes 16-bit packed RGB555 lightmap texels for samples within the light sphere using one minus squared distance, with a black border."
+  },
+  "dossier": "build/d3dren/dossier/1003273a.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ }
+]

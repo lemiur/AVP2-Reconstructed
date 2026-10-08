@@ -25,7 +25,7 @@
 #include <math.h>
 #include "world_tree.h"
 
-// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by FUN_100356b8) --------------
+// ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by QueueLightmappedPoly) --------------
 // The queued polys' texture: node -> poly -> surface -> SharedTexture.
 #define BUCKET_TEXTURE(pBucket)	(((Surface *)((WorldPoly *)(pBucket)->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture)
 

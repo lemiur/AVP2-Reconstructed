@@ -1,0 +1,2414 @@
+[
+ {
+  "va": "1003b93d",
+  "old": "FUN_1003b93d",
+  "new": "crt_SqrtSharedBody",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Executes fsqrt after control-word and sign checks, then joins __math_exit or one-argument error handling. This is an internal shared body reached from __CIsqrt and _sqrt, not the _sqrt public entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003b93d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/sqrt .text section mapped at 1003b920; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/sqrt.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003b93d",
+   "old": "FUN_1003b93d",
+   "new": "crt_SqrtSharedBody",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Executes fsqrt after control-word and sign checks, then joins __math_exit or one-argument error handling. This is an internal shared body reached from __CIsqrt and _sqrt, not the _sqrt public entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003b93d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/sqrt .text section mapped at 1003b920; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/sqrt.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003b93d.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003b93d",
+    "status": "observed",
+    "hits": 577187,
+    "scenarios": {
+     "capture1:menu": {
+      "hits": 11258,
+      "calls_per_frame": 4.045274883219547,
+      "first_frame": 2097,
+      "last_frame": 2782
+     },
+     "capture2:menu": {
+      "hits": 6549,
+      "calls_per_frame": 16.66412213740458,
+      "first_frame": 2431,
+      "last_frame": 2822
+     },
+     "capture2:world_load_p4s3": {
+      "hits": 24862,
+      "calls_per_frame": 15.998712998712998,
+      "first_frame": 2823,
+      "last_frame": 4376
+     },
+     "capture2:world_baseline": {
+      "hits": 7538,
+      "calls_per_frame": 15.970338983050848,
+      "first_frame": 4376,
+      "last_frame": 4847
+     },
+     "capture2:DrawSky_off": {
+      "hits": 6176,
+      "calls_per_frame": 15.958656330749355,
+      "first_frame": 4848,
+      "last_frame": 5233
+     },
+     "capture2:DrawSky_on": {
+      "hits": 5744,
+      "calls_per_frame": 15.955555555555556,
+      "first_frame": 5234,
+      "last_frame": 5592
+     },
+     "capture2:Wireframe_off": {
+      "hits": 5303,
+      "calls_per_frame": 15.924924924924925,
+      "first_frame": 5593,
+      "last_frame": 5924
+     },
+     "capture2:Wireframe_on": {
+      "hits": 5385,
+      "calls_per_frame": 15.979228486646884,
+      "first_frame": 5924,
+      "last_frame": 6260
+     },
+     "capture2:FogEnable_off": {
+      "hits": 5296,
+      "calls_per_frame": 15.951807228915662,
+      "first_frame": 6261,
+      "last_frame": 6591
+     },
+     "capture2:FogEnable_on": {
+      "hits": 5357,
+      "calls_per_frame": 15.943452380952381,
+      "first_frame": 6592,
+      "last_frame": 6926
+     },
+     "capture2:LightMap_off": {
+      "hits": 5203,
+      "calls_per_frame": 15.960122699386503,
+      "first_frame": 6926,
+      "last_frame": 7251
+     },
+     "capture2:LightMap_on": {
+      "hits": 5600,
+      "calls_per_frame": 15.954415954415955,
+      "first_frame": 7252,
+      "last_frame": 7601
+     },
+     "capture2:ModelShadowMode_off": {
+      "hits": 5476,
+      "calls_per_frame": 15.918604651162791,
+      "first_frame": 7602,
+      "last_frame": 7944
+     },
+     "capture2:ModelShadowMode_on": {
+      "hits": 5388,
+      "calls_per_frame": 15.988130563798219,
+      "first_frame": 7944,
+      "last_frame": 8280
+     },
+     "capture2:EnvMapEnable_off": {
+      "hits": 4944,
+      "calls_per_frame": 15.948387096774194,
+      "first_frame": 8281,
+      "last_frame": 8589
+     },
+     "capture2:EnvMapEnable_on": {
+      "hits": 5333,
+      "calls_per_frame": 15.919402985074626,
+      "first_frame": 8590,
+      "last_frame": 8923
+     },
+     "capture2:DetailTextures_off": {
+      "hits": 4395,
+      "calls_per_frame": 15.981818181818182,
+      "first_frame": 8923,
+      "last_frame": 9197
+     },
+     "capture2:DetailTextures_on": {
+      "hits": 5288,
+      "calls_per_frame": 15.927710843373495,
+      "first_frame": 9198,
+      "last_frame": 9528
+     },
+     "capture2:DrawParticles_off": {
+      "hits": 3432,
+      "calls_per_frame": 15.962790697674418,
+      "first_frame": 9528,
+      "last_frame": 9742
+     },
+     "capture2:DrawParticles_on": {
+      "hits": 2512,
+      "calls_per_frame": 8,
+      "first_frame": 9743,
+      "last_frame": 10055
+     },
+     "capture2:DrawSprites_off": {
+      "hits": 1348,
+      "calls_per_frame": 1.9940828402366864,
+      "first_frame": 10057,
+      "last_frame": 10729
+     },
+     "capture2:DrawSprites_on": {
+      "hits": 3828,
+      "calls_per_frame": 7.975,
+      "first_frame": 10731,
+      "last_frame": 11209
+     },
+     "capture2:DrawPolyGrids_off": {
+      "hits": 4106,
+      "calls_per_frame": 7.972815533980582,
+      "first_frame": 11211,
+      "last_frame": 11723
+     },
+     "capture2:DrawPolyGrids_on": {
+      "hits": 4042,
+      "calls_per_frame": 7.9723865877712035,
+      "first_frame": 11723,
+      "last_frame": 12229
+     },
+     "capture2:DrawModels_off": {
+      "hits": 3932,
+      "calls_per_frame": 8.008146639511201,
+      "first_frame": 12229,
+      "last_frame": 12719
+     },
+     "capture2:DrawModels_on": {
+      "hits": 2976,
+      "calls_per_frame": 7.957219251336898,
+      "first_frame": 12721,
+      "last_frame": 13091
+     },
+     "capture2:UseD3DClip_off": {
+      "hits": 3502,
+      "calls_per_frame": 7.995433789954338,
+      "first_frame": 13093,
+      "last_frame": 13529
+     },
+     "capture2:UseD3DClip_on": {
+      "hits": 3927,
+      "calls_per_frame": 7.9655172413793105,
+      "first_frame": 13529,
+      "last_frame": 14021
+     },
+     "capture2:DrawFlat_off": {
+      "hits": 3211,
+      "calls_per_frame": 7.987562189054726,
+      "first_frame": 14021,
+      "last_frame": 14421
+     },
+     "capture2:DrawFlat_on": {
+      "hits": 3184,
+      "calls_per_frame": 8,
+      "first_frame": 14423,
+      "last_frame": 14819
+     },
+     "capture2:MultipassGouraud_off": {
+      "hits": 2901,
+      "calls_per_frame": 7.947945205479452,
+      "first_frame": 14821,
+      "last_frame": 15183
+     },
+     "capture2:MultipassGouraud_on": {
+      "hits": 3297,
+      "calls_per_frame": 7.983050847457627,
+      "first_frame": 15183,
+      "last_frame": 15595
+     },
+     "capture2:world_reload": {
+      "hits": 13546,
+      "calls_per_frame": 8.001181334908447,
+      "first_frame": 15595,
+      "last_frame": 17287
+     },
+     "capture2:texture_rebind": {
+      "hits": 5952,
+      "calls_per_frame": 7.989261744966443,
+      "first_frame": 17289,
+      "last_frame": 18031
+     },
+     "capture2:lightmap_rebind": {
+      "hits": 14000,
+      "calls_per_frame": 7.99543118218161,
+      "first_frame": 18033,
+      "last_frame": 19781
+     },
+     "capture3:menu": {
+      "hits": 4034,
+      "calls_per_frame": 5.689703808180536,
+      "first_frame": 1949,
+      "last_frame": 2183
+     },
+     "capture3:world_load_p4s3": {
+      "hits": 25104,
+      "calls_per_frame": 15.989808917197452,
+      "first_frame": 2184,
+      "last_frame": 3752
+     },
+     "capture3:world_baseline": {
+      "hits": 6832,
+      "calls_per_frame": 15.962616822429906,
+      "first_frame": 3753,
+      "last_frame": 4179
+     },
+     "capture3:DrawSky_off": {
+      "hits": 5152,
+      "calls_per_frame": 15.95046439628483,
+      "first_frame": 4180,
+      "last_frame": 4501
+     },
+     "capture3:DrawSky_on": {
+      "hits": 4336,
+      "calls_per_frame": 15.941176470588236,
+      "first_frame": 4502,
+      "last_frame": 4772
+     },
+     "capture3:Wireframe_off": {
+      "hits": 4336,
+      "calls_per_frame": 15.941176470588236,
+      "first_frame": 4773,
+      "last_frame": 5043
+     },
+     "capture3:Wireframe_on": {
+      "hits": 4048,
+      "calls_per_frame": 15.937007874015748,
+      "first_frame": 5044,
+      "last_frame": 5296
+     },
+     "capture3:FogEnable_off": {
+      "hits": 4144,
+      "calls_per_frame": 15.938461538461539,
+      "first_frame": 5297,
+      "last_frame": 5555
+     },
+     "capture3:FogEnable_on": {
+      "hits": 2688,
+      "calls_per_frame": 15.905325443786982,
+      "first_frame": 5556,
+      "last_frame": 5723
+     },
+     "capture3:LightMap_off": {
+      "hits": 4557,
+      "calls_per_frame": 15.933566433566433,
+      "first_frame": 5724,
+      "last_frame": 6008
+     },
+     "capture3:LightMap_on": {
+      "hits": 4195,
+      "calls_per_frame": 15.950570342205323,
+      "first_frame": 6008,
+      "last_frame": 6270
+     },
+     "capture3:ModelShadowMode_off": {
+      "hits": 4736,
+      "calls_per_frame": 15.946127946127946,
+      "first_frame": 6271,
+      "last_frame": 6566
+     },
+     "capture3:continue_game_load": {
+      "hits": 372,
+      "calls_per_frame": 9.3,
+      "first_frame": 6567,
+      "last_frame": 6605
+     },
+     "capture3:EnvMapEnable_off": {
+      "hits": 222,
+      "calls_per_frame": 8.538461538461538,
+      "first_frame": 6606,
+      "last_frame": 6630
+     },
+     "capture3:EnvMapEnable_on": {
+      "hits": 228,
+      "calls_per_frame": 8.76923076923077,
+      "first_frame": 6630,
+      "last_frame": 6655
+     },
+     "capture3:DetailTextures_off": {
+      "hits": 222,
+      "calls_per_frame": 8.538461538461538,
+      "first_frame": 6656,
+      "last_frame": 6680
+     },
+     "capture3:DetailTextures_on": {
+      "hits": 246,
+      "calls_per_frame": 8.785714285714286,
+      "first_frame": 6680,
+      "last_frame": 6707
+     },
+     "capture3:DrawParticles_off": {
+      "hits": 189,
+      "calls_per_frame": 8.590909090909092,
+      "first_frame": 6708,
+      "last_frame": 6728
+     },
+     "capture3:DrawParticles_on": {
+      "hits": 225,
+      "calls_per_frame": 8.653846153846153,
+      "first_frame": 6729,
+      "last_frame": 6753
+     },
+     "capture3:DrawSprites_off": {
+      "hits": 351,
+      "calls_per_frame": 8.775,
+      "first_frame": 6754,
+      "last_frame": 6792
+     },
+     "capture3:DrawSprites_on": {
+      "hits": 206,
+      "calls_per_frame": 8.583333333333334,
+      "first_frame": 6793,
+      "last_frame": 6815
+     },
+     "capture3:DrawPolyGrids_off": {
+      "hits": 895,
+      "calls_per_frame": 59.666666666666664,
+      "first_frame": 6815,
+      "last_frame": 6829
+     },
+     "capture3:DrawPolyGrids_on": {
+      "hits": 1088,
+      "calls_per_frame": 77.71428571428571,
+      "first_frame": 6829,
+      "last_frame": 6842
+     },
+     "capture3:DrawModels_off": {
+      "hits": 696,
+      "calls_per_frame": 40.94117647058823,
+      "first_frame": 6842,
+      "last_frame": 6858
+     },
+     "capture3:DrawModels_on": {
+      "hits": 1180,
+      "calls_per_frame": 69.41176470588235,
+      "first_frame": 6858,
+      "last_frame": 6874
+     },
+     "capture3:UseD3DClip_off": {
+      "hits": 566,
+      "calls_per_frame": 80.85714285714286,
+      "first_frame": 6874,
+      "last_frame": 6880
+     },
+     "capture3:saved_world_baseline": {
+      "hits": 910,
+      "calls_per_frame": 70,
+      "first_frame": 6881,
+      "last_frame": 6892
+     },
+     "capture3:UseD3DClip_on": {
+      "hits": 270,
+      "calls_per_frame": 67.5,
+      "first_frame": 6892,
+      "last_frame": 6895
+     },
+     "capture3:DrawFlat_off": {
+      "hits": 296,
+      "calls_per_frame": 74,
+      "first_frame": 6895,
+      "last_frame": 6898
+     },
+     "capture3:DrawFlat_on": {
+      "hits": 710,
+      "calls_per_frame": 54.61538461538461,
+      "first_frame": 6899,
+      "last_frame": 6910
+     },
+     "capture3:MultipassGouraud_off": {
+      "hits": 1048,
+      "calls_per_frame": 52.4,
+      "first_frame": 6910,
+      "last_frame": 6929
+     },
+     "capture3:MultipassGouraud_on": {
+      "hits": 544,
+      "calls_per_frame": 45.333333333333336,
+      "first_frame": 6930,
+      "last_frame": 6940
+     },
+     "capture3:world_reload": {
+      "hits": 190,
+      "calls_per_frame": 47.5,
+      "first_frame": 6940,
+      "last_frame": 6943
+     },
+     "capture4:predator_vision_cycle_2": {
+      "hits": 19228,
+      "calls_per_frame": 57.91566265060241,
+      "first_frame": 1,
+      "last_frame": 332
+     },
+     "capture4:predator_vision_cycle_3": {
+      "hits": 41096,
+      "calls_per_frame": 57.88169014084507,
+      "first_frame": 332,
+      "last_frame": 1041
+     },
+     "capture4:screenshot": {
+      "hits": 914,
+      "calls_per_frame": 57.125,
+      "first_frame": 1041,
+      "last_frame": 1056
+     },
+     "capture5:menu_last_capture": {
+      "hits": 226342,
+      "calls_per_frame": 13.659746529873265,
+      "first_frame": 2441,
+      "last_frame": 16569
+     }
+    },
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Observed entry plus agreeing source role"
+ },
+ {
+  "va": "1003ba2d",
+  "old": "FUN_1003ba2d",
+  "new": "crt_SinSharedBody",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Executes fsin with fprem1 range reduction and NaN/infinity handling, then joins the standard math exit; not the _sin public entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003ba2d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/sin .text section mapped at 1003ba10; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/sin.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003ba2d",
+   "old": "FUN_1003ba2d",
+   "new": "crt_SinSharedBody",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Executes fsin with fprem1 range reduction and NaN/infinity handling, then joins the standard math exit; not the _sin public entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003ba2d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/sin .text section mapped at 1003ba10; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/sin.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003ba2d.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003ba2d",
+    "status": "observed",
+    "hits": 66652,
+    "scenarios": {
+     "capture1:menu": {
+      "hits": 1436,
+      "calls_per_frame": 0.5159899389148401,
+      "first_frame": 0,
+      "last_frame": 2782
+     },
+     "capture2:menu": {
+      "hits": 850,
+      "calls_per_frame": 2.162849872773537,
+      "first_frame": 0,
+      "last_frame": 2823
+     },
+     "capture2:world_load_p4s3": {
+      "hits": 3106,
+      "calls_per_frame": 1.9987129987129988,
+      "first_frame": 2824,
+      "last_frame": 4376
+     },
+     "capture2:world_baseline": {
+      "hits": 942,
+      "calls_per_frame": 1.9957627118644068,
+      "first_frame": 4377,
+      "last_frame": 4847
+     },
+     "capture2:DrawSky_off": {
+      "hits": 772,
+      "calls_per_frame": 1.9948320413436693,
+      "first_frame": 4848,
+      "last_frame": 5233
+     },
+     "capture2:DrawSky_on": {
+      "hits": 718,
+      "calls_per_frame": 1.9944444444444445,
+      "first_frame": 5234,
+      "last_frame": 5592
+     },
+     "capture2:Wireframe_off": {
+      "hits": 664,
+      "calls_per_frame": 1.993993993993994,
+      "first_frame": 5593,
+      "last_frame": 5924
+     },
+     "capture2:Wireframe_on": {
+      "hits": 672,
+      "calls_per_frame": 1.9940652818991098,
+      "first_frame": 5925,
+      "last_frame": 6260
+     },
+     "capture2:FogEnable_off": {
+      "hits": 662,
+      "calls_per_frame": 1.9939759036144578,
+      "first_frame": 6261,
+      "last_frame": 6591
+     },
+     "capture2:FogEnable_on": {
+      "hits": 670,
+      "calls_per_frame": 1.994047619047619,
+      "first_frame": 6592,
+      "last_frame": 6926
+     },
+     "capture2:LightMap_off": {
+      "hits": 650,
+      "calls_per_frame": 1.9938650306748467,
+      "first_frame": 6927,
+      "last_frame": 7251
+     },
+     "capture2:LightMap_on": {
+      "hits": 700,
+      "calls_per_frame": 1.9943019943019944,
+      "first_frame": 7252,
+      "last_frame": 7601
+     },
+     "capture2:ModelShadowMode_off": {
+      "hits": 686,
+      "calls_per_frame": 1.994186046511628,
+      "first_frame": 7602,
+      "last_frame": 7944
+     },
+     "capture2:ModelShadowMode_on": {
+      "hits": 672,
+      "calls_per_frame": 1.9940652818991098,
+      "first_frame": 7945,
+      "last_frame": 8280
+     },
+     "capture2:EnvMapEnable_off": {
+      "hits": 618,
+      "calls_per_frame": 1.9935483870967743,
+      "first_frame": 8281,
+      "last_frame": 8589
+     },
+     "capture2:EnvMapEnable_on": {
+      "hits": 668,
+      "calls_per_frame": 1.9940298507462686,
+      "first_frame": 8590,
+      "last_frame": 8923
+     },
+     "capture2:DetailTextures_off": {
+      "hits": 548,
+      "calls_per_frame": 1.9927272727272727,
+      "first_frame": 8924,
+      "last_frame": 9197
+     },
+     "capture2:DetailTextures_on": {
+      "hits": 662,
+      "calls_per_frame": 1.9939759036144578,
+      "first_frame": 9198,
+      "last_frame": 9528
+     },
+     "capture2:DrawParticles_off": {
+      "hits": 428,
+      "calls_per_frame": 1.9906976744186047,
+      "first_frame": 9529,
+      "last_frame": 9742
+     },
+     "capture2:DrawParticles_on": {
+      "hits": 314,
+      "calls_per_frame": 1,
+      "first_frame": 9743,
+      "last_frame": 10055
+     },
+     "capture2:DrawSprites_off": {
+      "hits": 674,
+      "calls_per_frame": 0.9970414201183432,
+      "first_frame": 10057,
+      "last_frame": 10729
+     },
+     "capture2:DrawSprites_on": {
+      "hits": 480,
+      "calls_per_frame": 1,
+      "first_frame": 10731,
+      "last_frame": 11209
+     },
+     "capture2:DrawPolyGrids_off": {
+      "hits": 514,
+      "calls_per_frame": 0.9980582524271845,
+      "first_frame": 11211,
+      "last_frame": 11723
+     },
+     "capture2:DrawPolyGrids_on": {
+      "hits": 506,
+      "calls_per_frame": 0.9980276134122288,
+      "first_frame": 11725,
+      "last_frame": 12229
+     },
+     "capture2:DrawModels_off": {
+      "hits": 490,
+      "calls_per_frame": 0.9979633401221996,
+      "first_frame": 12231,
+      "last_frame": 12719
+     },
+     "capture2:DrawModels_on": {
+      "hits": 372,
+      "calls_per_frame": 0.9946524064171123,
+      "first_frame": 12721,
+      "last_frame": 13091
+     },
+     "capture2:UseD3DClip_off": {
+      "hits": 438,
+      "calls_per_frame": 1,
+      "first_frame": 13093,
+      "last_frame": 13529
+     },
+     "capture2:UseD3DClip_on": {
+      "hits": 492,
+      "calls_per_frame": 0.9979716024340771,
+      "first_frame": 13531,
+      "last_frame": 14021
+     },
+     "capture2:DrawFlat_off": {
+      "hits": 400,
+      "calls_per_frame": 0.9950248756218906,
+      "first_frame": 14023,
+      "last_frame": 14421
+     },
+     "capture2:DrawFlat_on": {
+      "hits": 398,
+      "calls_per_frame": 1,
+      "first_frame": 14423,
+      "last_frame": 14819
+     },
+     "capture2:MultipassGouraud_off": {
+      "hits": 364,
+      "calls_per_frame": 0.9972602739726028,
+      "first_frame": 14821,
+      "last_frame": 15183
+     },
+     "capture2:MultipassGouraud_on": {
+      "hits": 412,
+      "calls_per_frame": 0.9975786924939467,
+      "first_frame": 15185,
+      "last_frame": 15595
+     },
+     "capture2:world_reload": {
+      "hits": 1692,
+      "calls_per_frame": 0.9994093325457767,
+      "first_frame": 15597,
+      "last_frame": 17287
+     },
+     "capture2:texture_rebind": {
+      "hits": 744,
+      "calls_per_frame": 0.9986577181208054,
+      "first_frame": 17289,
+      "last_frame": 18031
+     },
+     "capture2:lightmap_rebind": {
+      "hits": 1750,
+      "calls_per_frame": 0.9994288977727013,
+      "first_frame": 18033,
+      "last_frame": 19781
+     },
+     "capture3:menu": {
+      "hits": 534,
+      "calls_per_frame": 0.7531734837799718,
+      "first_frame": 0,
+      "last_frame": 2183
+     },
+     "capture3:world_load_p4s3": {
+      "hits": 3138,
+      "calls_per_frame": 1.9987261146496815,
+      "first_frame": 2184,
+      "last_frame": 3752
+     },
+     "capture3:world_baseline": {
+      "hits": 854,
+      "calls_per_frame": 1.9953271028037383,
+      "first_frame": 3753,
+      "last_frame": 4179
+     },
+     "capture3:DrawSky_off": {
+      "hits": 644,
+      "calls_per_frame": 1.9938080495356036,
+      "first_frame": 4180,
+      "last_frame": 4501
+     },
+     "capture3:DrawSky_on": {
+      "hits": 542,
+      "calls_per_frame": 1.9926470588235294,
+      "first_frame": 4502,
+      "last_frame": 4772
+     },
+     "capture3:Wireframe_off": {
+      "hits": 542,
+      "calls_per_frame": 1.9926470588235294,
+      "first_frame": 4773,
+      "last_frame": 5043
+     },
+     "capture3:Wireframe_on": {
+      "hits": 506,
+      "calls_per_frame": 1.9921259842519685,
+      "first_frame": 5044,
+      "last_frame": 5296
+     },
+     "capture3:FogEnable_off": {
+      "hits": 518,
+      "calls_per_frame": 1.9923076923076923,
+      "first_frame": 5297,
+      "last_frame": 5555
+     },
+     "capture3:FogEnable_on": {
+      "hits": 336,
+      "calls_per_frame": 1.9881656804733727,
+      "first_frame": 5556,
+      "last_frame": 5723
+     },
+     "capture3:LightMap_off": {
+      "hits": 570,
+      "calls_per_frame": 1.993006993006993,
+      "first_frame": 5724,
+      "last_frame": 6008
+     },
+     "capture3:LightMap_on": {
+      "hits": 524,
+      "calls_per_frame": 1.9923954372623573,
+      "first_frame": 6009,
+      "last_frame": 6270
+     },
+     "capture3:ModelShadowMode_off": {
+      "hits": 592,
+      "calls_per_frame": 1.9932659932659933,
+      "first_frame": 6271,
+      "last_frame": 6566
+     },
+     "capture3:continue_game_load": {
+      "hits": 78,
+      "calls_per_frame": 1.95,
+      "first_frame": 6567,
+      "last_frame": 6605
+     },
+     "capture3:EnvMapEnable_off": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6606,
+      "last_frame": 6630
+     },
+     "capture3:EnvMapEnable_on": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6631,
+      "last_frame": 6655
+     },
+     "capture3:DetailTextures_off": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6656,
+      "last_frame": 6680
+     },
+     "capture3:DetailTextures_on": {
+      "hits": 54,
+      "calls_per_frame": 1.9285714285714286,
+      "first_frame": 6681,
+      "last_frame": 6707
+     },
+     "capture3:DrawParticles_off": {
+      "hits": 42,
+      "calls_per_frame": 1.9090909090909092,
+      "first_frame": 6708,
+      "last_frame": 6728
+     },
+     "capture3:DrawParticles_on": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6729,
+      "last_frame": 6753
+     },
+     "capture3:DrawSprites_off": {
+      "hits": 78,
+      "calls_per_frame": 1.95,
+      "first_frame": 6754,
+      "last_frame": 6792
+     },
+     "capture3:DrawSprites_on": {
+      "hits": 46,
+      "calls_per_frame": 1.9166666666666667,
+      "first_frame": 6793,
+      "last_frame": 6815
+     },
+     "capture3:DrawPolyGrids_off": {
+      "hits": 28,
+      "calls_per_frame": 1.8666666666666667,
+      "first_frame": 6816,
+      "last_frame": 6829
+     },
+     "capture3:DrawPolyGrids_on": {
+      "hits": 26,
+      "calls_per_frame": 1.8571428571428572,
+      "first_frame": 6830,
+      "last_frame": 6842
+     },
+     "capture3:DrawModels_off": {
+      "hits": 32,
+      "calls_per_frame": 1.8823529411764706,
+      "first_frame": 6843,
+      "last_frame": 6858
+     },
+     "capture3:DrawModels_on": {
+      "hits": 32,
+      "calls_per_frame": 1.8823529411764706,
+      "first_frame": 6859,
+      "last_frame": 6874
+     },
+     "capture3:UseD3DClip_off": {
+      "hits": 12,
+      "calls_per_frame": 1.7142857142857142,
+      "first_frame": 6875,
+      "last_frame": 6880
+     },
+     "capture3:saved_world_baseline": {
+      "hits": 24,
+      "calls_per_frame": 1.8461538461538463,
+      "first_frame": 6881,
+      "last_frame": 6892
+     },
+     "capture3:UseD3DClip_on": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6893,
+      "last_frame": 6895
+     },
+     "capture3:DrawFlat_off": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6896,
+      "last_frame": 6898
+     },
+     "capture3:DrawFlat_on": {
+      "hits": 24,
+      "calls_per_frame": 1.8461538461538463,
+      "first_frame": 6899,
+      "last_frame": 6910
+     },
+     "capture3:MultipassGouraud_off": {
+      "hits": 38,
+      "calls_per_frame": 1.9,
+      "first_frame": 6911,
+      "last_frame": 6929
+     },
+     "capture3:MultipassGouraud_on": {
+      "hits": 22,
+      "calls_per_frame": 1.8333333333333333,
+      "first_frame": 6930,
+      "last_frame": 6940
+     },
+     "capture3:world_reload": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6941,
+      "last_frame": 6943
+     },
+     "capture4:predator_vision_cycle_2": {
+      "hits": 664,
+      "calls_per_frame": 2,
+      "first_frame": 1,
+      "last_frame": 332
+     },
+     "capture4:predator_vision_cycle_3": {
+      "hits": 1418,
+      "calls_per_frame": 1.9971830985915493,
+      "first_frame": 333,
+      "last_frame": 1041
+     },
+     "capture4:screenshot": {
+      "hits": 30,
+      "calls_per_frame": 1.875,
+      "first_frame": 1042,
+      "last_frame": 1056
+     },
+     "capture5:menu_last_capture": {
+      "hits": 28322,
+      "calls_per_frame": 1.7092335546167774,
+      "first_frame": 0,
+      "last_frame": 16569
+     }
+    },
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Observed entry plus agreeing source role"
+ },
+ {
+  "va": "1003bbad",
+  "old": "FUN_1003bbad",
+  "new": "crt_TanSharedBody",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Executes fptan, removes the extra x87 stack value, reduces large arguments, and joins math exit/error handling; not the _tan public entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003bbad.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/tan .text section mapped at 1003bb90; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/tan.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003bbad",
+   "old": "FUN_1003bbad",
+   "new": "crt_TanSharedBody",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Executes fptan, removes the extra x87 stack value, reduces large arguments, and joins math exit/error handling; not the _tan public entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003bbad.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/tan .text section mapped at 1003bb90; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/tan.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003bbad.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003bbad",
+    "status": "observed",
+    "hits": 2328,
+    "scenarios": {
+     "capture3:DrawPolyGrids_off": {
+      "hits": 20,
+      "calls_per_frame": 1.3333333333333333,
+      "first_frame": 6819,
+      "last_frame": 6828
+     },
+     "capture3:DrawPolyGrids_on": {
+      "hits": 26,
+      "calls_per_frame": 1.8571428571428572,
+      "first_frame": 6829,
+      "last_frame": 6841
+     },
+     "capture3:DrawModels_off": {
+      "hits": 4,
+      "calls_per_frame": 0.23529411764705882,
+      "first_frame": 6842,
+      "last_frame": 6843
+     },
+     "capture3:DrawModels_on": {
+      "hits": 26,
+      "calls_per_frame": 1.5294117647058822,
+      "first_frame": 6861,
+      "last_frame": 6873
+     },
+     "capture3:UseD3DClip_off": {
+      "hits": 14,
+      "calls_per_frame": 2,
+      "first_frame": 6874,
+      "last_frame": 6880
+     },
+     "capture3:saved_world_baseline": {
+      "hits": 22,
+      "calls_per_frame": 1.6923076923076923,
+      "first_frame": 6881,
+      "last_frame": 6891
+     },
+     "capture3:UseD3DClip_on": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6892,
+      "last_frame": 6894
+     },
+     "capture3:DrawFlat_off": {
+      "hits": 8,
+      "calls_per_frame": 2,
+      "first_frame": 6895,
+      "last_frame": 6898
+     },
+     "capture3:DrawFlat_on": {
+      "hits": 22,
+      "calls_per_frame": 1.6923076923076923,
+      "first_frame": 6899,
+      "last_frame": 6909
+     },
+     "capture3:MultipassGouraud_off": {
+      "hits": 40,
+      "calls_per_frame": 2,
+      "first_frame": 6910,
+      "last_frame": 6929
+     },
+     "capture3:MultipassGouraud_on": {
+      "hits": 20,
+      "calls_per_frame": 1.6666666666666667,
+      "first_frame": 6930,
+      "last_frame": 6939
+     },
+     "capture3:world_reload": {
+      "hits": 8,
+      "calls_per_frame": 2,
+      "first_frame": 6940,
+      "last_frame": 6943
+     },
+     "capture4:predator_vision_cycle_2": {
+      "hits": 662,
+      "calls_per_frame": 1.9939759036144578,
+      "first_frame": 1,
+      "last_frame": 331
+     },
+     "capture4:predator_vision_cycle_3": {
+      "hits": 1418,
+      "calls_per_frame": 1.9971830985915493,
+      "first_frame": 332,
+      "last_frame": 1040
+     },
+     "capture4:screenshot": {
+      "hits": 32,
+      "calls_per_frame": 2,
+      "first_frame": 1041,
+      "last_frame": 1056
+     }
+    },
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Observed entry plus agreeing source role"
+ },
+ {
+  "va": "1003bfad",
+  "old": "FUN_1003bfad",
+  "new": "crt_CosSharedBody",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Executes fcos with fprem1 range reduction and exceptional argument handling; not the _cos public entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003bfad.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/cos .text section mapped at 1003bf90; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/cos.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003bfad",
+   "old": "FUN_1003bfad",
+   "new": "crt_CosSharedBody",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Executes fcos with fprem1 range reduction and exceptional argument handling; not the _cos public entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003bfad.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/cos .text section mapped at 1003bf90; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/cos.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003bfad.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003bfad",
+    "status": "observed",
+    "hits": 66396,
+    "scenarios": {
+     "capture1:menu": {
+      "hits": 1372,
+      "calls_per_frame": 0.49299317283507005,
+      "first_frame": 2097,
+      "last_frame": 2782
+     },
+     "capture2:menu": {
+      "hits": 786,
+      "calls_per_frame": 2,
+      "first_frame": 2431,
+      "last_frame": 2823
+     },
+     "capture2:world_load_p4s3": {
+      "hits": 3106,
+      "calls_per_frame": 1.9987129987129988,
+      "first_frame": 2824,
+      "last_frame": 4376
+     },
+     "capture2:world_baseline": {
+      "hits": 942,
+      "calls_per_frame": 1.9957627118644068,
+      "first_frame": 4377,
+      "last_frame": 4847
+     },
+     "capture2:DrawSky_off": {
+      "hits": 772,
+      "calls_per_frame": 1.9948320413436693,
+      "first_frame": 4848,
+      "last_frame": 5233
+     },
+     "capture2:DrawSky_on": {
+      "hits": 718,
+      "calls_per_frame": 1.9944444444444445,
+      "first_frame": 5234,
+      "last_frame": 5592
+     },
+     "capture2:Wireframe_off": {
+      "hits": 664,
+      "calls_per_frame": 1.993993993993994,
+      "first_frame": 5593,
+      "last_frame": 5924
+     },
+     "capture2:Wireframe_on": {
+      "hits": 672,
+      "calls_per_frame": 1.9940652818991098,
+      "first_frame": 5925,
+      "last_frame": 6260
+     },
+     "capture2:FogEnable_off": {
+      "hits": 662,
+      "calls_per_frame": 1.9939759036144578,
+      "first_frame": 6261,
+      "last_frame": 6591
+     },
+     "capture2:FogEnable_on": {
+      "hits": 670,
+      "calls_per_frame": 1.994047619047619,
+      "first_frame": 6592,
+      "last_frame": 6926
+     },
+     "capture2:LightMap_off": {
+      "hits": 650,
+      "calls_per_frame": 1.9938650306748467,
+      "first_frame": 6927,
+      "last_frame": 7251
+     },
+     "capture2:LightMap_on": {
+      "hits": 700,
+      "calls_per_frame": 1.9943019943019944,
+      "first_frame": 7252,
+      "last_frame": 7601
+     },
+     "capture2:ModelShadowMode_off": {
+      "hits": 686,
+      "calls_per_frame": 1.994186046511628,
+      "first_frame": 7602,
+      "last_frame": 7944
+     },
+     "capture2:ModelShadowMode_on": {
+      "hits": 672,
+      "calls_per_frame": 1.9940652818991098,
+      "first_frame": 7945,
+      "last_frame": 8280
+     },
+     "capture2:EnvMapEnable_off": {
+      "hits": 618,
+      "calls_per_frame": 1.9935483870967743,
+      "first_frame": 8281,
+      "last_frame": 8589
+     },
+     "capture2:EnvMapEnable_on": {
+      "hits": 668,
+      "calls_per_frame": 1.9940298507462686,
+      "first_frame": 8590,
+      "last_frame": 8923
+     },
+     "capture2:DetailTextures_off": {
+      "hits": 548,
+      "calls_per_frame": 1.9927272727272727,
+      "first_frame": 8924,
+      "last_frame": 9197
+     },
+     "capture2:DetailTextures_on": {
+      "hits": 662,
+      "calls_per_frame": 1.9939759036144578,
+      "first_frame": 9198,
+      "last_frame": 9528
+     },
+     "capture2:DrawParticles_off": {
+      "hits": 428,
+      "calls_per_frame": 1.9906976744186047,
+      "first_frame": 9529,
+      "last_frame": 9742
+     },
+     "capture2:DrawParticles_on": {
+      "hits": 314,
+      "calls_per_frame": 1,
+      "first_frame": 9743,
+      "last_frame": 10055
+     },
+     "capture2:DrawSprites_off": {
+      "hits": 674,
+      "calls_per_frame": 0.9970414201183432,
+      "first_frame": 10057,
+      "last_frame": 10729
+     },
+     "capture2:DrawSprites_on": {
+      "hits": 480,
+      "calls_per_frame": 1,
+      "first_frame": 10731,
+      "last_frame": 11209
+     },
+     "capture2:DrawPolyGrids_off": {
+      "hits": 514,
+      "calls_per_frame": 0.9980582524271845,
+      "first_frame": 11211,
+      "last_frame": 11723
+     },
+     "capture2:DrawPolyGrids_on": {
+      "hits": 506,
+      "calls_per_frame": 0.9980276134122288,
+      "first_frame": 11725,
+      "last_frame": 12229
+     },
+     "capture2:DrawModels_off": {
+      "hits": 490,
+      "calls_per_frame": 0.9979633401221996,
+      "first_frame": 12231,
+      "last_frame": 12719
+     },
+     "capture2:DrawModels_on": {
+      "hits": 372,
+      "calls_per_frame": 0.9946524064171123,
+      "first_frame": 12721,
+      "last_frame": 13091
+     },
+     "capture2:UseD3DClip_off": {
+      "hits": 438,
+      "calls_per_frame": 1,
+      "first_frame": 13093,
+      "last_frame": 13529
+     },
+     "capture2:UseD3DClip_on": {
+      "hits": 492,
+      "calls_per_frame": 0.9979716024340771,
+      "first_frame": 13531,
+      "last_frame": 14021
+     },
+     "capture2:DrawFlat_off": {
+      "hits": 400,
+      "calls_per_frame": 0.9950248756218906,
+      "first_frame": 14023,
+      "last_frame": 14421
+     },
+     "capture2:DrawFlat_on": {
+      "hits": 398,
+      "calls_per_frame": 1,
+      "first_frame": 14423,
+      "last_frame": 14819
+     },
+     "capture2:MultipassGouraud_off": {
+      "hits": 364,
+      "calls_per_frame": 0.9972602739726028,
+      "first_frame": 14821,
+      "last_frame": 15183
+     },
+     "capture2:MultipassGouraud_on": {
+      "hits": 412,
+      "calls_per_frame": 0.9975786924939467,
+      "first_frame": 15185,
+      "last_frame": 15595
+     },
+     "capture2:world_reload": {
+      "hits": 1692,
+      "calls_per_frame": 0.9994093325457767,
+      "first_frame": 15597,
+      "last_frame": 17287
+     },
+     "capture2:texture_rebind": {
+      "hits": 744,
+      "calls_per_frame": 0.9986577181208054,
+      "first_frame": 17289,
+      "last_frame": 18031
+     },
+     "capture2:lightmap_rebind": {
+      "hits": 1750,
+      "calls_per_frame": 0.9994288977727013,
+      "first_frame": 18033,
+      "last_frame": 19781
+     },
+     "capture3:menu": {
+      "hits": 470,
+      "calls_per_frame": 0.6629055007052186,
+      "first_frame": 1949,
+      "last_frame": 2183
+     },
+     "capture3:world_load_p4s3": {
+      "hits": 3138,
+      "calls_per_frame": 1.9987261146496815,
+      "first_frame": 2184,
+      "last_frame": 3752
+     },
+     "capture3:world_baseline": {
+      "hits": 854,
+      "calls_per_frame": 1.9953271028037383,
+      "first_frame": 3753,
+      "last_frame": 4179
+     },
+     "capture3:DrawSky_off": {
+      "hits": 644,
+      "calls_per_frame": 1.9938080495356036,
+      "first_frame": 4180,
+      "last_frame": 4501
+     },
+     "capture3:DrawSky_on": {
+      "hits": 542,
+      "calls_per_frame": 1.9926470588235294,
+      "first_frame": 4502,
+      "last_frame": 4772
+     },
+     "capture3:Wireframe_off": {
+      "hits": 542,
+      "calls_per_frame": 1.9926470588235294,
+      "first_frame": 4773,
+      "last_frame": 5043
+     },
+     "capture3:Wireframe_on": {
+      "hits": 506,
+      "calls_per_frame": 1.9921259842519685,
+      "first_frame": 5044,
+      "last_frame": 5296
+     },
+     "capture3:FogEnable_off": {
+      "hits": 518,
+      "calls_per_frame": 1.9923076923076923,
+      "first_frame": 5297,
+      "last_frame": 5555
+     },
+     "capture3:FogEnable_on": {
+      "hits": 336,
+      "calls_per_frame": 1.9881656804733727,
+      "first_frame": 5556,
+      "last_frame": 5723
+     },
+     "capture3:LightMap_off": {
+      "hits": 570,
+      "calls_per_frame": 1.993006993006993,
+      "first_frame": 5724,
+      "last_frame": 6008
+     },
+     "capture3:LightMap_on": {
+      "hits": 524,
+      "calls_per_frame": 1.9923954372623573,
+      "first_frame": 6009,
+      "last_frame": 6270
+     },
+     "capture3:ModelShadowMode_off": {
+      "hits": 592,
+      "calls_per_frame": 1.9932659932659933,
+      "first_frame": 6271,
+      "last_frame": 6566
+     },
+     "capture3:continue_game_load": {
+      "hits": 78,
+      "calls_per_frame": 1.95,
+      "first_frame": 6567,
+      "last_frame": 6605
+     },
+     "capture3:EnvMapEnable_off": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6606,
+      "last_frame": 6630
+     },
+     "capture3:EnvMapEnable_on": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6631,
+      "last_frame": 6655
+     },
+     "capture3:DetailTextures_off": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6656,
+      "last_frame": 6680
+     },
+     "capture3:DetailTextures_on": {
+      "hits": 54,
+      "calls_per_frame": 1.9285714285714286,
+      "first_frame": 6681,
+      "last_frame": 6707
+     },
+     "capture3:DrawParticles_off": {
+      "hits": 42,
+      "calls_per_frame": 1.9090909090909092,
+      "first_frame": 6708,
+      "last_frame": 6728
+     },
+     "capture3:DrawParticles_on": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6729,
+      "last_frame": 6753
+     },
+     "capture3:DrawSprites_off": {
+      "hits": 78,
+      "calls_per_frame": 1.95,
+      "first_frame": 6754,
+      "last_frame": 6792
+     },
+     "capture3:DrawSprites_on": {
+      "hits": 46,
+      "calls_per_frame": 1.9166666666666667,
+      "first_frame": 6793,
+      "last_frame": 6815
+     },
+     "capture3:DrawPolyGrids_off": {
+      "hits": 28,
+      "calls_per_frame": 1.8666666666666667,
+      "first_frame": 6816,
+      "last_frame": 6829
+     },
+     "capture3:DrawPolyGrids_on": {
+      "hits": 26,
+      "calls_per_frame": 1.8571428571428572,
+      "first_frame": 6830,
+      "last_frame": 6842
+     },
+     "capture3:DrawModels_off": {
+      "hits": 32,
+      "calls_per_frame": 1.8823529411764706,
+      "first_frame": 6843,
+      "last_frame": 6858
+     },
+     "capture3:DrawModels_on": {
+      "hits": 32,
+      "calls_per_frame": 1.8823529411764706,
+      "first_frame": 6859,
+      "last_frame": 6874
+     },
+     "capture3:UseD3DClip_off": {
+      "hits": 12,
+      "calls_per_frame": 1.7142857142857142,
+      "first_frame": 6875,
+      "last_frame": 6880
+     },
+     "capture3:saved_world_baseline": {
+      "hits": 24,
+      "calls_per_frame": 1.8461538461538463,
+      "first_frame": 6881,
+      "last_frame": 6892
+     },
+     "capture3:UseD3DClip_on": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6893,
+      "last_frame": 6895
+     },
+     "capture3:DrawFlat_off": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6896,
+      "last_frame": 6898
+     },
+     "capture3:DrawFlat_on": {
+      "hits": 24,
+      "calls_per_frame": 1.8461538461538463,
+      "first_frame": 6899,
+      "last_frame": 6910
+     },
+     "capture3:MultipassGouraud_off": {
+      "hits": 38,
+      "calls_per_frame": 1.9,
+      "first_frame": 6911,
+      "last_frame": 6929
+     },
+     "capture3:MultipassGouraud_on": {
+      "hits": 22,
+      "calls_per_frame": 1.8333333333333333,
+      "first_frame": 6930,
+      "last_frame": 6940
+     },
+     "capture3:world_reload": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6941,
+      "last_frame": 6943
+     },
+     "capture4:predator_vision_cycle_2": {
+      "hits": 664,
+      "calls_per_frame": 2,
+      "first_frame": 1,
+      "last_frame": 332
+     },
+     "capture4:predator_vision_cycle_3": {
+      "hits": 1418,
+      "calls_per_frame": 1.9971830985915493,
+      "first_frame": 333,
+      "last_frame": 1041
+     },
+     "capture4:screenshot": {
+      "hits": 30,
+      "calls_per_frame": 1.875,
+      "first_frame": 1042,
+      "last_frame": 1056
+     },
+     "capture5:menu_last_capture": {
+      "hits": 28258,
+      "calls_per_frame": 1.7053711526855764,
+      "first_frame": 2441,
+      "last_frame": 16569
+     }
+    },
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Observed entry plus agreeing source role"
+ },
+ {
+  "va": "1003c05d",
+  "old": "FUN_1003c05d",
+  "new": "crt_AtanSharedBody",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Computes arctangent with fld1/fpatan and handles NaN/infinite arguments before the math exit; not the _atan public entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003c05d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/atan .text section mapped at 1003c040; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/atan.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003c05d",
+   "old": "FUN_1003c05d",
+   "new": "crt_AtanSharedBody",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Computes arctangent with fld1/fpatan and handles NaN/infinite arguments before the math exit; not the _atan public entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003c05d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/atan .text section mapped at 1003c040; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/atan.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003c05d.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003c05d",
+    "status": "observed",
+    "hits": 68672,
+    "scenarios": {
+     "capture1:menu": {
+      "hits": 1372,
+      "calls_per_frame": 0.49299317283507005,
+      "first_frame": 2097,
+      "last_frame": 2782
+     },
+     "capture2:menu": {
+      "hits": 786,
+      "calls_per_frame": 2,
+      "first_frame": 2431,
+      "last_frame": 2823
+     },
+     "capture2:world_load_p4s3": {
+      "hits": 3106,
+      "calls_per_frame": 1.9987129987129988,
+      "first_frame": 2824,
+      "last_frame": 4376
+     },
+     "capture2:world_baseline": {
+      "hits": 942,
+      "calls_per_frame": 1.9957627118644068,
+      "first_frame": 4377,
+      "last_frame": 4847
+     },
+     "capture2:DrawSky_off": {
+      "hits": 772,
+      "calls_per_frame": 1.9948320413436693,
+      "first_frame": 4848,
+      "last_frame": 5233
+     },
+     "capture2:DrawSky_on": {
+      "hits": 718,
+      "calls_per_frame": 1.9944444444444445,
+      "first_frame": 5234,
+      "last_frame": 5592
+     },
+     "capture2:Wireframe_off": {
+      "hits": 664,
+      "calls_per_frame": 1.993993993993994,
+      "first_frame": 5593,
+      "last_frame": 5924
+     },
+     "capture2:Wireframe_on": {
+      "hits": 672,
+      "calls_per_frame": 1.9940652818991098,
+      "first_frame": 5925,
+      "last_frame": 6260
+     },
+     "capture2:FogEnable_off": {
+      "hits": 662,
+      "calls_per_frame": 1.9939759036144578,
+      "first_frame": 6261,
+      "last_frame": 6591
+     },
+     "capture2:FogEnable_on": {
+      "hits": 670,
+      "calls_per_frame": 1.994047619047619,
+      "first_frame": 6592,
+      "last_frame": 6926
+     },
+     "capture2:LightMap_off": {
+      "hits": 650,
+      "calls_per_frame": 1.9938650306748467,
+      "first_frame": 6927,
+      "last_frame": 7251
+     },
+     "capture2:LightMap_on": {
+      "hits": 700,
+      "calls_per_frame": 1.9943019943019944,
+      "first_frame": 7252,
+      "last_frame": 7601
+     },
+     "capture2:ModelShadowMode_off": {
+      "hits": 686,
+      "calls_per_frame": 1.994186046511628,
+      "first_frame": 7602,
+      "last_frame": 7944
+     },
+     "capture2:ModelShadowMode_on": {
+      "hits": 672,
+      "calls_per_frame": 1.9940652818991098,
+      "first_frame": 7945,
+      "last_frame": 8280
+     },
+     "capture2:EnvMapEnable_off": {
+      "hits": 618,
+      "calls_per_frame": 1.9935483870967743,
+      "first_frame": 8281,
+      "last_frame": 8589
+     },
+     "capture2:EnvMapEnable_on": {
+      "hits": 668,
+      "calls_per_frame": 1.9940298507462686,
+      "first_frame": 8590,
+      "last_frame": 8923
+     },
+     "capture2:DetailTextures_off": {
+      "hits": 548,
+      "calls_per_frame": 1.9927272727272727,
+      "first_frame": 8924,
+      "last_frame": 9197
+     },
+     "capture2:DetailTextures_on": {
+      "hits": 662,
+      "calls_per_frame": 1.9939759036144578,
+      "first_frame": 9198,
+      "last_frame": 9528
+     },
+     "capture2:DrawParticles_off": {
+      "hits": 428,
+      "calls_per_frame": 1.9906976744186047,
+      "first_frame": 9529,
+      "last_frame": 9742
+     },
+     "capture2:DrawParticles_on": {
+      "hits": 314,
+      "calls_per_frame": 1,
+      "first_frame": 9743,
+      "last_frame": 10055
+     },
+     "capture2:DrawSprites_off": {
+      "hits": 674,
+      "calls_per_frame": 0.9970414201183432,
+      "first_frame": 10057,
+      "last_frame": 10729
+     },
+     "capture2:DrawSprites_on": {
+      "hits": 480,
+      "calls_per_frame": 1,
+      "first_frame": 10731,
+      "last_frame": 11209
+     },
+     "capture2:DrawPolyGrids_off": {
+      "hits": 514,
+      "calls_per_frame": 0.9980582524271845,
+      "first_frame": 11211,
+      "last_frame": 11723
+     },
+     "capture2:DrawPolyGrids_on": {
+      "hits": 506,
+      "calls_per_frame": 0.9980276134122288,
+      "first_frame": 11725,
+      "last_frame": 12229
+     },
+     "capture2:DrawModels_off": {
+      "hits": 490,
+      "calls_per_frame": 0.9979633401221996,
+      "first_frame": 12231,
+      "last_frame": 12719
+     },
+     "capture2:DrawModels_on": {
+      "hits": 372,
+      "calls_per_frame": 0.9946524064171123,
+      "first_frame": 12721,
+      "last_frame": 13091
+     },
+     "capture2:UseD3DClip_off": {
+      "hits": 438,
+      "calls_per_frame": 1,
+      "first_frame": 13093,
+      "last_frame": 13529
+     },
+     "capture2:UseD3DClip_on": {
+      "hits": 492,
+      "calls_per_frame": 0.9979716024340771,
+      "first_frame": 13531,
+      "last_frame": 14021
+     },
+     "capture2:DrawFlat_off": {
+      "hits": 400,
+      "calls_per_frame": 0.9950248756218906,
+      "first_frame": 14023,
+      "last_frame": 14421
+     },
+     "capture2:DrawFlat_on": {
+      "hits": 398,
+      "calls_per_frame": 1,
+      "first_frame": 14423,
+      "last_frame": 14819
+     },
+     "capture2:MultipassGouraud_off": {
+      "hits": 364,
+      "calls_per_frame": 0.9972602739726028,
+      "first_frame": 14821,
+      "last_frame": 15183
+     },
+     "capture2:MultipassGouraud_on": {
+      "hits": 412,
+      "calls_per_frame": 0.9975786924939467,
+      "first_frame": 15185,
+      "last_frame": 15595
+     },
+     "capture2:world_reload": {
+      "hits": 1692,
+      "calls_per_frame": 0.9994093325457767,
+      "first_frame": 15597,
+      "last_frame": 17287
+     },
+     "capture2:texture_rebind": {
+      "hits": 744,
+      "calls_per_frame": 0.9986577181208054,
+      "first_frame": 17289,
+      "last_frame": 18031
+     },
+     "capture2:lightmap_rebind": {
+      "hits": 1750,
+      "calls_per_frame": 0.9994288977727013,
+      "first_frame": 18033,
+      "last_frame": 19781
+     },
+     "capture3:menu": {
+      "hits": 470,
+      "calls_per_frame": 0.6629055007052186,
+      "first_frame": 1949,
+      "last_frame": 2183
+     },
+     "capture3:world_load_p4s3": {
+      "hits": 3138,
+      "calls_per_frame": 1.9987261146496815,
+      "first_frame": 2184,
+      "last_frame": 3752
+     },
+     "capture3:world_baseline": {
+      "hits": 854,
+      "calls_per_frame": 1.9953271028037383,
+      "first_frame": 3753,
+      "last_frame": 4179
+     },
+     "capture3:DrawSky_off": {
+      "hits": 644,
+      "calls_per_frame": 1.9938080495356036,
+      "first_frame": 4180,
+      "last_frame": 4501
+     },
+     "capture3:DrawSky_on": {
+      "hits": 542,
+      "calls_per_frame": 1.9926470588235294,
+      "first_frame": 4502,
+      "last_frame": 4772
+     },
+     "capture3:Wireframe_off": {
+      "hits": 542,
+      "calls_per_frame": 1.9926470588235294,
+      "first_frame": 4773,
+      "last_frame": 5043
+     },
+     "capture3:Wireframe_on": {
+      "hits": 506,
+      "calls_per_frame": 1.9921259842519685,
+      "first_frame": 5044,
+      "last_frame": 5296
+     },
+     "capture3:FogEnable_off": {
+      "hits": 518,
+      "calls_per_frame": 1.9923076923076923,
+      "first_frame": 5297,
+      "last_frame": 5555
+     },
+     "capture3:FogEnable_on": {
+      "hits": 336,
+      "calls_per_frame": 1.9881656804733727,
+      "first_frame": 5556,
+      "last_frame": 5723
+     },
+     "capture3:LightMap_off": {
+      "hits": 570,
+      "calls_per_frame": 1.993006993006993,
+      "first_frame": 5724,
+      "last_frame": 6008
+     },
+     "capture3:LightMap_on": {
+      "hits": 524,
+      "calls_per_frame": 1.9923954372623573,
+      "first_frame": 6009,
+      "last_frame": 6270
+     },
+     "capture3:ModelShadowMode_off": {
+      "hits": 592,
+      "calls_per_frame": 1.9932659932659933,
+      "first_frame": 6271,
+      "last_frame": 6566
+     },
+     "capture3:continue_game_load": {
+      "hits": 78,
+      "calls_per_frame": 1.95,
+      "first_frame": 6567,
+      "last_frame": 6605
+     },
+     "capture3:EnvMapEnable_off": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6606,
+      "last_frame": 6630
+     },
+     "capture3:EnvMapEnable_on": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6631,
+      "last_frame": 6655
+     },
+     "capture3:DetailTextures_off": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6656,
+      "last_frame": 6680
+     },
+     "capture3:DetailTextures_on": {
+      "hits": 54,
+      "calls_per_frame": 1.9285714285714286,
+      "first_frame": 6681,
+      "last_frame": 6707
+     },
+     "capture3:DrawParticles_off": {
+      "hits": 42,
+      "calls_per_frame": 1.9090909090909092,
+      "first_frame": 6708,
+      "last_frame": 6728
+     },
+     "capture3:DrawParticles_on": {
+      "hits": 50,
+      "calls_per_frame": 1.9230769230769231,
+      "first_frame": 6729,
+      "last_frame": 6753
+     },
+     "capture3:DrawSprites_off": {
+      "hits": 78,
+      "calls_per_frame": 1.95,
+      "first_frame": 6754,
+      "last_frame": 6792
+     },
+     "capture3:DrawSprites_on": {
+      "hits": 46,
+      "calls_per_frame": 1.9166666666666667,
+      "first_frame": 6793,
+      "last_frame": 6815
+     },
+     "capture3:DrawPolyGrids_off": {
+      "hits": 50,
+      "calls_per_frame": 3.3333333333333335,
+      "first_frame": 6816,
+      "last_frame": 6829
+     },
+     "capture3:DrawPolyGrids_on": {
+      "hits": 52,
+      "calls_per_frame": 3.7142857142857144,
+      "first_frame": 6830,
+      "last_frame": 6842
+     },
+     "capture3:DrawModels_off": {
+      "hits": 64,
+      "calls_per_frame": 3.764705882352941,
+      "first_frame": 6843,
+      "last_frame": 6858
+     },
+     "capture3:DrawModels_on": {
+      "hits": 64,
+      "calls_per_frame": 3.764705882352941,
+      "first_frame": 6859,
+      "last_frame": 6874
+     },
+     "capture3:UseD3DClip_off": {
+      "hits": 24,
+      "calls_per_frame": 3.4285714285714284,
+      "first_frame": 6875,
+      "last_frame": 6880
+     },
+     "capture3:saved_world_baseline": {
+      "hits": 48,
+      "calls_per_frame": 3.6923076923076925,
+      "first_frame": 6881,
+      "last_frame": 6892
+     },
+     "capture3:UseD3DClip_on": {
+      "hits": 12,
+      "calls_per_frame": 3,
+      "first_frame": 6893,
+      "last_frame": 6895
+     },
+     "capture3:DrawFlat_off": {
+      "hits": 12,
+      "calls_per_frame": 3,
+      "first_frame": 6896,
+      "last_frame": 6898
+     },
+     "capture3:DrawFlat_on": {
+      "hits": 30,
+      "calls_per_frame": 2.3076923076923075,
+      "first_frame": 6899,
+      "last_frame": 6910
+     },
+     "capture3:MultipassGouraud_off": {
+      "hits": 38,
+      "calls_per_frame": 1.9,
+      "first_frame": 6911,
+      "last_frame": 6929
+     },
+     "capture3:MultipassGouraud_on": {
+      "hits": 22,
+      "calls_per_frame": 1.8333333333333333,
+      "first_frame": 6930,
+      "last_frame": 6940
+     },
+     "capture3:world_reload": {
+      "hits": 6,
+      "calls_per_frame": 1.5,
+      "first_frame": 6941,
+      "last_frame": 6943
+     },
+     "capture4:predator_vision_cycle_2": {
+      "hits": 1328,
+      "calls_per_frame": 4,
+      "first_frame": 1,
+      "last_frame": 332
+     },
+     "capture4:predator_vision_cycle_3": {
+      "hits": 2834,
+      "calls_per_frame": 3.991549295774648,
+      "first_frame": 333,
+      "last_frame": 1041
+     },
+     "capture4:screenshot": {
+      "hits": 60,
+      "calls_per_frame": 3.75,
+      "first_frame": 1042,
+      "last_frame": 1056
+     },
+     "capture5:menu_last_capture": {
+      "hits": 28258,
+      "calls_per_frame": 1.7053711526855764,
+      "first_frame": 2441,
+      "last_frame": 16569
+     }
+    },
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Observed entry plus agreeing source role"
+ },
+ {
+  "va": "1003cb72",
+  "old": "FUN_1003cb72",
+  "new": "crt_PowSharedBody",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Computes powers through fyl2x and __twoToTOS, checks negative bases and exceptional arguments, and falls back to __powhlp; menu observed through __CIpow. Not the _pow public entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003cb72.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/pow .text section mapped at 1003cb50; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/pow.obj .text offset 0x22. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003cb72",
+   "old": "FUN_1003cb72",
+   "new": "crt_PowSharedBody",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Computes powers through fyl2x and __twoToTOS, checks negative bases and exceptional arguments, and falls back to __powhlp; menu observed through __CIpow. Not the _pow public entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003cb72.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/pow .text section mapped at 1003cb50; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/pow.obj .text offset 0x22. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003cb72.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003cb72",
+    "status": "observed",
+    "hits": 1280,
+    "scenarios": {
+     "capture1:menu": {
+      "hits": 320,
+      "calls_per_frame": 0.11498383039885016,
+      "first_frame": 0,
+      "last_frame": 0
+     },
+     "capture2:menu": {
+      "hits": 320,
+      "calls_per_frame": 0.8142493638676844,
+      "first_frame": 0,
+      "last_frame": 0
+     },
+     "capture3:menu": {
+      "hits": 320,
+      "calls_per_frame": 0.4513399153737659,
+      "first_frame": 0,
+      "last_frame": 0
+     },
+     "capture5:menu_last_capture": {
+      "hits": 320,
+      "calls_per_frame": 0.01931200965600483,
+      "first_frame": 0,
+      "last_frame": 0
+     }
+    },
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Observed entry plus agreeing source role"
+ },
+ {
+  "va": "1003cd45",
+  "old": "FUN_1003cd45",
+  "new": "crt_ClassifyPowExponentInCL",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Compares the x87 exponent with its rounded value, then with its half rounded value: CL becomes zero for nonintegral, one for odd integral, or two for even integral exponents.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003cd45.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/pow .text section mapped at 1003cb50; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/pow.obj .text offset 0x1f5. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003cd45",
+   "old": "FUN_1003cd45",
+   "new": "crt_ClassifyPowExponentInCL",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Compares the x87 exponent with its rounded value, then with its half rounded value: CL becomes zero for nonintegral, one for odd integral, or two for even integral exponents.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003cd45.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/pow .text section mapped at 1003cb50; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/pow.obj .text offset 0x1f5. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003cd45.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003cd45",
+    "status": "observed",
+    "hits": 4,
+    "scenarios": {
+     "capture1:menu": {
+      "hits": 1,
+      "calls_per_frame": 0.00035932446999640676,
+      "first_frame": 0,
+      "last_frame": 0
+     },
+     "capture2:menu": {
+      "hits": 1,
+      "calls_per_frame": 0.002544529262086514,
+      "first_frame": 0,
+      "last_frame": 0
+     },
+     "capture3:menu": {
+      "hits": 1,
+      "calls_per_frame": 0.0014104372355430183,
+      "first_frame": 0,
+      "last_frame": 0
+     },
+     "capture5:menu_last_capture": {
+      "hits": 1,
+      "calls_per_frame": 6.0350030175015085e-05,
+      "first_frame": 0,
+      "last_frame": 0
+     }
+    },
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Observed entry plus agreeing source role"
+ },
+ {
+  "va": "1003ce9d",
+  "old": "FUN_1003ce9d",
+  "new": "crt_AcosSharedBody",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Computes acos through sqrt((1+x)*(1-x)) and fpatan, handles +/-1 and domain errors, and joins math exit; not the _acos public entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003ce9d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/acos .text section mapped at 1003ce80; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/acos.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "1003ce9d",
+   "old": "FUN_1003ce9d",
+   "new": "crt_AcosSharedBody",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Computes acos through sqrt((1+x)*(1-x)) and fpatan, handles +/-1 and domain errors, and joins math exit; not the _acos public entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/1003ce9d.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/acos .text section mapped at 1003ce80; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/acos.obj .text offset 0x1d. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/1003ce9d.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "1003ce9d",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040960",
+  "old": "FUN_10040960",
+  "new": "crt_PowTranscendentalEntry",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Marks the math result for range checking, handles negative-base exponent parity, computes y*log2(x), and joins the exponential scaling body; unlabeled CRT entry with the existing dispatcher frame.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040960.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0x0. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040960",
+   "old": "FUN_10040960",
+   "new": "crt_PowTranscendentalEntry",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Marks the math result for range checking, handles negative-base exponent parity, computes y*log2(x), and joins the exponential scaling body; unlabeled CRT entry with the existing dispatcher frame.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040960.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0x0. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040960.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040960",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040a14",
+  "old": "FUN_10040a14",
+  "new": "crt_ReturnOrRejectNegativeArgument",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Tests CL and either returns the existing x87 value or jumps to _rtindfnpop through 10040a6b. The specific operation selecting this dispatch-table entry is not established.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040a14.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0xb4. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040a14",
+   "old": "FUN_10040a14",
+   "new": "crt_ReturnOrRejectNegativeArgument",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Tests CL and either returns the existing x87 value or jumps to _rtindfnpop through 10040a6b. The specific operation selecting this dispatch-table entry is not established.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040a14.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0xb4. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040a14.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040a14",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040a19",
+  "old": "FUN_10040a19",
+  "new": "crt_Log10TranscendentalEntry",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Loads log10(2) with fldlg2, swaps it below the operand, rejects the negative-sign flag, and computes log10(x) with fyl2x. Adjacent 10040a1d is the separate natural-log entry.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040a19.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0xb9. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040a19",
+   "old": "FUN_10040a19",
+   "new": "crt_Log10TranscendentalEntry",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Loads log10(2) with fldlg2, swaps it below the operand, rejects the negative-sign flag, and computes log10(x) with fyl2x. Adjacent 10040a1d is the separate natural-log entry.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040a19.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0xb9. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040a19.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040a19",
+    "status": "instrumentation_failed",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": {
+     "kind": "entry",
+     "va": "10040a19",
+     "name": "FUN_10040a19",
+     "error": "Error: unable to intercept function at 04EE0A19; please file a bug",
+     "captures": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "errors": [
+      "Error: unable to intercept function at 04EE0A19; please file a bug",
+      "Error: unable to intercept function at 04F80A19; please file a bug",
+      "Error: unable to intercept function at 04EC0A19; please file a bug",
+      "Error: unable to intercept function at 036C0A19; please file a bug",
+      "Error: unable to intercept function at 04F60A19; please file a bug"
+     ]
+    }
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040b01",
+  "old": "FUN_10040b01",
+  "new": "crt_ClassifyPowExponentInEAX",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Compares the x87 exponent and its half with rounded values: EAX returns zero for nonintegral, one for odd integral, or two for even integral. The Ghidra extent also includes a later separate pow fallback body.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040b01.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0x1a1. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040b01",
+   "old": "FUN_10040b01",
+   "new": "crt_ClassifyPowExponentInEAX",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Compares the x87 exponent and its half with rounded values: EAX returns zero for nonintegral, one for odd integral, or two for even integral. The Ghidra extent also includes a later separate pow fallback body.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040b01.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87tran .text section mapped at 10040960; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87tran.obj .text offset 0x1a1. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040b01.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040b01",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040d00",
+  "old": "FUN_10040d00",
+  "new": "crt_AcosTranscendentalEntry",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Calls the helper computing sqrt(1-x*x), swaps sign flags, and joins fpatan with quadrant/sign corrections, producing the inverse-cosine entry of the trigonometric dispatcher.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040d00.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87triga .text section mapped at 10040d00; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87triga.obj .text offset 0x0. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040d00",
+   "old": "FUN_10040d00",
+   "new": "crt_AcosTranscendentalEntry",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Calls the helper computing sqrt(1-x*x), swaps sign flags, and joins fpatan with quadrant/sign corrections, producing the inverse-cosine entry of the trigonometric dispatcher.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040d00.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87triga .text section mapped at 10040d00; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87triga.obj .text offset 0x0. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040d00.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040d00",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040d3c",
+  "old": "FUN_10040d3c",
+  "new": "crt_PrepareInverseTrigRadical",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Forms (1-abs(x))*(1+abs(x)), rejects negative radicands via __rtindfpop, and takes the square root while preserving x for inverse-trigonometric fpatan.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040d3c.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87triga .text section mapped at 10040d00; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87triga.obj .text offset 0x3c. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040d3c",
+   "old": "FUN_10040d3c",
+   "new": "crt_PrepareInverseTrigRadical",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Forms (1-abs(x))*(1+abs(x)), rejects negative radicands via __rtindfpop, and takes the square root while preserving x for inverse-trigonometric fpatan.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040d3c.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87triga .text section mapped at 10040d00; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87triga.obj .text offset 0x3c. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040d3c.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040d3c",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040e73",
+  "old": "FUN_10040e73",
+  "new": "crt_ClearIntrinsicArgumentFlagAndReturnMath",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Clears bit zero of the dispatcher frame argument-source flags then falls through to the shared math return/error handler. No standalone call/return ABI is implied.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040e73.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87cdisp .text section mapped at 10040db0; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87cdisp.obj .text offset 0xc3. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040e73",
+   "old": "FUN_10040e73",
+   "new": "crt_ClearIntrinsicArgumentFlagAndReturnMath",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Clears bit zero of the dispatcher frame argument-source flags then falls through to the shared math return/error handler. No standalone call/return ABI is implied.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040e73.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87cdisp .text section mapped at 10040db0; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87cdisp.obj .text offset 0xc3. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040e73.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040e73",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10040e7a",
+  "old": "FUN_10040e7a",
+  "new": "crt_FinalizeTranscendentalResult",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Checks __fastflag and result range/status, creates an __87except record when necessary, restores the saved x87 control word, and returns to the enclosing CRT dispatcher.",
+  "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040e7a.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87cdisp .text section mapped at 10040db0; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87cdisp.obj .text offset 0xca. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name.",
+  "independent_opinion": {
+   "va": "10040e7a",
+   "old": "FUN_10040e7a",
+   "new": "crt_FinalizeTranscendentalResult",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Checks __fastflag and result range/status, creates an __87except record when necessary, restores the saved x87 control word, and returns to the enclosing CRT dispatcher.",
+   "evidence_source": "E:/AVP2Source/decomp/build/d3dren/dossier/10040e7a.md#Original-disassembly; E:/AVP2Source/decomp/config/d3dren/libraries.json lib/VC6_LIBCMT_1998/87cdisp .text section mapped at 10040db0; E:/AVP2Source/libs_objs/VC6_LIBCMT_1998/87cdisp.obj .text offset 0xca. Independently compared bin/talon/d3d.ren with the original object section: zero mismatches outside relocation fields. COFF symbol table has no retained symbol at this exact offset, so the proposed name is descriptive rather than an asserted original CRT name."
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10040e7a.md",
+  "classification": "compiler_runtime_body",
+  "runtime_coverage": [
+   {
+    "va": "10040e7a",
+    "status": "cold_in_recorded_scenarios",
+    "hits": 0,
+    "scenarios": {},
+    "instrumentation_failure": null
+   }
+  ],
+  "confidence_reason": "Static naming; entry cold, uninstrumentable, or excluded in recorded captures"
+ },
+ {
+  "va": "10045886",
+  "old": "FUN_10045886",
+  "new": "TextTailZeroPadding",
+  "confidence": "high",
+  "provenance": "invented",
+  "why": "Not a callable function. Ten zero bytes follow the six-byte RtlUnwind import jump at 10045880 and end exactly at the .text virtual end 10045890. Ghidra has decoded zero padding as five add [eax],al instructions; its decompile incorrectly continues into padding and data. Remove the Ghidra function and classify the bytes as padding/data rather than importing a runtime function name.",
+  "evidence_source": "E:/AVP2Source/bin/talon/d3d.ren PE section header: .text VA 10001000, VirtualSize 44890, end 10045890; byte dump 10045880-100458a0: ff2558600410 followed by zero bytes. E:/AVP2Source/decomp/build/d3dren/dossier/10045886.md#Original-disassembly; E:/AVP2Source/decomp_step4_names/config/d3dren/symbols.csv entry 10045880 is KERNEL32.DLL::RtlUnwind.",
+  "recommended_action": "reclassify-padding",
+  "independent_opinion": {
+   "va": "10045886",
+   "old": "FUN_10045886",
+   "new": "textSectionTailPadding",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Not a callable function. Ten zero bytes follow the six-byte RtlUnwind import jump at 10045880 and end exactly at the .text virtual end 10045890. Ghidra has decoded zero padding as five add [eax],al instructions; its decompile incorrectly continues into padding and data. Remove the Ghidra function and classify the bytes as padding/data rather than importing a runtime function name.",
+   "evidence_source": "E:/AVP2Source/bin/talon/d3d.ren PE section header: .text VA 10001000, VirtualSize 44890, end 10045890; byte dump 10045880-100458a0: ff2558600410 followed by zero bytes. E:/AVP2Source/decomp/build/d3dren/dossier/10045886.md#Original-disassembly; E:/AVP2Source/decomp_step4_names/config/d3dren/symbols.csv entry 10045880 is KERNEL32.DLL::RtlUnwind.",
+   "recommended_action": "reclassify-padding"
+  },
+  "review_decision": "Accepted after checking original disassembly and independent library-section byte comparison.",
+  "dossier": "build/d3dren/dossier/10045886.md",
+  "classification": "padding",
+  "confidence_reason": "Source declaration/use review; no native entry inferred for source helpers or aliases"
+ }
+]

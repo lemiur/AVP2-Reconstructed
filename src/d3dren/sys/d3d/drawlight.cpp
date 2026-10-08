@@ -37,8 +37,8 @@ void d3d_ProcessLight(LTObject *pObject)
 	}
 }
 
-// The per-poly record of a dynamic light touching it (StructBank DAT_10056220, 0x14 bytes) and the list of lit polys (StructBank
-// DAT_10056240, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h: read through a macro).
+// The per-poly record of a dynamic light touching it (StructBank g_PolyLightBank, 0x14 bytes) and the list of lit polys (StructBank
+// g_LitPolyBank, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h: read through a macro).
 struct UnkType_PolyLight
 {
 	UnkType_PolyLight	*m_pNext;		// 0x00
@@ -56,19 +56,19 @@ struct UnkType_LitPoly
 #define WORLDPOLY_FRAMECODE(p)	(*(uint16*)((uint8*)(p) + 0x46))
 
 // GLOBAL: D3DREN 0x10056220
-extern StructBank DAT_10056220;		// guess: UnkType_PolyLight records
+extern StructBank g_PolyLightBank;		// guess: UnkType_PolyLight records
 // GLOBAL: D3DREN 0x10056240
-extern StructBank DAT_10056240;		// guess: UnkType_LitPoly records
+extern StructBank g_LitPolyBank;		// guess: UnkType_LitPoly records
 // GLOBAL: D3DREN 0x100577b4
-extern UnkType_LitPoly *DAT_100577b4;	// guess: head of the list of polys touched by a dynamic light this frame
+extern UnkType_LitPoly *g_pDynamicallyLitPolys;	// guess: head of the list of polys touched by a dynamic light this frame
 // GLOBAL: D3DREN 0x10056690
-extern int DAT_10056690;		// guess: g_nRejectedLights (names_proposal low): "Visible Leaves: %d" neighbour in the scene stats
+extern int g_nRejectedPolyLightTests;		// guess: g_nRejectedLights (names_proposal low): "Visible Leaves: %d" neighbour in the scene stats
 
 
 
 // Adds the dynamic light pLight to the polys of the world model pWorldModel that it touches (BSP walk with an explicit stack).
 // FUNCTION: D3DREN 0x100238b0
-void FUN_100238b0(LTObject *pLight, WorldModelInstance *pWorldModel)
+void AttachDynamicLightToWorldModelPolys(LTObject *pLight, WorldModelInstance *pWorldModel)
 {
 	Node *stack[1024];
 	Node **pSP;
@@ -119,12 +119,12 @@ void FUN_100238b0(LTObject *pLight, WorldModelInstance *pWorldModel)
 
 				if (!WORLDPOLY_LIGHTS(pPoly))
 				{
-					UnkType_LitPoly *pLit = (UnkType_LitPoly*)sb_Allocate(&DAT_10056240);
+					UnkType_LitPoly *pLit = (UnkType_LitPoly*)sb_Allocate(&g_LitPolyBank);
 					if (pLit)
 					{
 						pLit->m_pPoly = pPoly;
-						pLit->m_pNext = DAT_100577b4;
-						DAT_100577b4 = pLit;
+						pLit->m_pNext = g_pDynamicallyLitPolys;
+						g_pDynamicallyLitPolys = pLit;
 					}
 				}
 				else
@@ -136,7 +136,7 @@ void FUN_100238b0(LTObject *pLight, WorldModelInstance *pWorldModel)
 					}
 				}
 
-				pRec = (UnkType_PolyLight*)sb_Allocate(&DAT_10056220);
+				pRec = (UnkType_PolyLight*)sb_Allocate(&g_PolyLightBank);
 				if (pRec)
 				{
 					pRec->m_pLight = pLight;
@@ -149,7 +149,7 @@ void FUN_100238b0(LTObject *pLight, WorldModelInstance *pWorldModel)
 		else
 		{
 Rejected:
-			DAT_10056690++;
+			g_nRejectedPolyLightTests++;
 		}
 Skip:
 		*pSP++ = pNode->m_Sides[1];
@@ -157,13 +157,13 @@ Skip:
 	}
 }
 
-// WTObjCallback of FUN_10023b20's box query: world models in the light's box light their polys.
+// WTObjCallback of ApplyVisibleDynamicLight's box query: world models in the light's box light their polys.
 // FUNCTION: D3DREN 0x10023b00
-void FUN_10023b00(WorldTreeObj *pObj, void *pUser)
+void DynamicLightWorldModelQueryCB(WorldTreeObj *pObj, void *pUser)
 {
 	if (((LTObject*)pObj)->m_ObjectType == OT_WORLDMODEL)
 	{
-		FUN_100238b0((LTObject*)pUser, (WorldModelInstance*)pObj);
+		AttachDynamicLightToWorldModelPolys((LTObject*)pUser, (WorldModelInstance*)pObj);
 	}
 }
 // GLOBAL: D3DREN 0x10056218
@@ -171,7 +171,7 @@ extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (n
 // GLOBAL: D3DREN 0x100566d0
 extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (names_proposal low)
 // GLOBAL: D3DREN 0x10056770
-extern MainWorld *DAT_10056770;	// guess: g_pMainWorld (names_proposal low)
+extern MainWorld *g_pFrameMainWorld;	// guess: g_pMainWorld (names_proposal low)
 
 
 
@@ -185,7 +185,7 @@ inline void QueryLightBox(MainWorld *pWorld, FindObjInfo *pInfo)
 // The radius vector temporaries emit the shared LTVector::Init COMDAT at its original address, 0x100098b0.
 // FUNCTION: D3DREN 0x100098b0 ?Init@?$_CVector@M@@QAEXMMM@Z
 // FUNCTION: D3DREN 0x10023b20
-void FUN_10023b20(ViewParams *pParams, LTObject *pObject)
+void ApplyVisibleDynamicLight(ViewParams *pParams, LTObject *pObject)
 {
 	FindObjInfo info;
 	CountAdder cntAdd(g_pSceneDesc->m_pTicks_Render_PolyGrids);
@@ -201,23 +201,23 @@ void FUN_10023b20(ViewParams *pParams, LTObject *pObject)
 
 	if (pObject->m_Flags & FLAG_ONLYLIGHTOBJECTS)
 		return;
-	if (!DAT_10056770)
+	if (!g_pFrameMainWorld)
 		return;
 
 	DynamicLight *pLight = (DynamicLight*)pObject;
 	info.m_Min = pObject->m_Pos - LTVector(pLight->m_LightRadius, pLight->m_LightRadius, pLight->m_LightRadius);
 	info.m_Max = pObject->m_Pos + LTVector(pLight->m_LightRadius, pLight->m_LightRadius, pLight->m_LightRadius);
-	info.m_CB = FUN_10023b00;
+	info.m_CB = DynamicLightWorldModelQueryCB;
 	info.m_pCBUser = pObject;
-	QueryLightBox(DAT_10056770, &info);
+	QueryLightBox(g_pFrameMainWorld, &info);
 }
 
 // FUNCTION: D3DREN 0x10023cb0
-void FUN_10023cb0()
+void ApplyVisibleDynamicLights()
 {
 	if (g_DynamicLight)
 	{
-		d3d_GetVisibleSet()->m_Lights.Draw((ViewParams*)&g_ViewParams, FUN_10023b20);
+		d3d_GetVisibleSet()->m_Lights.Draw((ViewParams*)&g_ViewParams, ApplyVisibleDynamicLight);
 	}
 }
 

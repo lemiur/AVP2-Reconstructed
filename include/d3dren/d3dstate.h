@@ -29,9 +29,9 @@ extern uint16 g_CurFrameCode;	// the current texture frame code (RenderStruct::I
 // Binds pPoly's lightmap page on device stage nStage unless it is already there; returns 0 when the poly has no page.
 int d3d_SetLightmapTexture(WorldPoly *pPoly, int nStage);
 
-// d3d_DisableTexture (d3d_texture.h): unbinds the texture of device stage nStage.  FUN_1000a27b is the exe's out-of-line copy of it, which
+// d3d_DisableTexture (d3d_texture.h): unbinds the texture of device stage nStage.  d3d_UnsetTexture is the exe's out-of-line copy of it, which
 // d3d_FullDrawScene calls (unit unk/100098d0 defines it as a wrapper of the inline).
-void FUN_1000a27b(int nStage);
+void d3d_UnsetTexture(int nStage);
 
 // Second (detail) texture stage helpers.
 void d3d_SetEnvMapTextureStates(int nMode);	// guess: set up stage 1 for the detail pass (1 = modulate/add-signed, 2 = modulate alpha + add colour)

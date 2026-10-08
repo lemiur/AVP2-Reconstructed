@@ -39,7 +39,7 @@ extern uint32 g_ValidTileSizes[];
 // Name unknown: DAT_ (the project owner's rule); it is a plain global of the d3dshadowtexture object (.bss, right before the
 // ConVar LockOnFlip of the d3d_surface object that follows).
 // GLOBAL: D3DREN 0x100606d0
-char *DAT_100606d0;
+char *g_pShadowTextureLastErrorString;
 
 // A plain 0x20 byte D3DTLVERTEX (FVF 0x1c4: x, y, z, rhw, diffuse, specular, tu, tv).  Not TLVertex (tlvertex.h): its LTVector
 // member has a constructor, which would make the compiler emit a static initialiser (_$E) for the array; d3d.ren has none.
@@ -54,7 +54,7 @@ struct UnkType_TLVertexPOD
 
 // The quad the Draw slot (0x1001d5b5) fills and passes to DrawPrimitive: 4 vertices = 0x1005f650..0x1005f6d0.  Name unknown.
 // GLOBAL: D3DREN 0x1005f650
-UnkType_TLVertexPOD DAT_1005f650[4];
+UnkType_TLVertexPOD g_ShadowTextureQuadVerts[4];
 
 // NAME: D3DShadowTextureFactory::m_pShadowTextureFactory: names_proposal.csv (high, Jupiter d3dshadowtexture.cpp)
 // GLOBAL: D3DREN 0x1007674c
@@ -115,7 +115,7 @@ bool D3DShadowTexture::Init(uint32 uiSizeX, uint32 uiSizeY)
 	memset(&ddpf, 0, sizeof(ddpf));
 	ddpf.dwSize = sizeof(ddpf);
 	HRESULT hResult = g_pOffscreen->GetPixelFormat(&ddpf);
-	DAT_100606d0 = D3DAppErrorToString(hResult);
+	g_pShadowTextureLastErrorString = D3DAppErrorToString(hResult);
 
 	DDSURFACEDESC2 ddsd;
 	memset(&ddsd, 0, sizeof(ddsd));
@@ -129,7 +129,7 @@ bool D3DShadowTexture::Init(uint32 uiSizeX, uint32 uiSizeY)
 
 	IDirectDrawSurface7 *pSurface = NULL;
 	hResult = g_pDD->CreateSurface(&ddsd, &pSurface, NULL);
-	DAT_100606d0 = D3DAppErrorToString(hResult);
+	g_pShadowTextureLastErrorString = D3DAppErrorToString(hResult);
 	if (hResult == DD_OK)
 	{
 		m_Unk04 = uiSizeX;
@@ -192,7 +192,7 @@ void D3DShadowTexture::Term()
 
 // guess: GetSize (vtable slot 2): writes the size of the texture to two out pointers.  Name: none (FUN_).
 // FUNCTION: D3DREN 0x1001d496
-void D3DShadowTexture::FUN_1001d496(uint32 *pSizeX, uint32 *pSizeY)
+void D3DShadowTexture::GetDimensions(uint32 *pSizeX, uint32 *pSizeY)
 {
 	*pSizeX = m_Unk04;
 	*pSizeY = m_Unk08;
@@ -202,7 +202,7 @@ void D3DShadowTexture::FUN_1001d496(uint32 *pSizeX, uint32 *pSizeY)
 // by the diffuse alpha, alpha = diffuse alpha, alpha blend ZERO / SRCCOLOR (multiplies the framebuffer by the texture).  FUN_ name:
 // no evidence for the role.
 // FUNCTION: D3DREN 0x1001d4ab
-bool D3DShadowTexture::FUN_1001d4ab()
+bool D3DShadowTexture::BindForShadowMultiply()
 {
 	IDirectDrawSurface7 *pTexture = m_pD3DTexture;
 	for (int i = 0; i < 8; i++)
@@ -230,9 +230,9 @@ bool D3DShadowTexture::FUN_1001d4ab()
 // (The old render states live in one array and the corner coordinates in named float locals: both are needed for the stack
 // layout and the x87 order of the exe.)
 // FUNCTION: D3DREN 0x1001d5b5
-bool D3DShadowTexture::FUN_1001d5b5(uint32 x, uint32 y, uint32 color, char bFlag)
+bool D3DShadowTexture::DrawScreenQuad(uint32 x, uint32 y, uint32 color, char bFlag)
 {
-	FUN_1001d4ab();
+	BindForShadowMultiply();
 
 	DWORD dwOld[5];
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ZENABLE, &dwOld[0]);
@@ -253,33 +253,33 @@ bool D3DShadowTexture::FUN_1001d5b5(uint32 x, uint32 y, uint32 color, char bFlag
 
 	for (int i = 0; i < 4; i++)
 	{
-		DAT_1005f650[i].z = 0.0f;
-		DAT_1005f650[i].rhw = 1.0f;
-		DAT_1005f650[i].color = color;
-		DAT_1005f650[i].specular = 0;
+		g_ShadowTextureQuadVerts[i].z = 0.0f;
+		g_ShadowTextureQuadVerts[i].rhw = 1.0f;
+		g_ShadowTextureQuadVerts[i].color = color;
+		g_ShadowTextureQuadVerts[i].specular = 0;
 	}
 
 	float fLeft = (float)x;
 	float fTop = (float)y;
 	float fRight = (float)m_Unk04 + fLeft;
 	float fBottom = (float)m_Unk08 + fTop;
-	DAT_1005f650[0].x = fLeft;
-	DAT_1005f650[0].y = fTop;
-	DAT_1005f650[0].tu = 0.0f;
-	DAT_1005f650[0].tv = 0.0f;
-	DAT_1005f650[1].x = fLeft;
-	DAT_1005f650[1].y = fBottom;
-	DAT_1005f650[1].tu = 0.0f;
-	DAT_1005f650[1].tv = 1.0f;
-	DAT_1005f650[2].x = fRight;
-	DAT_1005f650[2].y = fBottom;
-	DAT_1005f650[2].tu = 1.0f;
-	DAT_1005f650[2].tv = 1.0f;
-	DAT_1005f650[3].x = fRight;
-	DAT_1005f650[3].y = fTop;
-	DAT_1005f650[3].tu = 1.0f;
-	DAT_1005f650[3].tv = 0.0f;
-	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, D3DFVF_TLVERTEX, DAT_1005f650, 4, 0);
+	g_ShadowTextureQuadVerts[0].x = fLeft;
+	g_ShadowTextureQuadVerts[0].y = fTop;
+	g_ShadowTextureQuadVerts[0].tu = 0.0f;
+	g_ShadowTextureQuadVerts[0].tv = 0.0f;
+	g_ShadowTextureQuadVerts[1].x = fLeft;
+	g_ShadowTextureQuadVerts[1].y = fBottom;
+	g_ShadowTextureQuadVerts[1].tu = 0.0f;
+	g_ShadowTextureQuadVerts[1].tv = 1.0f;
+	g_ShadowTextureQuadVerts[2].x = fRight;
+	g_ShadowTextureQuadVerts[2].y = fBottom;
+	g_ShadowTextureQuadVerts[2].tu = 1.0f;
+	g_ShadowTextureQuadVerts[2].tv = 1.0f;
+	g_ShadowTextureQuadVerts[3].x = fRight;
+	g_ShadowTextureQuadVerts[3].y = fTop;
+	g_ShadowTextureQuadVerts[3].tu = 1.0f;
+	g_ShadowTextureQuadVerts[3].tv = 0.0f;
+	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, D3DFVF_TLVERTEX, g_ShadowTextureQuadVerts, 4, 0);
 
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, dwOld[0]);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZWRITEENABLE, dwOld[1]);
@@ -293,7 +293,7 @@ bool D3DShadowTexture::FUN_1001d5b5(uint32 x, uint32 y, uint32 color, char bFlag
 // guess: vtable slot 5, BltFast of this texture onto g_pOffscreen at (x, y).  FUN_ name.
 // (The exe reads m_pD3DTexture into a local first; without it the member load comes after the RECT stores.)
 // FUNCTION: D3DREN 0x1001d7e6
-bool D3DShadowTexture::FUN_1001d7e6(uint32 x, uint32 y)
+bool D3DShadowTexture::CopyToOffscreen(uint32 x, uint32 y)
 {
 	IDirectDrawSurface7 *pTexture = m_pD3DTexture;
 	RECT rect;
@@ -302,13 +302,13 @@ bool D3DShadowTexture::FUN_1001d7e6(uint32 x, uint32 y)
 	rect.right = m_Unk04;
 	rect.bottom = m_Unk08;
 	HRESULT hResult = g_pOffscreen->BltFast(x, y, pTexture, &rect, DDBLTFAST_WAIT);
-	DAT_100606d0 = D3DAppErrorToString(hResult);
+	g_pShadowTextureLastErrorString = D3DAppErrorToString(hResult);
 	return hResult == DD_OK;
 }
 
 // guess: vtable slot 6, BltFast of g_pOffscreen into this texture (the silhouette grab).  FUN_ name.  (Same local as above.)
 // FUNCTION: D3DREN 0x1001d836
-bool D3DShadowTexture::FUN_1001d836(uint32 x, uint32 y)
+bool D3DShadowTexture::CopyFromOffscreen(uint32 x, uint32 y)
 {
 	IDirectDrawSurface7 *pTexture = m_pD3DTexture;
 	RECT rect;
@@ -317,7 +317,7 @@ bool D3DShadowTexture::FUN_1001d836(uint32 x, uint32 y)
 	rect.right = m_Unk04;
 	rect.bottom = m_Unk08;
 	HRESULT hResult = pTexture->BltFast(x, y, g_pOffscreen, &rect, DDBLTFAST_WAIT);
-	DAT_100606d0 = D3DAppErrorToString(hResult);
+	g_pShadowTextureLastErrorString = D3DAppErrorToString(hResult);
 	return hResult == DD_OK;
 }
 

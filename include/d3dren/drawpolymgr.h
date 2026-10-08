@@ -1,6 +1,6 @@
 // d3d.ren DrawPolyMgr: Talon-only multi-pass polygon drawing (state-block based): a material with up to three passes of up to three
 // texture stages each, the world polygons are queued per pass in hash buckets (keyed by texture or lightmap page) and drawn when
-// d3d_FlushObjectQueues-time code calls the flush (FUN_1002a0c2 `g_DrawPolyMgr.Flush()` when the DrawPolyMgr console variable is set).
+// d3d_FlushObjectQueues-time code calls the flush (FlushQueuedPolys `g_DrawPolyMgr.Flush()` when the DrawPolyMgr console variable is set).
 // Owner: unit unk/10029660 (package W6).  Jupiter has no equivalent.
 //
 // NAME: DrawPolyMgr, DrawPolyMgr::DrawPolyAdditionalPass, Material, TextureSrcInitFn: strings of d3d.ren ("DrawPolyMgr::DrawPolyAdditionalPass:
@@ -153,41 +153,41 @@ public:
 	DrawPolyMgr();									// FUN_10029947
 	~DrawPolyMgr();									// 0x10029ad0 (the atexit stub is 0x10029ac6)
 
-	void FUN_10029a80();							// guess: sets up the built-in TEST_GOURAUD material and its instance
-	void FUN_1002a0c2();							// guess: Flush: draws every queued polygon, pass by pass (called through g_DrawPolyMgr when the DrawPolyMgr console variable is set)
-	void FUN_1002a40f(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNextPass);	// guess: draws the polygon in the first pass and queues it for the next one
+	void InitTestGouraudMaterial();							// guess: sets up the built-in TEST_GOURAUD material and its instance
+	void FlushQueuedPolys();							// guess: Flush: draws every queued polygon, pass by pass (called through g_DrawPolyMgr when the DrawPolyMgr console variable is set)
+	void DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNextPass);	// guess: draws the polygon in the first pass and queues it for the next one
 	void DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNextPass);	// the polygon in the later passes
-	void FUN_1002a8bc(UnkType_DPMNode *pNode);		// guess: draws the polygons of a bucket entry without the material (TextureSrcInitFn failed)
-	void FUN_10029ecf(WorldPoly *pPoly, int iPass);	// guess: queues pPoly in the hash bucket of pass iPass (finding or creating the bucket entry)
+	void DrawUntexturedBucket(UnkType_DPMNode *pNode);		// guess: draws the polygons of a bucket entry without the material (TextureSrcInitFn failed)
+	void QueuePolyForPass(WorldPoly *pPoly, int iPass);	// guess: queues pPoly in the hash bucket of pass iPass (finding or creating the bucket entry)
 
 	// guess: the texture coordinate generators (UnkType_DPMUVFn) of a stage
-	void FUN_10029b12(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
-	void FUN_10029b3c(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
-	void FUN_10029b52(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
-	void FUN_10029b9f(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
+	void GenerateScaledBaseTexCoords(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
+	void CopySecondaryTexCoords(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
+	void GeneratePannedPlanarTexCoords(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
+	void SetDetailUV(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
 	// guess: the combined generators of 2 and 3 stages
-	void FUN_10029bc1(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
-	void FUN_10029bed(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
+	void SetTwoStageUV(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
+	void SetThreeStageUV(UnkType_PolyVertex *pVertex, float *pOut, int iStage);
 
 	// guess: the TextureSrcInitFns
-	int FUN_10029c2b(WorldPoly *pPoly, int iStage);
-	int FUN_10029c55(WorldPoly *pPoly, int iStage);
-	int FUN_10029c5b(WorldPoly *pPoly, int iStage);
-	int FUN_10029cbb(WorldPoly *pPoly, int iStage);
+	int InitSurfaceTextureSource(WorldPoly *pPoly, int iStage);
+	int InitLightmapTextureSource(WorldPoly *pPoly, int iStage);
+	int InitDetailTextureSource(WorldPoly *pPoly, int iStage);
+	int InitUntexturedSource(WorldPoly *pPoly, int iStage);
 	// guess: the texture binders
-	int FUN_10029ccb(WorldPoly *pPoly, int iStage, int a3);
-	int FUN_10029ce6(WorldPoly *pPoly, int iStage, int a3);
-	int FUN_10029cf8(WorldPoly *pPoly, int iStage, int a3);
-	int FUN_10029d5a(WorldPoly *pPoly, int iStage, int a3);
+	int BindSurfaceTexture(WorldPoly *pPoly, int iStage, int a3);
+	int BindLightmapTexture(WorldPoly *pPoly, int iStage, int a3);
+	int BindDetailTexture(WorldPoly *pPoly, int iStage, int a3);
+	int BindNoTexture(WorldPoly *pPoly, int iStage, int a3);
 	// guess: the vertex colour functions
-	void FUN_10029d60(UnkType_PolyVertex *pVertex, TLVertex *pOut);
-	void FUN_10029d6b(UnkType_PolyVertex *pVertex, TLVertex *pOut);
-	void FUN_10029da6(UnkType_PolyVertex *pVertex, TLVertex *pOut);
+	void SetFullbrightColor(UnkType_PolyVertex *pVertex, TLVertex *pOut);
+	void SetCorrectedVertexColor(UnkType_PolyVertex *pVertex, TLVertex *pOut);
+	void SetScaledVertexColor(UnkType_PolyVertex *pVertex, TLVertex *pOut);
 	// guess: the post-draw functions (index m_Unk20 of the first stage): the dynamic lights of the poly are added to the vertices / nothing
-	void FUN_10029eb4(UnkType_DPMDrawBuffer *pBuffer);
-	void FUN_10029ecc(UnkType_DPMDrawBuffer *pBuffer);
+	void AddDynamicLightToDrawBuffer(UnkType_DPMDrawBuffer *pBuffer);
+	void SkipDrawBufferPostprocess(UnkType_DPMDrawBuffer *pBuffer);
 	// guess: sets the render states and the texture stage states of pass pPass from its pass list (the state block)
-	void FUN_10029f9a(UnkType_DPMPass *pPass, UnkType_DPMPassList *pList);
+	void SetPassRenderStates(UnkType_DPMPass *pPass, UnkType_DPMPassList *pList);
 
 	UnkType_DPMMaterialInstance	m_Unk1cc;		// 0x1cc the TEST_GOURAUD material's instance
 	uint16				m_Unk768;				// 0x768 guess: the render context's current frame code

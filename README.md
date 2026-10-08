@@ -21,6 +21,8 @@ the 41 stubs and two inline copies.
 - 41 functions are written but not yet matching (`// STUB:`); most differ only in register allocation,
   instruction scheduling or inlining decisions, and behave the same as the original (checked by a behaviour
   audit).
+- The 2026-10-08 search recovers the U-coordinate expression's native operand scheduling in `w_LoadWorldBsp`
+  (`0x00428ac0`), reducing strict differences from 1,606 to 1,586 bytes. It remains a STUB and adds no exact coverage.
 - 315 of 341 report units are complete. The mixed relink currently reproduces 117 of 119 eligible source units
   byte-for-byte; ftserv and l_allocator still have function-order differences.
 - No source stand-ins remain. The default mixed relink retains 21 compiler-generated exception helpers
@@ -64,16 +66,21 @@ The DLL was built with a different compiler from the engine: the VC6 RTM front e
 
 | d3d.ren | |
 |---|---|
-| Annotated functions matching | 1,191 of 1,191 (1,189 addresses) |
-| Function code matched by source | 147,745 of 280,684 bytes (52.637%) |
-| Written but not yet matching (`// STUB:`) | 71 functions (85,796 compiled bytes) |
+| Annotated functions matching | 1,192 of 1,192 (1,190 addresses) |
+| Function code matched by source | 148,017 of 280,684 bytes (52.734%) |
+| Written but not yet matching (`// STUB:`) | 70 functions (85,540 compiled bytes) |
 | Prebuilt library code (VC6 RTM CRT) | 469 functions, 41,550 bytes (14.8%) |
-| objdiff | 67.34% of code, 1,657 of 1,729 functions, 154 of 178 units complete |
+| objdiff | 67.43% of code, 1,658 of 1,729 functions, 154 of 178 units complete |
 
-The source is organised as the DLL's 52 original object files, recovered from the binary's layout. The 2026-10-07
-checkpoint includes fourteen exact matches (9,016 bytes) added across these passes. The tenth continuation improves
-object flushing, sky-portal processing and console-variable refresh to 103, 639 and 587 differing bytes after independent
-review, preserving all prior exact matches. Full validation and remaining differences are documented in `README_D3DREN.md`.
+The source is organised as the DLL's 52 original object files, recovered from the binary's layout. The 2026-10-08
+matching sessions used twelve GPT-6 Luna agents at MAX effort with separate file ownership and address ranges.
+Five full-team rounds added one exact match in round two, then stopped after three consecutive rounds without
+a new function match. They added an independently verified 272-byte match for `d3d_BindTexture` at `0x10021b50` and improved the projected
+shadow polygon function at `0x10026d6a` from 18 to 10 differing bytes. The latter remains a STUB. All earlier exact
+matches are preserved; both module gates pass. Full validation and remaining differences are documented in `README_D3DREN.md`.
+The same search improves `d3d_FlushObjectQueues` at `0x10028660` from 103 to 53 differing bytes; it also remains a STUB.
+Final objdiff inventories leave 59,981 unmatched engine function-code bytes and 90,395 unmatched renderer
+function-code bytes. These totals exclude unfinished data/layout work and do not measure whole-file completion.
 Still to do: the remaining stubs, the data sections (initialisers, vtables, ownership and
 order), removing the last three stand-in definitions, and a relink of the DLL itself. Its string resource and its
 three exports are already reconstructed (`config/d3dren/d3dren.rc`, `d3dren.def`) and verified against the

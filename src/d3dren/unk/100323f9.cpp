@@ -112,41 +112,41 @@ struct UnkType_ShadowTextureCache
 	int m_Unk08;
 };
 // GLOBAL: D3DREN 0x10076750
-UnkType_ShadowTextureCache DAT_10076750[2];
+UnkType_ShadowTextureCache g_ShadowTextureCacheEntries[2];
 
 // Returns a cached shadow texture of nWidth x nHeight (re-created when the size changes).
 // Both original return paths leave the cached/new pointer in EAX; the shadow caller consumes it.
 // FUNCTION: D3DREN 0x100323ff
-IShadowTexture *FUN_100323ff(uint32 nWidth, uint32 nHeight)
+IShadowTexture *GetCachedProjectionShadowTexture(uint32 nWidth, uint32 nHeight)
 {
-	if (!DAT_10076750[0].m_Unk00 || nWidth != DAT_10076750[0].m_Unk04 || nHeight != DAT_10076750[0].m_Unk08)
+	if (!g_ShadowTextureCacheEntries[0].m_Unk00 || nWidth != g_ShadowTextureCacheEntries[0].m_Unk04 || nHeight != g_ShadowTextureCacheEntries[0].m_Unk08)
 	{
-		D3DShadowTextureFactory::Get()->FreeShadowTexture(DAT_10076750[0].m_Unk00);
-		DAT_10076750[0].m_Unk00 = D3DShadowTextureFactory::Get()->AllocShadowTexture(nWidth, nHeight);
-		DAT_10076750[0].m_Unk04 = nWidth;
-		DAT_10076750[0].m_Unk08 = nHeight;
+		D3DShadowTextureFactory::Get()->FreeShadowTexture(g_ShadowTextureCacheEntries[0].m_Unk00);
+		g_ShadowTextureCacheEntries[0].m_Unk00 = D3DShadowTextureFactory::Get()->AllocShadowTexture(nWidth, nHeight);
+		g_ShadowTextureCacheEntries[0].m_Unk04 = nWidth;
+		g_ShadowTextureCacheEntries[0].m_Unk08 = nHeight;
 	}
-	return DAT_10076750[0].m_Unk00;
+	return g_ShadowTextureCacheEntries[0].m_Unk00;
 }
 
 // guess: the second record caches the companion scratch texture.
 // FUNCTION: D3DREN 0x1003244f
-IShadowTexture *FUN_1003244f(uint32 nWidth, uint32 nHeight)
+IShadowTexture *GetCachedSilhouetteShadowTexture(uint32 nWidth, uint32 nHeight)
 {
-	if (!DAT_10076750[1].m_Unk00 || nWidth != DAT_10076750[1].m_Unk04 || nHeight != DAT_10076750[1].m_Unk08)
+	if (!g_ShadowTextureCacheEntries[1].m_Unk00 || nWidth != g_ShadowTextureCacheEntries[1].m_Unk04 || nHeight != g_ShadowTextureCacheEntries[1].m_Unk08)
 	{
-		D3DShadowTextureFactory::Get()->FreeShadowTexture(DAT_10076750[1].m_Unk00);
-		DAT_10076750[1].m_Unk00 = D3DShadowTextureFactory::Get()->AllocShadowTexture(nWidth, nHeight);
-		DAT_10076750[1].m_Unk04 = nWidth;
-		DAT_10076750[1].m_Unk08 = nHeight;
+		D3DShadowTextureFactory::Get()->FreeShadowTexture(g_ShadowTextureCacheEntries[1].m_Unk00);
+		g_ShadowTextureCacheEntries[1].m_Unk00 = D3DShadowTextureFactory::Get()->AllocShadowTexture(nWidth, nHeight);
+		g_ShadowTextureCacheEntries[1].m_Unk04 = nWidth;
+		g_ShadowTextureCacheEntries[1].m_Unk08 = nHeight;
 	}
-	return DAT_10076750[1].m_Unk00;
+	return g_ShadowTextureCacheEntries[1].m_Unk00;
 }
 
 // guess: expands run-length coded lightmap data (a dword texel, with the top bit set a following count byte) into at most 0x400
 // dwords (a 32x32 lightmap); returns 0 when the data would overflow.
 // FUNCTION: D3DREN 0x1003249f
-int FUN_1003249f(uint32 *pIn, int nBytes, uint32 *pOut)
+int DecompressLightmapTexelRuns(uint32 *pIn, int nBytes, uint32 *pOut)
 {
 	uint32 *pCur;
 	uint32 *pEnd;
@@ -188,13 +188,13 @@ int FUN_1003249f(uint32 *pIn, int nBytes, uint32 *pOut)
 // guess: expands run lengths (bytes, alternating between 0x00 and 0xff runs) into a 0x400 byte light-animation coverage mask
 // (callers pass LAPolyFrame::m_pLightmap/m_LightmapSize and a mask buffer); returns 0 when the runs would overflow the mask.
 // The exe expands the fill loop inline via the /Oi memset idiom recognition (`mov bh, bl; ... rep stosd; ... rep stosb`), while the
-// memsets of FUN_1003273a / FUN_1003287a (0x100325e8 on) are `call _memset`.  Matching details: values[1]/values[0] are assigned as
+// memsets of FillDynamicLightmapRGB555 / FillDynamicLightmapRGB32 (0x100325e8 on) are `call _memset`.  Matching details: values[1]/values[0] are assigned as
 // statements after the pRuns check (the array initializer puts the `or` store before it); pEnd must be assigned before iValue so
 // iValue gets the dead pOut argument home [ebp+0x10] and pEnd [ebp-8]; the persistent zero lives in EDX (re-xored after the
 // expansion's scratch use); the `!=` fill-loop guard compiles its zero-trip test as a second `je` that merges with the `if (nRun)`
 // branch (a `<` guard emits a separate `jbe` and a plain memset call sinks the value load into the branch).
 // FUNCTION: D3DREN 0x10032503
-int FUN_10032503(uint8 *pRuns, int nRuns, uint8 *pOut)
+int DecompressLightmapMaskRuns(uint8 *pRuns, int nRuns, uint8 *pOut)
 {
 	uint8 values[2];
 	uint8 *pEnd;

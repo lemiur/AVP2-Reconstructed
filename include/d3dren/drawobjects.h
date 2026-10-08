@@ -54,24 +54,24 @@ public:
 
 class ObjectDrawList;
 // GLOBAL: D3DREN 0x1006b934
-extern ObjectDrawList *DAT_1006b934;	// &d3d_FlushObjectQueues::s_TransObjList: set by the list's constructor
+extern ObjectDrawList *g_pTranslucentObjectDrawList;	// &d3d_FlushObjectQueues::s_TransObjList: set by the list's constructor
 
 // Mixed-object rendering list for sorting translucent objects in Z order (Jupiter: a priority_queue member; Talon:
-// the array of the CMoArray base plus a count of the queued entries at +0x14, sorted in place by FUN_100289b0).
-// The constructor stores `this` in the global DAT_1006b934 (every Queue* callback adds through that pointer).
+// the array of the CMoArray base plus a count of the queued entries at +0x14, sorted in place by SortByViewDistance).
+// The constructor stores `this` in the global g_pTranslucentObjectDrawList (every Queue* callback adds through that pointer).
 class ObjectDrawList : public CMoArray<ObjectDrawer>
 {
 public:
-	ObjectDrawList() { m_Unk14 = 0; DAT_1006b934 = this; }
+	ObjectDrawList() { m_Unk14 = 0; g_pTranslucentObjectDrawList = this; }
 
 	// Add an object to draw to the list (draws immediately when the DrawSorted console variable is 0).
 	void Add(LTObject *pObject, DrawObjectFn fn);			// 0x10028ba0
 
 	// Computes the distances and sorts the entries (shell-sort passes with the gap tables at 0x1004bb54/0x1004bb7c).
-	void FUN_100289b0(ViewParams *pParams);
+	void SortByViewDistance(ViewParams *pParams);
 
 private:
-	static float CalcDistance(const LTObject *pObject, const ViewParams &Params);	// Jupiter name (expanded into FUN_100289b0)
+	static float CalcDistance(const LTObject *pObject, const ViewParams &Params);	// Jupiter name (expanded into SortByViewDistance)
 
 public:
 	uint32			m_Unk14;		// 0x14 number of queued entries (guess: Jupiter has no such member)

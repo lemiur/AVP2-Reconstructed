@@ -26,8 +26,8 @@
 // The lists of polygons touched by dynamic lights (names unknown, shapes in the comments).
 // ------------------------------------------------------------------ //
 
-// The per-poly record of a dynamic light touching it (StructBank DAT_10056220, 0x14 bytes) and the list of lit polys
-// (StructBank DAT_10056240, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
+// The per-poly record of a dynamic light touching it (StructBank g_PolyLightBank, 0x14 bytes) and the list of lit polys
+// (StructBank g_LitPolyBank, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h).
 struct UnkType_PolyLight
 {
 	UnkType_PolyLight	*m_pNext;		// 0x00

@@ -5,7 +5,7 @@
 // (0x10025013..0x1002859f: planar and projected model shadows).  Unit name: the proposal's 0x100241e0 (NAMING.md section 4
 // names the objects: drawmodel 0x10023860-0x10025012 of which this unit holds the tail, drawmodelshadows 0x10025013-0x1002859f).
 // The three console-variable groups sit where the exe has their static initialisers (between the functions).
-// (No /Ob2: with it the 20-byte FUN_10024cd7, called only by FUN_10024c8b, is expanded into its caller, the exe calls it.)
+// (No /Ob2: with it the 20-byte RestoreModelFillMode, called only by DrawModelPassWithVertexCallbacks, is expanded into its caller, the exe calls it.)
 #include <math.h>
 #include <windows.h>
 #include <string.h>
@@ -34,15 +34,15 @@
 // ---- declarations of other units (the lead unifies them with the real headers) ------------------------------------------------
 
 // 0x10056770: guess g_pMainWorld (polydraw.h declares it too; no GLOBAL annotation here)
-extern MainWorld *DAT_10056770;
+extern MainWorld *g_pFrameMainWorld;
 // guess: collects the world polygons along a segment (callback of FindObjectsOnPoint, 0x10035917)
 struct UnkType_SegRequest;
-void __cdecl FUN_10035917(WorldModelInstance *pObj, UnkType_SegRequest *pUser);
+void __cdecl CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest *pUser);
 
 // guess: 0x100323ff / 0x1003244f: the two cached scratch shadow textures (the factory's AllocShadowTexture/FreeShadowTexture
 // behind a size cache); `A` receives the silhouette, `B` keeps the pixels of the backbuffer corner it is drawn over.
-IShadowTexture * __cdecl FUN_100323ff(uint32 uiSizeX, uint32 uiSizeY);
-IShadowTexture * __cdecl FUN_1003244f(uint32 uiSizeX, uint32 uiSizeY);
+IShadowTexture * __cdecl GetCachedProjectionShadowTexture(uint32 uiSizeX, uint32 uiSizeY);
+IShadowTexture * __cdecl GetCachedSilhouetteShadowTexture(uint32 uiSizeX, uint32 uiSizeY);
 
 // A D3DTLVERTEX (FVF 0x1c4) of the silhouette quad / triangles.
 struct UnkType_ShadowVertex
@@ -72,34 +72,34 @@ ConVar g_CV_ModelShadowProj("ModelShadowProj", 0.0f);
 
 // bInside[] of the polygon clipper (a static of the expanded Jupiter polyclip.h).
 // GLOBAL: D3DREN 0x10094440
-extern int DAT_10094440[56];
+extern int g_ShadowClipPlaneInsideFlags[56];
 
-// bInside[] statics of the six expanded polygon clippers below (one per function, 0xe0 bytes apart like DAT_10094440).
+// bInside[] statics of the six expanded polygon clippers below (one per function, 0xe0 bytes apart like g_ShadowClipPlaneInsideFlags).
 // GLOBAL: D3DREN 0x10093f00
-extern int DAT_10093f00[56];
+extern int g_ShadowClipFarInsideFlags[56];
 // GLOBAL: D3DREN 0x10093fe0
-extern int DAT_10093fe0[56];
+extern int g_ShadowClipBottomInsideFlags[56];
 // GLOBAL: D3DREN 0x100940c0
-extern int DAT_100940c0[56];
+extern int g_ShadowClipRightInsideFlags[56];
 // GLOBAL: D3DREN 0x100941a0
-extern int DAT_100941a0[56];
+extern int g_ShadowClipTopInsideFlags[56];
 // GLOBAL: D3DREN 0x10094280
-extern int DAT_10094280[56];
+extern int g_ShadowClipLeftInsideFlags[56];
 // GLOBAL: D3DREN 0x10094360
-extern int DAT_10094360[56];
+extern int g_ShadowClipNearInsideFlags[56];
 
 // Edge/plane intersection helpers of other units (pool.h / seed polyclip): return t in st(0).
-float FUN_10001a50(float *p1, float *p2, float *pOut);
-float FUN_10001ac0(float *p1, float *p2, float *pOut);
-float FUN_10008b58(float *p1, float *p2, float *pOut);
-float FUN_10008bb4(float *p1, float *p2, float *pOut);
-float FUN_10008c10(float *p1, float *p2, float *pOut);
-float FUN_10008c6e(float *p1, float *p2, float *pOut);
+float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
+float IntersectLeftClipPlane(float *p1, float *p2, float *pOut);
+float IntersectTopClipPlane(float *p1, float *p2, float *pOut);
+float IntersectRightClipPlane(float *p1, float *p2, float *pOut);
+float IntersectBottomClipPlane(float *p1, float *p2, float *pOut);
+float IntersectFarClipPlane(float *p1, float *p2, float *pOut);
 
 // Draws the model shadow onto one world polygon (non-projected path of ModelDraw::DrawModelShadows 0x100252c6, which calls it per
 // poly): copies the polygon (<= 0x80 vertices, else "Error: vertex buffer overflow"), lifts it by ModelShadowOffset along the poly
 // normal, clips it against the six shadow frustum planes (pInfo->m_FrustumPlanes), gives every vertex the ModelShadowAlpha colour and
-// the texture coordinates of the 4x4 at pInfo+0x60 (rows 0, 1, 3 = tu, tv, q), then transforms/projects it (FUN_10026412) and draws it
+// the texture coordinates of the 4x4 at pInfo+0x60 (rows 0, 1, 3 = tu, tv, q), then transforms/projects it (TransformClipAndProjectShadowPolygon) and draws it
 // as a TRIANGLEFAN of 0x20-byte TL vertices with tu/q, tv/q.  `this` is not used.
 // Not matching (585 of 590 bytes, ~66 aligned instruction mismatches, all in two places; the algorithm and every call/global agree):
 //  (1) the x87 term/operand order of the three matrix expressions: the exe has tu = z(V,M) x(V,M) y(M,V) and tv = q = x(V,M) z(M,V) y(M,V)
@@ -114,7 +114,7 @@ float FUN_10008c6e(float *p1, float *p2, float *pOut);
 // do/while and down-counting forms, declaration order (48 permutations), an inline clip helper with reference parameters, pCur copy of pSrc.
 // The ordering hint that did help: pVert = &pVerts[i] (a pointer local) in the vertex loop, which removes the per-field reloads of pVerts.
 // STUB: D3DREN 0x10025078
-void ModelDraw::FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly)
+void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 {
 	UnkType_Vertex36 aVerts[0x80];
 	TLVertex aOut[0x80];
@@ -161,7 +161,7 @@ void ModelDraw::FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 		for (iPlane = 0; iPlane < 6; iPlane++)
 		{
 			clipper.m_Unk00 = pPlane;
-			if (!FUN_100260ce(&clipper, &pClipVerts, &nClip, &pClipOut))
+			if (!ClipShadowPolygonToPlane(&clipper, &pClipVerts, &nClip, &pClipOut))
 				return;
 			pPlane++;
 		}
@@ -187,7 +187,7 @@ void ModelDraw::FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 	}
 
 	g_ClipFlags = 0x3f;
-	if (FUN_10026412(&pVerts, &nVerts, &g_ViewParams, 0))
+	if (TransformClipAndProjectShadowPolygon(&pVerts, &nVerts, &g_ViewParams, 0))
 	{
 		for (iDraw = 0; iDraw < nVerts; iDraw++)
 		{
@@ -244,12 +244,12 @@ void ModelDraw::DrawModelShadows()
 	if (nShadows == 0)
 		return;
 
-	if (DAT_1005c810 && g_pShadowBlobTexture && m_pModel->m_bShadowEnable)
+	if (g_bModelShadowsSupported && g_pShadowBlobTexture && m_pModel->m_bShadowEnable)
 	{
 
 		if (g_CV_ModelShadowProj.m_IntVal)
 		{
-			FUN_1002701e(nShadows);
+			DrawProjectedModelShadows(nShadows);
 			return;
 		}
 
@@ -282,7 +282,7 @@ void ModelDraw::DrawModelShadows()
 				query.m_vEnd = query.m_vOrigin + query.m_vDir * (fDistToObject + fMaxShadowDist);
 				query.m_fRadius = LTMAX(fSizeX, fSizeY);
 
-				DAT_10056770->m_WorldTree.FindObjectsOnPoint(&m_pInstance->m_Pos, (WTObjCallback)FUN_10035917, &query, 0);
+				g_pFrameMainWorld->m_WorldTree.FindObjectsOnPoint(&m_pInstance->m_Pos, (WTObjCallback)CollectWorldModelSegmentPolys, &query, 0);
 
 				nTotal += polyLists[i].m_nPolys;
 			}
@@ -370,7 +370,7 @@ void ModelDraw::DrawModelShadows()
 				info.m_Unk60 = mScale * mTexture * mProjection;
 
 				for (uint32 j = 0; j < polyLists[k].m_nPolys; j++)
-					FUN_10025078(&info, polyLists[k].m_Polys[j]);
+					DrawBlobShadowOnWorldPoly(&info, polyLists[k].m_Polys[j]);
 			}
 
 			d3d_SetTextureDirect(pOldTexture, 0);
@@ -382,7 +382,7 @@ void ModelDraw::DrawModelShadows()
 // FUNCTION: D3DREN 0x100260cd _$E12
 
 // FUNCTION: D3DREN 0x100260ce
-int FUN_100260ce(UnkType_PlaneClipper *pClipper, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
+int ClipShadowPolygonToPlane(UnkType_PlaneClipper *pClipper, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
 	int *pInside;
 	int nInside = 0;
@@ -390,13 +390,13 @@ int FUN_100260ce(UnkType_PlaneClipper *pClipper, UnkType_Vertex36 **ppVerts, int
 	int iPrev, iCur;
 	float t;
 
-	++DAT_1005668c;
+	++g_nPlaneClipTests;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
-	pInside = DAT_10094440;
+	pInside = g_ShadowClipPlaneInsideFlags;
 	while (pCur != pEnd)
 	{
-		*pInside = pClipper->FUN_10026300(&pCur->m_Vec);
+		*pInside = pClipper->IsInsidePlane(&pCur->m_Vec);
 		nInside += *pInside;
 		++pInside;
 		++pCur;
@@ -412,12 +412,12 @@ int FUN_100260ce(UnkType_PlaneClipper *pClipper, UnkType_Vertex36 **ppVerts, int
 		for (iCur = 0; iCur < *pnVerts; iCur++)
 		{
 			pCur = *ppVerts + iCur;
-			if (DAT_10094440[iPrev])
+			if (g_ShadowClipPlaneInsideFlags[iPrev])
 				*(*ppOut)++ = *pPrev;
-			if (DAT_10094440[iPrev] != DAT_10094440[iCur])
+			if (g_ShadowClipPlaneInsideFlags[iPrev] != g_ShadowClipPlaneInsideFlags[iCur])
 			{
-				t = pClipper->FUN_10026343(&pPrev->m_Vec, &pCur->m_Vec, &(*ppOut)->m_Vec);
-				FUN_100261f9(pPrev, pCur, *ppOut, t);
+				t = pClipper->IntersectEdgeWithPlane(&pPrev->m_Vec, &pCur->m_Vec, &(*ppOut)->m_Vec);
+				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
 			iPrev = iCur;
@@ -431,7 +431,7 @@ int FUN_100260ce(UnkType_PlaneClipper *pClipper, UnkType_Vertex36 **ppVerts, int
 }
 
 // FUNCTION: D3DREN 0x100261f9
-void FUN_100261f9(UnkType_Vertex36 *pPrev, UnkType_Vertex36 *pCur, UnkType_Vertex36 *pOut, float t)
+void InterpolateShadowVertexAttributes(UnkType_Vertex36 *pPrev, UnkType_Vertex36 *pCur, UnkType_Vertex36 *pOut, float t)
 {
 	pOut->tu = (pCur->tu - pPrev->tu) * t + pPrev->tu;
 	pOut->tv = (pCur->tv - pPrev->tv) * t + pPrev->tv;
@@ -444,13 +444,13 @@ void FUN_100261f9(UnkType_Vertex36 *pPrev, UnkType_Vertex36 *pCur, UnkType_Verte
 }
 
 // FUNCTION: D3DREN 0x10026300
-int UnkType_PlaneClipper::FUN_10026300(LTVector *pVec)
+int UnkType_PlaneClipper::IsInsidePlane(LTVector *pVec)
 {
 	return m_Unk00->DistTo(*pVec) > 0.0f;
 }
 
 // FUNCTION: D3DREN 0x10026343
-float UnkType_PlaneClipper::FUN_10026343(LTVector *pt1, LTVector *pt2, LTVector *pOut)
+float UnkType_PlaneClipper::IntersectEdgeWithPlane(LTVector *pt1, LTVector *pt2, LTVector *pOut)
 {
 	float d1 = m_Unk00->DistTo(*pt1);
 	float d2 = m_Unk00->DistTo(*pt2);
@@ -465,7 +465,7 @@ float UnkType_PlaneClipper::FUN_10026343(LTVector *pt1, LTVector *pt2, LTVector 
 }
 
 // FUNCTION: D3DREN 0x10026412
-int FUN_10026412(UnkType_Vertex36 **ppVerts, int *pnVerts, ViewParams *pViewParams, int nUnused)
+int TransformClipAndProjectShadowPolygon(UnkType_Vertex36 **ppVerts, int *pnVerts, ViewParams *pViewParams, int nUnused)
 {
 	UnkType_Vertex36 *pVert;
 	int n;
@@ -484,10 +484,10 @@ int FUN_10026412(UnkType_Vertex36 **ppVerts, int *pnVerts, ViewParams *pViewPara
 		pVert = *ppVerts;
 		for (n = *pnVerts; n != 0; n--)
 		{
-			FUN_10008719(&pVert->m_Vec.x, &pViewParams->m_mClipTransform.m[0][0]);
+			TransformPositionInPlace(&pVert->m_Vec.x, &pViewParams->m_mClipTransform.m[0][0]);
 			pVert++;
 		}
-		if (!FUN_100264ad(g_ClipFlags, ppVerts, pnVerts))
+		if (!ClipShadowPolygonToViewFrustum(g_ClipFlags, ppVerts, pnVerts))
 			return 0;
 		pVert = *ppVerts;
 		for (n = *pnVerts; n != 0; n--)
@@ -500,7 +500,7 @@ int FUN_10026412(UnkType_Vertex36 **ppVerts, int *pnVerts, ViewParams *pViewPara
 }
 
 // FUNCTION: D3DREN 0x100264ad
-int FUN_100264ad(uint32 flags, UnkType_Vertex36 **ppVerts, int *pnVerts)
+int ClipShadowPolygonToViewFrustum(uint32 flags, UnkType_Vertex36 **ppVerts, int *pnVerts)
 {
 	char bUnused0, bUnused1, bUnused2, bUnused3, bUnused4, bUnused5;
 	UnkType_Vertex36 *pVerts, *pOut;
@@ -513,17 +513,17 @@ int FUN_100264ad(uint32 flags, UnkType_Vertex36 **ppVerts, int *pnVerts)
 	pVerts = *ppVerts;
 	nVerts = *pnVerts;
 
-	if ((flags & 1) && !FUN_100265c9(&bUnused0, &pVerts, &nVerts, &pOut))
+	if ((flags & 1) && !ClipShadowPolygonToNearPlane(&bUnused0, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 4) && !FUN_10026700(&bUnused1, &pVerts, &nVerts, &pOut))
+	if ((flags & 4) && !ClipShadowPolygonToLeftPlane(&bUnused1, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 8) && !FUN_10026835(&bUnused2, &pVerts, &nVerts, &pOut))
+	if ((flags & 8) && !ClipShadowPolygonToTopPlane(&bUnused2, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x10) && !FUN_10026969(&bUnused3, &pVerts, &nVerts, &pOut))
+	if ((flags & 0x10) && !ClipShadowPolygonToRightPlane(&bUnused3, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x20) && !FUN_10026a9c(&bUnused4, &pVerts, &nVerts, &pOut))
+	if ((flags & 0x20) && !ClipShadowPolygonToBottomPlane(&bUnused4, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 2) && !FUN_10026bd2(&bUnused5, &pVerts, &nVerts, &pOut))
+	if ((flags & 2) && !ClipShadowPolygonToFarPlane(&bUnused5, &pVerts, &nVerts, &pOut))
 		return 0;
 
 	*ppVerts = pVerts;
@@ -533,7 +533,7 @@ int FUN_100264ad(uint32 flags, UnkType_Vertex36 **ppVerts, int *pnVerts)
 
 // near plane z >= g_ViewParams.m_NearZ (flag bit 1)
 // FUNCTION: D3DREN 0x100265c9
-int FUN_100265c9(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
+int ClipShadowPolygonToNearPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
 	int *pInside;
 	int nInside = 0;
@@ -541,10 +541,10 @@ int FUN_100265c9(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 	int iPrev, iCur;
 	float t;
 
-	++DAT_1005668c;
+	++g_nPlaneClipTests;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
-	pInside = DAT_10094360;
+	pInside = g_ShadowClipNearInsideFlags;
 	while (pCur != pEnd)
 	{
 		*pInside = pCur->m_Vec.z >= g_ViewParams.m_NearZ;
@@ -563,12 +563,12 @@ int FUN_100265c9(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 		for (iCur = 0; iCur < *pnVerts; iCur++)
 		{
 			pCur = *ppVerts + iCur;
-			if (DAT_10094360[iPrev])
+			if (g_ShadowClipNearInsideFlags[iPrev])
 				*(*ppOut)++ = *pPrev;
-			if (DAT_10094360[iPrev] != DAT_10094360[iCur])
+			if (g_ShadowClipNearInsideFlags[iPrev] != g_ShadowClipNearInsideFlags[iCur])
 			{
-				t = FUN_10001a50(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
-				FUN_100261f9(pPrev, pCur, *ppOut, t);
+				t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
 			iPrev = iCur;
@@ -583,7 +583,7 @@ int FUN_100265c9(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 
 // left plane x + z > 0 (flag bit 4)
 // FUNCTION: D3DREN 0x10026700
-int FUN_10026700(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
+int ClipShadowPolygonToLeftPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
 	int *pInside;
 	int nInside = 0;
@@ -591,10 +591,10 @@ int FUN_10026700(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 	int iPrev, iCur;
 	float t;
 
-	++DAT_1005668c;
+	++g_nPlaneClipTests;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
-	pInside = DAT_10094280;
+	pInside = g_ShadowClipLeftInsideFlags;
 	while (pCur != pEnd)
 	{
 		*pInside = -pCur->m_Vec.z < pCur->m_Vec.x;
@@ -613,12 +613,12 @@ int FUN_10026700(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 		for (iCur = 0; iCur < *pnVerts; iCur++)
 		{
 			pCur = *ppVerts + iCur;
-			if (DAT_10094280[iPrev])
+			if (g_ShadowClipLeftInsideFlags[iPrev])
 				*(*ppOut)++ = *pPrev;
-			if (DAT_10094280[iPrev] != DAT_10094280[iCur])
+			if (g_ShadowClipLeftInsideFlags[iPrev] != g_ShadowClipLeftInsideFlags[iCur])
 			{
-				t = FUN_10001ac0(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
-				FUN_100261f9(pPrev, pCur, *ppOut, t);
+				t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
 			iPrev = iCur;
@@ -633,7 +633,7 @@ int FUN_10026700(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 
 // plane y < z (flag bit 8)
 // FUNCTION: D3DREN 0x10026835
-int FUN_10026835(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
+int ClipShadowPolygonToTopPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
 	int *pInside;
 	int nInside = 0;
@@ -641,10 +641,10 @@ int FUN_10026835(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 	int iPrev, iCur;
 	float t;
 
-	++DAT_1005668c;
+	++g_nPlaneClipTests;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
-	pInside = DAT_100941a0;
+	pInside = g_ShadowClipTopInsideFlags;
 	while (pCur != pEnd)
 	{
 		*pInside = pCur->m_Vec.y < pCur->m_Vec.z;
@@ -663,12 +663,12 @@ int FUN_10026835(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 		for (iCur = 0; iCur < *pnVerts; iCur++)
 		{
 			pCur = *ppVerts + iCur;
-			if (DAT_100941a0[iPrev])
+			if (g_ShadowClipTopInsideFlags[iPrev])
 				*(*ppOut)++ = *pPrev;
-			if (DAT_100941a0[iPrev] != DAT_100941a0[iCur])
+			if (g_ShadowClipTopInsideFlags[iPrev] != g_ShadowClipTopInsideFlags[iCur])
 			{
-				t = FUN_10008b58(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
-				FUN_100261f9(pPrev, pCur, *ppOut, t);
+				t = IntersectTopClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
 			iPrev = iCur;
@@ -683,7 +683,7 @@ int FUN_10026835(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 
 // plane x < z (flag bit 0x10)
 // FUNCTION: D3DREN 0x10026969
-int FUN_10026969(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
+int ClipShadowPolygonToRightPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
 	int *pInside;
 	int nInside = 0;
@@ -691,10 +691,10 @@ int FUN_10026969(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 	int iPrev, iCur;
 	float t;
 
-	++DAT_1005668c;
+	++g_nPlaneClipTests;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
-	pInside = DAT_100940c0;
+	pInside = g_ShadowClipRightInsideFlags;
 	while (pCur != pEnd)
 	{
 		*pInside = pCur->m_Vec.x < pCur->m_Vec.z;
@@ -713,12 +713,12 @@ int FUN_10026969(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 		for (iCur = 0; iCur < *pnVerts; iCur++)
 		{
 			pCur = *ppVerts + iCur;
-			if (DAT_100940c0[iPrev])
+			if (g_ShadowClipRightInsideFlags[iPrev])
 				*(*ppOut)++ = *pPrev;
-			if (DAT_100940c0[iPrev] != DAT_100940c0[iCur])
+			if (g_ShadowClipRightInsideFlags[iPrev] != g_ShadowClipRightInsideFlags[iCur])
 			{
-				t = FUN_10008bb4(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
-				FUN_100261f9(pPrev, pCur, *ppOut, t);
+				t = IntersectRightClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
 			iPrev = iCur;
@@ -733,7 +733,7 @@ int FUN_10026969(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 
 // plane y > -z (flag bit 0x20)
 // FUNCTION: D3DREN 0x10026a9c
-int FUN_10026a9c(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
+int ClipShadowPolygonToBottomPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
 	int *pInside;
 	int nInside = 0;
@@ -741,10 +741,10 @@ int FUN_10026a9c(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 	int iPrev, iCur;
 	float t;
 
-	++DAT_1005668c;
+	++g_nPlaneClipTests;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
-	pInside = DAT_10093fe0;
+	pInside = g_ShadowClipBottomInsideFlags;
 	while (pCur != pEnd)
 	{
 		*pInside = -pCur->m_Vec.z < pCur->m_Vec.y;
@@ -763,12 +763,12 @@ int FUN_10026a9c(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 		for (iCur = 0; iCur < *pnVerts; iCur++)
 		{
 			pCur = *ppVerts + iCur;
-			if (DAT_10093fe0[iPrev])
+			if (g_ShadowClipBottomInsideFlags[iPrev])
 				*(*ppOut)++ = *pPrev;
-			if (DAT_10093fe0[iPrev] != DAT_10093fe0[iCur])
+			if (g_ShadowClipBottomInsideFlags[iPrev] != g_ShadowClipBottomInsideFlags[iCur])
 			{
-				t = FUN_10008c10(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
-				FUN_100261f9(pPrev, pCur, *ppOut, t);
+				t = IntersectBottomClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
 			iPrev = iCur;
@@ -783,7 +783,7 @@ int FUN_10026a9c(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 
 // far plane z <= g_ViewParams.m_ClipFarZ (flag bit 2)
 // FUNCTION: D3DREN 0x10026bd2
-int FUN_10026bd2(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
+int ClipShadowPolygonToFarPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkType_Vertex36 **ppOut)
 {
 	int *pInside;
 	int nInside = 0;
@@ -791,10 +791,10 @@ int FUN_10026bd2(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 	int iPrev, iCur;
 	float t;
 
-	++DAT_1005668c;
+	++g_nPlaneClipTests;
 	pCur = *ppVerts;
 	pEnd = pCur + *pnVerts;
-	pInside = DAT_10093f00;
+	pInside = g_ShadowClipFarInsideFlags;
 	while (pCur != pEnd)
 	{
 		*pInside = pCur->m_Vec.z <= g_ViewParams.m_ClipFarZ;
@@ -813,12 +813,12 @@ int FUN_10026bd2(char *pUnused, UnkType_Vertex36 **ppVerts, int *pnVerts, UnkTyp
 		for (iCur = 0; iCur < *pnVerts; iCur++)
 		{
 			pCur = *ppVerts + iCur;
-			if (DAT_10093f00[iPrev])
+			if (g_ShadowClipFarInsideFlags[iPrev])
 				*(*ppOut)++ = *pPrev;
-			if (DAT_10093f00[iPrev] != DAT_10093f00[iCur])
+			if (g_ShadowClipFarInsideFlags[iPrev] != g_ShadowClipFarInsideFlags[iCur])
 			{
-				t = FUN_10008c6e(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
-				FUN_100261f9(pPrev, pCur, *ppOut, t);
+				t = IntersectFarClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
 			iPrev = iCur;
@@ -851,18 +851,18 @@ ConVar g_CV_ModelShadowProjShow("ModelShadowProjShow", 0.0f);
 // Mag 0x1000e011 call give the exe's frame temporaries, and with them the exe's x87 term order of tu/tv/q and eax=matrix, ebx=vertex);
 // LTVector::Dist() or an unnamed temporary gives other orders. The clip stage has to sit in its own block with its own locals (the exe
 // shares the slots of pClipVerts/nClip with the vertex loop's variables) and counts down (`for (iPlane = 6; iPlane > 0; iPlane--)`).
-// Not matching: 18/692 bytes differ (6 aligned instruction mismatches, 235 instructions each). The six-plane clip loop now has
+// Not matching: 10/692 bytes differ (4 aligned instruction mismatches). The six-plane clip loop now has
 // the target's down-count, delayed clipper store, bottom `test/jne`, and `pop edi` placement. Remaining differences are in the initial
-// source-pointer register choice and first vertex-loop setup ordering; keep this a STUB until the whole function is byte-exact.
+// vertex-loop register choices and setup ordering. The source-plane pointer is cached without dereferencing it for an empty
+// input, and the output array lives only in the successful draw branch. Keep this a STUB until the whole function is byte-exact.
 // STUB: D3DREN 0x10026d6a
-void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist)
+void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist)
 {
-	UnkType_Vertex36 aVerts[0x80];
-	TLVertex aOut[0x80];
-	UnkType_Vertex36 *pVerts;
-	SPolyVertex *pSrc, *pCur;
 	int nVerts;
 	int i, iVert, iDraw;
+	SPolyVertex *pSrc, *pCur;
+	UnkType_Vertex36 *pVerts;
+	UnkType_Vertex36 aVerts[0x80];
 
 	if (g_FixTJunc)
 	{
@@ -881,11 +881,12 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 		return;
 	}
 
+	LTPlane *pSourcePlane = pPoly->m_pPlane;
 	pCur = pSrc;
 	for (iVert = 0; iVert < nVerts; iVert++)
 	{
 		aVerts[iVert].m_Vec = *pCur->m_Vec;
-		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
+		aVerts[iVert].m_Vec += pSourcePlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
 		pCur++;
 	}
 
@@ -902,7 +903,7 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 		for (iPlane = 6, nClip = nVerts; iPlane != 0; )
 		{
 			--iPlane;
-			if (!FUN_100260ce((clipper.m_Unk00 = pPlane, &clipper), &pClipVerts, &nClip, &pClipOut))
+			if (!ClipShadowPolygonToPlane((clipper.m_Unk00 = pPlane, &clipper), &pClipVerts, &nClip, &pClipOut))
 				return;
 			pPlane++;
 		}
@@ -932,8 +933,9 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 	}
 
 	g_ClipFlags = 0x3f;
-	if (FUN_10026412(&pVerts, &nVerts, &g_ViewParams, 0))
+	if (TransformClipAndProjectShadowPolygon(&pVerts, &nVerts, &g_ViewParams, 0))
 	{
+		TLVertex aOut[0x80];
 		for (iDraw = 0; iDraw < nVerts; iDraw++)
 		{
 			aOut[iDraw].m_Vec = pVerts[iDraw].m_Vec;
@@ -947,7 +949,7 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 	}
 }
 
-// ModelDraw::FUN_1002701e, 0x1002701e (5506 bytes), not matched: the projected-texture model shadow path of drawmodelshadows.  The control flow, every
+// ModelDraw::DrawProjectedModelShadows, 0x1002701e (5506 bytes), not matched: the projected-texture model shadow path of drawmodelshadows.  The control flow, every
 // call (19 + the 45 COM calls), every constant and the whole data layout are reproduced (build.py audit: the only call difference is the
 // 3-float _CVector ctor 0x1000dfb6, see item 1 below); not byte-identical yet.  Check/diff status with the RTM compiler (C1XX/C2 8168):
 //   ours 5443 bytes (1651 instructions) vs exe 5506 (1645); ALIGNED 814 mismatching instructions, 241 of them when stack offsets are ignored.
@@ -970,7 +972,7 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 // LTVector::operator-(LTVector) is emitted by the light-position subtraction below; the shared COMDAT remains at 0x1000e06c.
 // FUNCTION: D3DREN 0x1000e06c ??G?$_CVector@M@@QBE?AV0@V0@@Z
 // STUB: D3DREN 0x1002701e
-void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
+void ModelDraw::DrawProjectedModelShadows(uint32 nMaxShadows)
 {
 	LTVector vModelPos = m_pInstance->m_Pos;
 	LTVector vDims = m_pInstance->m_Dims;
@@ -1057,7 +1059,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_DESTBLEND, &oldRS[5]);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, 0);
 
-	IShadowTexture *pTexB = FUN_1003244f(nRes, nRes);
+	IShadowTexture *pTexB = GetCachedSilhouetteShadowTexture(nRes, nRes);
 	UnkType_ShadowPolys aPolys[NUM_MODEL_SHADOWS];
 
 	for (i = 0; i < nLights; i++)
@@ -1080,7 +1082,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 		query.m_fRadius = fDiam;
 		query.m_vOrigin = vLightPos;
 		query.m_vDir = vDir;
-		DAT_10056770->m_WorldTree.FindObjectsOnPoint(&vModelPos, (WTObjCallback)FUN_10035917, &query, 0);
+		g_pFrameMainWorld->m_WorldTree.FindObjectsOnPoint(&vModelPos, (WTObjCallback)CollectWorldModelSegmentPolys, &query, 0);
 
 		if (aPolys[i].m_nPolys == 0)
 			continue;
@@ -1101,7 +1103,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 		vUp.Norm(1.0f);
 
 		// draw the silhouette of the model in the corner of the backbuffer
-		pTexB->FUN_1001d836(0, 0);
+		pTexB->CopyFromOffscreen(0, 0);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, 0);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZWRITEENABLE, 0);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 0);
@@ -1149,7 +1151,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 				if ((m_pInstance->m_HiddenPieces & (1 << iPiece)) == 0)
 				{
 					LTVector vLighting, vMin, vMax;
-					FUN_10004660(pLOD, pLOD2, pVerts, m_Unk5ec, m_pModel->m_Transforms.GetArray(), &vLighting.x, 0, &vMin.x, &vMax.x);
+					SkinAndLightPieceVertices(pLOD, pLOD2, pVerts, m_Unk5ec, m_pModel->m_Transforms.GetArray(), &vLighting.x, 0, &vMin.x, &vMax.x);
 					TLVertex *pV = pVerts;
 					uint32 nVerts = pLOD->m_Verts.GetSize();
 					if (nVerts != 0)
@@ -1218,11 +1220,11 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 			}
 		}
 
-		IShadowTexture *pTexA = FUN_100323ff(nRes, nRes);
-		pTexA->FUN_1001d836(0, 0);
-		pTexB->FUN_1001d7e6(0, 0);
+		IShadowTexture *pTexA = GetCachedProjectionShadowTexture(nRes, nRes);
+		pTexA->CopyFromOffscreen(0, 0);
+		pTexB->CopyToOffscreen(0, 0);
 		if (g_CV_ModelShadowProjShow.m_IntVal)
-			pTexA->FUN_1001d5b5(nRes, (nLights - i - 1) * nRes, 0xffffffff, 0);
+			pTexA->DrawScreenQuad(nRes, (nLights - i - 1) * nRes, 0xffffffff, 0);
 
 		// how the shadow is projected onto the world
 		ShadowLightInfo info;
@@ -1285,7 +1287,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 		info.m_Unk60 = mScale * mTex * mShadow;
 
 		// draw it onto the polygons
-		pTexA->FUN_1001d4ab();
+		pTexA->BindForShadowMultiply();
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, 1);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZWRITEENABLE, 0);
 		for (j = 0; j < aPolys[i].m_nPolys; j++)
@@ -1297,7 +1299,7 @@ void ModelDraw::FUN_1002701e(uint32 nMaxShadows)
 			float fSideLight = vNormal.Dot(vLightPos) - fPlaneDist;
 			float fSideModel = vNormal.Dot(vModelPos) - fPlaneDist;
 			if ((fSideLight > 0.0f && fSideModel > 0.0f) || (fSideLight < 0.0f && fSideModel < 0.0f))
-				FUN_10026d6a(&info, pPoly, fAtten);
+				DrawProjectedShadowOnWorldPoly(&info, pPoly, fAtten);
 		}
 	}
 

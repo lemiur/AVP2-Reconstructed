@@ -1,0 +1,1002 @@
+[
+ {
+  "va": "1004b5d8",
+  "old": "DAT_1004b5d8",
+  "new": "g_fShadowBlobFalloffExponent",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Shadow blob builder uses this 3.0 float as pow exponent of normalized radial distance to derive alpha and fills g_pShadowBlobTexture. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004b5d8",
+   "old": "DAT_1004b5d8",
+   "new": "g_fShadowBlobFalloffExponent",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Shadow blob builder uses this 3.0 float as pow exponent of normalized radial distance to derive alpha and fills g_pShadowBlobTexture. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004b5d8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004b99c",
+  "old": "DAT_1004b99c",
+  "new": "g_fModelBumpEnvMatrix00",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: ModelDraw writes cos(camera angle) and passes its bits to D3DTSS_BUMPENVMAT00. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004b99c",
+   "old": "DAT_1004b99c",
+   "new": "g_fModelBumpEnvMatrix00",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "ModelDraw writes cos(camera angle) and passes its bits to D3DTSS_BUMPENVMAT00. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004b99c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004b9a0",
+  "old": "DAT_1004b9a0",
+  "new": "g_fModelBumpEnvMatrix11",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: ModelDraw writes cos(camera angle) and passes its bits to D3DTSS_BUMPENVMAT11. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004b9a0",
+   "old": "DAT_1004b9a0",
+   "new": "g_fModelBumpEnvMatrix11",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "ModelDraw writes cos(camera angle) and passes its bits to D3DTSS_BUMPENVMAT11. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004b9a0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004bb54",
+  "old": "DAT_1004bb54",
+  "new": "g_ObjectDrawSortGaps",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: ObjectDrawList sorter reads 512..1 as gap per pass when sorting ObjectDrawer entries. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004bb54",
+   "old": "DAT_1004bb54",
+   "new": "g_ObjectDrawSortGaps",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "ObjectDrawList sorter reads 512..1 as gap per pass when sorting ObjectDrawer entries. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004bb54.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004bb7c",
+  "old": "DAT_1004bb7c",
+  "new": "g_ObjectDrawSortGapShifts",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: ObjectDrawList sorter reads 9..0 as right shift matching each power-of-two sort gap. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004bb7c",
+   "old": "DAT_1004bb7c",
+   "new": "g_ObjectDrawSortGapShifts",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "ObjectDrawList sorter reads 9..0 as right shift matching each power-of-two sort gap. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004bb7c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004bf3c",
+  "old": "DAT_1004bf3c",
+  "new": "g_LightmapPoolTextureSizes",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Lightmap lock selects the first square size fitting width and height; lightmap pool initializer creates textures with each size. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_LMPoolTexSize",
+  "prior_evidence": "uint[5] {4,8,16,32,64}: lightmap texture pool texel sizes, loop bound 1004bf4f in LockLightmapTexture/AllocLMTexturePools",
+  "independent_opinion": {
+   "va": "1004bf3c",
+   "old": "DAT_1004bf3c",
+   "new": "g_LightmapPoolTextureSizes",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Lightmap lock selects the first square size fitting width and height; lightmap pool initializer creates textures with each size. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004bf3c.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1004bf50",
+  "old": "DAT_1004bf50",
+  "new": "g_LightmapPoolTextureCounts",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Lightmap pool initializer loops this many times per size class to create each class's textures. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_LMPoolTexCount",
+  "prior_evidence": "uint[5] {125,72,24,10,10}: textures created per pool size by 10034db8",
+  "independent_opinion": {
+   "va": "1004bf50",
+   "old": "DAT_1004bf50",
+   "new": "g_LightmapPoolTextureCounts",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Lightmap pool initializer loops this many times per size class to create each class's textures. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004bf50.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1004d620",
+  "old": "DAT_1004d620",
+  "new": "g_ModelTransformedVertexPoolTex1",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: PoolA holds one texture-coordinate set; ctor 0 selects XYZRHW and ModelDraw selects it for one-set transformed drawing. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelVBPool_Tex1_TL",
+  "prior_evidence": "Static pool picked by 10004270 when drawer+0x5e8==1 (one texture set) and +0x8b0 (hardware T&L)==0; initialised by 10001230 with ModelVBSize/ModelVBCount.",
+  "independent_opinion": {
+   "va": "1004d620",
+   "old": "DAT_1004d620",
+   "new": "g_ModelTransformedVertexPoolTex1",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "PoolA holds one texture-coordinate set; ctor 0 selects XYZRHW and ModelDraw selects it for one-set transformed drawing. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004d620.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1004da80",
+  "old": "DAT_1004da80",
+  "new": "g_ModelTransformedVertexPoolTex2",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: PoolB holds two texture-coordinate sets; ctor 0 selects XYZRHW and ModelDraw selects it for two-set transformed drawing. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelVBPool_Tex2_TL",
+  "prior_evidence": "Static pool picked by 10004270 for the two-texture-set format without hardware T&L.",
+  "independent_opinion": {
+   "va": "1004da80",
+   "old": "DAT_1004da80",
+   "new": "g_ModelTransformedVertexPoolTex2",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "PoolB holds two texture-coordinate sets; ctor 0 selects XYZRHW and ModelDraw selects it for two-set transformed drawing. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004da80.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1004dae0",
+  "old": "DAT_1004dae0",
+  "new": "g_ModelUntransformedVertexPoolTex2",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: PoolB holds two texture-coordinate sets; ctor 1 selects XYZ and ModelDraw selects it when m_Unk8b0 requests untransformed drawing. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelVBPool_Tex2_TnL",
+  "prior_evidence": "Static pool picked by 10004270 for the two-texture-set format with hardware T&L; Init arg4=1 in 10001230.",
+  "independent_opinion": {
+   "va": "1004dae0",
+   "old": "DAT_1004dae0",
+   "new": "g_ModelUntransformedVertexPoolTex2",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "PoolB holds two texture-coordinate sets; ctor 1 selects XYZ and ModelDraw selects it when m_Unk8b0 requests untransformed drawing. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004dae0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1004eb48",
+  "old": "DAT_1004eb48",
+  "new": "g_ModelUntransformedVertexPoolTex1",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: PoolA holds one texture-coordinate set; ctor 1 selects XYZ and ModelDraw selects it when m_Unk8b0 requests untransformed drawing. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelVBPool_Tex1_TnL",
+  "prior_evidence": "Static pool picked by 10004270 for the one-texture-set format when +0x8b0 (hardware T&L) is set; Init arg4=1 (untransformed) in 10001230.",
+  "independent_opinion": {
+   "va": "1004eb48",
+   "old": "DAT_1004eb48",
+   "new": "g_ModelUntransformedVertexPoolTex1",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "PoolA holds one texture-coordinate set; ctor 1 selects XYZ and ModelDraw selects it when m_Unk8b0 requests untransformed drawing. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004eb48.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1004eba8",
+  "old": "DAT_1004eba8",
+  "new": "g_fGlobalPanUScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Updated from stage U scale divided by GlobalPanInfo.xScale; multiplies world x plus pan offset to form polygon u. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004eba8",
+   "old": "DAT_1004eba8",
+   "new": "g_fGlobalPanUScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Updated from stage U scale divided by GlobalPanInfo.xScale; multiplies world x plus pan offset to form polygon u. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004eba8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ebac",
+  "old": "DAT_1004ebac",
+  "new": "g_fGlobalPanVScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Updated from stage V scale divided by GlobalPanInfo.zScale; multiplies world z plus pan offset to form polygon v. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ebac",
+   "old": "DAT_1004ebac",
+   "new": "g_fGlobalPanVScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Updated from stage V scale divided by GlobalPanInfo.zScale; multiplies world z plus pan offset to form polygon v. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ebac.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffb0",
+  "old": "DAT_1004ffb0",
+  "new": "g_fGlobalPanUOffset",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copied from GlobalPanInfo.xOffset and added to polygon world x before U scaling. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffb0",
+   "old": "DAT_1004ffb0",
+   "new": "g_fGlobalPanUOffset",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Copied from GlobalPanInfo.xOffset and added to polygon world x before U scaling. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffb0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffb4",
+  "old": "DAT_1004ffb4",
+  "new": "g_fGlobalPanVOffset",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copied from GlobalPanInfo.zOffset and added to polygon world z before V scaling. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffb4",
+   "old": "DAT_1004ffb4",
+   "new": "g_fGlobalPanVOffset",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Copied from GlobalPanInfo.zOffset and added to polygon world z before V scaling. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffb4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffb8",
+  "old": "DAT_1004ffb8",
+  "new": "g_pDeferredGlobalPanPolys",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Prepending pooled polygon nodes builds this head; flush binds global-pan texture, draws each polygon, frees nodes, and resets head. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffb8",
+   "old": "DAT_1004ffb8",
+   "new": "g_pDeferredGlobalPanPolys",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Prepending pooled polygon nodes builds this head; flush binds global-pan texture, draws each polygon, frees nodes, and resets head. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffb8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffc0",
+  "old": "DAT_1004ffc0",
+  "new": "g_fParticleRedScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Particle draw setup writes 1/255; particle batch multiplies particle-system m_ColorR by it. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffc0",
+   "old": "DAT_1004ffc0",
+   "new": "g_fParticleRedScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Particle draw setup writes 1/255; particle batch multiplies particle-system m_ColorR by it. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffc0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffc4",
+  "old": "DAT_1004ffc4",
+  "new": "g_fParticleGreenScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Particle draw setup writes 1/255; particle batch multiplies particle-system m_ColorG by it. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffc4",
+   "old": "DAT_1004ffc4",
+   "new": "g_fParticleGreenScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Particle draw setup writes 1/255; particle batch multiplies particle-system m_ColorG by it. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffc4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffc8",
+  "old": "DAT_1004ffc8",
+  "new": "g_fParticleBlueScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Particle draw setup writes 1/255; particle batch multiplies particle-system m_ColorB by it. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffc8",
+   "old": "DAT_1004ffc8",
+   "new": "g_fParticleBlueScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Particle draw setup writes 1/255; particle batch multiplies particle-system m_ColorB by it. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffc8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffcc",
+  "old": "DAT_1004ffcc",
+  "new": "g_fParticleTextureUMin",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Setup assigns two texels times U scale; batch loads base U0 and uses it for left quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffcc",
+   "old": "DAT_1004ffcc",
+   "new": "g_fParticleTextureUMin",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Setup assigns two texels times U scale; batch loads base U0 and uses it for left quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffcc.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffd0",
+  "old": "DAT_1004ffd0",
+  "new": "g_fParticleTextureUMax",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Setup assigns texture width minus two texels times U scale; batch loads base U1 and uses it for right quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffd0",
+   "old": "DAT_1004ffd0",
+   "new": "g_fParticleTextureUMax",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Setup assigns texture width minus two texels times U scale; batch loads base U1 and uses it for right quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffd0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffd4",
+  "old": "DAT_1004ffd4",
+  "new": "g_dwParticleFogSpecular",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: g_pfnCalcFogAlpha writes this DWORD for the particle-system position; batch copies it into every emitted TLVertex.specular field. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffd4",
+   "old": "DAT_1004ffd4",
+   "new": "g_dwParticleFogSpecular",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "g_pfnCalcFogAlpha writes this DWORD for the particle-system position; batch copies it into every emitted TLVertex.specular field. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffd4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1004ffd8",
+  "old": "DAT_1004ffd8",
+  "new": "g_fParticleTextureVMin",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Setup assigns two texels times V scale; batch loads base V0 and uses it for upper quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1004ffd8",
+   "old": "DAT_1004ffd8",
+   "new": "g_fParticleTextureVMin",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Setup assigns two texels times V scale; batch loads base V0 and uses it for upper quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1004ffd8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100513dc",
+  "old": "DAT_100513dc",
+  "new": "g_fParticleTextureVMax",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Setup assigns texture height minus two texels times V scale; batch loads base V1 and uses it for lower quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100513dc",
+   "old": "DAT_100513dc",
+   "new": "g_fParticleTextureVMax",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Setup assigns texture height minus two texels times V scale; batch loads base V1 and uses it for lower quad UV endpoints. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/100513dc.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10052900",
+  "old": "DAT_10052900",
+  "new": "g_ModelWarbleDeltas",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initialization writes cyclic next-entry minus current-entry differences; projection linearly interpolates table entry with fraction times delta. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelWarbleDeltaTable",
+  "prior_evidence": "32 floats: table[(i+1)&31]-table[i] built by 1000b6cd, interpolated with the fraction in 1000ddc5",
+  "independent_opinion": {
+   "va": "10052900",
+   "old": "DAT_10052900",
+   "new": "g_ModelWarbleDeltas",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Initialization writes cyclic next-entry minus current-entry differences; projection linearly interpolates table entry with fraction times delta. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10052900.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10052f9c",
+  "old": "DAT_10052f9c",
+  "new": "g_fEnvPanUOffset",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene stores EnvPanSpeed times scene camera x plus 0.5; no reader in the evidence, so U-axis meaning follows x/z convention only. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10052f9c",
+   "old": "DAT_10052f9c",
+   "new": "g_fEnvPanUOffset",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "RenderScene stores EnvPanSpeed times scene camera x plus 0.5; no reader in the evidence, so U-axis meaning follows x/z convention only. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10052f9c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10052fa0",
+  "old": "DAT_10052fa0",
+  "new": "g_fEnvPanVOffset",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene stores EnvPanSpeed times scene camera z plus 0.5; no reader in the evidence, so V-axis meaning follows x/z convention only. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10052fa0",
+   "old": "DAT_10052fa0",
+   "new": "g_fEnvPanVOffset",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "RenderScene stores EnvPanSpeed times scene camera z plus 0.5; no reader in the evidence, so V-axis meaning follows x/z convention only. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10052fa0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10052fa4",
+  "old": "DAT_10052fa4",
+  "new": "g_fEnvMapUScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene stores 0.5 divided by EnvScale and copies it to paired V-scale storage; no reader recovered to independently confirm U axis. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10052fa4",
+   "old": "DAT_10052fa4",
+   "new": "g_fEnvMapUScale",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "RenderScene stores 0.5 divided by EnvScale and copies it to paired V-scale storage; no reader recovered to independently confirm U axis. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10052fa4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10052fa8",
+  "old": "DAT_10052fa8",
+  "new": "g_fEnvMapVScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene copies paired EnvScale-derived float here; no reader recovered to independently confirm V axis. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10052fa8",
+   "old": "DAT_10052fa8",
+   "new": "g_fEnvMapVScale",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "RenderScene copies paired EnvScale-derived float here; no reader recovered to independently confirm V axis. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10052fa8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10053278",
+  "old": "DAT_10053278",
+  "new": "g_fModelWarblePhase",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene advances it by WarbleSpeed times frame time; begin-projection takes integer part as table index and fractional part controls interpolation. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelWarbleTime",
+  "prior_evidence": "Reset by 1000b772, advanced in RenderScene by WarbleSpeed cvar * SceneDesc frame time (10017aa0 line: _DAT_10053278 += ...)",
+  "independent_opinion": {
+   "va": "10053278",
+   "old": "DAT_10053278",
+   "new": "g_fModelWarblePhase",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene advances it by WarbleSpeed times frame time; begin-projection takes integer part as table index and fractional part controls interpolation. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10053278.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10053280",
+  "old": "DAT_10053280",
+  "new": "g_ModelFrameListHeadB",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: LTLink is tied off by model module initialization and ModelPreFrame; no insertion or traversal survives, so only list-head storage and second reset order are asserted. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10053280",
+   "old": "DAT_10053280",
+   "new": "g_ModelFrameListHeadB",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "LTLink is tied off by model module initialization and ModelPreFrame; no insertion or traversal survives, so only list-head storage and second reset order are asserted. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10053280.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005328c",
+  "old": "DAT_1005328c",
+  "new": "g_nModelWarbleIndex",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Begin-projection takes integer warble phase; each projected model vertex masks index to 32-entry table then increments it. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005328c",
+   "old": "DAT_1005328c",
+   "new": "g_nModelWarbleIndex",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Begin-projection takes integer warble phase; each projected model vertex masks index to 32-entry table then increments it. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1005328c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10053730",
+  "old": "DAT_10053730",
+  "new": "g_ModelWarbleScales",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builder writes 32 sine-derived scales; model projection interpolates this scale and applies it to all vertex coordinates. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelWarbleTable",
+  "prior_evidence": "32 floats built by 1000b6cd from sin() and WarbleScale, read by the warble vertex transform 1000ddc5",
+  "independent_opinion": {
+   "va": "10053730",
+   "old": "DAT_10053730",
+   "new": "g_ModelWarbleScales",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Builder writes 32 sine-derived scales; model projection interpolates this scale and applies it to all vertex coordinates. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10053730.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10054870",
+  "old": "DAT_10054870",
+  "new": "g_fModelWarbleFraction",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene writes phase minus floor(phase); projection multiplies table delta by it for interpolated scale. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_ModelWarbleFrac",
+  "prior_evidence": "Fractional part of g_ModelWarbleTime (set in RenderScene), used as interpolation weight in 1000ddc5",
+  "independent_opinion": {
+   "va": "10054870",
+   "old": "DAT_10054870",
+   "new": "g_fModelWarbleFraction",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene writes phase minus floor(phase); projection multiplies table delta by it for interpolated scale. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10054870.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10054878",
+  "old": "DAT_10054878",
+  "new": "g_ModelFrameListHeadA",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: LTLink is tied off by model module initialization and ModelPreFrame; no insertion or traversal survives, so only list-head storage and first reset order are asserted. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10054878",
+   "old": "DAT_10054878",
+   "new": "g_ModelFrameListHeadA",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "LTLink is tied off by model module initialization and ModelPreFrame; no insertion or traversal survives, so only list-head storage and first reset order are asserted. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10054878.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10054888",
+  "old": "DAT_10054888",
+  "new": "g_ModelVBCacheLastAgeFrameCode",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Model setup compares this uint16 with g_CurFrameCode; mismatches age the VB cache and record current frame code. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10054888",
+   "old": "DAT_10054888",
+   "new": "g_ModelVBCacheLastAgeFrameCode",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Model setup compares this uint16 with g_CurFrameCode; mismatches age the VB cache and record current frame code. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10054888.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10055cd8",
+  "old": "DAT_10055cd8",
+  "new": "g_nParticlesDrawn",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Reset in InitFrame; particle batch adds emitted quad count; RenderScene prints Particles drawn. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_nParticlesDrawn",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string \"Particles drawn: %d\"; zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "10055cd8",
+   "old": "DAT_10055cd8",
+   "new": "g_nParticlesDrawn",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Reset in InitFrame; particle batch adds emitted quad count; RenderScene prints Particles drawn. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10055cd8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10055cdc",
+  "old": "DAT_10055cdc",
+  "new": "g_nTextureUploadSaves",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Reset in InitFrame; unchanged dynamic lightmap increments it; RenderScene prints Texture upload saves. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_nTextureUploadSaves",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string \"Texture upload saves: %d\"; zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "10055cdc",
+   "old": "DAT_10055cdc",
+   "new": "g_nTextureUploadSaves",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Reset in InitFrame; unchanged dynamic lightmap increments it; RenderScene prints Texture upload saves. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10055cdc.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10055ce0",
+  "old": "DAT_10055ce0",
+  "new": "g_pGlobalPanInfo",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: InitFrame sets pointer to RenderStruct.m_GlobalPans; polygon drawing uses its texture, x/z offsets, and x/z scales. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10055ce0",
+   "old": "DAT_10055ce0",
+   "new": "g_pGlobalPanInfo",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "InitFrame sets pointer to RenderStruct.m_GlobalPans; polygon drawing uses its texture, x/z offsets, and x/z scales. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10055ce0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10055ce8",
+  "old": "DAT_10055ce8",
+  "new": "g_GlobalVertexTint",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: InitFrame directly copies SceneDesc.m_GlobalVertexTint; lighting and object draw paths multiply RGB by its components. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10055ce8",
+   "old": "DAT_10055ce8",
+   "new": "g_GlobalVertexTint",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "InitFrame directly copies SceneDesc.m_GlobalVertexTint; lighting and object draw paths multiply RGB by its components. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10055ce8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10055cf4",
+  "old": "DAT_10055cf4",
+  "new": "g_nVisibleLeaves",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Reset in InitFrame; leaf tagging increments it; RenderScene prints Visible Leaves. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_nVisibleLeaves",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string \"Visible Leaves: %d\"; zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "10055cf4",
+   "old": "DAT_10055cf4",
+   "new": "g_nVisibleLeaves",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Reset in InitFrame; leaf tagging increments it; RenderScene prints Visible Leaves. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10055cf4.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100561f8",
+  "old": "DAT_100561f8",
+  "new": "g_GlobalLightScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: InitFrame directly copies SceneDesc.m_GlobalLightScale; RenderScene checks components for lighting-table rebuild. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100561f8",
+   "old": "DAT_100561f8",
+   "new": "g_GlobalLightScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "InitFrame directly copies SceneDesc.m_GlobalLightScale; RenderScene checks components for lighting-table rebuild. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/100561f8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10056208",
+  "old": "DAT_10056208",
+  "new": "g_GlobalLightScale255",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: InitFrame writes the GlobalLightScale vector multiplied by 255.0; names derived numeric representation only. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10056208",
+   "old": "DAT_10056208",
+   "new": "g_GlobalLightScale255",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "InitFrame writes the GlobalLightScale vector multiplied by 255.0; names derived numeric representation only. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10056208.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10056214",
+  "old": "DAT_10056214",
+  "new": "g_nLitPolies",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Reset then incremented for each lit-polygon node when clearing list; RenderScene prints Num Lit Polies. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "g_nLitPolies",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string the first value of \"Num Lit Polies: %d (textured and uploaded: %d)\"; zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "10056214",
+   "old": "DAT_10056214",
+   "new": "g_nLitPolies",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Reset then incremented for each lit-polygon node when clearing list; RenderScene prints Num Lit Polies. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10056214.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10056220",
+  "old": "DAT_10056220",
+  "new": "g_PolyLightBank",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: StructBank initialized for 0x14-byte records; drawlight allocates PolyLight records holding light and position, and clear frees them to this bank. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10056220",
+   "old": "DAT_10056220",
+   "new": "g_PolyLightBank",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "StructBank initialized for 0x14-byte records; drawlight allocates PolyLight records holding light and position, and clear frees them to this bank. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10056220.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10056240",
+  "old": "DAT_10056240",
+  "new": "g_LitPolyBank",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: StructBank initialized for 8-byte records; drawlight allocates LitPoly list nodes holding polygon and next, and clear frees them to this bank. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10056240",
+   "old": "DAT_10056240",
+   "new": "g_LitPolyBank",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "StructBank initialized for 8-byte records; drawlight allocates LitPoly list nodes holding polygon and next, and clear frees them to this bank. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/10056240.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005625c",
+  "old": "DAT_1005625c",
+  "new": "g_nInitFrameArgument",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Only recovered use stores third d3d_InitFrame integer argument; caller supplies 0x5000 beside scratch vertex buffer, but capacity or other role is unproven. Runtime unhit in all recorded scenarios lowers confidence.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005625c",
+   "old": "DAT_1005625c",
+   "new": "g_nInitFrameArgument",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Only recovered use stores third d3d_InitFrame integer argument; caller supplies 0x5000 beside scratch vertex buffer, but capacity or other role is unproven. Runtime unhit in all recorded scenarios lowers confidence."
+  },
+  "dossier": "build/d3dren/dossier/1005625c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10056260",
+  "old": "DAT_10056260",
+  "new": "g_vGlobalModelDirAdd2",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: common_draw.cpp:d3d_InitFrame copies SceneDesc::m_GlobalModelDirAdd2; clientmgr.cpp fills it from g_ConsoleModelDirAdd2. Runtime unhit in recorded scenarios lowers confidence. All duplicate declarations at this address were reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10056260",
+   "old": "DAT_10056260",
+   "new": "g_vGlobalModelDirAdd2",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "common_draw.cpp:d3d_InitFrame copies SceneDesc::m_GlobalModelDirAdd2; clientmgr.cpp fills it from g_ConsoleModelDirAdd2. Runtime unhit in recorded scenarios lowers confidence. All duplicate declarations at this address were reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10056260.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10056270",
+  "old": "DAT_10056270",
+  "new": "g_nSkyPolyFragments",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: d3d_InitFrame zeros it; d3d_RenderScene prints Sky Polies (fragments). No surviving increment user is recorded. Runtime unhit in recorded scenarios lowers confidence. All duplicate declarations at this address were reviewed together.",
+  "primary_draft": "g_nSkyPolies",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string \"Sky Polies (fragments): %d\"; zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "10056270",
+   "old": "DAT_10056270",
+   "new": "g_nSkyPolyFragments",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "d3d_InitFrame zeros it; d3d_RenderScene prints Sky Polies (fragments). No surviving increment user is recorded. Runtime unhit in recorded scenarios lowers confidence. All duplicate declarations at this address were reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10056270.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10056278",
+  "old": "DAT_10056278",
+  "new": "g_nDynamicLightmapsRefreshed",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: d3d_texture.cpp:FUN_10020ff0 increments after successfully locking a polygon lightmap before FUN_10032c40 rebuild; RenderScene labels textured and uploaded lit polys. Runtime unhit in recorded scenarios lowers confidence. All duplicate declarations at this address were reviewed together.",
+  "primary_draft": "g_nLitPoliesTexturedUploaded",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string the second value of \"Num Lit Polies: %d (textured and uploaded: %d)\"; zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "10056278",
+   "old": "DAT_10056278",
+   "new": "g_nDynamicLightmapsRefreshed",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "d3d_texture.cpp:FUN_10020ff0 increments after successfully locking a polygon lightmap before FUN_10032c40 rebuild; RenderScene labels textured and uploaded lit polys. Runtime unhit in recorded scenarios lowers confidence. All duplicate declarations at this address were reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10056278.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ }
+]

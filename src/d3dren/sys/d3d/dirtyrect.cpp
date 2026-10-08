@@ -19,8 +19,8 @@ extern HWND g_hWnd;
 class UnkType_TiedList
 {
 public:
-	UnkType_TiedList(uint8 b) { FUN_100220fe(b); }		// inline: expanded into the static initialisers (0x100220f1, 0x10022123)
-	void FUN_100220fe(uint8 b);							// the exe calls this out of line
+	UnkType_TiedList(uint8 b) { Init(b); }		// inline: expanded into the static initialisers (0x100220f1, 0x10022123)
+	void Init(uint8 b);							// the exe calls this out of line
 
 	void		*m_Unk00;
 	void		*m_Unk04;
@@ -31,8 +31,8 @@ public:
 	uint8		m_Unk17;
 };
 
-// FUNCTION: D3DREN 0x100220fe ?FUN_100220fe@UnkType_TiedList@@QAEXE@Z
-void UnkType_TiedList::FUN_100220fe(uint8 b)
+// FUNCTION: D3DREN 0x100220fe ?Init@UnkType_TiedList@@QAEXE@Z
+void UnkType_TiedList::Init(uint8 b)
 {
 	m_Unk14 = 0xffff;
 	m_Unk16 = b;
@@ -45,10 +45,10 @@ void UnkType_TiedList::FUN_100220fe(uint8 b)
 
 // FUNCTION: D3DREN 0x100220f1 _$E4
 // GLOBAL: D3DREN 0x10063ca8
-UnkType_TiedList DAT_10063ca8(1);
+UnkType_TiedList g_TiedListType1(1);
 // FUNCTION: D3DREN 0x10022123 _$E7
 // GLOBAL: D3DREN 0x10063cc0
-UnkType_TiedList DAT_10063cc0(2);
+UnkType_TiedList g_TiedListType2(2);
 
 // NAME: g_invalidRect, g_invalidRectCount, InvalidateRect, RectangleCombine, DirtyRectSwap, ClearDirtyRects: Jupiter
 // render_a/src/sys/d3d/dirtyrect.cpp (the exe's InvalidateRect is line for line the same).
@@ -125,7 +125,7 @@ void InvalidateRect(LTRect *pRect)
 // guess: windowed flavour of the swap: the dirty rects are blitted from the offscreen surface to the primary surface at the
 // window's client position.
 // FUNCTION: D3DREN 0x1002231c
-void FUN_1002231c()
+void BlitDirtyRectsToPrimary()
 {
 	RECT rcClient;
 	RECT rcDest;
@@ -159,7 +159,7 @@ void DirtyRectSwap()
 
 	if (g_pPrimary)
 	{
-		FUN_1002231c();
+		BlitDirtyRectsToPrimary();
 		return;
 	}
 

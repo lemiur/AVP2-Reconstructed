@@ -40,9 +40,9 @@ static UnkType_EmptyCtorSky s_Empty;
 
 // globals of other units used below
 // GLOBAL: D3DREN 0x10055ce8
-extern LTVector DAT_10055ce8;		// guess: the global light colour (W4's seed declares it the same way): scales the sky object colour
+extern LTVector g_GlobalVertexTint;		// guess: the global light colour (W4's seed declares it the same way): scales the sky object colour
 // GLOBAL: D3DREN 0x100566cc
-extern int DAT_100566cc;		// guess: the number of light tests this frame ("Num Light Tests")
+extern int g_nLightTests;		// guess: the number of light tests this frame ("Num Light Tests")
 // RTM compiler/NAME: d3d_SetTranslucentObjectStates / d3d_UnsetTranslucentObjectStates: Jupiter d3d_draw.h (unit unk/100132a0, package W2)
 void d3d_SetTranslucentObjectStates(int bAdditive);			// 0x10013ba0
 void d3d_UnsetTranslucentObjectStates(int bChangeZ);		// 0x10013df0
@@ -53,16 +53,16 @@ void d3d_DrawSprite(ViewParams *pParams, LTObject *pObject);	// 0x1002d660
 // ---- sky world model polygons -------------------------------------------------------------------------------------------------------
 
 // GLOBAL: D3DREN 0x1005a3d0
-float DAT_1005a3d0;		// guess: the sky object's colour (red, green, blue as 0..1 floats, scaled by the global light colour)
+float g_fSkyWorldModelTintR;		// guess: the sky object's colour (red, green, blue as 0..1 floats, scaled by the global light colour)
 // GLOBAL: D3DREN 0x1005a3d4
-float DAT_1005a3d4;
+float g_fSkyWorldModelTintG;
 // GLOBAL: D3DREN 0x1005a3d8
-float DAT_1005a3d8;
+float g_fSkyWorldModelTintB;
 // GLOBAL: D3DREN 0x10057774
-extern uint8 DAT_10057774;		// guess: the alpha byte of the vertex colours
+extern uint8 g_nPolyVertexAlpha;		// guess: the alpha byte of the vertex colours
 
 
-// guess: the vertex buffer of FUN_10019351: a function-local static of a class with a (do nothing) destructor
+// guess: the vertex buffer of d3d_DrawSkyWorldPoly: a function-local static of a class with a (do nothing) destructor
 struct UnkType_SkyVerts
 {
 	~UnkType_SkyVerts() {}
@@ -79,7 +79,7 @@ static inline void SetUV(TLVertex *pVertex, float u, float v)
 // guess: draws one polygon of a sky world model: the vertices get the sky colour, the dynamic lights and the sky fog, are
 // clipped (mask 0x3f) and projected, the surface's texture is bound and the polygon is drawn as a triangle fan.
 // FUNCTION: D3DREN 0x10019351
-void FUN_10019351(WorldPoly *pPoly)
+void d3d_DrawSkyWorldPoly(WorldPoly *pPoly)
 {
 	static UnkType_SkyVerts s_Verts;
 	UnkType_PolyVertex *pSrc;
@@ -107,23 +107,23 @@ void FUN_10019351(WorldPoly *pPoly)
 	for (uint32 i = nVerts; i > 0; i--)
 	{
 		pDest->m_Vec = *pSrc->m_Vec;
-		pDest->rgb.r = (uint8)RoundFloatToInt((float)pSrc->m_Color[2] * DAT_1005a3d0);
-		pDest->rgb.g = (uint8)RoundFloatToInt((float)pSrc->m_Color[1] * DAT_1005a3d4);
-		pDest->rgb.b = (uint8)RoundFloatToInt((float)pSrc->m_Color[0] * DAT_1005a3d8);
-		pDest->rgb.a = DAT_10057774;
+		pDest->rgb.r = (uint8)RoundFloatToInt((float)pSrc->m_Color[2] * g_fSkyWorldModelTintR);
+		pDest->rgb.g = (uint8)RoundFloatToInt((float)pSrc->m_Color[1] * g_fSkyWorldModelTintG);
+		pDest->rgb.b = (uint8)RoundFloatToInt((float)pSrc->m_Color[0] * g_fSkyWorldModelTintB);
+		pDest->rgb.a = g_nPolyVertexAlpha;
 		SetUV(pDest, pSrc->m_U, pSrc->m_V);
 		pSrc++;
 		pDest++;
 	}
 
 	pVerts = s_Verts.m_Verts;
-	FUN_10019923(pPoly, pVerts, nVerts);
+	d3d_ApplyWorldPolyVertexLights(pPoly, pVerts, nVerts);
 
 	pDest = pVerts;
 	uint32 n = (uint32)nVerts;
 	while (n--)
 	{
-		FUN_10008719((float *)pDest, &g_SkyParams.m_mClipTransform.m[0][0]);
+		TransformPositionInPlace((float *)pDest, &g_SkyParams.m_mClipTransform.m[0][0]);
 		pDest++;
 	}
 
@@ -131,27 +131,27 @@ void FUN_10019351(WorldPoly *pPoly)
 	{
 		SharedTexture *pTexture;
 		if (g_ShowSkySplits || !(pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture) || !d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
-			FUN_1000a27b(g_NormalTextureStage);
+			d3d_UnsetTexture(g_NormalTextureStage);
 
 		pDest = pVerts;
 		for (int n = nVerts; n != 0; n--)
 		{
-			DAT_10058c40(&pDest->m_Vec, &pDest->specular);
+			g_pfnCalcSkyFogAlpha(&pDest->m_Vec, &pDest->specular);
 			ProjectVertexToScreen((float *)pDest, &g_SkyParams);
 			float fV = pDest->tv;
-			fV *= DAT_10061810[0].m_Unk04;
+			fV *= g_TextureStageTexelSizes[0].m_Unk04;
 			float fU = pDest->tu;
-			fU *= DAT_10061810[0].m_Unk00;
+			fU *= g_TextureStageTexelSizes[0].m_Unk00;
 			SetUV(pDest, fU, fV);
 			pDest++;
 		}
 
-		DAT_10063c90.FUN_10021da6();
+		g_TextureStateRestorer.RestoreAllStates();
 		pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture;
 		if (pTexture && pTexture->m_pStateChange)
-			DAT_10063c90.FUN_10021db7(pTexture->m_pStateChange, 1);
+			g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, 1);
 		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-		DAT_10063c90.FUN_10021da6();
+		g_TextureStateRestorer.RestoreAllStates();
 	}
 }
 
@@ -160,16 +160,16 @@ void FUN_10019351(WorldPoly *pPoly)
 
 // guess: the objects of the sky: a world model's polygons are drawn back to front through its BSP, with the sky colour of the object
 // FUNCTION: D3DREN 0x1001955e
-void FUN_1001955e(LTObject *pObject)
+void d3d_DrawSkyWorldModel(LTObject *pObject)
 {
 	WorldModelInstance *pInstance = (WorldModelInstance *)pObject;
 	Node *aStack[0x200];
 
 	if (pInstance->WMSlot14())
 	{
-		DAT_1005a3d0 = ((float)pObject->m_ColorR * (1.0f / 255.0f)) * DAT_10055ce8.x;
-		DAT_1005a3d4 = ((float)pObject->m_ColorG * (1.0f / 255.0f)) * DAT_10055ce8.y;
-		DAT_1005a3d8 = ((float)pObject->m_ColorB * (1.0f / 255.0f)) * DAT_10055ce8.z;
+		g_fSkyWorldModelTintR = ((float)pObject->m_ColorR * (1.0f / 255.0f)) * g_GlobalVertexTint.x;
+		g_fSkyWorldModelTintG = ((float)pObject->m_ColorG * (1.0f / 255.0f)) * g_GlobalVertexTint.y;
+		g_fSkyWorldModelTintB = ((float)pObject->m_ColorB * (1.0f / 255.0f)) * g_GlobalVertexTint.z;
 
 		WorldBsp *pBsp = pInstance->m_pOriginalBsp;
 		if (pBsp->m_nPolies != 0)
@@ -189,7 +189,7 @@ void FUN_1001955e(LTObject *pObject)
 					LTPlane *pPlane = pNode->GetPlane();
 					int iSide = pPlane->DistTo(g_SkyParams.m_Pos) > 0.0f;
 					if (iSide && !(((Surface *)pNode->m_pPoly->m_pSurface)->m_Flags & SURF_INVISIBLE))
-						FUN_10019351(pNode->m_pPoly);
+						d3d_DrawSkyWorldPoly(pNode->m_pPoly);
 					*ppStack++ = pNode->m_Sides[iSide];
 					pNode = pNode->m_Sides[iSide == 0];
 				}
@@ -198,8 +198,8 @@ void FUN_1001955e(LTObject *pObject)
 	}
 }
 
-// FUNCTION: D3DREN 0x10019880 ?FUN_10019880@@YAKPAVLTObject@@@Z
-// (the out-of-line copy of the inline function FUN_10019880 of drawsky.h; the first caller, d3d_DrawSkyObjects, did not inline it)
+// FUNCTION: D3DREN 0x10019880 ?GetWorldModelFirstSurfaceFlags@@YAKPAVLTObject@@@Z
+// (the out-of-line copy of the inline function GetWorldModelFirstSurfaceFlags of drawsky.h; the first caller, d3d_DrawSkyObjects, did not inline it)
 
 // NAME: d3d_DrawSkyObjects: Jupiter d3d_drawsky.cpp (names_proposal.csv, high): the same structure with the Talon state saver instead
 // of StateSet objects, no ViewParams argument and no BSP shared world model lookup.
@@ -212,12 +212,12 @@ void d3d_DrawSkyObjects()
 	UnkType_StateRestorer saver;
 
 	// disable reading/writing to the Z buffer, set the fog distances and switch the second texture stage off
-	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_ZWRITEENABLE, FALSE));
+	saver.ApplyRenderState(RenderState(D3DRENDERSTATE_ZWRITEENABLE, FALSE));
 	DWORD oldFogEnable;
-	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_ZENABLE, FALSE));
-	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&g_SkyFogNearZ));
-	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_FOGEND, *(DWORD *)&g_SkyFogFarZ));
-	saver.FUN_10021dfd(TextureState(1, D3DTSS_COLOROP, D3DTOP_DISABLE), 1);
+	saver.ApplyRenderState(RenderState(D3DRENDERSTATE_ZENABLE, FALSE));
+	saver.ApplyRenderState(RenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&g_SkyFogNearZ));
+	saver.ApplyRenderState(RenderState(D3DRENDERSTATE_FOGEND, *(DWORD *)&g_SkyFogFarZ));
+	saver.ApplyTextureStageState(TextureState(1, D3DTSS_COLOROP, D3DTOP_DISABLE), 1);
 
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FOGENABLE, &oldFogEnable);
 	g_pD3DDevice->GetTextureStageState(1, D3DTSS_COLOROP, &oldColorOp);
@@ -230,22 +230,22 @@ void d3d_DrawSkyObjects()
 			if (pSkyObject->m_ObjectType == OT_WORLDMODEL)
 			{
 				if (pSkyObject->m_Flags & FLAG_FOGDISABLE)
-					saver.FUN_10021e28(RenderState(D3DRENDERSTATE_FOGENABLE, FALSE));
+					saver.ApplyRenderState(RenderState(D3DRENDERSTATE_FOGENABLE, FALSE));
 
-				nFlags = FUN_10019880(pSkyObject);
+				nFlags = GetWorldModelFirstSurfaceFlags(pSkyObject);
 				if (nFlags & 8)
 				{
 					d3d_SetTranslucentObjectStates((nFlags >> 19) & 1);
 				}
 				else
 				{
-					saver.FUN_10021e28(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA));
-					saver.FUN_10021e28(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE));
+					saver.ApplyRenderState(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA));
+					saver.ApplyRenderState(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE));
 					d3d_UnsetTranslucentObjectStates(0);
 				}
 
-				DAT_10057774 = pSkyObject->m_ColorA;
-				FUN_1001955e(pSkyObject);
+				g_nPolyVertexAlpha = pSkyObject->m_ColorA;
+				d3d_DrawSkyWorldModel(pSkyObject);
 			}
 			else if (pSkyObject->m_ObjectType == OT_POLYGRID)
 			{
@@ -276,10 +276,10 @@ void d3d_DrawSkyObjects()
 
 // guess: the colours of the vertices of pPoly get the dynamic lights that touch it added: each light of the polygon's light list
 // (position and colour 0..255, range m_LightRadius) lights the vertices closer than its radius with a linear falloff; the sum
-// is doubled when the Saturate variable is set and clamped to 0..255.  DAT_100566cc counts the light tests ("Num Light Tests").
+// is doubled when the Saturate variable is set and clamped to 0..255.  g_nLightTests counts the light tests ("Num Light Tests").
 // Keep the positive-test count separate, then initialize the per-vertex countdown after pColor.
 // FUNCTION: D3DREN 0x10019923
-void FUN_10019923(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
+void d3d_ApplyWorldPolyVertexLights(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 {
 	for (UnkType_PolyLightRef *pRef = (UnkType_PolyLightRef *)WORLDPOLY_UNK30(pPoly); pRef; pRef = pRef->m_pNext)
 	{
@@ -291,7 +291,7 @@ void FUN_10019923(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 		fLightR = fLightR - (255.0f - fLightR);
 		fLightG = fLightG - (255.0f - fLightG);
 		fLightB = fLightB - (255.0f - fLightB);
-		DAT_100566cc++;
+		g_nLightTests++;
 
 		float fDist = pPoly->m_pPlane->DistTo(vLightPos);
 		if (fDist < 0.0f)

@@ -1,0 +1,1004 @@
+[
+ {
+  "va": "1003287a",
+  "old": "FUN_1003287a",
+  "new": "FillDynamicLightmapRGB32",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Walks a bordered pixel rectangle, evaluates squared radial falloff, and writes packed scaled colors to 32-bit pixels. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "FillDynamicLightmap32",
+  "prior_evidence": "32-bit twin of 1003273a (pitch>>2, packs through 10032966)",
+  "independent_opinion": {
+   "va": "1003287a",
+   "old": "FUN_1003287a",
+   "new": "FillDynamicLightmapRGB32",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Walks a bordered pixel rectangle, evaluates squared radial falloff, and writes packed scaled colors to 32-bit pixels. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003287a.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10033140",
+  "old": "FUN_10033140",
+  "new": "AddLightmapLightToRGB555Texel",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Extracts three five-bit channels, adds the attenuated light through the color clamp table, and repacks the texel. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "AddLightToPixel565",
+  "prior_evidence": "ftol(distance)->DAT_100781c8 falloff, adds the light colour to one RGB555/565 texel through the clamp table 10077dc6; caller 10032c40",
+  "independent_opinion": {
+   "va": "10033140",
+   "old": "FUN_10033140",
+   "new": "AddLightmapLightToRGB555Texel",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Extracts three five-bit channels, adds the attenuated light through the color clamp table, and repacks the texel. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10033140.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10033e00",
+  "old": "FUN_10033e00",
+  "new": "AddLightmapLightToRGB32Rect",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Walks a 32-bit rectangle and adds distance-attenuated light to texels inside the configured light radius. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "ApplyDynamicLightToRect32",
+  "prior_evidence": "for one light context (floats 9..0x15) walks a w*h block of 32-bit texels adding colour*falloff through DAT_10077dc6 clamp table; caller 10032c40",
+  "independent_opinion": {
+   "va": "10033e00",
+   "old": "FUN_10033e00",
+   "new": "AddLightmapLightToRGB32Rect",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Walks a 32-bit rectangle and adds distance-attenuated light to texels inside the configured light radius. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10033e00.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10032825",
+  "old": "FUN_10032825",
+  "new": "PackDynamicLightColorRGB555",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Scales each color byte through the intensity lookup table and packs three five-bit channels into a 16-bit texel. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "PackLightColor565",
+  "prior_evidence": "ftol(falloff)->index into the 256x256 multiply table DAT_10082168, packs three channels to RGB565 ((x&0xf8)<<5.. >>3)",
+  "independent_opinion": {
+   "va": "10032825",
+   "old": "FUN_10032825",
+   "new": "PackDynamicLightColorRGB555",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Scales each color byte through the intensity lookup table and packs three five-bit channels into a 16-bit texel. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10032825.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10032966",
+  "old": "FUN_10032966",
+  "new": "PackDynamicLightColorRGB32",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Uses an intensity row of the byte multiplication table and packs three color channels into a 32-bit RGB value. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "PackLightColor32",
+  "prior_evidence": "ftol(falloff) -> multiply table DAT_10082168 per channel, packs 0x00RRGGBB",
+  "independent_opinion": {
+   "va": "10032966",
+   "old": "FUN_10032966",
+   "new": "PackDynamicLightColorRGB32",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Uses an intensity row of the byte multiplication table and packs three color channels into a 32-bit RGB value. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/10032966.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1003a83d",
+  "old": "FUN_1003a83d",
+  "new": "Init",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Recreates the vertex-buffer pool when its dimensions differ or it is uninitialized, stores format options, and invokes the virtual buffer creator. Static code supports this role; recorded runtime scenarios did not hit it.",
+  "primary_draft": "Init",
+  "prior_evidence": "[role evidence: vtable/medium] Vtable slot 4 (called through vslot +0x10 for the global at 10001230): (pD3D,nVerts,nBuffers,bUntransformed,bHardware): Term if parameters changed, store them (+0x20/+0x24/+0x28/+0x2c), size the buffer array (1003b034) and call the virtual create slot 7",
+  "independent_opinion": {
+   "va": "1003a83d",
+   "old": "FUN_1003a83d",
+   "new": "Init",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Recreates the vertex-buffer pool when its dimensions differ or it is uninitialized, stores format options, and invokes the virtual buffer creator. Static code supports this role; recorded runtime scenarios did not hit it."
+  },
+  "dossier": "build/d3dren/dossier/1003a83d.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording",
+  "allow": true,
+  "collision_reason": "Intentional virtual method name shared by unrelated classes and by this base/derived override"
+ },
+ {
+  "va": "10001340",
+  "old": "FUN_10001340",
+  "new": "d3d_TermModelVertexBufferPools",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Calls the pool termination operation on both software model pools and the model cache. Naming describes precisely the resource family handled, without claiming termination of the hardware pools; unhit in recorded scenarios.",
+  "primary_draft": "ModelVB_TermPools",
+  "prior_evidence": "Release slot (1003a805) on pools 0x1004d620/0x1004da80 then Term slot 3 of the cache pool 0x10093b10; reached via thunk 1000b7aa.",
+  "independent_opinion": {
+   "va": "10001340",
+   "old": "FUN_10001340",
+   "new": "d3d_TermModelVertexBufferPools",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Calls the pool termination operation on both software model pools and the model cache. Naming describes precisely the resource family handled, without claiming termination of the hardware pools; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10001340.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001370",
+  "old": "FUN_10001370",
+  "new": "FillModelBaseTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Fills the destination TLVertex UV pair from triangle UVs plus the current model UV offsets. It is used as the single-texture model coordinate filler; unhit runtime coverage.",
+  "primary_draft": "ModelDraw_FillTexCoords",
+  "prior_evidence": "Per-vertex filler (ecx=dest TL vertex, stack=ModelTri uv pair): tu=g_UOffset+uv[0], tv=g_VOffset+uv[1] at +0x18/+0x1c; stored in drawer+0x5f4 by 1002476b.",
+  "independent_opinion": {
+   "va": "10001370",
+   "old": "FUN_10001370",
+   "new": "FillModelBaseTexCoords",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Fills the destination TLVertex UV pair from triangle UVs plus the current model UV offsets. It is used as the single-texture model coordinate filler; unhit runtime coverage."
+  },
+  "dossier": "build/d3dren/dossier/10001370.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001390",
+  "old": "FUN_10001390",
+  "new": "FillModelDetailTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Writes offset base UVs and a second UV pair scaled by ModelDetailTextureScale into the 40-byte vertex. These explicit operations distinguish it from the other fillers; unhit runtime coverage.",
+  "primary_draft": "ModelDraw_FillTexCoordsDetail",
+  "prior_evidence": "Filler for the 40-byte vertex: tu/tv as 10001370 plus tu2/tv2 (+0x20/+0x24) = tu/tv * ModelDetailTextureScale (cvar object 0x1004d5c0, float at +4).",
+  "independent_opinion": {
+   "va": "10001390",
+   "old": "FUN_10001390",
+   "new": "FillModelDetailTexCoords",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Writes offset base UVs and a second UV pair scaled by ModelDetailTextureScale into the 40-byte vertex. These explicit operations distinguish it from the other fillers; unhit runtime coverage."
+  },
+  "dossier": "build/d3dren/dossier/10001390.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100013d0",
+  "old": "FUN_100013d0",
+  "new": "CopyModelGeneratedTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies the source vertex UV pair to the destination and ignores triangle UVs, allowing the previously generated environment or specular coordinates to be used; unhit runtime coverage.",
+  "primary_draft": "ModelDraw_CopyTexCoords",
+  "prior_evidence": "Filler copying tu/tv (+0x18/+0x1c) from the source vertex in edx to the destination; used with the env-map generator in 1002476b.",
+  "independent_opinion": {
+   "va": "100013d0",
+   "old": "FUN_100013d0",
+   "new": "CopyModelGeneratedTexCoords",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Copies the source vertex UV pair to the destination and ignores triangle UVs, allowing the previously generated environment or specular coordinates to be used; unhit runtime coverage."
+  },
+  "dossier": "build/d3dren/dossier/100013d0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100013e0",
+  "old": "FUN_100013e0",
+  "new": "FillModelBaseAndGeneratedTexCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Writes offset triangle UVs as the first pair and source-generated vertex UVs as the second pair. Observable data flow is clear even though this callback is unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_FillTexCoords2Copy",
+  "prior_evidence": "Filler: tu/tv = offset+uv and tu2/tv2 (+0x20/+0x24) copied from the source vertex +0x18/+0x1c.",
+  "independent_opinion": {
+   "va": "100013e0",
+   "old": "FUN_100013e0",
+   "new": "FillModelBaseAndGeneratedTexCoords",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Writes offset triangle UVs as the first pair and source-generated vertex UVs as the second pair. Observable data flow is clear even though this callback is unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100013e0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001410",
+  "old": "FUN_10001410",
+  "new": "GenerateModelTexCoordsNoOp",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Empty callback occupying the same generator role as the environment and specular generators; deliberately performs no coordinate generation. Runtime unhit does not imply it is unreachable.",
+  "primary_draft": "ModelDraw_NullShade",
+  "prior_evidence": "Empty function (ret) used as the per-vertex shade callback (drawer+0x5ec) when no generator is needed; 1002476b passes it as second function.",
+  "independent_opinion": {
+   "va": "10001410",
+   "old": "FUN_10001410",
+   "new": "GenerateModelTexCoordsNoOp",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Empty callback occupying the same generator role as the environment and specular generators; deliberately performs no coordinate generation. Runtime unhit does not imply it is unreachable."
+  },
+  "dossier": "build/d3dren/dossier/10001410.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001420",
+  "old": "FUN_10001420",
+  "new": "GenerateModelEnvMapCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Dots the model normal with rows of the model environment transform, then applies UV scale and offset to the destination. This directly supports environment-map coordinate generation; recorded runtime is unhit.",
+  "primary_draft": "ModelDraw_EnvMapTexCoords",
+  "prior_evidence": "Per-vertex generator: u=dot(normal(+0x14..),row0 at drawer+0x590)*scale(+0x624)+offset(+0x61c), v likewise with row1 (+0x5a0), +0x628/+0x620, written to dest +0x18/+0x1c = environment-map coordinates.",
+  "independent_opinion": {
+   "va": "10001420",
+   "old": "FUN_10001420",
+   "new": "GenerateModelEnvMapCoords",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Dots the model normal with rows of the model environment transform, then applies UV scale and offset to the destination. This directly supports environment-map coordinate generation; recorded runtime is unhit."
+  },
+  "dossier": "build/d3dren/dossier/10001420.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001490",
+  "old": "FUN_10001490",
+  "new": "GenerateModelSpecularCoords",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Clamps the normal/directional-light dot product to zero and scales it by piece specular scale, writing the result to both UV coordinates; DrawPieces rebuilds the specular lookup when this generator is selected. Runtime unhit.",
+  "primary_draft": "ModelDraw_SpecularTexCoords",
+  "prior_evidence": "Per-vertex generator: s=dot(normal, vector at drawer+0x874)*specular scale (+0x630 = ModelPiece::m_SpecularScale) when >0 else 0, written to both tex coords; 10004270 rebuilds the specular table (1001e910) with ModelPiece::m_SpecularPower when it is selected.",
+  "independent_opinion": {
+   "va": "10001490",
+   "old": "FUN_10001490",
+   "new": "GenerateModelSpecularCoords",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Clamps the normal/directional-light dot product to zero and scales it by piece specular scale, writing the result to both UV coordinates; DrawPieces rebuilds the specular lookup when this generator is selected. Runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10001490.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001510",
+  "old": "FUN_10001510",
+  "new": "CopyTLVertex32",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies one entire 32-byte TLVertex by assignment and is selected for that vertex stride by the model dispatcher; unhit runtime coverage.",
+  "primary_draft": "CopyVertex32",
+  "prior_evidence": "Fastcall rep-movsd of 8 dwords (one 0x20-byte TL vertex) from edx to ecx; stored in drawer+0x5fc for the 32-byte format by 10004270.",
+  "independent_opinion": {
+   "va": "10001510",
+   "old": "FUN_10001510",
+   "new": "CopyTLVertex32",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Copies one entire 32-byte TLVertex by assignment and is selected for that vertex stride by the model dispatcher; unhit runtime coverage."
+  },
+  "dossier": "build/d3dren/dossier/10001510.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001520",
+  "old": "FUN_10001520",
+  "new": "CopyTLVertex40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies one entire two-UV 40-byte TL vertex by assignment and is selected for that stride by the model dispatcher; unhit runtime coverage.",
+  "primary_draft": "CopyVertex40",
+  "prior_evidence": "Fastcall rep-movsd of 10 dwords (one 0x28-byte TL vertex); drawer+0x5fc for the 40-byte (two texture sets) format.",
+  "independent_opinion": {
+   "va": "10001520",
+   "old": "FUN_10001520",
+   "new": "CopyTLVertex40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Copies one entire two-UV 40-byte TL vertex by assignment and is selected for that stride by the model dispatcher; unhit runtime coverage."
+  },
+  "dossier": "build/d3dren/dossier/10001520.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001530",
+  "old": "FUN_10001530",
+  "new": "ClipModelPolygon32",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Dispatches six frustum-plane clips for 32-byte TL vertices, using near/left clips expanded inline and the other four helpers. Selected by the model dispatcher, and distinct from other polygon-clipping implementations; runtime unhit.",
+  "primary_draft": "ModelDraw_ClipPoly32",
+  "prior_evidence": "Fastcall(flags,ppVerts,pnVerts) = Jupiter polyclip.h expanded: bit0 near and bit2 left inline, others via 100063e0/10006670/10006900/10006ba0; UseD3DClip (0x1005c818) restricts it to the near plane; stored in drawer+0x600 for the 0x20-byte vertex.",
+  "independent_opinion": {
+   "va": "10001530",
+   "old": "FUN_10001530",
+   "new": "ClipModelPolygon32",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Dispatches six frustum-plane clips for 32-byte TL vertices, using near/left clips expanded inline and the other four helpers. Selected by the model dispatcher, and distinct from other polygon-clipping implementations; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10001530.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10001b30",
+  "old": "FUN_10001b30",
+  "new": "ClipModelPolygon40",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Model-selected six-plane dispatcher for two-UV 40-byte vertices, with near/left clipping expanded inline. The model qualifier distinguishes its separately emitted body from the world dispatcher; unhit coverage.",
+  "primary_draft": "ModelDraw_ClipPoly40",
+  "prior_evidence": "Same as 10001530 for 0x28-byte vertices (ClipExtra 10001f20, planes 10006e40/10007100/100073b0/10007670); stored in drawer+0x600 for the two-texture-set format.",
+  "independent_opinion": {
+   "va": "10001b30",
+   "old": "FUN_10001b30",
+   "new": "ClipModelPolygon40",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Model-selected six-plane dispatcher for two-UV 40-byte vertices, with near/left clipping expanded inline. The model qualifier distinguishes its separately emitted body from the world dispatcher; unhit coverage."
+  },
+  "dossier": "build/d3dren/dossier/10001b30.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10002050",
+  "old": "FUN_10002050",
+  "new": "DrawPieceClippedReallyClose",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Expands the clipped-triangle callback with biased-depth projection, and is selected when instance flag 0x40 denotes really-close drawing. It clips, culls, triangulates and draws the piece; source is semantically reconstructed and runtime unhit.",
+  "primary_draft": "ModelDraw_DrawPieceReallyClose",
+  "prior_evidence": "Chosen by 100045a0 for FLAG_REALLYCLOSE instances: projects model tris with the z bias DAT_10055cb4 (NearZ cvar value) added, clips through the +0x600 fn, draws via pool slot 1 (DrawPrimitiveVB).",
+  "independent_opinion": {
+   "va": "10002050",
+   "old": "FUN_10002050",
+   "new": "DrawPieceClippedReallyClose",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Expands the clipped-triangle callback with biased-depth projection, and is selected when instance flag 0x40 denotes really-close drawing. It clips, culls, triangulates and draws the piece; source is semantically reconstructed and runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10002050.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10002bc0",
+  "old": "FUN_10002bc0",
+  "new": "DrawPieceClipped",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Tests each piece triangle against frustum planes, clips crossings, projects/culls, emits a triangle list to the pool and draws it. Dispatcher selects it for pieces crossing a plane; semantically reconstructed and runtime unhit.",
+  "primary_draft": "ModelDraw_DrawPieceClipped",
+  "prior_evidence": "Callback for pieces whose needs-clip byte (+0x3c4[i]) is set while g_ClipFlags&0x3f: per-triangle plane tests (bits 4,0x10,8,0x20,1,2), project, backface cull, clip via +0x600 when partly outside.",
+  "independent_opinion": {
+   "va": "10002bc0",
+   "old": "FUN_10002bc0",
+   "new": "DrawPieceClipped",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Tests each piece triangle against frustum planes, clips crossings, projects/culls, emits a triangle list to the pool and draws it. Dispatcher selects it for pieces crossing a plane; semantically reconstructed and runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10002bc0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100036d0",
+  "old": "FUN_100036d0",
+  "new": "DrawPieceProjected",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Software-projects each input triangle into the pool with optional culling, fills texture coordinates and draws a triangle list. Dispatcher pairs it with the clipping callback for pieces already inside the frustum; runtime unhit.",
+  "primary_draft": "ModelDraw_DrawPieceUnclipped",
+  "prior_evidence": "Callback for trivially-inside pieces: software projection with the matrix at 0x10055e94 (g_ViewParams+0x19c) and optional backface cull (+0x8b4), no clipping.",
+  "independent_opinion": {
+   "va": "100036d0",
+   "old": "FUN_100036d0",
+   "new": "DrawPieceProjected",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Software-projects each input triangle into the pool with optional culling, fills texture coordinates and draws a triangle list. Dispatcher pairs it with the clipping callback for pieces already inside the frustum; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/100036d0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10003b60",
+  "old": "FUN_10003b60",
+  "new": "DrawPieceTransformed",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Copies already transformed XYZ/RHW triangle vertices into the pool, optionally performs the screen-space area/cull test, fills UVs and draws. No projection or clipping happens here; runtime unhit.",
+  "primary_draft": "ModelDraw_DrawPieceTransformed",
+  "prior_evidence": "Default callback: copies already transformed XYZRHW vertices (stride 0x20) into the pool and runs the tex-coord filler at +0x5f4; backface cull when +0x8b4 using DAT_100561c4 (flip) and ModelMinTri (0x1004d5e4).",
+  "independent_opinion": {
+   "va": "10003b60",
+   "old": "FUN_10003b60",
+   "new": "DrawPieceTransformed",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Copies already transformed XYZ/RHW triangle vertices into the pool, optionally performs the screen-space area/cull test, fills UVs and draws. No projection or clipping happens here; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10003b60.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10003e00",
+  "old": "FUN_10003e00",
+  "new": "DrawPieceUntransformed",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Emits XYZ/diffuse/specular/UV vertices with the RHW field omitted for device transformation, then draws the pool. Selected for the untransformed or hardware-TnL modes; runtime unhit.",
+  "primary_draft": "ModelDraw_DrawPieceTnL",
+  "prior_evidence": "Callback for +0x8ac==1 or hardware T&L (+0x8b0): writes untransformed xyz+diffuse+specular(+0x640) vertices (stride-4) so D3D transforms them; backface cull with ModelMinTri.",
+  "independent_opinion": {
+   "va": "10003e00",
+   "old": "FUN_10003e00",
+   "new": "DrawPieceUntransformed",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Emits XYZ/diffuse/specular/UV vertices with the RHW field omitted for device transformation, then draws the pool. Selected for the untransformed or hardware-TnL modes; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10003e00.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10004230",
+  "old": "FUN_10004230",
+  "new": "DrawPieceCached",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Counts piece triangles and draws their vertex count from the existing pool without writing input vertices. Dispatcher selects it for cached draw mode 2; runtime unhit.",
+  "primary_draft": "ModelDraw_DrawPieceCached",
+  "prior_evidence": "Callback for +0x8ac==2: only draws m_Tris count*3 vertices from the already filled cache pool (DrawPrimitiveVB, D3DPT_TRIANGLELIST) and adds to 0x1005626c.",
+  "independent_opinion": {
+   "va": "10004230",
+   "old": "FUN_10004230",
+   "new": "DrawPieceCached",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Counts piece triangles and draws their vertex count from the existing pool without writing input vertices. Dispatcher selects it for cached draw mode 2; runtime unhit."
+  },
+  "dossier": "build/d3dren/dossier/10004230.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100083bf",
+  "old": "FUN_100083bf",
+  "new": "QueueWorldTexturePoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Allocates a deferred node containing the polygon and current clip flags and prepends it to the list consumed by FlushWorldTexturePolys. Runtime unhit is a coverage limit only.",
+  "primary_draft": "QueueWorldPoly",
+  "prior_evidence": "Pushes a poly (argument) with the current g_ClipFlags on the list headed at 0x1004ffb8, consumed by 10007976.",
+  "independent_opinion": {
+   "va": "100083bf",
+   "old": "FUN_100083bf",
+   "new": "QueueWorldTexturePoly",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Allocates a deferred node containing the polygon and current clip flags and prepends it to the list consumed by FlushWorldTexturePolys. Runtime unhit is a coverage limit only."
+  },
+  "dossier": "build/d3dren/dossier/100083bf.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000a16b",
+  "old": "FUN_1000a16b",
+  "new": "d3d_DrawOrQueueLightmappedWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draws immediately for the direct lightmap case, otherwise stores the polygon and clip flags in its lightmap-page queue. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "DrawOrQueueWorldPoly",
+  "prior_evidence": "If poly+0x30 is zero and a texture record exists it queues the poly under that record (list 0x100528d4, node flags = g_ClipFlags), otherwise draws it at once with 100099b9.",
+  "independent_opinion": {
+   "va": "1000a16b",
+   "old": "FUN_1000a16b",
+   "new": "d3d_DrawOrQueueLightmappedWorldPoly",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Draws immediately for the direct lightmap case, otherwise stores the polygon and clip flags in its lightmap-page queue. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000a16b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000b772",
+  "old": "FUN_1000b772",
+  "new": "d3d_ModelModuleInit",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: drawobjects.cpp places this function in OT_MODEL ModuleInit; it builds warble tables, resets phase and initializes lists/cache. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "d3d_InitModelDraw",
+  "prior_evidence": "OT_MODEL ModuleInit slot of g_ObjectHandlers (0x1004ba8c, lead note): builds warble tables, resets the two lists and calls 10001230 (clamps ModelVBSize/ModelVBCount)",
+  "independent_opinion": {
+   "va": "1000b772",
+   "old": "FUN_1000b772",
+   "new": "d3d_ModelModuleInit",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "drawobjects.cpp places this function in OT_MODEL ModuleInit; it builds warble tables, resets phase and initializes lists/cache. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000b772.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000dd18",
+  "old": "FUN_1000dd18",
+  "new": "d3d_BeginModelProjectionNoOp",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Empty begin-projection callback selected when ModelWarble is disabled, paired with ordinary vertex projection. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_WarbleBeginNop",
+  "prior_evidence": "1-byte ret stored at this+0x5dc when g_ModelWarble (DAT_10058484, int mirror of cvar ModelWarble) is 0",
+  "independent_opinion": {
+   "va": "1000dd18",
+   "old": "FUN_1000dd18",
+   "new": "d3d_BeginModelProjectionNoOp",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Empty begin-projection callback selected when ModelWarble is disabled, paired with ordinary vertex projection. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000dd18.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000dd19",
+  "old": "FUN_1000dd19",
+  "new": "d3d_ProjectModelVertex",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Projects an undeformed ModelVert position through the supplied matrix into the TL vertex and writes reciprocal W. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_ProjectVertex",
+  "prior_evidence": "Stored at this+0x5e0 when ModelWarble is off: out->rhw = MatVMul_H(out xyz, matrix, vertex pos at +8 (ModelVert::m_Vec)) via 1000dd34",
+  "independent_opinion": {
+   "va": "1000dd19",
+   "old": "FUN_1000dd19",
+   "new": "d3d_ProjectModelVertex",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Projects an undeformed ModelVert position through the supplied matrix into the TL vertex and writes reciprocal W. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000dd19.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000ddb4",
+  "old": "FUN_1000ddb4",
+  "new": "d3d_BeginModelWarbleProjection",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initializes the current warble table index from the model warble phase before projecting vertices. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_WarbleBegin",
+  "prior_evidence": "Stored at this+0x5dc when ModelWarble is on: sets the warble table index DAT_1005328c = ftol(...)",
+  "independent_opinion": {
+   "va": "1000ddb4",
+   "old": "FUN_1000ddb4",
+   "new": "d3d_BeginModelWarbleProjection",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Initializes the current warble table index from the model warble phase before projecting vertices. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000ddb4.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000ddc5",
+  "old": "FUN_1000ddc5",
+  "new": "d3d_ProjectWarbledModelVertex",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Interpolates the warble scale table, advances its index, scales the model vertex and projects it into a TL vertex. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "ModelDraw_ProjectVertexWarble",
+  "prior_evidence": "Stored at this+0x5e0 when ModelWarble is on: scales the vertex pos by table[i&31]+frac*delta[i&31] (tables from 1000b6cd, time advanced by WarbleSpeed in RenderScene) then MatVMul_H",
+  "independent_opinion": {
+   "va": "1000ddc5",
+   "old": "FUN_1000ddc5",
+   "new": "d3d_ProjectWarbledModelVertex",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Interpolates the warble scale table, advances its index, scales the model vertex and projects it into a TL vertex. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000ddc5.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1000f458",
+  "old": "FUN_1000f458",
+  "new": "d3d_IsPortalInsideViewFrustum",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Rejects a portal bounding box when all eight corners lie outside any one view clip plane. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "VisQuery_BoxInFrustum",
+  "prior_evidence": "Stored as VisQueryRequest m_Unknown24 callback by the vis query code (10039xxx); tests the 8 corners of centre(+0xc)+/-extents(+0x18) against the 6 g_ViewParams clip planes, returns 0 if all corners outside one plane",
+  "independent_opinion": {
+   "va": "1000f458",
+   "old": "FUN_1000f458",
+   "new": "d3d_IsPortalInsideViewFrustum",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Rejects a portal bounding box when all eight corners lie outside any one view clip plane. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/1000f458.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10010eb3",
+  "old": "FUN_10010eb3",
+  "new": "d3d_EnumDisplayModeCallback",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: DirectDraw enumeration callback adds only 16-bit and 32-bit display modes to the exported supported-mode list. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "EnumDisplayModesCallback",
+  "prior_evidence": "[role evidence: dx-sdk/low] Callback of IDirectDraw7::EnumDisplayModes (slot 0x20) in GetSupportedModes: for 16/32 bpp modes mallocs a 0x214-byte RMode (name +0x104, desc +0x184, w/h/bpp at +0x204.., m_pNext +0x210) and links it into 0x100577c0",
+  "independent_opinion": {
+   "va": "10010eb3",
+   "old": "FUN_10010eb3",
+   "new": "d3d_EnumDisplayModeCallback",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "DirectDraw enumeration callback adds only 16-bit and 32-bit display modes to the exported supported-mode list. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10010eb3.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100134a0",
+  "old": "FUN_100134a0",
+  "new": "d3d_EmptyDrawGlobalInitializer",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Source identifies this bare return as a second empty static initializer in d3d_draw.cpp; no particular global is established. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100134a0",
+   "old": "FUN_100134a0",
+   "new": "d3d_EmptyDrawGlobalInitializer",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Source identifies this bare return as a second empty static initializer in d3d_draw.cpp; no particular global is established. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100134a0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100134b0",
+  "old": "FUN_100134b0",
+  "new": "d3d_CalcDistanceFogAlpha",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Computes distance from FogViewPos and sets specular alpha to the clamped near/far distance fog ramp. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "d3d_CalcFogAlpha_Linear",
+  "prior_evidence": "__fastcall(ECX=pos, EDX=specular*): distance from the eye (DAT_100561dc..e4) vs FogNearZ mirror (100584a0)/FogFarZ mirror (10048744) -> byte 3 of the specular = 255-(d-near)*255/(far-near); installed in 1005872c by RenderScene when TableFog==0 and VFog==0 (it is a fog function, not a frustum function)",
+  "independent_opinion": {
+   "va": "100134b0",
+   "old": "FUN_100134b0",
+   "new": "d3d_CalcDistanceFogAlpha",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Computes distance from FogViewPos and sets specular alpha to the clamped near/far distance fog ramp. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/100134b0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10013560",
+  "old": "FUN_10013560",
+  "new": "d3d_CalcSkyFogAlpha",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sets specular alpha using vertex Z and SkyFogNearZ/SkyFogFarZ with the cached linear ramp scale. Static source/caller evidence only; unhit in recorded scenarios.",
+  "primary_draft": "d3d_CalcFogAlpha_Sky",
+  "prior_evidence": "same for the sky pass but from the camera-space z (pos+8) with SkyFogNearZ (10057e20)/SkyFogFarZ (10057d40) and scale _DAT_10058620 = 255/(far-near) computed in RenderScene; stored in DAT_10058c40 and called per vertex by 10019351",
+  "independent_opinion": {
+   "va": "10013560",
+   "old": "FUN_10013560",
+   "new": "d3d_CalcSkyFogAlpha",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Sets specular alpha using vertex Z and SkyFogNearZ/SkyFogFarZ with the cached linear ramp scale. Static source/caller evidence only; unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10013560.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100135c0",
+  "old": "FUN_100135c0",
+  "new": "d3d_CalcVerticalFogAlpha",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Integrates height-dependent fog density along the eye-to-vertex ray and stores inverse fog in specular alpha. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_CalcFogAlpha_Vertical",
+  "prior_evidence": "height-dependent fog: uses VFogMinY (1005a348)/VFogMaxY (1005a310)/VFogMinYVal/VFogMaxYVal/VFogMax (10058ce4 clamp) and a segment through the eye position, result into byte 3 of the specular; installed in 1005872c by RenderScene when the VFog console variable (10058c00) is set",
+  "independent_opinion": {
+   "va": "100135c0",
+   "old": "FUN_100135c0",
+   "new": "d3d_CalcVerticalFogAlpha",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Integrates height-dependent fog density along the eye-to-vertex ray and stores inverse fog in specular alpha. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100135c0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10013f40",
+  "old": "FUN_10013f40",
+  "new": "d3d_AccumulateWorldPolyFillArea",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Projects or clips the polygon, sums its screen-space triangle area into the fill statistic, then queues it. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_QueuePolyFillInfo",
+  "prior_evidence": "ShowFillInfo path: projects/clips the poly, accumulates half the shoelace area into DAT_10056694 (printed as Tri area drawn / Overdraw by RenderScene), then queues it like 10013ef0; installed in the four hooks when ShowFillInfo (100584b4) is set",
+  "independent_opinion": {
+   "va": "10013f40",
+   "old": "FUN_10013f40",
+   "new": "d3d_AccumulateWorldPolyFillArea",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Projects or clips the polygon, sums its screen-space triangle area into the fill statistic, then queues it. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10013f40.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100155b0",
+  "old": "FUN_100155b0",
+  "new": "d3d_DrawMirrorSurfaceOverlay",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draws the textured alpha-blended polygon after the reflected scene pass when the surface overlay bit is set. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_DrawMirrorOverlay",
+  "prior_evidence": "after the reflected view, draws the mirror poly itself with ALPHABLENDENABLE=1, projected with the passed matrix, per-vertex fog via DAT_1005872c and DrawPrimitive(TRIANGLEFAN,0x1c4); only called by 10015820 when the surface has the OVERLAY bit (0x8000 of m_Unknown3A, Mirror_Init argv OVERLAY)",
+  "independent_opinion": {
+   "va": "100155b0",
+   "old": "FUN_100155b0",
+   "new": "d3d_DrawMirrorSurfaceOverlay",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Draws the textured alpha-blended polygon after the reflected scene pass when the surface overlay bit is set. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100155b0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10015820",
+  "old": "FUN_10015820",
+  "new": "d3d_DrawReflectedWorldScenes",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Builds stencil bounds for designated visible surfaces, reflects the camera across each surface plane and renders the reflected scene. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_DrawMirrors",
+  "prior_evidence": "for each queued poly (VisibleSet+0x40 pairs, count at +0x140 = \"Portals: %d\") whose Surface::m_Unknown3A&0x7fff==0x7ffe (set by the engine Mirror surface effect, src/client/effects.cpp Mirror_Init) it builds a plane-reflection matrix (1-2nn), marks the poly in the stencil (STENCIL* render states 0x34..0x39), re-renders the scene with FullDrawScene in the reflected view and draws the overlay; gated by DrawPortals and a stencil buffer (DAT_1005ce18)",
+  "independent_opinion": {
+   "va": "10015820",
+   "old": "FUN_10015820",
+   "new": "d3d_DrawReflectedWorldScenes",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Builds stencil bounds for designated visible surfaces, reflects the camera across each surface plane and renders the reflected scene. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10015820.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100161c0",
+  "old": "FUN_100161c0",
+  "new": "d3d_DrawVisibleReflections",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Calls the reflected-scene routine with the current scene descriptor and visible set. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_DrawMirrorsHook",
+  "prior_evidence": "calls 10015820(g_pSceneDesc, d3d_GetVisibleSet()); stored in DAT_1006cd70 by RenderScene (function pointer, no direct callers)",
+  "independent_opinion": {
+   "va": "100161c0",
+   "old": "FUN_100161c0",
+   "new": "d3d_DrawVisibleReflections",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Calls the reflected-scene routine with the current scene descriptor and visible set. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/100161c0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001d496",
+  "old": "FUN_1001d496",
+  "new": "GetDimensions",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Returns the shadow texture width and height members through the two output pointers. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "D3DShadowTexture_GetSize",
+  "prior_evidence": "vslot 2 of 100462e8: writes width (+4) and height (+8) to two out pointers",
+  "independent_opinion": {
+   "va": "1001d496",
+   "old": "FUN_1001d496",
+   "new": "GetDimensions",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Returns the shadow texture width and height members through the two output pointers. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001d496.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001d4ab",
+  "old": "FUN_1001d4ab",
+  "new": "BindForShadowMultiply",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Binds this texture and sets diffuse-alpha texture modulation plus ZERO/SRCCOLOR framebuffer multiplication. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "D3DShadowTexture_Bind",
+  "prior_evidence": "vslot 3: disables texture stages 0-7 (SetTexture NULL, COLOROP/ALPHAOP=DISABLE), binds the shadow surface (+0xc) to stage 0 and sets stage-0 ops, clamp address and alpha-blend render states",
+  "independent_opinion": {
+   "va": "1001d4ab",
+   "old": "FUN_1001d4ab",
+   "new": "BindForShadowMultiply",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Binds this texture and sets diffuse-alpha texture modulation plus ZERO/SRCCOLOR framebuffer multiplication. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001d4ab.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001d5b5",
+  "old": "FUN_1001d5b5",
+  "new": "DrawScreenQuad",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draws this texture at the supplied screen coordinates using its dimensions, diffuse color and blend control, then restores saved states. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "D3DShadowTexture_Draw",
+  "prior_evidence": "vslot 4: saves/sets render states, fills the static 4-vertex TLVERTEX array at 1005f650 for a screen-space quad of the texture size at (x,y) and DrawPrimitive(fan); called when the ModelShadowProjShow convar (1006a4b0) is set (debug display of the shadow texture)",
+  "independent_opinion": {
+   "va": "1001d5b5",
+   "old": "FUN_1001d5b5",
+   "new": "DrawScreenQuad",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Draws this texture at the supplied screen coordinates using its dimensions, diffuse color and blend control, then restores saved states. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001d5b5.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001d7e6",
+  "old": "FUN_1001d7e6",
+  "new": "CopyToOffscreen",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: BltFast copies this texture surface into g_pOffscreen and reports the DirectDraw result. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "D3DShadowTexture_CopyToScreen",
+  "prior_evidence": "vslot 5: g_pOffscreen->BltFast(x,y, this surface(+0xc), rect(0,0,w,h), DDBLTFAST_WAIT); stores the DDERR text of the result (10019b10) in 100606d0",
+  "independent_opinion": {
+   "va": "1001d7e6",
+   "old": "FUN_1001d7e6",
+   "new": "CopyToOffscreen",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "BltFast copies this texture surface into g_pOffscreen and reports the DirectDraw result. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001d7e6.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001d836",
+  "old": "FUN_1001d836",
+  "new": "CopyFromOffscreen",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: BltFast copies g_pOffscreen into this texture surface and reports the DirectDraw result. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "D3DShadowTexture_CopyFromScreen",
+  "prior_evidence": "vslot 6: this surface(+0xc)->BltFast(x,y, g_pOffscreen, rect(0,0,w,h), DDBLTFAST_WAIT): grabs the rendered silhouette into the shadow texture",
+  "independent_opinion": {
+   "va": "1001d836",
+   "old": "FUN_1001d836",
+   "new": "CopyFromOffscreen",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "BltFast copies g_pOffscreen into this texture surface and reports the DirectDraw result. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/1001d836.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1001e750",
+  "old": "FUN_1001e750",
+  "new": "d3d_CreateLightmapRTexture",
+  "confidence": "medium",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Creates a surface using the selected 32-bit or lightmap format and initializes a bank-allocated RTexture with dimensions and reciprocal UV scales.",
+  "primary_draft": "CreateLightmapPageTexture",
+  "prior_evidence": "allocator callback registered via 10034db8(1001e750) in 1001ec50/1001eb80: CreateSurface texture (DDSD_TEXTURESTAGE = 1-pass lightmapping flag) in the lightmap format, takes an RTexture from g_RTextureBank (free list 10061804) and fills width/height/uv scale; used by lightmap paging",
+  "independent_opinion": {
+   "va": "1001e750",
+   "old": "FUN_1001e750",
+   "new": "d3d_CreateLightmapRTexture",
+   "confidence": "high",
+   "provenance": "invented",
+   "why": "Creates a surface using the selected 32-bit or lightmap format and initializes a bank-allocated RTexture with dimensions and reciprocal UV scales."
+  },
+  "dossier": "build/d3dren/dossier/1001e750.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10021a80",
+  "old": "FUN_10021a80",
+  "new": "d3d_EnsureTextureAndGetUVScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Creates and transfers render data when absent, then returns the texture UV scale fields through the output pointers. No hit was recorded in the available runtime scenarios; confidence remains low.",
+  "primary_draft": "d3d_GetTextureUVScale",
+  "prior_evidence": "ensures the RTexture exists (GetTexture slot 8, CreateRTexture, r_TransferTexture) then returns RTexture+4/+8 (1/width, 1/height uv multipliers) through two float out pointers; callers 10029c2b/10029c5b",
+  "independent_opinion": {
+   "va": "10021a80",
+   "old": "FUN_10021a80",
+   "new": "d3d_EnsureTextureAndGetUVScale",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Creates and transfers render data when absent, then returns the texture UV scale fields through the output pointers. No hit was recorded in the available runtime scenarios; confidence remains low."
+  },
+  "dossier": "build/d3dren/dossier/10021a80.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10022b3b",
+  "old": "FUN_10022b3b",
+  "new": "d3d_QueueCanvasDraw",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Adds one object to ObjectDrawList with d3d_DrawCanvasCB. Unhit in recorded scenarios.",
+  "primary_draft": "d3d_QueueCanvasThunk",
+  "prior_evidence": "(Params,obj) -> ObjectDrawList::Add(g_pTransObjList 1006b934, obj, d3d_DrawCanvasCB); Talon open-codes Jupiter's BaseObjectSet::Queue per object type.",
+  "independent_opinion": {
+   "va": "10022b3b",
+   "old": "FUN_10022b3b",
+   "new": "d3d_QueueCanvasDraw",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Adds one object to ObjectDrawList with d3d_DrawCanvasCB. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10022b3b.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10022be4",
+  "old": "FUN_10022be4",
+  "new": "QueueWorldPolyWithClipFlags",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Allocates or finds a pool entry for the world polygon and stores current g_ClipFlags. Unhit in recorded scenarios.",
+  "primary_draft": "QueuePolyForDraw",
+  "prior_evidence": "FUN_10007ddb(poly,&DAT_10058c90,1) (append to per-owner poly list head 10058c90) then stores the clip-plane mask DAT_10056274 in the new node (+0xc); the list is drained by 100235e2.",
+  "independent_opinion": {
+   "va": "10022be4",
+   "old": "FUN_10022be4",
+   "new": "QueueWorldPolyWithClipFlags",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Allocates or finds a pool entry for the world polygon and stores current g_ClipFlags. Unhit in recorded scenarios."
+  },
+  "dossier": "build/d3dren/dossier/10022be4.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ }
+]

@@ -44,11 +44,11 @@ UnkType_VertexBufferPool::UnkType_VertexBufferPool() : m_Unk20(0x300), m_Unk24(1
 // FUNCTION: D3DREN 0x1003a6d6
 UnkType_VertexBufferPool::~UnkType_VertexBufferPool()
 {
-	FUN_1003a805();
+	Term();
 }
 
 // FUNCTION: D3DREN 0x1003a6fb
-int UnkType_VertexBufferPool::FUN_1003a6fb(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices)
+int UnkType_VertexBufferPool::DrawPrimitive(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices)
 {
 	int hr;
 
@@ -65,17 +65,17 @@ int UnkType_VertexBufferPool::FUN_1003a6fb(IDirect3DDevice7 *pDevice, D3DPRIMITI
 	m_Unk1c += nVertices;
 	if (m_Unk1c >= m_Unk20)
 	{
-		FUN_1003a76c();
+		AdvanceBuffer();
 		m_Unk1c = 0;
 	}
 	return hr;
 }
 
-// The exe calls this out of line from its three callers (FUN_1003a6fb, FUN_1003a77c, FUN_1003a7f7).
+// The exe calls this out of line from its three callers (DrawPrimitive, DrawIndexedPrimitive, RestartInNextBuffer).
 // Matching compiler control: the verified callers in this object keep an out-of-line call to this function.
 #pragma auto_inline(off)
 // FUNCTION: D3DREN 0x1003a76c
-void UnkType_VertexBufferPool::FUN_1003a76c()
+void UnkType_VertexBufferPool::AdvanceBuffer()
 {
 	m_Unk18++;
 	if (m_Unk18 >= m_Unk24)
@@ -84,7 +84,7 @@ void UnkType_VertexBufferPool::FUN_1003a76c()
 #pragma auto_inline(on)
 
 // FUNCTION: D3DREN 0x1003a77c
-int UnkType_VertexBufferPool::FUN_1003a77c(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices, uint16 *pIndices, uint32 nIndices)
+int UnkType_VertexBufferPool::DrawIndexedPrimitive(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices, uint16 *pIndices, uint32 nIndices)
 {
 	int hr;
 
@@ -101,21 +101,21 @@ int UnkType_VertexBufferPool::FUN_1003a77c(IDirect3DDevice7 *pDevice, D3DPRIMITI
 	m_Unk1c += nVertices;
 	if (m_Unk1c >= m_Unk20)
 	{
-		FUN_1003a76c();
+		AdvanceBuffer();
 		m_Unk1c = 0;
 	}
 	return hr;
 }
 
 // FUNCTION: D3DREN 0x1003a7f7
-void UnkType_VertexBufferPool::FUN_1003a7f7()
+void UnkType_VertexBufferPool::RestartInNextBuffer()
 {
-	FUN_1003a76c();
+	AdvanceBuffer();
 	m_Unk1c = 0;
 }
 
 // FUNCTION: D3DREN 0x1003a805
-void UnkType_VertexBufferPool::FUN_1003a805()
+void UnkType_VertexBufferPool::Term()
 {
 	if (m_Unk30)
 	{
@@ -125,7 +125,7 @@ void UnkType_VertexBufferPool::FUN_1003a805()
 			m_Unk34 = 0;
 			m_Unk38 = 0;
 		}
-		FUN_1003a90f();
+		ReleaseVertexBuffers();
 		m_Unk30 = 0;
 		m_Unk18 = 0;
 		m_Unk1c = 0;
@@ -133,13 +133,13 @@ void UnkType_VertexBufferPool::FUN_1003a805()
 }
 
 // FUNCTION: D3DREN 0x1003a83d
-int UnkType_VertexBufferPool::FUN_1003a83d(IDirect3D7 *pD3D, uint32 nVertices, uint32 nBuffers, int bUntransformed, int bHardware)
+int UnkType_VertexBufferPool::Init(IDirect3D7 *pD3D, uint32 nVertices, uint32 nBuffers, int bUntransformed, int bHardware)
 {
 	int bOK;
 
 	if (m_Unk30 == 0 || nVertices != m_Unk20 || nBuffers != m_Unk24)
 	{
-		FUN_1003a805();
+		Term();
 		m_Unk20 = nVertices > 0 ? nVertices : m_Unk20;
 		m_Unk24 = nBuffers > 0 ? nBuffers : m_Unk24;
 		m_Unk28 = bUntransformed;
@@ -179,7 +179,7 @@ int UnkType_VertexBufferPool::Lock()
 }
 
 // FUNCTION: D3DREN 0x1003a90f
-void UnkType_VertexBufferPool::FUN_1003a90f()
+void UnkType_VertexBufferPool::ReleaseVertexBuffers()
 {
 	uint32 i;
 
@@ -196,7 +196,7 @@ void UnkType_VertexBufferPool::FUN_1003a90f()
 // FUNCTION: D3DREN 0x1003a942 _$E6
 // FUNCTION: D3DREN 0x1003a958 _$E3
 // FUNCTION: D3DREN 0x1003a973 ??1UnkType_VertexBufferCache@@UAE@XZ
-UnkType_VertexBufferCache UnkType_ModelVBCacheHolder::DAT_10093b10;
+UnkType_VertexBufferCache UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache;
 
 // FUNCTION: D3DREN 0x1003a994
 // FUNCTION: D3DREN 0x1003a9d0 ?vfn_Unk18@UnkType_VertexBufferCache@@UAEHXZ
@@ -258,12 +258,12 @@ int UnkType_VertexBufferCache::vfn_Unk1c(IDirect3D7 *pD3D)
 }
 
 // FUNCTION: D3DREN 0x1003aabb
-int UnkType_VertexBufferCache::FUN_1003aabb(uint32 nKey1, uint32 nKey2)
+int UnkType_VertexBufferCache::SelectEntry(uint32 nKey1, uint32 nKey2)
 {
 	uint32 i;
 
 	if (m_Unk5c != 0)
-		FUN_1003ac15();
+		OptimizeCurrentBuffer();
 	for (i = 0; i < m_Unk24; i++)
 	{
 		if (m_Unk3c[i].m_Unk00 == nKey1 && m_Unk3c[i].m_Unk04 == nKey2)
@@ -283,10 +283,10 @@ int UnkType_VertexBufferCache::FUN_1003aabb(uint32 nKey1, uint32 nKey2)
 // It remains STUB: the candidate is 275 bytes but 221 bytes differ (84 aligned instruction mismatches). VC6 emits grow/fail
 // before found/tail, while the target branches to grow from the scan and lets a found slot fall through to the shared tail.
 // STUB: D3DREN 0x1003ab02
-int UnkType_VertexBufferCache::FUN_1003ab02(uint32 nKey1, uint32 nKey2, uint32 nVertices, int bGrow)
+int UnkType_VertexBufferCache::AllocateEntry(uint32 nKey1, uint32 nKey2, uint32 nVertices, int bGrow)
 {
 	if (m_Unk5c != 0)
-		FUN_1003ac15();
+		OptimizeCurrentBuffer();
 	uint32 i = m_Unk50;
 	if (m_Unk3c[i].m_Unk0c != 0)
 	{
@@ -335,14 +335,14 @@ Grow:
 }
 
 // FUNCTION: D3DREN 0x1003ac15
-void UnkType_VertexBufferCache::FUN_1003ac15()
+void UnkType_VertexBufferCache::OptimizeCurrentBuffer()
 {
 	m_Unk5c = 0;
 	m_Unk04[m_Unk18]->Optimize(m_Unk68, 0);
 }
 
 // FUNCTION: D3DREN 0x1003ac2e
-int UnkType_VertexBufferCache::FUN_1003a6fb(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices)
+int UnkType_VertexBufferCache::DrawPrimitive(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices)
 {
 	int hr;
 	uint32 iSaved;
@@ -352,7 +352,7 @@ int UnkType_VertexBufferCache::FUN_1003a6fb(IDirect3DDevice7 *pDevice, D3DPRIMIT
 	if (m_Unk5c != 0)
 	{
 		iSaved = m_Unk18;
-		hr = UnkType_VertexBufferPool::FUN_1003a6fb(pDevice, type, nVertices);
+		hr = UnkType_VertexBufferPool::DrawPrimitive(pDevice, type, nVertices);
 		m_Unk18 = iSaved;
 	}
 	else
@@ -364,16 +364,16 @@ int UnkType_VertexBufferCache::FUN_1003a6fb(IDirect3DDevice7 *pDevice, D3DPRIMIT
 }
 
 // FUNCTION: D3DREN 0x1003ac8f
-void UnkType_VertexBufferCache::FUN_1003a805()
+void UnkType_VertexBufferCache::Term()
 {
-	UnkType_VertexBufferPool::FUN_1003a805();
+	UnkType_VertexBufferPool::Term();
 	m_Unk3c.Term();
 	m_Unk50 = 0;
 	m_Unk5c = 0;
 }
 
 // FUNCTION: D3DREN 0x1003acb0
-void UnkType_VertexBufferCache::FUN_1003acb0()
+void UnkType_VertexBufferCache::AgeEntries()
 {
 	uint32 i;
 

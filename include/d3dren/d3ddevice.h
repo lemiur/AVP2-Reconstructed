@@ -35,7 +35,7 @@ extern IDirectDrawSurface7 *g_pOffscreen;	// the surface the device renders to (
 // GLOBAL: D3DREN 0x10057820
 extern IDirectDrawSurface7 *g_pZBuffer;	// the z-buffer surface (made by 0x1001aa70, attached to g_pOffscreen)
 // GLOBAL: D3DREN 0x10057828
-extern uint32 DAT_10057828;					// DDSCAPS memory flag of the render surfaces (0 = default, 0x800 DDSCAPS_SYSTEMMEMORY)
+extern uint32 g_RenderSurfaceMemoryCaps;					// DDSCAPS memory flag of the render surfaces (0 = default, 0x800 DDSCAPS_SYSTEMMEMORY)
 
 // ---- Direct3D 7 objects ----------------------------------------------------------------------------------------------------
 // GLOBAL: D3DREN 0x1005de30
@@ -58,70 +58,70 @@ extern int g_OldFogEnable;					// Jupiter name (Ghidra): fog enable saved by Sta
 
 // ---- device capabilities (filled by 0x1001acc0 from GetCaps/EnumTextureFormats/...; text of 0x1001b8a0 names them) ---------
 // GLOBAL: D3DREN 0x1005de20
-extern int DAT_1005de20;					// "Lightmap capable" (cleared on Permedia 2 and when the lightmap formats are missing)
+extern int g_bLightmapCapable;					// "Lightmap capable" (cleared on Permedia 2 and when the lightmap formats are missing)
 // GLOBAL: D3DREN 0x1005de2c
-extern int DAT_1005de2c;					// two-texture-stage blending validated (ValidateDevice with the detail stage setup)
+extern int g_bTwoTextureStageBlendValidated;					// two-texture-stage blending validated (ValidateDevice with the detail stage setup)
 // GLOBAL: D3DREN 0x1005de3c
-extern int DAT_1005de3c;					// set by the special-card check for PowerVR / Rage128 style cards
+extern int g_bLoadWholeLightmapSurface;					// set by the special-card check for PowerVR / Rage128 style cards
 // GLOBAL: D3DREN 0x1005c808
-extern int DAT_1005c808;					// "Model fullbrites" (not RasterCaps bit 15)
+extern int g_bModelFullbriteCapable;					// "Model fullbrites" (not RasterCaps bit 15)
 // GLOBAL: D3DREN 0x1005c80c
-extern int DAT_1005c80c;					// ValidateDevice of the first state setup succeeded
+extern int g_bModelSpecularBlendValidated;					// ValidateDevice of the first state setup succeeded
 // GLOBAL: D3DREN 0x1005c810
-extern int DAT_1005c810;					// shaders usable (cleared by the PowerVR check in 0x1001a8b0)
+extern int g_bModelShadowsSupported;					// shaders usable (cleared by the PowerVR check in 0x1001a8b0)
 // GLOBAL: D3DREN 0x1005c814
-extern int DAT_1005c814;					// set together with DAT_1005c810 = 0 by the PowerVR check
+extern int g_bPowerVRWorkaround;					// set together with g_bModelShadowsSupported = 0 by the PowerVR check
 // GLOBAL: D3DREN 0x1005c838
-extern int DAT_1005c838;					// one-pass lightmapping in use
+extern int g_LightmapTextureStage;					// one-pass lightmapping in use
 // GLOBAL: D3DREN 0x1005cdc8
-extern int DAT_1005cdc8;					// "Light add poly"
+extern int g_bLightAddPolyCapable;					// "Light add poly"
 // GLOBAL: D3DREN 0x1005cdf0
-extern int DAT_1005cdf0;					// "Gouraud fullbrites"
+extern int g_bGouraudFullbriteCapable;					// "Gouraud fullbrites"
 // GLOBAL: D3DREN 0x1005cdd0
-extern DDPIXELFORMAT DAT_1005cdd0;			// pixel format of the chosen z-buffer (copied by 0x1001aa70); +0x10 is DAT_1005cde0
+extern DDPIXELFORMAT g_ChosenZBufferPixelFormat;			// pixel format of the chosen z-buffer (copied by 0x1001aa70); +0x10 is g_ChosenZBufferStencilBitDepth
 // GLOBAL: D3DREN 0x1005cde0
-extern uint32 DAT_1005cde0;					// DDPIXELFORMAT::dwStencilBitDepth of the chosen z-buffer ("Portals" = this > 0); see 0x1001a850
+extern uint32 g_ChosenZBufferStencilBitDepth;					// DDPIXELFORMAT::dwStencilBitDepth of the chosen z-buffer ("Portals" = this > 0); see 0x1001a850
 // GLOBAL: D3DREN 0x1005c964
-extern D3DPRIMCAPS DAT_1005c964;			// copy of the device's dpcTriCaps (0x38 bytes): +8 dwRasterCaps = 0x1005c96c, +0x10 dwSrcBlendCaps
+extern D3DPRIMCAPS g_DeviceTriangleCaps;			// copy of the device's dpcTriCaps (0x38 bytes): +8 dwRasterCaps = 0x1005c96c, +0x10 dwSrcBlendCaps
 											// = 0x1005c974, +0x14 dwDestBlendCaps = 0x1005c978, +0x20 dwTextureCaps = 0x1005c984,
 											// +0x24 dwTextureFilterCaps = 0x1005c988 (the dump text of 0x1001b8a0 tests their bits)
 // The capability flags below are filled by 0x1001acc0; the role names are the labels of the LISTDEVICECAPS dump (0x1001b8a0).
 // GLOBAL: D3DREN 0x1005c840
-extern int DAT_1005c840;					// "Src blend SRCCOLOR"
+extern int g_bSrcBlendSrcColorSupported;					// "Src blend SRCCOLOR"
 // GLOBAL: D3DREN 0x1005c844
-extern int DAT_1005c844;					// "Dest blend SRCALPHA"
+extern int g_bDestBlendSrcAlphaSupported;					// "Dest blend SRCALPHA"
 // GLOBAL: D3DREN 0x1005c848
-extern int DAT_1005c848;					// "TBlend Add"
+extern int g_bTextureBlendAddSupported;					// "TBlend Add"
 // GLOBAL: D3DREN 0x1005c84c
-extern int DAT_1005c84c;					// "TBlend Modulate (gouraud)"
+extern int g_bTextureBlendModulateSupported;					// "TBlend Modulate (gouraud)"
 // GLOBAL: D3DREN 0x1005c850
-extern int DAT_1005c850;					// "Dither"
+extern int g_bDeviceDitherSupported;					// "Dither"
 // GLOBAL: D3DREN 0x1005c854
-extern int DAT_1005c854;					// "DrawPrim"
+extern int g_bDeviceDrawPrimitiveSupported;					// "DrawPrim"
 // GLOBAL: D3DREN 0x1005c858
-extern int DAT_1005c858;					// "Vid mem textures"
+extern int g_bVideoMemoryTexturesSupported;					// "Vid mem textures"
 // GLOBAL: D3DREN 0x1005c85c
-extern int DAT_1005c85c;					// "System mem textures"
+extern int g_bSystemMemoryTexturesSupported;					// "System mem textures"
 // GLOBAL: D3DREN 0x1005c860
-extern int DAT_1005c860;					// "AGP mem textures"
+extern int g_bAGPMemoryTexturesSupported;					// "AGP mem textures"
 // GLOBAL: D3DREN 0x1005c864
-extern int DAT_1005c864;					// "ZBuffer Depth" (bits, from DDBD_* flags)
+extern int g_DeviceZBufferBitDepth;					// "ZBuffer Depth" (bits, from DDBD_* flags)
 // GLOBAL: D3DREN 0x1005c868
-extern int DAT_1005c868;					// "Device Depth" (bits)
+extern int g_DeviceRenderBitDepth;					// "Device Depth" (bits)
 // GLOBAL: D3DREN 0x1005c86c
-extern int DAT_1005c86c;					// "Texture Memory" (0x4000 set by the creation code)
+extern int g_DeviceTotalTextureMemory;					// "Texture Memory" (0x4000 set by the creation code)
 // GLOBAL: D3DREN 0x1005c870
-extern int DAT_1005c870;					// "Video Memory" (free video memory from GetAvailableVidMem)
+extern int g_DeviceFreeVideoMemory;					// "Video Memory" (free video memory from GetAvailableVidMem)
 // GLOBAL: D3DREN 0x1005c874
-extern int DAT_1005c874;					// "Surfaces larger than screen"
+extern int g_bSurfacesLargerThanScreenSupported;					// "Surfaces larger than screen"
 // GLOBAL: D3DREN 0x1005c8fc
-extern uint32 DAT_1005c8fc;					// maximum texture width  (D3DDEVICEDESC7::dwMaxTextureWidth of the GetCaps copy at 0x1005c878)
+extern uint32 g_DeviceMaxTextureWidth;					// maximum texture width  (D3DDEVICEDESC7::dwMaxTextureWidth of the GetCaps copy at 0x1005c878)
 // GLOBAL: D3DREN 0x1005c900
-extern uint32 DAT_1005c900;					// maximum texture height (D3DDEVICEDESC7::dwMaxTextureHeight)
+extern uint32 g_DeviceMaxTextureHeight;					// maximum texture height (D3DDEVICEDESC7::dwMaxTextureHeight)
 
 // ---- the enumerated DirectDraw devices (0x10031d18 fills the list in unit unk/10030bb0; common_stuff walks it) ---------------------
 // One node per enumerated DirectDraw device (0xec bytes, dalloc'ed by the enumeration callback 0x10031d82), linked with the
-// LTLink at its start (AddAfter on the list head DAT_10057800) and carrying itself in m_pData.  Names invented (UnkType_, m_Unk).
+// LTLink at its start (AddAfter on the list head g_EnumeratedDeviceList) and carrying itself in m_pData.  Names invented (UnkType_, m_Unk).
 #include "ltlink.h"
 struct UnkType_DeviceNode
 {
@@ -133,11 +133,11 @@ struct UnkType_DeviceNode
 	char		m_Unk88[100];		// 0x88 the description the enumeration passed (copied into RMode::m_Description)
 };
 // GLOBAL: D3DREN 0x10057800
-extern LTLink DAT_10057800;			// the list head of the enumerated devices (nodes are UnkType_DeviceNode)
+extern LTLink g_EnumeratedDeviceList;			// the list head of the enumerated devices (nodes are UnkType_DeviceNode)
 
 // ---- the StateChange applier (unit unk/10021d70) ---------------------------------------------------------------------------------
 // Object that applies a Talon SDK D3DStateChange.h `StateChange` (vector<RenderState> at +0, vector<TextureState> at +0xc) to the
-// device and remembers the old values so that FUN_10021da6 can put them back (SetRenderState/SetTextureStageState through the
+// device and remembers the old values so that RestoreAllStates can put them back (SetRenderState/SetTextureStageState through the
 // device at 0x1005de30).  The class name is invented (UnkType_ prefix); the SDK types are real.  The two vectors are 3 dwords each
 // (STLport layout).  The STL stays out of this header (it is included by every unit): unit unk/10021d70 defines
 // D3DREN_STATERESTORER_FULL before including D3DStateChange.h to get the real members; the layout is identical.
@@ -154,17 +154,17 @@ public:
 	// the constructor (two empty vectors) and the destructor (restore, then free both vectors) expanded; 0x10021d86 and 0x100198bc are the
 	// compiler's out-of-line COMDAT copies (emitted in the unk/10021d70 and d3d_drawsky objects).
 	UnkType_StateRestorer()		{}
-	~UnkType_StateRestorer()	{ FUN_10021da6(); }
-	void FUN_10021da6();								// restore every saved render/texture stage state, then forget them
-	void FUN_10021db7(StateChange *pChange, uint32 nStage);	// apply pChange (saving the old values); nStage = texture stage
+	~UnkType_StateRestorer()	{ RestoreAllStates(); }
+	void RestoreAllStates();								// restore every saved render/texture stage state, then forget them
+	void ApplyStateChange(StateChange *pChange, uint32 nStage);	// apply pChange (saving the old values); nStage = texture stage
 	// Added by package W6 (d3d_DrawSkyObjects, 0x10019691, calls them on a local saver): apply one state, remembering the old value.
-	void FUN_10021e28(const RenderState &state);				// 0x10021e28: SetRenderState(pState->m_RenderStateType, pState->m_RenderState) after saving the old one (the caller passes a temporary: const reference)
-	void FUN_10021dfd(const TextureState &state, uint32 nStage);	// 0x10021dfd: SetTextureStageState(nStage, pState->m_TextureStateType, pState->m_TextureState) after saving the old one
+	void ApplyRenderState(const RenderState &state);				// 0x10021e28: SetRenderState(pState->m_RenderStateType, pState->m_RenderState) after saving the old one (the caller passes a temporary: const reference)
+	void ApplyTextureStageState(const TextureState &state, uint32 nStage);	// 0x10021dfd: SetTextureStageState(nStage, pState->m_TextureStateType, pState->m_TextureState) after saving the old one
 	// Added by the W3 agent (helpers inside unit unk/10021d70, member functions of the same object):
-	void FUN_10021e47(const RenderState &state);				// 0x10021e47: GetRenderState + remember (type, old value)
-	void FUN_10021e80(const TextureState &state, uint32 nStage);	// 0x10021e80: GetTextureStageState + remember (stage, type, old value)
-	void FUN_10021ec9();									// 0x10021ec9: restore the saved render states, then forget them
-	void FUN_10021f09();									// 0x10021f09: restore the saved texture stage states, then forget them
+	void SaveRenderState(const RenderState &state);				// 0x10021e47: GetRenderState + remember (type, old value)
+	void SaveTextureStageState(const TextureState &state, uint32 nStage);	// 0x10021e80: GetTextureStageState + remember (stage, type, old value)
+	void RestoreRenderStates();									// 0x10021ec9: restore the saved render states, then forget them
+	void RestoreTextureStageStates();									// 0x10021f09: restore the saved texture stage states, then forget them
 
 #ifdef D3DREN_STATERESTORER_FULL
 	std::vector<RenderState>	m_Unk00;				// 0x00 saved render states
@@ -174,7 +174,7 @@ public:
 #endif
 };
 // GLOBAL: D3DREN 0x10063c90
-extern UnkType_StateRestorer DAT_10063c90;
+extern UnkType_StateRestorer g_TextureStateRestorer;
 
 // ---- functions of sys/d3d/d3d_init that other units call -----------------------------------------------------------------------
 // FUN_10019b10: DDERR_* / D3DERR_* code to descriptive text.
@@ -182,7 +182,7 @@ extern UnkType_StateRestorer DAT_10063c90;
 // sample: a switch over DDERR_/D3DERR_ codes returning text); not verified against a file on disk.
 char *D3DAppErrorToString(HRESULT hr);							// 0x10019b10
 // NAME: CanDrawPortals: Jupiter CD3D_Device::CanDrawPortals() (returns the stencil capability); d3d.ren has it as a free function.
-int CanDrawPortals();											// 0x1001a850 (returns DAT_1005cde0 != 0)
+int CanDrawPortals();											// 0x1001a850 (returns g_ChosenZBufferStencilBitDepth != 0)
 void d3d_ReadExtraConsoleVariables();							// 0x1001a400 (declared in common_stuff.h as well)
 
 #endif

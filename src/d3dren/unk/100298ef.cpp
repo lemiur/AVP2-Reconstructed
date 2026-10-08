@@ -36,7 +36,7 @@ DrawPolyMgr g_DrawPolyMgr;
 DrawPolyMgr::DrawPolyMgr() : m_Unk7d4(0x20, 0)
 {
 	m_Unk76c = 0;
-	FUN_10029a80();
+	InitTestGouraudMaterial();
 }
 
 // FUNCTION: D3DREN 0x10029995 ??0Material@@QAE@XZ
@@ -80,8 +80,8 @@ UnkType_DPMPassList::UnkType_DPMPassList()
 	m_Stages[0].m_AlphaArg2 = D3DTA_DIFFUSE;
 }
 
-// FUNCTION: D3DREN 0x10029a80 ?FUN_10029a80@DrawPolyMgr@@QAEXXZ
-void DrawPolyMgr::FUN_10029a80()
+// FUNCTION: D3DREN 0x10029a80 ?InitTestGouraudMaterial@DrawPolyMgr@@QAEXXZ
+void DrawPolyMgr::InitTestGouraudMaterial()
 {
 	strcpy(m_Name, "TEST_GOURAUD");
 	m_pInstance = &m_Unk1cc;
@@ -104,22 +104,22 @@ DrawPolyMgr::~DrawPolyMgr()
 
 // (the float value of g_CV_DetailTextureScale at 0x1006e824 is g_CV_DetailTextureScale.m_FloatVal)
 // guess: finds/creates the RTexture of pTexture for the stage and returns its 1/width, 1/height in *pU, *pV (unit sys/d3d/d3d_texture)
-int FUN_10021a80(SharedTexture *pTexture, uint32 nStageFlags, float *pU, float *pV);
+int d3d_EnsureTextureAndGetUVScale(SharedTexture *pTexture, uint32 nStageFlags, float *pU, float *pV);
 
 // GLOBAL: D3DREN 0x1005a004
-extern uint8 DAT_1005a004[256];		// guess: colour correction table of the red channel
+extern uint8 g_VertexTintTableR[256];		// guess: colour correction table of the red channel
 // GLOBAL: D3DREN 0x1005a104
-extern uint8 DAT_1005a104[256];
+extern uint8 g_VertexTintTableG[256];
 // GLOBAL: D3DREN 0x1005a204
-extern uint8 DAT_1005a204[256];
+extern uint8 g_VertexTintTableB[256];
 // GLOBAL: D3DREN 0x10057774
-extern uint8 DAT_10057774;			// guess: the alpha byte of the vertex colours
+extern uint8 g_nPolyVertexAlpha;			// guess: the alpha byte of the vertex colours
 
 // ---- the callbacks of the passes (tables below) ----------------------------------------------------------------------------
 
 // guess: texture coordinates of the surface texture of a stage: the vertex's u, v scaled by the texture's 1/size
 // FUNCTION: D3DREN 0x10029b12
-void DrawPolyMgr::FUN_10029b12(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
+void DrawPolyMgr::GenerateScaledBaseTexCoords(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
 {
 	pOut[0] = m_Unk770[iStage][0] * pVertex->m_U;
 	pOut[1] = m_Unk770[iStage][1] * pVertex->m_V;
@@ -127,7 +127,7 @@ void DrawPolyMgr::FUN_10029b12(UnkType_PolyVertex *pVertex, float *pOut, int iSt
 
 // guess: the lightmap texture coordinates of the vertex copied through
 // FUNCTION: D3DREN 0x10029b3c
-void DrawPolyMgr::FUN_10029b3c(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
+void DrawPolyMgr::CopySecondaryTexCoords(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
 {
 	pOut[0] = pVertex->m_Unk0c;
 	pOut[1] = pVertex->m_Unk10;
@@ -135,7 +135,7 @@ void DrawPolyMgr::FUN_10029b3c(UnkType_PolyVertex *pVertex, float *pOut, int iSt
 
 // guess: planar mapping from the vertex position (x, z) plus the pan offsets, then scaled by the stage's texture size
 // FUNCTION: D3DREN 0x10029b52
-void DrawPolyMgr::FUN_10029b52(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
+void DrawPolyMgr::GeneratePannedPlanarTexCoords(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
 {
 	pOut[0] = m_Unk798 * m_Unk790 + pVertex->m_Vec->x;
 	pOut[1] = m_Unk79c * m_Unk794 + pVertex->m_Vec->z;
@@ -145,7 +145,7 @@ void DrawPolyMgr::FUN_10029b52(UnkType_PolyVertex *pVertex, float *pOut, int iSt
 
 // guess: the detail texture coordinates: the vertex's u, v scaled by the detail scale
 // FUNCTION: D3DREN 0x10029b9f
-void DrawPolyMgr::FUN_10029b9f(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
+void DrawPolyMgr::SetDetailUV(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
 {
 	pOut[0] = m_Unk788 * pVertex->m_U;
 	pOut[1] = m_Unk78c * pVertex->m_V;
@@ -153,14 +153,14 @@ void DrawPolyMgr::FUN_10029b9f(UnkType_PolyVertex *pVertex, float *pOut, int iSt
 
 // guess: the generators of two and three stages call the per-stage ones (stored at +0x7ac, +0x7b0, +0x7b4) one after the other
 // FUNCTION: D3DREN 0x10029bc1
-void DrawPolyMgr::FUN_10029bc1(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
+void DrawPolyMgr::SetTwoStageUV(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
 {
 	(this->*m_Unk7ac)(pVertex, pOut, 0);
 	(this->*m_Unk7b0)(pVertex, pOut + 2, 1);
 }
 
 // FUNCTION: D3DREN 0x10029bed
-void DrawPolyMgr::FUN_10029bed(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
+void DrawPolyMgr::SetThreeStageUV(UnkType_PolyVertex *pVertex, float *pOut, int iStage)
 {
 	(this->*m_Unk7ac)(pVertex, pOut, 0);
 	(this->*m_Unk7b0)(pVertex, pOut + 2, 1);
@@ -169,21 +169,21 @@ void DrawPolyMgr::FUN_10029bed(UnkType_PolyVertex *pVertex, float *pOut, int iSt
 
 // guess: texture sources: the surface texture's own scale
 // FUNCTION: D3DREN 0x10029c2b
-int DrawPolyMgr::FUN_10029c2b(WorldPoly *pPoly, int iStage)
+int DrawPolyMgr::InitSurfaceTextureSource(WorldPoly *pPoly, int iStage)
 {
-	return FUN_10021a80(((Surface *)pPoly->m_pSurface)->m_pTexture, iStage, &m_Unk770[iStage][0], &m_Unk770[iStage][1]);
+	return d3d_EnsureTextureAndGetUVScale(((Surface *)pPoly->m_pSurface)->m_pTexture, iStage, &m_Unk770[iStage][0], &m_Unk770[iStage][1]);
 }
 
 // guess: no texture source needed
 // FUNCTION: D3DREN 0x10029c55
-int DrawPolyMgr::FUN_10029c55(WorldPoly *pPoly, int iStage)
+int DrawPolyMgr::InitLightmapTextureSource(WorldPoly *pPoly, int iStage)
 {
 	return 1;
 }
 
 // guess: the surface texture's linked (detail) texture: fetches its scale and sets the detail scale; always returns 0
 // FUNCTION: D3DREN 0x10029c5b
-int DrawPolyMgr::FUN_10029c5b(WorldPoly *pPoly, int iStage)
+int DrawPolyMgr::InitDetailTextureSource(WorldPoly *pPoly, int iStage)
 {
 	SharedTexture *pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture;
 	if (pTexture)
@@ -191,7 +191,7 @@ int DrawPolyMgr::FUN_10029c5b(WorldPoly *pPoly, int iStage)
 		SharedTexture *pDetail = pTexture->m_pLinkedTexture;
 		if (pDetail)
 		{
-			if (FUN_10021a80(pDetail, iStage, &m_Unk770[iStage][0], &m_Unk770[iStage][1]))
+			if (d3d_EnsureTextureAndGetUVScale(pDetail, iStage, &m_Unk770[iStage][0], &m_Unk770[iStage][1]))
 			{
 				m_Unk788 = g_CV_DetailTextureScale.m_FloatVal * m_Unk770[iStage][0];
 				m_Unk78c = g_CV_DetailTextureScale.m_FloatVal * m_Unk770[iStage][1];
@@ -203,22 +203,22 @@ int DrawPolyMgr::FUN_10029c5b(WorldPoly *pPoly, int iStage)
 
 // guess: no texture on the stage
 // FUNCTION: D3DREN 0x10029cbb
-int DrawPolyMgr::FUN_10029cbb(WorldPoly *pPoly, int iStage)
+int DrawPolyMgr::InitUntexturedSource(WorldPoly *pPoly, int iStage)
 {
-	FUN_1000a27b(iStage);
+	d3d_UnsetTexture(iStage);
 	return 1;
 }
 
 // guess: binds the surface texture on the stage
 // FUNCTION: D3DREN 0x10029ccb
-int DrawPolyMgr::FUN_10029ccb(WorldPoly *pPoly, int iStage, int a3)
+int DrawPolyMgr::BindSurfaceTexture(WorldPoly *pPoly, int iStage, int a3)
 {
 	return d3d_SetTexture(((Surface *)pPoly->m_pSurface)->m_pTexture, iStage, 0);
 }
 
 // guess: binds the lightmap page of the poly on the stage
 // FUNCTION: D3DREN 0x10029ce6
-int DrawPolyMgr::FUN_10029ce6(WorldPoly *pPoly, int iStage, int a3)
+int DrawPolyMgr::BindLightmapTexture(WorldPoly *pPoly, int iStage, int a3)
 {
 	return d3d_SetLightmapTexture(pPoly, iStage);
 }
@@ -226,7 +226,7 @@ int DrawPolyMgr::FUN_10029ce6(WorldPoly *pPoly, int iStage, int a3)
 // guess: binds the detail texture (the surface texture's linked texture) on the stage and sets the detail scale from the stage's
 // lightmap/texture scale
 // FUNCTION: D3DREN 0x10029cf8
-int DrawPolyMgr::FUN_10029cf8(WorldPoly *pPoly, int iStage, int a3)
+int DrawPolyMgr::BindDetailTexture(WorldPoly *pPoly, int iStage, int a3)
 {
 	SharedTexture *pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture;
 	if (pTexture)
@@ -234,8 +234,8 @@ int DrawPolyMgr::FUN_10029cf8(WorldPoly *pPoly, int iStage, int a3)
 		SharedTexture *pDetail = pTexture->m_pLinkedTexture;
 		if (pDetail && d3d_SetTexture(pDetail, iStage, 0))
 		{
-			m_Unk788 = g_CV_DetailTextureScale.m_FloatVal * DAT_10061810[iStage].m_Unk00;
-			m_Unk78c = g_CV_DetailTextureScale.m_FloatVal * DAT_10061810[iStage].m_Unk04;
+			m_Unk788 = g_CV_DetailTextureScale.m_FloatVal * g_TextureStageTexelSizes[iStage].m_Unk00;
+			m_Unk78c = g_CV_DetailTextureScale.m_FloatVal * g_TextureStageTexelSizes[iStage].m_Unk04;
 			return 1;
 		}
 	}
@@ -244,7 +244,7 @@ int DrawPolyMgr::FUN_10029cf8(WorldPoly *pPoly, int iStage, int a3)
 
 // guess: nothing to bind. This callback is byte-identical to DllMain, so the linker folds both at the same address.
 // FUNCTION: D3DREN 0x10029d5a
-int DrawPolyMgr::FUN_10029d5a(WorldPoly *pPoly, int iStage, int a3)
+int DrawPolyMgr::BindNoTexture(WorldPoly *pPoly, int iStage, int a3)
 {
 	return 1;
 }
@@ -257,34 +257,34 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE, DWORD, LPVOID)
 
 // guess: vertex colour functions: fullbright
 // FUNCTION: D3DREN 0x10029d60
-void DrawPolyMgr::FUN_10029d60(UnkType_PolyVertex *pVertex, TLVertex *pOut)
+void DrawPolyMgr::SetFullbrightColor(UnkType_PolyVertex *pVertex, TLVertex *pOut)
 {
 	pOut->color = 0xffffffff;
 }
 
-// guess: the vertex colour through the three 256 byte tables (colour correction), the alpha from DAT_10057774
+// guess: the vertex colour through the three 256 byte tables (colour correction), the alpha from g_nPolyVertexAlpha
 // FUNCTION: D3DREN 0x10029d6b
-void DrawPolyMgr::FUN_10029d6b(UnkType_PolyVertex *pVertex, TLVertex *pOut)
+void DrawPolyMgr::SetCorrectedVertexColor(UnkType_PolyVertex *pVertex, TLVertex *pOut)
 {
-	pOut->rgb.r = DAT_1005a004[pVertex->m_Color[2]];
-	pOut->rgb.g = DAT_1005a104[pVertex->m_Color[1]];
-	pOut->rgb.b = DAT_1005a204[pVertex->m_Color[0]];
-	pOut->rgb.a = DAT_10057774;
+	pOut->rgb.r = g_VertexTintTableR[pVertex->m_Color[2]];
+	pOut->rgb.g = g_VertexTintTableG[pVertex->m_Color[1]];
+	pOut->rgb.b = g_VertexTintTableB[pVertex->m_Color[0]];
+	pOut->rgb.a = g_nPolyVertexAlpha;
 }
 
 // guess: the vertex colour scaled by the three floats at +0x7a0
 // FUNCTION: D3DREN 0x10029da6
-void DrawPolyMgr::FUN_10029da6(UnkType_PolyVertex *pVertex, TLVertex *pOut)
+void DrawPolyMgr::SetScaledVertexColor(UnkType_PolyVertex *pVertex, TLVertex *pOut)
 {
 	pOut->rgb.r = (uint8)RoundFloatToInt((float)pVertex->m_Color[2] * m_Unk7a0);
 	pOut->rgb.g = (uint8)RoundFloatToInt((float)pVertex->m_Color[1] * m_Unk7a4);
 	pOut->rgb.b = (uint8)RoundFloatToInt((float)pVertex->m_Color[0] * m_Unk7a8);
-	pOut->rgb.a = DAT_10057774;
+	pOut->rgb.a = g_nPolyVertexAlpha;
 }
 
 // guess: bucket key of a polygon: the surface texture pointer; its bits 2..6 select one of the 32 hash buckets
 // FUNCTION: D3DREN 0x10029e1c
-void FUN_10029e1c(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
+void GetTextureBucketKey(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
 {
 	uint32 key = (uint32)((Surface *)pPoly->m_pSurface)->m_pTexture;
 	*pKey = key;
@@ -293,7 +293,7 @@ void FUN_10029e1c(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
 
 // guess: bucket key of a polygon: its lightmap page (WorldPoly+0x48)
 // FUNCTION: D3DREN 0x10029e39
-void FUN_10029e39(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
+void GetLightmapBucketKey(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
 {
 	uint32 key = *(uint32 *)((uint8 *)pPoly + 0x48);
 	*pKey = key;
@@ -302,91 +302,91 @@ void FUN_10029e39(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
 
 // guess: clip (flags) and project the 0x20-byte vertices
 // FUNCTION: D3DREN 0x10029e53
-int __fastcall FUN_10029e53(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
+int __fastcall ClipAndProjectSingleTexturePoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
 {
 	g_ClipFlags = nFlags;
-	return FUN_1000af16(ppVerts, pnVerts, &g_ViewParams, 0);
+	return d3d_ClipAndProjectTLVertices(ppVerts, pnVerts, &g_ViewParams, 0);
 }
 
 // guess: the same for the 0x28-byte vertices
 // FUNCTION: D3DREN 0x10029e70
-int __fastcall FUN_10029e70(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
+int __fastcall ClipAndProjectTwoTexturePoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
 {
 	g_ClipFlags = nFlags;
-	return FUN_100085f2((UnkType_TLVertex40 **)ppVerts, pnVerts, &g_ViewParams, 0);
+	return TransformClipProjectPolygon40((UnkType_TLVertex40 **)ppVerts, pnVerts, &g_ViewParams, 0);
 }
 
 // guess: clip only, 0x20-byte vertices
 // FUNCTION: D3DREN 0x10029e8d
-int __fastcall FUN_10029e8d(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
+int __fastcall ClipSingleTexturePoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
 {
 	return ClipPoly(nFlags, ppVerts, pnVerts);
 }
 
 // guess: clip only, 0x28-byte vertices
 // FUNCTION: D3DREN 0x10029e9e
-int __fastcall FUN_10029e9e(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
+int __fastcall ClipTwoTexturePoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
 {
-	return FUN_10008779(nFlags, (UnkType_TLVertex40 **)ppVerts, pnVerts);
+	return ClipPolygon40(nFlags, (UnkType_TLVertex40 **)ppVerts, pnVerts);
 }
 
 // guess: three texture stages are not supported: nothing is left to draw
 // FUNCTION: D3DREN 0x10029eaf
-int __fastcall FUN_10029eaf(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
+int __fastcall RejectThreeTexturePoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts)
 {
 	return 0;
 }
 
 // guess: adds the dynamic lights of the poly to the 0x28-byte vertices
 // FUNCTION: D3DREN 0x10029eb4
-void DrawPolyMgr::FUN_10029eb4(UnkType_DPMDrawBuffer *pBuffer)
+void DrawPolyMgr::AddDynamicLightToDrawBuffer(UnkType_DPMDrawBuffer *pBuffer)
 {
-	FUN_100083ec(pBuffer->m_pPoly, (UnkType_TLVertex40 *)pBuffer->m_Verts, pBuffer->m_nVertices);
+	AddPolyDynamicVertexLighting(pBuffer->m_pPoly, (UnkType_TLVertex40 *)pBuffer->m_Verts, pBuffer->m_nVertices);
 }
 
 // guess: nothing
 // FUNCTION: D3DREN 0x10029ecc
-void DrawPolyMgr::FUN_10029ecc(UnkType_DPMDrawBuffer *pBuffer)
+void DrawPolyMgr::SkipDrawBufferPostprocess(UnkType_DPMDrawBuffer *pBuffer)
 {
 }
 
 // guess: the tables the pass indices select from (the originals are data of the object: 0x1004bbd8..0x1004bc80)
-// (DAT_10058c40, the sky's per-vertex fog function, is declared in polydraw.h)
-static UnkType_DPMKeyFn s_KeyFns[2] = { FUN_10029e1c, FUN_10029e39 };	// 0x1004bbd8
+// (g_pfnCalcSkyFogAlpha, the sky's per-vertex fog function, is declared in polydraw.h)
+static UnkType_DPMKeyFn s_KeyFns[2] = { GetTextureBucketKey, GetLightmapBucketKey };	// 0x1004bbd8
 static UnkType_DPMUVFn s_UVFns[4] =										// 0x1004bbe0
 {
-	&DrawPolyMgr::FUN_10029b12, &DrawPolyMgr::FUN_10029b3c, &DrawPolyMgr::FUN_10029b52, &DrawPolyMgr::FUN_10029b9f
+	&DrawPolyMgr::GenerateScaledBaseTexCoords, &DrawPolyMgr::CopySecondaryTexCoords, &DrawPolyMgr::GeneratePannedPlanarTexCoords, &DrawPolyMgr::SetDetailUV
 };
 static UnkType_DPMUVFn s_UVFnsByStages[4] =								// 0x1004bbf0 (by the number of stages)
 {
-	0, 0, &DrawPolyMgr::FUN_10029bc1, &DrawPolyMgr::FUN_10029bed
+	0, 0, &DrawPolyMgr::SetTwoStageUV, &DrawPolyMgr::SetThreeStageUV
 };
 static TextureSrcInitFn s_TextureSrcInitFns[4] =						// 0x1004bc00
 {
-	&DrawPolyMgr::FUN_10029c2b, &DrawPolyMgr::FUN_10029c55, &DrawPolyMgr::FUN_10029c5b, &DrawPolyMgr::FUN_10029cbb
+	&DrawPolyMgr::InitSurfaceTextureSource, &DrawPolyMgr::InitLightmapTextureSource, &DrawPolyMgr::InitDetailTextureSource, &DrawPolyMgr::InitUntexturedSource
 };
 static UnkType_DPMBindFn s_BindFns[4] =									// 0x1004bc10
 {
-	&DrawPolyMgr::FUN_10029ccb, &DrawPolyMgr::FUN_10029ce6, &DrawPolyMgr::FUN_10029cf8, &DrawPolyMgr::FUN_10029d5a
+	&DrawPolyMgr::BindSurfaceTexture, &DrawPolyMgr::BindLightmapTexture, &DrawPolyMgr::BindDetailTexture, &DrawPolyMgr::BindNoTexture
 };
 static UnkType_DPMColorFn s_ColorFns[3] =								// 0x1004bc20
 {
-	&DrawPolyMgr::FUN_10029d60, &DrawPolyMgr::FUN_10029d6b, &DrawPolyMgr::FUN_10029da6
+	&DrawPolyMgr::SetFullbrightColor, &DrawPolyMgr::SetCorrectedVertexColor, &DrawPolyMgr::SetScaledVertexColor
 };
-static UnkType_DPMFogFn *s_FogFns[2] = { &g_pfnCalcFogAlpha, &DAT_10058c40 };	// 0x1004bc2c
+static UnkType_DPMFogFn *s_FogFns[2] = { &g_pfnCalcFogAlpha, &g_pfnCalcSkyFogAlpha };	// 0x1004bc2c
 static int s_VertexSizes[4] = { 0, 0x20, 0x28, 0x30 };					// 0x1004bc34 (by the number of stages)
-static UnkType_DPMClipFn s_ClipFns[4] = { 0, FUN_10029e53, FUN_10029e70, FUN_10029eaf };	// 0x1004bc44
-static UnkType_DPMClipFn s_ClipOnlyFns[4] = { 0, FUN_10029e8d, FUN_10029e9e, FUN_10029eaf };	// 0x1004bc54
+static UnkType_DPMClipFn s_ClipFns[4] = { 0, ClipAndProjectSingleTexturePoly, ClipAndProjectTwoTexturePoly, RejectThreeTexturePoly };	// 0x1004bc44
+static UnkType_DPMClipFn s_ClipOnlyFns[4] = { 0, ClipSingleTexturePoly, ClipTwoTexturePoly, RejectThreeTexturePoly };	// 0x1004bc54
 static UnkType_DPMPostFn s_PostFns[3] =									// 0x1004bc68
 {
-	&DrawPolyMgr::FUN_10029ecc, &DrawPolyMgr::FUN_10029eb4, &DrawPolyMgr::FUN_10029ecc
+	&DrawPolyMgr::SkipDrawBufferPostprocess, &DrawPolyMgr::AddDynamicLightToDrawBuffer, &DrawPolyMgr::SkipDrawBufferPostprocess
 };
 static int s_FVFs[4] = { 0, 0x1c4, 0x2c4, 0x3c4 };						// 0x1004bc74 (by the number of stages)
 
 // guess: queues pPoly in the pass list of pass iPass: the bucket is chosen by the pass's key function, a bucket entry (node from the
 // ObjectBank) is found or created for the key, and the poly is linked into it
 // FUNCTION: D3DREN 0x10029ecf
-void DrawPolyMgr::FUN_10029ecf(WorldPoly *pPoly, int iPass)
+void DrawPolyMgr::QueuePolyForPass(WorldPoly *pPoly, int iPass)
 {
 	UnkType_DPMMaterialInstance *pInstance = m_pInstance;
 	int iBucket;
@@ -417,7 +417,7 @@ void DrawPolyMgr::FUN_10029ecf(WorldPoly *pPoly, int iPass)
 
 // guess: sets the render states of pass pPass (alpha blending, the blend factors) and the texture stage states of its stages
 // FUNCTION: D3DREN 0x10029f9a
-void DrawPolyMgr::FUN_10029f9a(UnkType_DPMPass *pPass, UnkType_DPMPassList *pList)
+void DrawPolyMgr::SetPassRenderStates(UnkType_DPMPass *pPass, UnkType_DPMPassList *pList)
 {
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, pPass->m_Unk00);
 	uint32 i;
@@ -455,18 +455,18 @@ ConVar g_CV_TestGouraud("TestGouraud", 0.0f);
 ConVar g_CV_TestLightmap("TestLightmap", 1.0f);
 
 // GLOBAL: D3DREN 0x10056284
-extern RenderContext *DAT_10056284;		// guess: the render context of the frame (CreateContext's object; m_CurFrameCode at +0xc)
+extern RenderContext *g_pFrameRenderContext;		// guess: the render context of the frame (CreateContext's object; m_CurFrameCode at +0xc)
 
 // guess: Flush
 // STUB diagnosis (W6): 867 vs 845 bytes: the frame is 0x34 bytes against the exe's 0x30 (one extra 4-byte local slot) and the shared zero
 // constant of the member initialisation is kept in ebx where the exe uses edx (the whole instruction sequence of the first 0x140
 // bytes is otherwise the same); permuter best 65 mismatches (7 minutes).  Likely a different local/temporary count in the source.
 // STUB: D3DREN 0x1002a0c2
-void DrawPolyMgr::FUN_1002a0c2()
+void DrawPolyMgr::FlushQueuedPolys()
 {
 	uint32 oldAlphaBlend, oldSrcBlend, oldDestBlend;
 
-	m_Unk768 = DAT_10056284->m_CurFrameCode;
+	m_Unk768 = g_pFrameRenderContext->m_CurFrameCode;
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, (unsigned long *)&oldAlphaBlend);
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_SRCBLEND, (unsigned long *)&oldSrcBlend);
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_DESTBLEND, (unsigned long *)&oldDestBlend);
@@ -543,7 +543,7 @@ void DrawPolyMgr::FUN_1002a0c2()
 			if (pHead->m_pNext == pHead)
 				break;
 
-			FUN_10029f9a(pPass, pList);
+			SetPassRenderStates(pPass, pList);
 
 			if (pPass->m_nStages == 1)
 			{
@@ -571,7 +571,7 @@ void DrawPolyMgr::FUN_1002a0c2()
 							{
 								AddDebugMessage(1, "Material '%s', pass %d, stage %d: TextureSrcInitFn failed.", pMaterial, iPass, iStage);
 								if (iPass == 0)
-									FUN_1002a8bc(pNode);
+									DrawUntexturedBucket(pNode);
 								goto Next;
 							}
 						}
@@ -584,7 +584,7 @@ void DrawPolyMgr::FUN_1002a0c2()
 						while (pPoly != (LTLink *)pNode)
 						{
 							LTLink *pNextPoly = pPoly->m_pNext;
-							FUN_1002a40f((WorldPoly *)pPoly, pPass, iNextPass);
+							DrawPolyFirstPass((WorldPoly *)pPoly, pPass, iNextPass);
 							pPoly = pNextPoly;
 						}
 					}
@@ -612,13 +612,13 @@ Next:
 
 // guess: TextureSrcInitFn failed for the first pass: draws the polygons of the bucket entry with the current states, untextured
 // FUNCTION: D3DREN 0x1002a8bc
-void DrawPolyMgr::FUN_1002a8bc(UnkType_DPMNode *pNode)
+void DrawPolyMgr::DrawUntexturedBucket(UnkType_DPMNode *pNode)
 {
 	TLVertex aVerts[0x80];
 	TLVertex *pVerts;
 	int nVerts;
 
-	FUN_1000a27b(0);
+	d3d_UnsetTexture(0);
 	LTLink *pLink = pNode->m_Unk00.m_pNext;
 	if (pLink == (LTLink *)pNode)
 		return;
@@ -651,7 +651,7 @@ void DrawPolyMgr::FUN_1002a8bc(UnkType_DPMNode *pNode)
 		}
 
 		g_ClipFlags = 0x3f;
-		if (FUN_1000af16(&pVerts, &nVerts, &g_ViewParams, 0))
+		if (d3d_ClipAndProjectTLVertices(&pVerts, &nVerts, &g_ViewParams, 0))
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 		pLink = pLink->m_pNext;
 	} while (pLink != (LTLink *)pNode);
@@ -661,7 +661,7 @@ void DrawPolyMgr::FUN_1002a8bc(UnkType_DPMNode *pNode)
 // coordinates of the pass's stages), adds the dynamic lights, clips and projects them, binds the stage textures and draws the fan;
 // when another pass follows it keeps the projected positions (QVerts) and queues the polygon for the next pass
 // FUNCTION: D3DREN 0x1002a40f
-void DrawPolyMgr::FUN_1002a40f(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNextPass)
+void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNextPass)
 {
 	UnkType_DPMDrawBuffer buf;
 	UnkType_PolyVertex *pSrc;
@@ -728,7 +728,7 @@ void DrawPolyMgr::FUN_1002a40f(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNe
 				pVerts = (TLVertex *)((uint8 *)pVerts + buf.m_Unk14);
 			}
 			m_Unk7d0 += buf.m_nVertices;
-			FUN_10029ecf(pPoly, 1);
+			QueuePolyForPass(pPoly, 1);
 			}
 		}
 	}
@@ -815,7 +815,7 @@ void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPas
 	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, s_FVFs[pPass->m_nStages], pVerts, nVertices, 0);
 
 	if (iNextPass)
-		FUN_10029ecf(pPoly, iNextPass);
+		QueuePolyForPass(pPoly, iNextPass);
 }
 
 // guess: the constructor and destructor of a bucket entry node (the exe's ObjectBank::Allocate / Free call them out of line): self-linked

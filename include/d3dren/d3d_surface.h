@@ -79,11 +79,11 @@ class IShadowTexture
 public:
 	virtual ~IShadowTexture() {}												// slot 0 (vtable 0x10046308, ??_G 0x1001d1dd)
 	virtual bool	Init(uint32 uiSizeX, uint32 uiSizeY) = 0;					// slot 1
-	virtual void	FUN_1001d496(uint32 *pSizeX, uint32 *pSizeY) = 0;			// slot 2  guess: GetSize
-	virtual bool	FUN_1001d4ab() = 0;											// slot 3  guess: set the texture stage state / bind the texture
-	virtual bool	FUN_1001d5b5(uint32 x, uint32 y, uint32 color, char bFlag) = 0;	// slot 4  guess: draw it as a screen space quad
-	virtual bool	FUN_1001d7e6(uint32 x, uint32 y) = 0;						// slot 5  guess: BltFast the texture onto the offscreen surface
-	virtual bool	FUN_1001d836(uint32 x, uint32 y) = 0;						// slot 6  guess: BltFast the offscreen surface into the texture
+	virtual void	GetDimensions(uint32 *pSizeX, uint32 *pSizeY) = 0;			// slot 2  guess: GetSize
+	virtual bool	BindForShadowMultiply() = 0;											// slot 3  guess: set the texture stage state / bind the texture
+	virtual bool	DrawScreenQuad(uint32 x, uint32 y, uint32 color, char bFlag) = 0;	// slot 4  guess: draw it as a screen space quad
+	virtual bool	CopyToOffscreen(uint32 x, uint32 y) = 0;						// slot 5  guess: BltFast the texture onto the offscreen surface
+	virtual bool	CopyFromOffscreen(uint32 x, uint32 y) = 0;						// slot 6  guess: BltFast the offscreen surface into the texture
 };
 
 class D3DShadowTextureInstance;
@@ -99,11 +99,11 @@ protected:
 
 public:
 	virtual bool	Init(uint32 uiSizeX, uint32 uiSizeY);						// slot 1  0x1001d1fa
-	virtual void	FUN_1001d496(uint32 *pSizeX, uint32 *pSizeY);				// slot 2
-	virtual bool	FUN_1001d4ab();												// slot 3
-	virtual bool	FUN_1001d5b5(uint32 x, uint32 y, uint32 color, char bFlag);	// slot 4
-	virtual bool	FUN_1001d7e6(uint32 x, uint32 y);							// slot 5
-	virtual bool	FUN_1001d836(uint32 x, uint32 y);							// slot 6
+	virtual void	GetDimensions(uint32 *pSizeX, uint32 *pSizeY);				// slot 2
+	virtual bool	BindForShadowMultiply();												// slot 3
+	virtual bool	DrawScreenQuad(uint32 x, uint32 y, uint32 color, char bFlag);	// slot 4
+	virtual bool	CopyToOffscreen(uint32 x, uint32 y);							// slot 5
+	virtual bool	CopyFromOffscreen(uint32 x, uint32 y);							// slot 6
 	virtual void	Term();														// slot 7  0x1001d478 (a virtual: Init calls it through the vtable)
 
 	uint32				m_Unk04;												// 0x04  guess: width  (Init's uiSizeX after rounding)

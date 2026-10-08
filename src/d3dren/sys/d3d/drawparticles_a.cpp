@@ -41,17 +41,17 @@ ConVar g_CV_PSDestBlend("PSDestBlend", -1.0f);
 // guess: the particle systems' shared index buffer: the quad list 0,1,2, 0,2,3 / 4,5,6, ... for 128 quads (0x300 indices), filled once
 // (the g_ObjectHandlers[OT_PARTICLESYSTEM] pre-frame function; the drawing code is in unit unk/10008cd0).
 // GLOBAL: D3DREN 0x1006d1b8
-extern uint16 DAT_1006d1b8[0x300];
+extern uint16 g_ParticleQuadIndices[0x300];
 // GLOBAL: D3DREN 0x1006e7b8
-int DAT_1006e7b8;
+int g_bParticleQuadIndicesInitialized;
 
 // FUNCTION: D3DREN 0x100296a6
-void FUN_100296a6()
+void d3d_InitParticleQuadIndices()
 {
-	if (!DAT_1006e7b8)
+	if (!g_bParticleQuadIndicesInitialized)
 	{
-		DAT_1006e7b8 = 1;
-		uint16 *pIdx = DAT_1006d1b8;
+		g_bParticleQuadIndicesInitialized = 1;
+		uint16 *pIdx = g_ParticleQuadIndices;
 		uint16 n = 0;
 		for (int i = 0; i < 0x80; i++)
 		{
@@ -89,7 +89,7 @@ void d3d_TestAndDrawPS(ViewParams *pParams, LTObject *pObj)
 	pSystem = (LTParticleSystem *)pObj;
 	radius = pSystem->m_SystemRadius * LTMAX(pSystem->m_Scale.x, LTMAX(pSystem->m_Scale.y, pSystem->m_Scale.z));
 
-	if (FUN_1000b63b(&pSystem->m_SystemCenter, radius, (pSystem->m_Flags & FLAG_REALLYCLOSE) ? g_ViewParams.m_ReallyCloseClipPlanes : g_ViewParams.m_ClipPlanes, &clipFlags))
+	if (d3d_TestSphereClipPlanes(&pSystem->m_SystemCenter, radius, (pSystem->m_Flags & FLAG_REALLYCLOSE) ? g_ViewParams.m_ReallyCloseClipPlanes : g_ViewParams.m_ClipPlanes, &clipFlags))
 	{
 		pSystem->m_Flags |= FLAG_INTERNAL1;
 
@@ -104,7 +104,7 @@ void d3d_TestAndDrawPS(ViewParams *pParams, LTObject *pObj)
 }
 
 // guess: BaseObjectSet::Draw callback that queues the particle system for sorted drawing (g_ObjectHandlers' translucent pass)
-void FUN_100298da(ViewParams *pParams, LTObject *pObject);
+void d3d_QueueParticleSystemDraw(ViewParams *pParams, LTObject *pObject);
 
 // NAME: d3d_QueueTranslucentParticles: Jupiter drawparticles_A.cpp (names_proposal.csv, high; Talon takes no arguments)
 // FUNCTION: D3DREN 0x100298b6
@@ -113,12 +113,12 @@ void d3d_QueueTranslucentParticles()
 	if (g_DrawParticles)	// the DrawParticles console variable's mirror
 	{
 		VisibleSet *pVisibleSet = d3d_GetVisibleSet();
-		pVisibleSet->m_ParticleSystems.Draw(&g_ViewParams, FUN_100298da);
+		pVisibleSet->m_ParticleSystems.Draw(&g_ViewParams, d3d_QueueParticleSystemDraw);
 	}
 }
 
 // FUNCTION: D3DREN 0x100298da
-void FUN_100298da(ViewParams *pParams, LTObject *pObject)
+void d3d_QueueParticleSystemDraw(ViewParams *pParams, LTObject *pObject)
 {
-	DAT_1006b934->Add(pObject, d3d_TestAndDrawPS);
+	g_pTranslucentObjectDrawList->Add(pObject, d3d_TestAndDrawPS);
 }

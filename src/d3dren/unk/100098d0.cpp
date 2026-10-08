@@ -9,7 +9,7 @@
 // texture batches, the polygon clip and project dispatchers), Direct3D 7 texture binding and render-state wrappers, and
 // Talon's setupmodel.cpp (ModelDraw: model lighting, LOD choice, vertex transform, the CMoArray instances it needs) with the
 // SDK matrix / vector inlines that ended up out of line.
-// FLAGS NOTE: the object map says /O1 /Ob2 (P object).  FUN_1000a2a7 matches only with /Ob1 (the exe keeps the StageStateSet ctor/dtor calls out of
+// FLAGS NOTE: the object map says /O1 /Ob2 (P object).  d3d_FlushWorldTextureBuckets matches only with /Ob1 (the exe keeps the StageStateSet ctor/dtor calls out of
 // line, /Ob2 inlines them: an in-object inline-budget effect, not a flag difference); every other function matches under both, so the object is /O1.
 // FLAGS: /O1
 #define D3DREN_SETTEXTURE_EXTERN	// d3d_texture.h: the plain inline changes ClipPolyNear / ClipPolyLeft; keep calling the out-of-line copy
@@ -82,18 +82,18 @@ int d3d_GetChromaKeyPass(void)
 
 // guess: draws one lightmapped world polygon: the 0x28-byte vertices carry the base coordinates and the lightmap coordinates;
 // clipped and projected as the clip mask g_ClipFlags asks, then drawn as a triangle fan with the lightmap page (single pass
-// when the device allows) and queued for the second pass / detail texture batches (DAT_1005a308).
+// when the device allows) and queued for the second pass / detail texture batches (g_pTexturedWorldPolyBuckets).
 // Not matching: 1221 of 1223 bytes, the same 424 instructions in the same order with the same frame layout (locals at
 // [ebp-4]..[ebp-0x38], 0x28-byte vertex array at [ebp-0x1438]), same calls and branches; only the register allocation differs.
-// The exe keeps the surface flag bits (nSurfFlags) in edi from the start until FUN_10009f6c, the constant 0 in esi (before the
-// fog StateSet), then in ebx (after FUN_10009f0b), the poly in esi; ours gives esi to nSurfFlags, edi to the zero and ebx to the
+// The exe keeps the surface flag bits (nSurfFlags) in edi from the start until d3d_BuildLightmappedWorldVertices, the constant 0 in esi (before the
+// fog StateSet), then in ebx (after d3d_BuildDualTextureWorldVertices), the poly in esi; ours gives esi to nSurfFlags, edi to the zero and ebx to the
 // poly (so the exe has `push edi`/`cmp [..],ebx` where ours has `push esi`/`cmp [..],edi`).  Tried: nSurfFlags before/after the
 // environment map test (before: frame matches, after: spilled to the stack), pTexture/pSurface locals or none, copy loops as
 // pointer do-while loops (needed: dword copies of tu/tv instead of fld/fstp), flag if/else polarity, statement permuter
 // (build/permute/100099b9; a second run of 3000 candidates did not get below 107 aligned mismatches, the start was 120).  Source-shape
 // problem (the original probably has two more/other named locals of the zero flag, which decide the register webs).
 // STUB: D3DREN 0x100099b9
-void FUN_100099b9(WorldPoly *pPoly)
+void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 {
 	UnkType_TLVertex40 aVerts[128];
 	UnkType_TLVertex40 *pVerts;
@@ -113,7 +113,7 @@ void FUN_100099b9(WorldPoly *pPoly)
 
 	SharedTexture *pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture;
 	uint32 nSurfFlags = ((Surface *)pPoly->m_pSurface)->m_Flags & 0x100000;
-	bEnvMap = pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0 && DAT_1005de2c != 0;
+	bEnvMap = pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0 && g_bTwoTextureStageBlendValidated != 0;
 	if (g_FixTJunc != 0)
 	{
 		pSrcVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
@@ -130,23 +130,23 @@ void FUN_100099b9(WorldPoly *pPoly)
 		dsi_ConsolePrint("Error: vertex buffer overflow");
 		return;
 	}
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042));
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
 	pVerts = aVerts;
-	FUN_10009f0b(nSurfFlags, aVerts, pSrcVerts, nVerts);
+	d3d_BuildDualTextureWorldVertices(nSurfFlags, aVerts, pSrcVerts, nVerts);
 	if (g_ClipFlags != 0 && !bEnvMap)
 	{
-		if (!FUN_100085f2(&pVerts, &nVerts, &g_ViewParams, 0))
+		if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
 			return;
 		bClipped = pVerts != aVerts;
 		bNeedProject = 0;
 	}
 	if (g_CV_LMAnim.m_IntVal != 0)
-		FUN_10009e80(DAT_10056770, pPoly);
+		RelightWorldPolyIfNeeded(g_pFrameMainWorld, pPoly);
 	int bFirst = WORLDPOLY_LMPAGE(pPoly)->m_Unk20 == 0;
 	if (bFirst)
 		WORLDPOLY_LMPAGE(pPoly)->m_Unk20 = 1;
 	if (WORLDPOLY_UNK30(pPoly) != 0)
-		bFirst = FUN_10020ff0(pPoly, bFirst);
+		bFirst = d3d_RefreshWorldPolyLightmap(pPoly, bFirst);
 	else
 		WORLDPOLY_LMPAGE(pPoly)->m_Unk20 = 1;
 	if (bFirst != 0)
@@ -156,18 +156,18 @@ void FUN_100099b9(WorldPoly *pPoly)
 		{
 			pVerts = aVerts;
 			nVerts = nTotalVerts;
-			FUN_10009f6c(nSurfFlags, pPoly, aVerts, pSrcVerts, nTotalVerts);
+			d3d_BuildLightmappedWorldVertices(nSurfFlags, pPoly, aVerts, pSrcVerts, nTotalVerts);
 			bNeedProject = 1;
 		}
 		else
-			FUN_1000a066(pPoly, pVerts, pSrcVerts, nVerts);
+			d3d_UpdateWorldVertexLightmapUVs(pPoly, pVerts, pSrcVerts, nVerts);
 	}
 	if (bNeedProject && !bEnvMap)
 	{
-		if (!FUN_100085f2(&pVerts, &nVerts, &g_ViewParams, 0))
+		if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
 			return;
 	}
-	pDest = FUN_1000a134(nVerts);
+	pDest = d3d_ReservePolyScratchVertices(nVerts);
 	if (!pDest)
 		return;
 	if (g_bChromaKeyPass != 0)
@@ -187,21 +187,21 @@ void FUN_100099b9(WorldPoly *pPoly)
 				i--;
 			} while (i != 0);
 		}
-		UnkType_PoolNode *pNode = FUN_10007ddb(pPoly, &DAT_1005a308, 0);
-		pNode->m_Unk04 = DAT_100587e4;
+		UnkType_PoolNode *pNode = AllocateTexturePolyNode(pPoly, &g_pTexturedWorldPolyBuckets, 0);
+		pNode->m_Unk04 = g_nQueuedWorldPolyVertices;
 		pNode->m_Unk08 = nVerts;
 		pNode->m_Unk0c = bLightmapTexture ? g_ClipFlags : 0;
 		pNode->m_Unk14 = 3;
 		if (bLightmapTexture)
 		{
-			if (d3d_SetLightmapTexture(pPoly, DAT_1005c838))
+			if (d3d_SetLightmapTexture(pPoly, g_LightmapTextureStage))
 				bLightmapTexture = 0;
 		}
 		if (!bLightmapTexture)
-			g_pD3DDevice->GetTexture(DAT_1005c838, &pOldTexture);
-		FUN_1000a2a7();
+			g_pD3DDevice->GetTexture(g_LightmapTextureStage, &pOldTexture);
+		d3d_FlushWorldTextureBuckets();
 		if (!bLightmapTexture)
-			g_pD3DDevice->SetTexture(DAT_1005c838, pOldTexture);
+			g_pD3DDevice->SetTexture(g_LightmapTextureStage, pOldTexture);
 		if (nVerts != 0)
 		{
 			pD = pDest;
@@ -250,16 +250,16 @@ void FUN_100099b9(WorldPoly *pPoly)
 	{
 		if (bLightmapTexture)
 		{
-			if (!d3d_SetLightmapTexture(pPoly, DAT_1005c838))
+			if (!d3d_SetLightmapTexture(pPoly, g_LightmapTextureStage))
 			{
-				FUN_10013ef0(pPoly);
+				d3d_QueueWorldPoly(pPoly);
 				return;
 			}
 		}
 		if (bEnvMap)
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pDest, nVerts, 0);
 		else
-			FUN_1000ad48(pDest, nVerts, &g_ViewParams, 0x1c4);
+			d3d_DrawClippedTriangleFan(pDest, nVerts, &g_ViewParams, 0x1c4);
 	}
 	if (g_bChromaKeyPass != 0)
 	{
@@ -283,27 +283,27 @@ void FUN_100099b9(WorldPoly *pPoly)
 				i--;
 			} while (i != 0);
 		}
-		UnkType_PoolNode *pNode = FUN_10007ddb(pPoly, &DAT_1005a308, 0);
-		pNode->m_Unk04 = DAT_100587e4;
+		UnkType_PoolNode *pNode = AllocateTexturePolyNode(pPoly, &g_pTexturedWorldPolyBuckets, 0);
+		pNode->m_Unk04 = g_nQueuedWorldPolyVertices;
 		pNode->m_Unk08 = nVerts;
 		pNode->m_Unk0c = g_ClipFlags;
 		pNode->m_Unk14 = 3;
 		if (g_CV_FixSparkleys.m_IntVal != 0)
-			FUN_1000a2a7();
+			d3d_FlushWorldTextureBuckets();
 	}
-	DAT_100587e4 += nVerts;
-	DAT_100566ac++;
+	g_nQueuedWorldPolyVertices += nVerts;
+	g_nWorldPolysDrawn++;
 }
 
 // guess: if the poly's light-animation flag (bit 0x8000 of WorldPoly::m_Flags, part of WPF_RELIGHT) is set, clears it and
 // relights its lightmap.
 // FUNCTION: D3DREN 0x10009e80
-void FUN_10009e80(MainWorld *pWorld, WorldPoly *pPoly)
+void RelightWorldPolyIfNeeded(MainWorld *pWorld, WorldPoly *pPoly)
 {
 	if (pPoly->m_Flags & 0x8000)
 	{
 		pPoly->m_Flags &= 0x7fff;
-		FUN_10033210(pWorld, pPoly, 0);
+		UpdatePolyAnimatedLightmap(pWorld, pPoly, 0);
 	}
 }
 
@@ -349,14 +349,14 @@ static inline void SetUV(TLVertex *pVertex, float u, float v)
 // guess: fills nVerts 0x28-byte vertices from the polygon's vertices: position, the current colour, the fog alpha callback,
 // the texture coordinates and the second (lightmap) coordinates.
 // FUNCTION: D3DREN 0x10009f0b
-void FUN_10009f0b(uint32 nFlags, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
+void d3d_BuildDualTextureWorldVertices(uint32 nFlags, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
 {
 	for (int i = 0; i < nVerts; i++)
 	{
 		pDest->m_Vec.x = pSrc->m_Vec->x;
 		pDest->m_Vec.y = pSrc->m_Vec->y;
 		pDest->m_Vec.z = pSrc->m_Vec->z;
-		pDest->color = DAT_100566bc.color;
+		pDest->color = g_GlobalVertexTintColor.color;
 		(*g_pfnCalcFogAlpha)(&pDest->m_Vec, &pDest->specular);
 		SetUV(pDest, pSrc->m_U, pSrc->m_V);
 		pDest->tu2 = pSrc->m_Unk0c;
@@ -366,12 +366,12 @@ void FUN_10009f0b(uint32 nFlags, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *
 	}
 }
 
-// guess: like FUN_10009f0b, but the second texture coordinates are derived from the lightmap plane vectors and the poly's
+// guess: like d3d_BuildDualTextureWorldVertices, but the second texture coordinates are derived from the lightmap plane vectors and the poly's
 // lightmap origin (WorldPoly +0x38): ((P . (v - origin)) / grid + 0.5) * lightmap scale.
 // Source shape: the first dot product only comes out in the exe's order when it is written right-associated, `z + (y + x)`
-// (left-associated terms give the load of DAT_10056770 and the y/z product in the wrong places); the second one is plain.
+// (left-associated terms give the load of g_pFrameMainWorld and the y/z product in the wrong places); the second one is plain.
 // FUNCTION: D3DREN 0x10009f6c
-void FUN_10009f6c(uint32 nFlags, WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
+void d3d_BuildLightmappedWorldVertices(uint32 nFlags, WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
 {
 	LTVector P, Q;
 	SetupLMPlaneVectors((pPoly->m_Flags & 0x3800) >> 11, pPoly->m_pPlane->m_Normal, P, Q);
@@ -380,15 +380,15 @@ void FUN_10009f6c(uint32 nFlags, WorldPoly *pPoly, UnkType_TLVertex40 *pDest, Un
 		pDest->m_Vec.x = pSrc->m_Vec->x;
 		pDest->m_Vec.y = pSrc->m_Vec->y;
 		pDest->m_Vec.z = pSrc->m_Vec->z;
-		pDest->color = DAT_100566bc.color;
+		pDest->color = g_GlobalVertexTintColor.color;
 		(*g_pfnCalcFogAlpha)(&pDest->m_Vec, &pDest->specular);
 		LTVector *pVec = pSrc->m_Vec;
 		float dx = pVec->x - pPoly->m_Unknown38.x;
 		float dy = pVec->y - pPoly->m_Unknown38.y;
 		float dz = pVec->z - pPoly->m_Unknown38.z;
 		SetUV(pDest, pSrc->m_U, pSrc->m_V);
-		pDest->tu2 = ((P.z * dz + (P.y * dy + P.x * dx)) / DAT_10056770->m_LMGridSize + 0.5f) * DAT_10061810[0].m_Unk00;
-		pDest->tv2 = ((Q.x * dx + Q.y * dy + Q.z * dz) / DAT_10056770->m_LMGridSize + 0.5f) * DAT_10061810[0].m_Unk04;
+		pDest->tu2 = ((P.z * dz + (P.y * dy + P.x * dx)) / g_pFrameMainWorld->m_LMGridSize + 0.5f) * g_TextureStageTexelSizes[0].m_Unk00;
+		pDest->tv2 = ((Q.x * dx + Q.y * dy + Q.z * dz) / g_pFrameMainWorld->m_LMGridSize + 0.5f) * g_TextureStageTexelSizes[0].m_Unk04;
 		pSrc++;
 		pDest++;
 	}
@@ -396,9 +396,9 @@ void FUN_10009f6c(uint32 nFlags, WorldPoly *pPoly, UnkType_TLVertex40 *pDest, Un
 
 // guess: rewrites only the second texture coordinates of nVerts existing 0x28-byte vertices.
 // Source shape: the first sum needs a per-vertex local copy of P.z (`float fPz = P.z; ... fPz * dz`); with P.z read in place the
-// exe's order of the load of DAT_10056770 inside the sum is not produced (found with the permuter, minimised by hand).
+// exe's order of the load of g_pFrameMainWorld inside the sum is not produced (found with the permuter, minimised by hand).
 // FUNCTION: D3DREN 0x1000a066
-void FUN_1000a066(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
+void d3d_UpdateWorldVertexLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts)
 {
 	LTVector P, Q;
 	SetupLMPlaneVectors((pPoly->m_Flags & 0x3800) >> 11, pPoly->m_pPlane->m_Normal, P, Q);
@@ -410,8 +410,8 @@ void FUN_1000a066(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVerte
 		float dy = pSrc->m_Vec->y - vOrigin.y;
 		float dz = pSrc->m_Vec->z - vOrigin.z;
 		float fPz = P.z;
-		pDest->tu2 = ((P.x * dx + P.y * dy + fPz * dz) / DAT_10056770->m_LMGridSize + fHalf) * DAT_10061810[0].m_Unk00;
-		pDest->tv2 = ((Q.x * dx + Q.y * dy + Q.z * dz) / DAT_10056770->m_LMGridSize + fHalf) * DAT_10061810[0].m_Unk04;
+		pDest->tu2 = ((P.x * dx + P.y * dy + fPz * dz) / g_pFrameMainWorld->m_LMGridSize + fHalf) * g_TextureStageTexelSizes[0].m_Unk00;
+		pDest->tv2 = ((Q.x * dx + Q.y * dy + Q.z * dz) / g_pFrameMainWorld->m_LMGridSize + fHalf) * g_TextureStageTexelSizes[0].m_Unk04;
 		pSrc++;
 		pDest++;
 	}
@@ -419,34 +419,34 @@ void FUN_1000a066(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVerte
 
 // guess: returns room for nVerts more vertices of the scratch array (growing it when needed), 0 when that fails.
 // FUNCTION: D3DREN 0x1000a134
-TLVertex *FUN_1000a134(int nVerts)
+TLVertex *d3d_ReservePolyScratchVertices(int nVerts)
 {
-	if (DAT_100587e4 + nVerts > DAT_1005a368)
+	if (g_nQueuedWorldPolyVertices + nVerts > g_nQueuedWorldPolyVertexCapacity)
 	{
-		if (!FUN_10013e80(DAT_1005a368 + 0x5dc + nVerts))
+		if (!d3d_GrowTLVertexBuffer(g_nQueuedWorldPolyVertexCapacity + 0x5dc + nVerts))
 			return 0;
 	}
-	return DAT_100587fc + DAT_100587e4;
+	return g_pQueuedWorldPolyVertices + g_nQueuedWorldPolyVertices;
 }
 
 // guess: draws the poly now when it has a lightmap, else queues it under its lightmap record (to be drawn by the flush).
 // FUNCTION: D3DREN 0x1000a16b
-void FUN_1000a16b(WorldPoly *pPoly)
+void d3d_DrawOrQueueLightmappedWorldPoly(WorldPoly *pPoly)
 {
 	if (WORLDPOLY_UNK30(pPoly))
-		FUN_100099b9(pPoly);
+		DrawLightmappedWorldPoly(pPoly);
 	else
 	{
 		LightmapPage *pPage = WORLDPOLY_LMPAGE(pPoly);
 		if (pPage)
 		{
-			UnkType_PoolNode *pNode = (UnkType_PoolNode *)sb_Allocate(&DAT_10058758);
+			UnkType_PoolNode *pNode = (UnkType_PoolNode *)sb_Allocate(&g_WorldPolyNodeBank);
 			if (pNode)
 			{
 				if (!LMPAGE_QUEUE(pPage))
 				{
-					LMPAGE_NEXT(pPage) = DAT_100528d4;
-					DAT_100528d4 = pPage;
+					LMPAGE_NEXT(pPage) = g_pQueuedLightmapPageHead;
+					g_pQueuedLightmapPageHead = pPage;
 				}
 				uint32 nState = g_ClipFlags;
 				pNode->m_Unk00 = pPoly;
@@ -494,14 +494,14 @@ void d3d_SetDetailTextureStates(void)
 void d3d_UnsetDetailTexture(void)
 {
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-	FUN_1000a27b(1);
+	d3d_UnsetTexture(1);
 }
 
 // The exe's out-of-line copy of the inline d3d_DisableTexture (d3d_texture.h), called by d3d_FullDrawScene (0x10014a40); every other caller expands
 // or calls the inline.  Same body as the inline (a wrapper around the inline does not match: SIZE), kept as its own definition because the call in
 // d3d_FullDrawScene must stay out of line.
 // FUNCTION: D3DREN 0x1000a27b
-void FUN_1000a27b(int nStage)
+void d3d_UnsetTexture(int nStage)
 {
 	if (g_pBoundTextures[nStage])
 	{
@@ -510,11 +510,11 @@ void FUN_1000a27b(int nStage)
 	}
 }
 
-// guess: draws every texture bucket of the queue DAT_1005a308 (the polys that were queued per texture): buckets whose texture
+// guess: draws every texture bucket of the queue g_pTexturedWorldPolyBuckets (the polys that were queued per texture): buckets whose texture
 // has a lightmap are drawn with the multiply blend, then the others / the second pass with the alpha blend; the queue and the
 // vertex scratch array are emptied.
 // FUNCTION: D3DREN 0x1000a2a7
-void FUN_1000a2a7(void)
+void d3d_FlushWorldTextureBuckets(void)
 {
 	StageStateSet tssColorArg1(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 	StageStateSet tssColorArg2(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
@@ -529,30 +529,30 @@ void FUN_1000a2a7(void)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_SRCCOLOR);
 	}
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042));
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
 	UnkType_PoolBucket *pSecondPass = 0;
-	UnkType_PoolBucket *pBucket = DAT_1005a308;
+	UnkType_PoolBucket *pBucket = g_pTexturedWorldPolyBuckets;
 	while (pBucket)
 	{
 		UnkType_PoolBucket *pNextBucket = pBucket->m_Unk08;
 		if (g_LightmapsOnly != 0)
-			FUN_100142b0(pBucket->m_Unk04);
+			d3d_FreeWorldPolyQueue(pBucket->m_Unk04);
 		else if (pBucket->m_Unk04 != 0)
 		{
 			SharedTexture *pTexture = ((Surface *)((WorldPoly *)pBucket->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture;
-			if (FUN_100211d0(pTexture, 0) != 0 && g_bChromaKeyPass == 0 && g_CV_LMFullBright.m_IntVal == 0)
+			if (d3d_EnsureTextureAndGetFlags(pTexture, 0) != 0 && g_bChromaKeyPass == 0 && g_CV_LMFullBright.m_IntVal == 0)
 			{
 				if (g_Saturate != 0)
-					FUN_1000a538(pBucket, pTexture, 0, 0);
+					d3d_DrawWorldTextureBucket(pBucket, pTexture, 0, 0);
 				pBucket->m_Unk08 = pSecondPass;
 				pSecondPass = pBucket;
 				pBucket = pNextBucket;
 				continue;
 			}
-			FUN_1000a538(pBucket, pTexture, 1, 0);
+			d3d_DrawWorldTextureBucket(pBucket, pTexture, 1, 0);
 		}
 		((UnkType_BucketOwner *)pBucket->m_Unk00)->m_Unk1c[0] = 0;
-		sb_Free(&DAT_10058c98, pBucket);
+		sb_Free(&g_WorldPolyBucketBank, pBucket);
 		pBucket = pNextBucket;
 	}
 	if (g_bChromaKeyPass == 0 && g_CV_LMFullBright.m_IntVal == 0)
@@ -564,15 +564,15 @@ void FUN_1000a2a7(void)
 		while (pBucket)
 		{
 			UnkType_PoolBucket *pNextBucket = pBucket->m_Unk08;
-			FUN_1000a538(pBucket, ((Surface *)((WorldPoly *)pBucket->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture, 1, g_Saturate);
+			d3d_DrawWorldTextureBucket(pBucket, ((Surface *)((WorldPoly *)pBucket->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture, 1, g_Saturate);
 			((UnkType_BucketOwner *)pBucket->m_Unk00)->m_Unk1c[0] = 0;
-			sb_Free(&DAT_10058c98, pBucket);
+			sb_Free(&g_WorldPolyBucketBank, pBucket);
 			pBucket = pNextBucket;
 		}
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, dwOldAlphaBlend);
 	}
-	DAT_1005a308 = 0;
-	DAT_100587e4 = 0;
+	g_pTexturedWorldPolyBuckets = 0;
+	g_nQueuedWorldPolyVertices = 0;
 }
 
 // NAME: StageStateSet: Jupiter render_a/src/sys/d3d/d3d_draw.h class StageStateSet (m_Stage, m_State, m_OldVal;
@@ -596,50 +596,50 @@ StageStateSet::~StageStateSet()
 // guess: draws the polys of one texture bucket: with the second (detail / environment map) texture stage when the device can
 // blend two textures and the texture has one, else with a single texture.  a3 / a4: flags for the batch drawers.
 // FUNCTION: D3DREN 0x1000a538
-void FUN_1000a538(UnkType_PoolBucket *pBucket, SharedTexture *pTexture, int a3, int a4)
+void d3d_DrawWorldTextureBucket(UnkType_PoolBucket *pBucket, SharedTexture *pTexture, int a3, int a4)
 {
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042));
-	if (DAT_1005de2c != 0 && pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
+	if (g_bTwoTextureStageBlendValidated != 0 && pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0
 		&& d3d_SetTexture(pTexture->m_pLinkedTexture, 0, 0))
 	{
 		d3d_SetTexture(pTexture, 1, 0);
-		DAT_10063c90.FUN_10021da6();
+		g_TextureStateRestorer.RestoreAllStates();
 		if (pTexture->m_pStateChange)
-			DAT_10063c90.FUN_10021db7(pTexture->m_pStateChange, 1);
-		DAT_100514a8 = g_CV_DetailTextureScale.m_FloatVal;
+			g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, 1);
+		g_WorldDetailTextureScale = g_CV_DetailTextureScale.m_FloatVal;
 		d3d_SetEnvMapTextureStates(pTexture->m_eTexType);
-		FUN_1000a8c0(pBucket, a3, a4);
+		d3d_DrawDualTextureWorldBucket(pBucket, a3, a4);
 		d3d_UnsetEnvMapTextureStates();
 	}
 	else
 	{
 		d3d_SetTexture(pTexture, 0, 0);
 		if (pTexture->m_pStateChange)
-			DAT_10063c90.FUN_10021db7(pTexture->m_pStateChange, 0);
-		if (DAT_1005de2c != 0 && g_CV_DetailTextures.m_IntVal != 0 && g_pBoundTextures[0] != 0
+			g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, 0);
+		if (g_bTwoTextureStageBlendValidated != 0 && g_CV_DetailTextures.m_IntVal != 0 && g_pBoundTextures[0] != 0
 			&& pTexture->m_pLinkedTexture != 0 && pTexture->m_eTexType == 0
 			&& d3d_SetTexture(pTexture->m_pLinkedTexture, 1, 0))
 		{
-			DAT_100514a8 = g_CV_DetailTextureScale.m_FloatVal;
+			g_WorldDetailTextureScale = g_CV_DetailTextureScale.m_FloatVal;
 			if (((RTextureBase *)g_pBoundTextures[0])->IsRTexture() == 1)
 			{
-				DAT_100514a8 = DAT_100514a8 * ((UnkType_RTextureData *)g_pBoundTextures[0])->m_pOwner->m_DetailTextureScale;
-				DAT_100518d0 = ((UnkType_RTextureData *)g_pBoundTextures[0])->m_pOwner->m_DetailTextureAngleC;
-				DAT_100513e0 = ((UnkType_RTextureData *)g_pBoundTextures[0])->m_pOwner->m_DetailTextureAngleS;
+				g_WorldDetailTextureScale = g_WorldDetailTextureScale * ((UnkType_RTextureData *)g_pBoundTextures[0])->m_pOwner->m_DetailTextureScale;
+				g_WorldDetailTextureAngleCos = ((UnkType_RTextureData *)g_pBoundTextures[0])->m_pOwner->m_DetailTextureAngleC;
+				g_WorldDetailTextureAngleSin = ((UnkType_RTextureData *)g_pBoundTextures[0])->m_pOwner->m_DetailTextureAngleS;
 			}
 			else
 			{
-				DAT_100518d0 = 1.0f;
-				DAT_100513e0 = 0.0f;
+				g_WorldDetailTextureAngleCos = 1.0f;
+				g_WorldDetailTextureAngleSin = 0.0f;
 			}
 			d3d_SetDetailTextureStates();
-			FUN_1000a8c0(pBucket, a3, a4);
+			d3d_DrawDualTextureWorldBucket(pBucket, a3, a4);
 			d3d_UnsetDetailTexture();
 		}
 		else
-			FUN_1000a70d(pBucket, a3, a4);
+			d3d_DrawSingleTextureWorldBucket(pBucket, a3, a4);
 	}
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 }
 
 // guess: draws the polys of one texture bucket with a single texture (the base texture bound by the caller): one triangle fan
@@ -647,7 +647,7 @@ void FUN_1000a538(UnkType_PoolBucket *pBucket, SharedTexture *pTexture, int a3, 
 // (+0x14: bit 0 blended, bit 1 saturate, bit 2 keeps its vertex colour) ask; the lightmap coordinates are scaled by the stage
 // scale unless a3.  a2 gives the nodes back to the pool.
 // FUNCTION: D3DREN 0x1000a70d
-void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3)
+void d3d_DrawSingleTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 {
 	int bAlphaBlend = 1;
 	int bSaturate = 1;
@@ -663,12 +663,12 @@ void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, bAlphaBlend);
 				if (bAlphaBlend == 0)
 				{
-					uint32 dwFogColor = FUN_100139d0(DAT_10058040, DAT_10058041, DAT_10058042);
+					uint32 dwFogColor = d3d_PackRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 				else
 				{
-					uint32 dwFogColor = FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042);
+					uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 			}
@@ -684,7 +684,7 @@ void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3)
 				}
 			}
 			int bKeepColor = (pNode->m_Unk14 >> 2) & 1;
-			TLVertex *pVerts = DAT_100587fc + pNode->m_Unk04;
+			TLVertex *pVerts = g_pQueuedWorldPolyVertices + pNode->m_Unk04;
 			if (a3 == 0)
 			{
 				TLVertex *pVert = pVerts;
@@ -693,19 +693,19 @@ void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3)
 				{
 					if (bKeepColor == 0)
 						pVert->color = 0xffffffff;
-					SetUV(pVert, DAT_10061810[0].m_Unk00 * pVert->tu, DAT_10061810[0].m_Unk04 * pVert->tv);
+					SetUV(pVert, g_TextureStageTexelSizes[0].m_Unk00 * pVert->tu, g_TextureStageTexelSizes[0].m_Unk04 * pVert->tv);
 					pVert++;
 				}
 			}
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, pNode->m_Unk08, 0);
 			if (a2 != 0)
-				sb_Free(&DAT_10058758, pNode);
+				sb_Free(&g_WorldPolyNodeBank, pNode);
 			pNode = pNext;
 		} while (pNode);
 		if (bAlphaBlend == 0 || bSaturate == 0)
 		{
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-			uint32 dwFogColor = FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042);
+			uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 			if (g_Saturate != 0)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
@@ -729,16 +729,16 @@ void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3)
 // the statement permuter (3000 candidates, best 80 aligned mismatches).  Source-shape problem of the 2x2 matrix setup (the original
 // probably builds the matrix through a helper or a differently typed expression).
 // STUB: D3DREN 0x1000a8c0
-void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
+void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 {
 	UnkType_TLVertex40 aVerts[80];
 	float aTexMat[2][2];
-	float fU = DAT_100514a8 * DAT_10061810[1].m_Unk00;
-	float fV = DAT_10061810[1].m_Unk04 * DAT_100514a8;
-	aTexMat[0][0] = DAT_100518d0 * fU;
-	aTexMat[0][1] = -(DAT_100513e0 * fV);
-	aTexMat[1][0] = DAT_100513e0 * fU;
-	aTexMat[1][1] = DAT_100518d0 * fV;
+	float fU = g_WorldDetailTextureScale * g_TextureStageTexelSizes[1].m_Unk00;
+	float fV = g_TextureStageTexelSizes[1].m_Unk04 * g_WorldDetailTextureScale;
+	aTexMat[0][0] = g_WorldDetailTextureAngleCos * fU;
+	aTexMat[0][1] = -(g_WorldDetailTextureAngleSin * fV);
+	aTexMat[1][0] = g_WorldDetailTextureAngleSin * fU;
+	aTexMat[1][1] = g_WorldDetailTextureAngleCos * fV;
 	int bAlphaBlend = 1;
 	int bSaturate = 1;
 	UnkType_PoolNode *pNode = pBucket->m_Unk04;
@@ -754,12 +754,12 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, bAlphaBlend);
 				if (bAlphaBlend == 0)
 				{
-					uint32 dwFogColor = FUN_100139d0(DAT_10058040, DAT_10058041, DAT_10058042);
+					uint32 dwFogColor = d3d_PackRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 				else
 				{
-					uint32 dwFogColor = FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042);
+					uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 			}
@@ -777,7 +777,7 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 			int bKeepColor = (pNode->m_Unk14 >> 2) & 1;
 			if (((Surface *)pPoly->m_pSurface)->m_pTexture->m_eTexType == 0 || g_CV_EnvMapWorld.m_IntVal == 0)
 			{
-				TLVertex *pSrc = DAT_100587fc + pNode->m_Unk04;
+				TLVertex *pSrc = g_pQueuedWorldPolyVertices + pNode->m_Unk04;
 				UnkType_TLVertex40 *pDest = aVerts;
 				int nVerts = pNode->m_Unk08;
 				int i = nVerts;
@@ -786,7 +786,7 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 					*(TLVertex *)pDest = *pSrc;
 					if (bKeepColor == 0)
 						pDest->color = 0xffffffff;
-					SetUV(pDest, DAT_10061810[0].m_Unk00 * pSrc->tu, DAT_10061810[0].m_Unk04 * pSrc->tv);
+					SetUV(pDest, g_TextureStageTexelSizes[0].m_Unk00 * pSrc->tu, g_TextureStageTexelSizes[0].m_Unk04 * pSrc->tv);
 					pDest->tu2 = aTexMat[0][0] * pSrc->tu + aTexMat[0][1] * pSrc->tv;
 					pDest->tv2 = aTexMat[1][0] * pSrc->tu + aTexMat[1][1] * pSrc->tv;
 					pSrc++;
@@ -815,34 +815,34 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 					pDest->m_Vec.y = pSrc->m_Vec->y;
 					pDest->m_Vec.z = pSrc->m_Vec->z;
 					if (bKeepColor == 0)
-						pDest->color = DAT_100566bc.color;
+						pDest->color = g_GlobalVertexTintColor.color;
 					else
 					{
-						pDest->rgb.r = DAT_10082168.m_Unk00[DAT_100566bc.rgb.r + pSrc->m_Color[2] * 256];
-						pDest->rgb.g = DAT_10082168.m_Unk00[DAT_100566bc.rgb.g + pSrc->m_Color[1] * 256];
-						pDest->rgb.b = DAT_10082168.m_Unk00[DAT_100566bc.rgb.b + pSrc->m_Color[0] * 256];
-						pDest->rgb.a = DAT_10082168.m_Unk00[DAT_100566bc.rgb.a + pSrc->m_Color[3] * 256];
+						pDest->rgb.r = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.r + pSrc->m_Color[2] * 256];
+						pDest->rgb.g = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.g + pSrc->m_Color[1] * 256];
+						pDest->rgb.b = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.b + pSrc->m_Color[0] * 256];
+						pDest->rgb.a = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.a + pSrc->m_Color[3] * 256];
 					}
-					pDest->tu2 = DAT_10061810[1].m_Unk00 * pSrc->m_U;
-					pDest->tv2 = DAT_10061810[1].m_Unk04 * pSrc->m_V;
+					pDest->tu2 = g_TextureStageTexelSizes[1].m_Unk00 * pSrc->m_U;
+					pDest->tv2 = g_TextureStageTexelSizes[1].m_Unk04 * pSrc->m_V;
 					(*g_pfnCalcFogAlpha)(&pDest->m_Vec, &pDest->specular);
-					FUN_1001085e((LTVector *)&g_ViewParams.m_Pos, pSrc->m_Vec, &pPoly->m_pPlane->m_Normal, &pDest->tu, &pDest->tv);
-					pDest->tu = DAT_100514a8 * pDest->tu;
-					pDest->tv = DAT_100514a8 * pDest->tv;
+					d3d_CalcWorldReflectionUVs((LTVector *)&g_ViewParams.m_Pos, pSrc->m_Vec, &pPoly->m_pPlane->m_Normal, &pDest->tu, &pDest->tv);
+					pDest->tu = g_WorldDetailTextureScale * pDest->tu;
+					pDest->tv = g_WorldDetailTextureScale * pDest->tv;
 					pDest++;
 					pSrc++;
 				}
 				g_ClipFlags = pNode->m_Unk0c;
-				FUN_1000ae2f(aVerts, nVerts, &g_ViewParams, 0x2c4);
+				d3d_DrawClippedDualTextureTriangleFan(aVerts, nVerts, &g_ViewParams, 0x2c4);
 			}
 			if (a2 != 0)
-				sb_Free(&DAT_10058758, pNode);
+				sb_Free(&g_WorldPolyNodeBank, pNode);
 			pNode = pNext;
 		} while (pNode);
 		if (bAlphaBlend == 0 || bSaturate == 0)
 		{
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-			uint32 dwFogColor = FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042);
+			uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 			if (g_Saturate != 0)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
@@ -854,19 +854,19 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 
 // guess: draws the queued lightmap polys if there are any.
 // FUNCTION: D3DREN 0x1000ac7b
-void FUN_1000ac7b(void)
+void d3d_FlushPendingWorldTextureBuckets(void)
 {
-	if (DAT_1005a308)
-		FUN_1000a2a7();
+	if (g_pTexturedWorldPolyBuckets)
+		d3d_FlushWorldTextureBuckets();
 }
 
-// guess: draws the polys that were queued per lightmap page (DAT_100528d4) with FUN_100099b9, frees their nodes and empties
+// guess: draws the polys that were queued per lightmap page (g_pQueuedLightmapPageHead) with DrawLightmappedWorldPoly, frees their nodes and empties
 // the queue; the fog colour is set around the loop.
 // FUNCTION: D3DREN 0x1000ac8a
-void FUN_1000ac8a(void)
+void d3d_FlushLightmapPageQueues(void)
 {
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042));
-	LightmapPage *pPage = DAT_100528d4;
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
+	LightmapPage *pPage = g_pQueuedLightmapPageHead;
 	while (pPage)
 	{
 		LightmapPage *pNextPage = LMPAGE_NEXT(pPage);
@@ -875,22 +875,22 @@ void FUN_1000ac8a(void)
 		{
 			UnkType_PoolNode *pNext = pNode->m_Unk10;
 			g_ClipFlags = pNode->m_Unk0c;
-			FUN_100099b9((WorldPoly *)pNode->m_Unk00);
-			sb_Free(&DAT_10058758, pNode);
+			DrawLightmappedWorldPoly((WorldPoly *)pNode->m_Unk00);
+			sb_Free(&g_WorldPolyNodeBank, pNode);
 			pNode = pNext;
 		}
 		LMPAGE_NEXT(pPage) = 0;
 		LMPAGE_QUEUE(pPage) = 0;
 		pPage = pNextPage;
 	}
-	DAT_100528d4 = 0;
+	g_pQueuedLightmapPageHead = 0;
 }
 
 // guess: draws the polygon pVerts (nVerts 0x20-byte vertices, vertex format nFVF) as a triangle fan: projected at once when it
 // needs no clipping (g_ClipFlags == 0, or with "UseD3DClip" set and the near plane not involved), else as one projected and
 // clipped triangle per fan triangle.
 // FUNCTION: D3DREN 0x1000ad48
-void FUN_1000ad48(TLVertex *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF)
+void d3d_DrawClippedTriangleFan(TLVertex *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF)
 {
 	TLVertex aTri[32];
 	TLVertex *pTri;
@@ -899,7 +899,7 @@ void FUN_1000ad48(TLVertex *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF
 
 	if (g_ClipFlags == 0 || (g_CV_UseD3DClip.m_IntVal && (g_ClipFlags & 1) == 0))
 	{
-		if (FUN_1000af16(&pVerts, &nVerts, pParams, 0))
+		if (d3d_ClipAndProjectTLVertices(&pVerts, &nVerts, pParams, 0))
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, nFVF, pVerts, nVerts, 0);
 	}
 	else if (nVerts > 2)
@@ -912,7 +912,7 @@ void FUN_1000ad48(TLVertex *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF
 			aTri[2] = pTri[2];
 			nTriVerts = 3;
 			pTriVerts = aTri;
-			if (FUN_1000af16(&pTriVerts, &nTriVerts, pParams, 0))
+			if (d3d_ClipAndProjectTLVertices(&pTriVerts, &nTriVerts, pParams, 0))
 				g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, nFVF, pTriVerts, nTriVerts, 0);
 			pTri++;
 			nVerts--;
@@ -920,9 +920,9 @@ void FUN_1000ad48(TLVertex *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF
 	}
 }
 
-// guess: the 0x28-byte twin of FUN_1000ad48 (the vertices carry the second texture coordinates).
+// guess: the 0x28-byte twin of d3d_DrawClippedTriangleFan (the vertices carry the second texture coordinates).
 // FUNCTION: D3DREN 0x1000ae2f
-void FUN_1000ae2f(UnkType_TLVertex40 *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF)
+void d3d_DrawClippedDualTextureTriangleFan(UnkType_TLVertex40 *pVerts, int nVerts, ViewParams *pParams, uint32 nFVF)
 {
 	UnkType_TLVertex40 aTri[32];
 	UnkType_TLVertex40 *pTri;
@@ -931,7 +931,7 @@ void FUN_1000ae2f(UnkType_TLVertex40 *pVerts, int nVerts, ViewParams *pParams, u
 
 	if (g_ClipFlags == 0 || (g_CV_UseD3DClip.m_IntVal && (g_ClipFlags & 1) == 0))
 	{
-		if (FUN_100085f2(&pVerts, &nVerts, pParams, 0))
+		if (TransformClipProjectPolygon40(&pVerts, &nVerts, pParams, 0))
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, nFVF, pVerts, nVerts, 0);
 	}
 	else if (nVerts > 2)
@@ -944,7 +944,7 @@ void FUN_1000ae2f(UnkType_TLVertex40 *pVerts, int nVerts, ViewParams *pParams, u
 			aTri[2] = pTri[2];
 			nTriVerts = 3;
 			pTriVerts = aTri;
-			if (FUN_100085f2(&pTriVerts, &nTriVerts, pParams, 0))
+			if (TransformClipProjectPolygon40(&pTriVerts, &nTriVerts, pParams, 0))
 				g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, nFVF, pTriVerts, nTriVerts, 0);
 			pTri++;
 			nVerts--;
@@ -954,10 +954,10 @@ void FUN_1000ae2f(UnkType_TLVertex40 *pVerts, int nVerts, ViewParams *pParams, u
 
 // guess: projects the 0x20-byte vertices *ppVerts (*pnVerts of them) to the screen: without clip planes (g_ClipFlags == 0)
 // through the view * projection matrix (rhw = 1 / w); else to camera space, clipped (ClipPoly) and then projected
-// (ProjectVertexToScreen).  Returns 0 when the clipping leaves nothing.  0x28-byte twin: FUN_100085f2.  The fourth argument is not used
-// (every caller passes 0, as for FUN_100085f2).
+// (ProjectVertexToScreen).  Returns 0 when the clipping leaves nothing.  0x28-byte twin: TransformClipProjectPolygon40.  The fourth argument is not used
+// (every caller passes 0, as for TransformClipProjectPolygon40).
 // FUNCTION: D3DREN 0x1000af16
-int FUN_1000af16(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int param_4)
+int d3d_ClipAndProjectTLVertices(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int param_4)
 {
 	TLVertex *pVert;
 	int i;
@@ -976,7 +976,7 @@ int FUN_1000af16(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int para
 		pVert = *ppVerts;
 		for (i = *pnVerts; i != 0; i--)
 		{
-			FUN_10008719(&pVert->m_Vec.x, &pParams->m_mClipTransform.m[0][0]);
+			TransformPositionInPlace(&pVert->m_Vec.x, &pParams->m_mClipTransform.m[0][0]);
 			pVert++;
 		}
 		if (!ClipPoly(g_ClipFlags, ppVerts, pnVerts))
@@ -1036,7 +1036,7 @@ Exit:
 // guess: Jupiter polyclip.h expanded for the near plane (z >= g_ViewParams.m_NearZ) on 0x20-byte vertices: *ppVerts / *pnVerts are the
 // polygon (replaced by the clipped copy built at *ppOut, which advances); returns 0 when nothing is inside.  The first
 // argument is unused.  Its inside[] array is a function-local static of the original (0x10094de0), shared with the copy
-// inlined in FUN_10001530.
+// inlined in ClipModelPolygon32.
 // FUNCTION: D3DREN 0x1000b0cd
 int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut)
 {
@@ -1049,8 +1049,8 @@ int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
-	pInside = DAT_10094de0;
+	g_nPlaneClipTests++;
+	pInside = g_ClipNearInsideFlagsTLVertex;
 	pCur = pVerts;
 	pEnd = pCur + nVerts;
 	while (pCur != pEnd)
@@ -1070,11 +1070,11 @@ int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 		for (iCur = 0; iCur < nVerts; iCur++)
 		{
 			pCur = pVerts + iCur;
-			if (DAT_10094de0[iPrev])
+			if (g_ClipNearInsideFlagsTLVertex[iPrev])
 				*pOut++ = *pPrev;
-			if (DAT_10094de0[iPrev] != DAT_10094de0[iCur])
+			if (g_ClipNearInsideFlagsTLVertex[iPrev] != g_ClipNearInsideFlagsTLVertex[iCur])
 			{
-				t = FUN_10001a50(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+				t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
 				TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 				++pOut;
 			}
@@ -1101,8 +1101,8 @@ int ClipPolyLeft(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 	int iPrev, iCur;
 	float t;
 
-	DAT_1005668c++;
-	pInside = DAT_10094ec0;
+	g_nPlaneClipTests++;
+	pInside = g_ClipLeftInsideFlagsTLVertex;
 	pCur = pVerts;
 	pEnd = pCur + nVerts;
 	while (pCur != pEnd)
@@ -1122,11 +1122,11 @@ int ClipPolyLeft(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 		for (iCur = 0; iCur < nVerts; iCur++)
 		{
 			pCur = pVerts + iCur;
-			if (DAT_10094ec0[iPrev])
+			if (g_ClipLeftInsideFlagsTLVertex[iPrev])
 				*pOut++ = *pPrev;
-			if (DAT_10094ec0[iPrev] != DAT_10094ec0[iCur])
+			if (g_ClipLeftInsideFlagsTLVertex[iPrev] != g_ClipLeftInsideFlagsTLVertex[iCur])
 			{
-				t = FUN_10001ac0(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+				t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
 				TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 				++pOut;
 			}

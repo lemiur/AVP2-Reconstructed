@@ -39,21 +39,21 @@ static UnkType_TLVertex40 *g_TriVertList = 0;
 static uint32 g_TriVertListSize = 0;
 // guess: the index list of the clipped polygrid (indices of the triangles that survive the clip test)
 // GLOBAL: D3DREN 0x10070858
-static uint16 *DAT_10070858 = 0;
+static uint16 *g_pPolyGridClippedIndices = 0;
 // GLOBAL: D3DREN 0x1007044c
-static uint32 DAT_1007044c = 0;
+static uint32 g_PolyGridClippedIndexCapacity = 0;
 
 // guess: u scale / u offset / v offset / v scale / alpha scale of the polygrid being drawn
 // GLOBAL: D3DREN 0x10070438
-static float DAT_10070438;
+static float g_PolyGridUScale;
 // GLOBAL: D3DREN 0x1007043c
-static float DAT_1007043c;
+static float g_PolyGridUOffset;
 // GLOBAL: D3DREN 0x10070440
-static float DAT_10070440;
+static float g_PolyGridVOffset;
 // GLOBAL: D3DREN 0x10070444
-static float DAT_10070444;
+static float g_PolyGridVScale;
 // GLOBAL: D3DREN 0x10070854
-static float DAT_10070854;
+static float g_PolyGridAlphaScale;
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Globals / functions of other units
@@ -66,29 +66,29 @@ struct UnkType_StageUV
 	float	m_Unk04;
 };
 // GLOBAL: D3DREN 0x10061810
-extern UnkType_StageUV DAT_10061810[8];
+extern UnkType_StageUV g_TextureStageTexelSizes[8];
 
 // The gamma / colour correction tables the vertex colours are looked up in (one byte per input level).
 // GLOBAL: D3DREN 0x1005a004
-extern uint8 DAT_1005a004[256];
+extern uint8 g_VertexTintTableR[256];
 // GLOBAL: D3DREN 0x1005a104
-extern uint8 DAT_1005a104[256];
+extern uint8 g_VertexTintTableG[256];
 // GLOBAL: D3DREN 0x1005a204
-extern uint8 DAT_1005a204[256];
+extern uint8 g_VertexTintTableB[256];
 
 
 // The 0x28-byte vertex plane clippers / projection of the world polygon code (units unk/10001000 and unk/10007930).
 void ProjectVertexToScreen(float *pVert, const void *pViewParams);
-int FUN_100088ec(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10008a23(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10006e40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int FUN_10007670(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyNear40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyLeft40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 
 // guess: environment map texture coordinates of one vertex (common_draw): from the viewer position, the vertex position and the
 // vertex normal; writes u and v.  (Defined by unit sys/d3d/common_stuff with LTVector arguments; polydraw.h declares it with float *.)
-void FUN_1001085e(LTVector *pViewPos, LTVector *pPos, LTVector *pNormal, float *pU, float *pV);
+void d3d_CalcWorldReflectionUVs(LTVector *pViewPos, LTVector *pPos, LTVector *pNormal, float *pU, float *pV);
 
 // The shared inline helpers (d3d_GetBlendStates: d3d_draw.h, d3d_SetupTransformation: 3d_ops.h, d3d_SetTexture / d3d_DisableTexture:
 // d3d_texture.h) are expanded in place by this A object, as in the exe.
@@ -108,17 +108,17 @@ struct UnkType_PGColor
 	float	m_Unk0c;	// a
 };
 
-int FUN_1002c560(uint32 nClipFlags, uint32 *pOutFlags, float *pV0, float *pV1, float *pV2);
-void FUN_1002c840(LTPolyGrid *pGrid, LTVector *pYAxis, LTVector *pXAxis, LTVector *pZAxis);
-void FUN_1002cf10(UnkType_TLVertex40 *pVerts, int nVerts);
+int ClassifyPolyGridTriangle(uint32 nClipFlags, uint32 *pOutFlags, float *pV0, float *pV1, float *pV2);
+void GeneratePolyGridEnvMapUV(LTPolyGrid *pGrid, LTVector *pYAxis, LTVector *pXAxis, LTVector *pZAxis);
+void ProjectPolyGridVertices(UnkType_TLVertex40 *pVerts, int nVerts);
 void d3d_DrawPolyGrid(ViewParams *pParams, LTObject *pObj);
-void FUN_1002cdf0(ViewParams *pParams, LTObject *pObj);
+void d3d_QueuePolyGrid(ViewParams *pParams, LTObject *pObj);
 
 // The two vertex generation loops of d3d_DrawPolyGrid (data bytes unsigned / signed) as separate inline helpers: the exe expands them one
 // inline level deeper than the rest of the function (the calls of LTVector::operator+ / operator* inside them stay out of line).
-// NAME: none, guess: FUN_1002aff0_inl1 / FUN_1002aff0_inl2 stand for the (nameless) inline helpers expanded inside 0x1002aff0.
+// NAME: none, guess: GenerateUnsignedPolyGridVertices / GenerateSignedPolyGridVertices stand for the (nameless) inline helpers expanded inside 0x1002aff0.
 // unsigned data bytes (FLAG_UNSIGNED): colour table index = byte, no specular store
-inline void FUN_1002aff0_inl1(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVector vOrigin, LTVector &vXInc, LTVector &vYAxis, LTVector &vZInc, int bEnvMap)
+inline void GenerateUnsignedPolyGridVertices(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVector vOrigin, LTVector &vXInc, LTVector &vYAxis, LTVector &vZInc, int bEnvMap)
 {
 	uint8 *pRowData = (uint8 *)pGrid->m_Data;
 	LTVector vRow = vOrigin;
@@ -138,19 +138,19 @@ inline void FUN_1002aff0_inl1(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVe
 			UnkType_PGColor *pColor = (UnkType_PGColor *)pGrid->m_ColorTable + nData;
 
 			pVert->m_Vec = vCur + vYAxis * (float)nData;
-			pVert->rgb.r = DAT_1005a004[(uint8)(int)pColor->m_Unk00];
-			pVert->rgb.g = DAT_1005a104[(uint8)(int)pColor->m_Unk04];
-			pVert->rgb.b = DAT_1005a204[(uint8)(int)pColor->m_Unk08];
-			pVert->rgb.a = (uint8)(DAT_10070854 * pColor->m_Unk0c);
+			pVert->rgb.r = g_VertexTintTableR[(uint8)(int)pColor->m_Unk00];
+			pVert->rgb.g = g_VertexTintTableG[(uint8)(int)pColor->m_Unk04];
+			pVert->rgb.b = g_VertexTintTableB[(uint8)(int)pColor->m_Unk08];
+			pVert->rgb.a = (uint8)(g_PolyGridAlphaScale * pColor->m_Unk0c);
 			if (bEnvMap)
 			{
-				pVert->tu2 = (fU + DAT_1007043c) * DAT_10070438;
-				pVert->tv2 = (fV + DAT_10070440) * DAT_10070444;
+				pVert->tu2 = (fU + g_PolyGridUOffset) * g_PolyGridUScale;
+				pVert->tv2 = (fV + g_PolyGridVOffset) * g_PolyGridVScale;
 			}
 			else
 			{
-				pVert->tu = (fU + DAT_1007043c) * DAT_10070438;
-				pVert->tv = (fV + DAT_10070440) * DAT_10070444;
+				pVert->tu = (fU + g_PolyGridUOffset) * g_PolyGridUScale;
+				pVert->tv = (fV + g_PolyGridVOffset) * g_PolyGridVScale;
 			}
 
 			vCur.x += vXInc.x;
@@ -170,7 +170,7 @@ inline void FUN_1002aff0_inl1(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVe
 }
 
 // signed data bytes: colour table index = byte + 128, specular = 0xffffffff
-inline void FUN_1002aff0_inl2(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVector vOrigin, LTVector &vXInc, LTVector &vYAxis, LTVector &vZInc, int bEnvMap)
+inline void GenerateSignedPolyGridVertices(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVector vOrigin, LTVector &vXInc, LTVector &vYAxis, LTVector &vZInc, int bEnvMap)
 {
 	char *pRowData = pGrid->m_Data;
 	LTVector vRow = vOrigin;
@@ -190,20 +190,20 @@ inline void FUN_1002aff0_inl2(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVe
 			UnkType_PGColor *pColor = (UnkType_PGColor *)pGrid->m_ColorTable + (nData + 128);
 
 			pVert->m_Vec = vCur + vYAxis * (float)nData;
-			pVert->rgb.r = DAT_1005a004[(uint8)(int)pColor->m_Unk00];
-			pVert->rgb.g = DAT_1005a104[(uint8)(int)pColor->m_Unk04];
-			pVert->rgb.b = DAT_1005a204[(uint8)(int)pColor->m_Unk08];
-			pVert->rgb.a = (uint8)(DAT_10070854 * pColor->m_Unk0c);
+			pVert->rgb.r = g_VertexTintTableR[(uint8)(int)pColor->m_Unk00];
+			pVert->rgb.g = g_VertexTintTableG[(uint8)(int)pColor->m_Unk04];
+			pVert->rgb.b = g_VertexTintTableB[(uint8)(int)pColor->m_Unk08];
+			pVert->rgb.a = (uint8)(g_PolyGridAlphaScale * pColor->m_Unk0c);
 			pVert->specular = 0xffffffff;
 			if (bEnvMap)
 			{
-				pVert->tu2 = (fU + DAT_1007043c) * DAT_10070438;
-				pVert->tv2 = (fV + DAT_10070440) * DAT_10070444;
+				pVert->tu2 = (fU + g_PolyGridUOffset) * g_PolyGridUScale;
+				pVert->tv2 = (fV + g_PolyGridVOffset) * g_PolyGridVScale;
 			}
 			else
 			{
-				pVert->tu = (fU + DAT_1007043c) * DAT_10070438;
-				pVert->tv = (fV + DAT_10070440) * DAT_10070444;
+				pVert->tu = (fU + g_PolyGridUOffset) * g_PolyGridUScale;
+				pVert->tv = (fV + g_PolyGridVOffset) * g_PolyGridVScale;
 			}
 
 			vCur.x += vXInc.x;
@@ -236,9 +236,9 @@ inline void FUN_1002aff0_inl2(LTPolyGrid *pGrid, UnkType_TLVertex40 *pVert, LTVe
 // Structure (everything below follows the exe's code): blend states (d3d_GetBlendStates + four StateSets) -> frustum test of the bounding
 // sphere (6 planes of ViewParams, gives the clip mask) -> texture binding (base texture on stage 0, or on stage 1 with the linked
 // texture = environment map on stage 0, d3d_SetTexture expanded in place) -> texture coordinate terms -> object transform x centering
-// translation (d3d_SetupTransformation, LTMatrix::Identity, MatMul) -> 0x28-byte vertex list (FUN_1002aff0_inl1/2) -> optional
-// environment map coordinates (FUN_1002c840) -> either the clipped path (view transform, per triangle FUN_1002c560 classification,
-// partial triangles copied and clipped by the 0x28-byte plane clippers, then FUN_1002cf10 projection + DrawIndexedPrimitive) or the
+// translation (d3d_SetupTransformation, LTMatrix::Identity, MatMul) -> 0x28-byte vertex list (GenerateUnsignedPolyGridVertices/2) -> optional
+// environment map coordinates (GeneratePolyGridEnvMapUV) -> either the clipped path (view transform, per triangle ClassifyPolyGridTriangle classification,
+// partial triangles copied and clipped by the 0x28-byte plane clippers, then ProjectPolyGridVertices projection + DrawIndexedPrimitive) or the
 // unclipped path (one combined matrix, DrawIndexedPrimitive) -> StateSet destructors restore the blend states.
 //
 // STUB: best effort, 5376 of 5488 bytes; build.py diff -a: 1331 instruction mismatches, 734 ignoring stack offsets (1406 vs 1378 instructions).  Remaining
@@ -311,7 +311,7 @@ void d3d_DrawPolyGrid(ViewParams *pParams, LTObject *pObj)
 			SharedTexture *pTex = pTracker->m_pCurFrame->m_pTex;
 
 			// The linked texture of the base texture is the environment map.
-			if (DAT_1005de2c && g_pBoundTextures[0] && pTex->m_pLinkedTexture && pTex->m_eTexType &&
+			if (g_bTwoTextureStageBlendValidated && g_pBoundTextures[0] && pTex->m_pLinkedTexture && pTex->m_eTexType &&
 				g_CV_EnvMapPolyGrids.m_IntVal && d3d_SetTexture(pTex->m_pLinkedTexture, 0, 0))
 			{
 				bEnvMap = 1;
@@ -324,9 +324,9 @@ void d3d_DrawPolyGrid(ViewParams *pParams, LTObject *pObj)
 			nStage = (bEnvMap != 0);
 			if (d3d_SetTexture(pTracker->m_pCurFrame->m_pTex, nStage, 0))
 			{
-				DAT_10063c90.FUN_10021da6();
+				g_TextureStateRestorer.RestoreAllStates();
 				if (pTracker->m_pCurFrame->m_pTex->m_pStateChange)
-					DAT_10063c90.FUN_10021db7(pTracker->m_pCurFrame->m_pTex->m_pStateChange, nStage);
+					g_TextureStateRestorer.ApplyStateChange(pTracker->m_pCurFrame->m_pTex->m_pStateChange, nStage);
 				nStage = bEnvMap ? 1 : 0;
 				goto Textured;
 			}
@@ -339,14 +339,14 @@ void d3d_DrawPolyGrid(ViewParams *pParams, LTObject *pObj)
 Textured:
 
 	// Texture coordinate terms of this grid.
-	DAT_1007043c = pGrid->m_xPan * DAT_10061810[nStage].m_Unk00;
-	DAT_10070440 = pGrid->m_yPan * DAT_10061810[nStage].m_Unk04;
-	DAT_10070438 = (1.0f / pGrid->m_xScale) * pGrid->m_Scale.x * DAT_10061810[nStage].m_Unk00;
-	DAT_10070444 = (1.0f / pGrid->m_yScale) * DAT_10061810[nStage].m_Unk04 * pGrid->m_Scale.z;
+	g_PolyGridUOffset = pGrid->m_xPan * g_TextureStageTexelSizes[nStage].m_Unk00;
+	g_PolyGridVOffset = pGrid->m_yPan * g_TextureStageTexelSizes[nStage].m_Unk04;
+	g_PolyGridUScale = (1.0f / pGrid->m_xScale) * pGrid->m_Scale.x * g_TextureStageTexelSizes[nStage].m_Unk00;
+	g_PolyGridVScale = (1.0f / pGrid->m_yScale) * g_TextureStageTexelSizes[nStage].m_Unk04 * pGrid->m_Scale.z;
 	bClip = (nClipFlags & 0x3f) != 0;
-	DAT_10070438 = ((float)pGrid->m_Width / (int)(pGrid->m_Width - 1)) * DAT_10070438;
-	DAT_10070444 = ((float)pGrid->m_Height / (int)(pGrid->m_Height - 1)) * DAT_10070444;
-	DAT_10070854 = (float)pGrid->m_ColorA * 0.003921569f;
+	g_PolyGridUScale = ((float)pGrid->m_Width / (int)(pGrid->m_Width - 1)) * g_PolyGridUScale;
+	g_PolyGridVScale = ((float)pGrid->m_Height / (int)(pGrid->m_Height - 1)) * g_PolyGridVScale;
+	g_PolyGridAlphaScale = (float)pGrid->m_ColorA * 0.003921569f;
 
 	// specify that we were visible
 	pGrid->m_Flags |= FLAG_INTERNAL1;
@@ -389,29 +389,29 @@ Textured:
 	UnkType_TLVertex40 *pVerts = g_TriVertList;
 
 	if (pGrid->m_Flags & FLAG_UNSIGNED)
-		FUN_1002aff0_inl1(pGrid, pVerts, vOrigin, vXInc, vYAxis, vZInc, bEnvMap);
+		GenerateUnsignedPolyGridVertices(pGrid, pVerts, vOrigin, vXInc, vYAxis, vZInc, bEnvMap);
 	else
-		FUN_1002aff0_inl2(pGrid, pVerts, vOrigin, vXInc, vYAxis, vZInc, bEnvMap);
+		GenerateSignedPolyGridVertices(pGrid, pVerts, vOrigin, vXInc, vYAxis, vZInc, bEnvMap);
 
 	// The environment map texture coordinates (first stage of the 2-stage setup).
 	if (bEnvMap)
 	{
-		FUN_1002c840(pGrid, &vYAxis, &vXInc, &vZInc);
+		GeneratePolyGridEnvMapUV(pGrid, &vYAxis, &vXInc, &vZInc);
 		d3d_SetEnvMapTextureStates(pTracker->m_pCurFrame->m_pTex->m_eTexType);
 	}
 
 	if (bClip)
 	{
 		// Transform to view space, clip the triangles that are not completely inside, project the rest.
-		if (pGrid->m_nIndices > DAT_1007044c)
+		if (pGrid->m_nIndices > g_PolyGridClippedIndexCapacity)
 		{
-			DAT_10070858 = (uint16 *)dalloc(pGrid->m_nIndices * 2);
-			if (!DAT_10070858)
+			g_pPolyGridClippedIndices = (uint16 *)dalloc(pGrid->m_nIndices * 2);
+			if (!g_pPolyGridClippedIndices)
 			{
-				DAT_1007044c = 0;
+				g_PolyGridClippedIndexCapacity = 0;
 				return;
 			}
-			DAT_1007044c = pGrid->m_nIndices;
+			g_PolyGridClippedIndexCapacity = pGrid->m_nIndices;
 		}
 
 		UnkType_TLVertex40 *pCur = pVerts;
@@ -425,7 +425,7 @@ Textured:
 		uint32 nTrisPerRow = pGrid->m_Width * 2 - 2;
 		uint32 nRowIndices = pGrid->m_Width * 6 - 6;
 		uint32 nRows = pGrid->m_Height - 1;
-		uint16 *pOut = DAT_10070858;
+		uint16 *pOut = g_pPolyGridClippedIndices;
 
 		while (nRows--)
 		{
@@ -435,7 +435,7 @@ Textured:
 			while (nTris--)
 			{
 				uint32 nTriFlags;
-				int nResult = FUN_1002c560(nClipFlags, &nTriFlags,
+				int nResult = ClassifyPolyGridTriangle(nClipFlags, &nTriFlags,
 										   (float *)(pVerts + pIndex[0]),
 										   (float *)(pVerts + pIndex[1]),
 										   (float *)(pVerts + pIndex[2]));
@@ -458,15 +458,15 @@ Textured:
 					aVerts[1] = *(UnkType_PGVertex *)&pVerts[pIndex[1]];
 					aVerts[2] = *(UnkType_PGVertex *)&pVerts[pIndex[2]];
 
-					// The clip of FUN_10008779 written out in place (when Direct3D clips the sides only the near plane is done here).
+					// The clip of ClipPolygon40 written out in place (when Direct3D clips the sides only the near plane is done here).
 					if (g_CV_UseD3DClip.m_IntVal == 0 || (nFlags &= 1) != 0)
 					{
-						if (((nFlags & 1) && !FUN_100088ec(&bUnused0, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 4) && !FUN_10008a23(&bUnused1, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 8) && !FUN_10006e40(&bUnused2, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 0x10) && !FUN_10007100(&bUnused3, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 0x20) && !FUN_100073b0(&bUnused4, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 2) && !FUN_10007670(&bUnused5, &pIn, &nVerts, &pClipOut)))
+						if (((nFlags & 1) && !ClipPolyNear40(&bUnused0, &pIn, &nVerts, &pClipOut)) ||
+							((nFlags & 4) && !ClipPolyLeft40(&bUnused1, &pIn, &nVerts, &pClipOut)) ||
+							((nFlags & 8) && !ClipPolyTop40(&bUnused2, &pIn, &nVerts, &pClipOut)) ||
+							((nFlags & 0x10) && !ClipPolyRight40(&bUnused3, &pIn, &nVerts, &pClipOut)) ||
+							((nFlags & 0x20) && !ClipPolyBottom40(&bUnused4, &pIn, &nVerts, &pClipOut)) ||
+							((nFlags & 2) && !ClipPolyFar40(&bUnused5, &pIn, &nVerts, &pClipOut)))
 							goto NextTri;
 					}
 
@@ -485,10 +485,10 @@ NextTri:
 			pRowIndex += nRowIndices;
 		}
 
-		if ((int)((char *)pOut - (char *)DAT_10070858) > 0)
+		if ((int)((char *)pOut - (char *)g_pPolyGridClippedIndices) > 0)
 		{
-			FUN_1002cf10(pVerts, nTotal);
-			g_pD3DDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0x2c4, pVerts, nTotal, DAT_10070858, pOut - DAT_10070858, 0);
+			ProjectPolyGridVertices(pVerts, nTotal);
+			g_pD3DDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0x2c4, pVerts, nTotal, g_pPolyGridClippedIndices, pOut - g_pPolyGridClippedIndices, 0);
 		}
 	}
 	else
@@ -513,7 +513,7 @@ NextTri:
 // guess: clip test of one triangle against the frustum planes of nClipFlags: returns 1 when it is completely outside one plane, 0
 // when it is completely inside all of them, else 2 and *pOutFlags is the set of planes that still have to clip it.
 // FUNCTION: D3DREN 0x1002c560
-int FUN_1002c560(uint32 nClipFlags, uint32 *pOutFlags, float *pV0, float *pV1, float *pV2)
+int ClassifyPolyGridTriangle(uint32 nClipFlags, uint32 *pOutFlags, float *pV0, float *pV1, float *pV2)
 {
 	int nInside;
 
@@ -596,7 +596,7 @@ int FUN_1002c560(uint32 nClipFlags, uint32 *pOutFlags, float *pV0, float *pV1, f
 // neighbours (the normal is built from the three axis vectors of the transformed grid) and stores them as the first texture coordinate pair
 // (tu, tv) of the 0x28-byte vertices of g_TriVertList.
 // FUNCTION: D3DREN 0x1002c840
-void FUN_1002c840(LTPolyGrid *pGrid, LTVector *pYAxis, LTVector *pXAxis, LTVector *pZAxis)
+void GeneratePolyGridEnvMapUV(LTPolyGrid *pGrid, LTVector *pYAxis, LTVector *pXAxis, LTVector *pZAxis)
 {
 	UnkType_TLVertex40 *pVert = g_TriVertList;
 	char *pData = pGrid->m_Data;
@@ -649,7 +649,7 @@ void FUN_1002c840(LTPolyGrid *pGrid, LTVector *pYAxis, LTVector *pXAxis, LTVecto
 
 			vNormal = *pYAxis + vX + vZ;
 			vNormal.Norm(1.0f);
-			FUN_1001085e((LTVector *)&g_ViewParams.m_Pos, &pCur->m_Vec, &vNormal, &pCur->tu, &pCur->tv);
+			d3d_CalcWorldReflectionUVs((LTVector *)&g_ViewParams.m_Pos, &pCur->m_Vec, &vNormal, &pCur->tu, &pCur->tv);
 
 			pCur++;
 			pCurData++;
@@ -720,25 +720,25 @@ void d3d_QueueTranslucentPolyGrids()
 {
 	if (g_DrawPolyGrids)
 	{
-		d3d_GetVisibleSet()->m_TranslucentPolyGrids.Draw(&g_ViewParams, FUN_1002cdf0);
+		d3d_GetVisibleSet()->m_TranslucentPolyGrids.Draw(&g_ViewParams, d3d_QueuePolyGrid);
 	}
 }
 
 // BaseObjectSet::Draw callback of the translucent set: queues the grid in the sorted translucent object list.
 // FUNCTION: D3DREN 0x1002cdf0
-void FUN_1002cdf0(ViewParams *pParams, LTObject *pObj)
+void d3d_QueuePolyGrid(ViewParams *pParams, LTObject *pObj)
 {
-	DAT_1006b934->Add(pObj, d3d_DrawPolyGrid);
+	g_pTranslucentObjectDrawList->Add(pObj, d3d_DrawPolyGrid);
 }
 
 // guess: ObjectHandler[OT_POLYGRID].m_ModuleInit
 // FUNCTION: D3DREN 0x1002ce10
-void FUN_1002ce10()
+void d3d_InitPolyGridBuffers()
 {
 	g_TriVertList = 0;
 	g_TriVertListSize = 0;
-	DAT_10070858 = 0;
-	DAT_1007044c = 0;
+	g_pPolyGridClippedIndices = 0;
+	g_PolyGridClippedIndexCapacity = 0;
 }
 
 // NAME: d3d_TermPolyGridDraw: Jupiter drawpolygrid.cpp (names_proposal.csv, medium); ObjectHandler[OT_POLYGRID].m_ModuleTerm.
@@ -746,18 +746,18 @@ void FUN_1002ce10()
 void d3d_TermPolyGridDraw()
 {
 	dfree(g_TriVertList);
-	dfree(DAT_10070858);
+	dfree(g_pPolyGridClippedIndices);
 
 	g_TriVertList = 0;
 	g_TriVertListSize = 0;
-	DAT_10070858 = 0;
-	DAT_1007044c = 0;
+	g_pPolyGridClippedIndices = 0;
+	g_PolyGridClippedIndexCapacity = 0;
 }
 
 // guess: projects the 0x28-byte vertices (x', y', z', rhw) through the matrix at g_ViewParams.m_DeviceTimesProjection.m[0][0] (== g_ViewParams.m_Unk19c): the x, y and z of each
 // vertex are divided by the w of the transformed position.
 // FUNCTION: D3DREN 0x1002cf10
-void FUN_1002cf10(UnkType_TLVertex40 *pVerts, int nVerts)
+void ProjectPolyGridVertices(UnkType_TLVertex40 *pVerts, int nVerts)
 {
 	for (; nVerts != 0; nVerts--)
 	{

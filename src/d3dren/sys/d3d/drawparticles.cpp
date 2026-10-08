@@ -44,7 +44,7 @@ void (*g_pfnSetupTransformation)(const LTVector *, float *, LTVector *, LTMatrix
 // guess: finds the record whose stage word (+0x42) equals nStage in the chain linked through +0x30 (the per-texture stage
 // records of a SharedTexture: see d3d_CreateAndLoadTexture); returns 0 when there is none.
 // FUNCTION: D3DREN 0x10009350
-void *FUN_10009350(void *pChain, uint8 nStage)
+void *d3d_FindRTextureForStage(void *pChain, uint8 nStage)
 {
 	uint8 *pRec = (uint8 *)pChain;
 	while (pRec)
@@ -58,31 +58,31 @@ void *FUN_10009350(void *pChain, uint8 nStage)
 
 // ---- the particle system draw ---------------------------------------------------------------------------------------------------
 // callees and globals of other units
-void FUN_10007a89(RTexture *pRTexture);											// unit unk/10007930 (pool.h): binds the RTexture on its stage
+void d3d_BindRTexture(RTexture *pRTexture);											// unit unk/10007930 (pool.h): binds the RTexture on its stage
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// unit sys/d3d/d3d_texture
-extern uint16 DAT_100577b8;		// guess: current texture frame code (declared by unit unk/10007930)
+extern uint16 g_CurTextureFrameCode;		// guess: current texture frame code (declared by unit unk/10007930)
 // GLOBAL: D3DREN 0x1004ffc0
-extern float DAT_1004ffc0;		// guess: colour scale (1/255) of the particle red channel; DAT_1004ffc4: green, DAT_1004ffc8: blue
+extern float g_fParticleRedScale;		// guess: colour scale (1/255) of the particle red channel; g_fParticleGreenScale: green, g_fParticleBlueScale: blue
 // GLOBAL: D3DREN 0x1004ffc4
-extern float DAT_1004ffc4;
+extern float g_fParticleGreenScale;
 // GLOBAL: D3DREN 0x1004ffc8
-extern float DAT_1004ffc8;
+extern float g_fParticleBlueScale;
 // GLOBAL: D3DREN 0x1004ffcc
-extern float DAT_1004ffcc;		// guess: u of the left texel edge of the particle texture, DAT_1004ffd0: u of the right edge
+extern float g_fParticleTextureUMin;		// guess: u of the left texel edge of the particle texture, g_fParticleTextureUMax: u of the right edge
 // GLOBAL: D3DREN 0x1004ffd0
-extern float DAT_1004ffd0;
+extern float g_fParticleTextureUMax;
 // GLOBAL: D3DREN 0x1004ffd4
-extern uint32 DAT_1004ffd4;		// packed fog/specular colour: callback writes uint32; original 0x100097b0 copies the bits
+extern uint32 g_dwParticleFogSpecular;		// packed fog/specular colour: callback writes uint32; original 0x100097b0 copies the bits
 // GLOBAL: D3DREN 0x1004ffd8
-extern float DAT_1004ffd8;		// guess: v of the top texel edge, DAT_100513dc: v of the bottom edge
+extern float g_fParticleTextureVMin;		// guess: v of the top texel edge, g_fParticleTextureVMax: v of the bottom edge
 // GLOBAL: D3DREN 0x100513dc
-extern float DAT_100513dc;
+extern float g_fParticleTextureVMax;
 // GLOBAL: D3DREN 0x10055cd8
-extern int DAT_10055cd8;		// guess: statistics: particles (quads) drawn this frame
-extern uint16 DAT_1006d1b8[0x300];	// the index list of the quads (0 1 2 0 2 3 ...); declared by unit unk/10029660
+extern int g_nParticlesDrawn;		// guess: statistics: particles (quads) drawn this frame
+extern uint16 g_ParticleQuadIndices[0x300];	// the index list of the quads (0 1 2 0 2 3 ...); declared by unit unk/10029660
 PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize);
 
-// guess: draws a particle system: binds its texture (the inlined texture binding with the per-stage record search FUN_10009350), builds
+// guess: draws a particle system: binds its texture (the inlined texture binding with the per-stage record search d3d_FindRTextureForStage), builds
 // the object to view matrix, and draws the particles in batches of 128 with d3d_DrawParticleBatch.  Its typed locals match the SDK
 // IntersectQuery (52 bytes) and IntersectInfo (40 bytes); the renderer's constructor copies are at 0x1000bdeb and 0x1000be28.
 // The surrounding function body remains a STUB.
@@ -111,9 +111,9 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 		pRTexture = 0;
 		if (pTexture)
 		{
-			pTexture->m_Unknown30 = DAT_100577b8;
+			pTexture->m_Unknown30 = g_CurTextureFrameCode;
 			if (pTexture->m_pRenderData)
-				pRTexture = (RTexture *)FUN_10009350(pTexture->m_pRenderData, (uint8)nStage);
+				pRTexture = (RTexture *)d3d_FindRTextureForStage(pTexture->m_pRenderData, (uint8)nStage);
 			if (!pRTexture || pRTexture != (RTexture *)g_pBoundTextures[nStage])
 			{
 				if (!pRTexture)
@@ -134,16 +134,16 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 					}
 				}
 				if (pRTexture)
-					FUN_10007a89(pRTexture);
+					d3d_BindRTexture(pRTexture);
 			}
 		}
 
 		if (!pRTexture)
 		{
-			DAT_100513dc = 0.0f;
-			DAT_1004ffd0 = 0.0f;
-			DAT_1004ffd8 = 0.0f;
-			DAT_1004ffcc = 0.0f;
+			g_fParticleTextureVMax = 0.0f;
+			g_fParticleTextureUMax = 0.0f;
+			g_fParticleTextureVMin = 0.0f;
+			g_fParticleTextureUMin = 0.0f;
 			if (g_pBoundTextures[nStage])
 			{
 				g_pD3DDevice->SetTexture(nStage, 0);
@@ -159,14 +159,14 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 				pRTexture->m_Data.m_pSurface->SetLOD(0);
 				pRTexture->m_Unk44 = 0;
 			}
-			DAT_1004ffcc = DAT_10061810[0].m_Unk00 + DAT_10061810[0].m_Unk00;
+			g_fParticleTextureUMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
 			pBase = (RTextureBase *)g_pBoundTextures[g_NormalTextureStage];
-			DAT_1004ffd0 = ((float)(uint32)pBase->GetBaseWidth() - 2.0f) * DAT_10061810[0].m_Unk00;
-			DAT_1004ffd8 = DAT_10061810[0].m_Unk04 + DAT_10061810[0].m_Unk04;
-			DAT_100513dc = ((float)(uint32)pBase->GetBaseHeight() - 2.0f) * DAT_10061810[0].m_Unk04;
-			DAT_10063c90.FUN_10021da6();
+			g_fParticleTextureUMax = ((float)(uint32)pBase->GetBaseWidth() - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
+			g_fParticleTextureVMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
+			g_fParticleTextureVMax = ((float)(uint32)pBase->GetBaseHeight() - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
+			g_TextureStateRestorer.RestoreAllStates();
 			if (pTexture->m_pStateChange)
-				DAT_10063c90.FUN_10021db7(pTexture->m_pStateChange, g_NormalTextureStage);
+				g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
 		}
 
 		d3d_SetupTransformation(&pSystem->m_Pos, (float *)&pSystem->m_Rotation, &pSystem->m_Scale, &mObject);
@@ -175,10 +175,10 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 		else
 			pView = &g_ViewParams.m_mClipTransform;
 		MatMul(&mFull, pView, &mObject);
-		g_pfnCalcFogAlpha(&pSystem->m_Pos, &DAT_1004ffd4);
-		DAT_1004ffc0 = 1.0f / 255.0f;
-		DAT_1004ffc4 = 1.0f / 255.0f;
-		DAT_1004ffc8 = 1.0f / 255.0f;
+		g_pfnCalcFogAlpha(&pSystem->m_Pos, &g_dwParticleFogSpecular);
+		g_fParticleRedScale = 1.0f / 255.0f;
+		g_fParticleGreenScale = 1.0f / 255.0f;
+		g_fParticleBlueScale = 1.0f / 255.0f;
 
 		nBatches = pSystem->m_nParticles / 128;
 		nRest = pSystem->m_nParticles - nBatches * 128;
@@ -205,16 +205,16 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 	float fHalfSize, fHalfSizeBase;
 	float *m = &pMat->m[0][0];
 	// Original UV endpoints are loaded once at 0x100093b6..0x10009405.
-	float fBaseU0 = DAT_1004ffcc;
-	float fBaseU1 = DAT_1004ffd0;
-	float fBaseV0 = DAT_1004ffd8;
-	float fBaseV1 = DAT_100513dc;
+	float fBaseU0 = g_fParticleTextureUMin;
+	float fBaseU1 = g_fParticleTextureUMax;
+	float fBaseV0 = g_fParticleTextureVMin;
+	float fBaseV1 = g_fParticleTextureVMax;
 
 
 	pOut = aVerts;
-	fRed = (float)pSystem->m_ColorR * DAT_1004ffc0;
-	fGreen = (float)pSystem->m_ColorG * DAT_1004ffc4;
-	fBlue = (float)pSystem->m_ColorB * DAT_1004ffc8;
+	fRed = (float)pSystem->m_ColorR * g_fParticleRedScale;
+	fGreen = (float)pSystem->m_ColorG * g_fParticleGreenScale;
+	fBlue = (float)pSystem->m_ColorB * g_fParticleBlueScale;
 	fAlpha = (float)pSystem->m_ColorA;
 	fHalfSizeBase = (float)(g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left) * g_ViewParams.m_fFovXScale;
 	fHalfSize = fHalfSizeBase * fSize;
@@ -278,10 +278,10 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 					y1 = g_ViewParams.m_fScreenMaxY;
 				}
 
-				pOut[0].m_Vec.x = x0; pOut[0].m_Vec.y = y0; pOut[0].m_Vec.z = sz; pOut[0].rhw = fW; pOut[0].color = dwColor; pOut[0].specular = DAT_1004ffd4; pOut[0].tu = u0; pOut[0].tv = v0;
-				pOut[1].m_Vec.x = x1; pOut[1].m_Vec.y = y0; pOut[1].m_Vec.z = sz; pOut[1].rhw = fW; pOut[1].color = dwColor; pOut[1].specular = DAT_1004ffd4; pOut[1].tu = u1; pOut[1].tv = v0;
-				pOut[2].m_Vec.x = x1; pOut[2].m_Vec.y = y1; pOut[2].m_Vec.z = sz; pOut[2].rhw = fW; pOut[2].color = dwColor; pOut[2].specular = DAT_1004ffd4; pOut[2].tu = u1; pOut[2].tv = v1;
-				pOut[3].m_Vec.x = x0; pOut[3].m_Vec.y = y1; pOut[3].m_Vec.z = sz; pOut[3].rhw = fW; pOut[3].color = dwColor; pOut[3].specular = DAT_1004ffd4; pOut[3].tu = u0; pOut[3].tv = v1;
+				pOut[0].m_Vec.x = x0; pOut[0].m_Vec.y = y0; pOut[0].m_Vec.z = sz; pOut[0].rhw = fW; pOut[0].color = dwColor; pOut[0].specular = g_dwParticleFogSpecular; pOut[0].tu = u0; pOut[0].tv = v0;
+				pOut[1].m_Vec.x = x1; pOut[1].m_Vec.y = y0; pOut[1].m_Vec.z = sz; pOut[1].rhw = fW; pOut[1].color = dwColor; pOut[1].specular = g_dwParticleFogSpecular; pOut[1].tu = u1; pOut[1].tv = v0;
+				pOut[2].m_Vec.x = x1; pOut[2].m_Vec.y = y1; pOut[2].m_Vec.z = sz; pOut[2].rhw = fW; pOut[2].color = dwColor; pOut[2].specular = g_dwParticleFogSpecular; pOut[2].tu = u1; pOut[2].tv = v1;
+				pOut[3].m_Vec.x = x0; pOut[3].m_Vec.y = y1; pOut[3].m_Vec.z = sz; pOut[3].rhw = fW; pOut[3].color = dwColor; pOut[3].specular = g_dwParticleFogSpecular; pOut[3].tu = u0; pOut[3].tv = v1;
 				pOut += 4;
 			}
 			pParticle = pParticle->m_pNext;
@@ -291,8 +291,8 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 		{
 			int nQuads = (int)(pOut - aVerts) >> 2;
 
-			DAT_10055cd8 += nQuads;
-			g_pD3DDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0x1c4, aVerts, (DWORD)(pOut - aVerts), DAT_1006d1b8, nQuads * 6, 0);
+			g_nParticlesDrawn += nQuads;
+			g_pD3DDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0x1c4, aVerts, (DWORD)(pOut - aVerts), g_ParticleQuadIndices, nQuads * 6, 0);
 		}
 	}
 	return pParticle;

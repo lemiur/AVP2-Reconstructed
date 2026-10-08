@@ -34,9 +34,9 @@
 #define SURF_LIGHTMAP		(1<<7)
 #endif
 
-// FUN_10033210 (unit unk/100329b0): builds the lightmap of a polygon from the light animations that touch it and writes it
+// UpdatePolyAnimatedLightmap (unit unk/100329b0): builds the lightmap of a polygon from the light animations that touch it and writes it
 // into its page; bPageIn is 1 when the pages are being built (PageInLightmaps).  Declared here for unit unk/10034000.
-int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn);
+int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn);
 
 // ---- renderer data inside the engine's WorldPoly / SPolyVertex (padding there) --------------------------------------------
 // WorldPoly 0x48: the lightmap page the poly's lightmap lives in (LightmapPage*, 0 = none); 0x4c/0x4d are the engine's
@@ -44,7 +44,7 @@ int FUN_10033210(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn);
 #define WORLDPOLY_LMPAGE(p)		(*(LightmapPage **)((uint8 *)(p) + 0x48))
 #define WORLDPOLY_UNK4E(p)		(*((uint8 *)(p) + 0x4e))
 #define WORLDPOLY_UNK4F(p)		(*((uint8 *)(p) + 0x4f))
-// SPolyVertex 0x0c/0x10: the vertex's lightmap texture coordinates (page relative, written by FUN_1003429b).
+// SPolyVertex 0x0c/0x10: the vertex's lightmap texture coordinates (page relative, written by AssignPolyLightmapPage).
 #define SPOLYVERTEX_UNK0C(v)	(*(float *)((uint8 *)(v) + 0x0c))
 #define SPOLYVERTEX_UNK10(v)	(*(float *)((uint8 *)(v) + 0x10))
 
@@ -63,7 +63,7 @@ public:
 	virtual int		GetBaseHeight() = 0;							// 0x10
 };
 
-// One 64x64 lightmap page (0x28 bytes, vtable 0x100464c8; built by FUN_10034142, which allocates the DirectDraw texture
+// One 64x64 lightmap page (0x28 bytes, vtable 0x100464c8; built by CreateLightmapPage, which allocates the DirectDraw texture
 // surface and the 0x80 byte occupancy bitmap).  The occupancy bitmap has one bit per 4x4 texel cell, 0x40 cells per row.
 struct LightmapPage : public RTextureBase
 {
@@ -76,8 +76,8 @@ struct LightmapPage : public RTextureBase
 	uint32					m_Unk04;			// 0x04 next page of the list of pages that have polys waiting (world poly queue, unit unk/100098d0)
 	uint32					m_Unk08;			// 0x08 the polys waiting for this page (pool nodes)
 	uint8					*m_pOccupancyMap;			// 0x0c occupancy bitmap (dalloc_z(0x80)), freed by FreeLightmapPageBitmaps
-	uint32					m_nUsedTexels;			// 0x10 texels of the page assigned so far (FUN_1003429b adds w*h)
-	uint32					m_nMemoryUse;			// 0x14 size of the surface in bytes (FUN_10034142: bytes per pixel << 12)
+	uint32					m_nUsedTexels;			// 0x10 texels of the page assigned so far (AssignPolyLightmapPage adds w*h)
+	uint32					m_nMemoryUse;			// 0x14 size of the surface in bytes (CreateLightmapPage: bytes per pixel << 12)
 	uint32					m_Unk18;			// 0x18
 	IDirectDrawSurface7		*m_pSurface;			// 0x1c the page's texture surface
 	uint32					m_Unk20;			// 0x20 (set to 1 by the constructor; non-zero once the first draw has set the page up)
@@ -86,13 +86,13 @@ struct LightmapPage : public RTextureBase
 
 // ---- the lightmap staging textures and the lock helper ---------------------------------------------------------------------------
 // guess: a lightmap staging texture pool is made per lightmap size class (4, 8, 16, 32, 64 texels square); each has a circular
-// list of pool textures (RTexture, DAT_1007bfe8 + 12 * class) that the staged lightmap is copied into (IDirect3DDevice7::Load)
-// round robin, and one staging texture (DAT_1007abd0[class]) that is locked for writing.
+// list of pool textures (RTexture, g_LightmapTexturePoolLists + 12 * class) that the staged lightmap is copied into (IDirect3DDevice7::Load)
+// round robin, and one staging texture (g_pLightmapStagingTextures[class]) that is locked for writing.
 class RTexture;
 
-// guess: a lightmap staging texture while a poly's lightmap is being written (0x54 bytes).  FUN_10034af0 picks the size class
+// guess: a lightmap staging texture while a poly's lightmap is being written (0x54 bytes).  LockStagingLightmap picks the size class
 // of the poly's lightmap (m_Width x m_Height, default: the poly's own size), optionally pre-fills the staging texture with the
-// lightmap that is already in the poly's page (or clears it), and locks it; FUN_10034c7c unlocks it and, when asked, copies it
+// lightmap that is already in the poly's page (or clears it), and locks it; UnlockStagingLightmap unlocks it and, when asked, copies it
 // into the next pool texture and binds that on the lightmap stage.  Callers declare one on the stack (the PFormat vptr store).
 struct UnkType_LMLock
 {
@@ -106,26 +106,26 @@ struct UnkType_LMLock
 	RTexture	*m_Unk50;		// 0x50 the staging texture
 
 	// bClear: 1 = fill the staging texture first (from the poly's page when it has one, else with black).  0x10034af0
-	int			FUN_10034af0(WorldPoly *pPoly, int bClear, uint32 width = 0, uint32 height = 0);
+	int			LockStagingLightmap(WorldPoly *pPoly, int bClear, uint32 width = 0, uint32 height = 0);
 	// bUpload: also copy the texels into the next pool texture and bind it (lightmap stage).  0x10034c7c
-	int			FUN_10034c7c(int bUpload);
+	int			UnlockStagingLightmap(int bUpload);
 };
 
-// guess: the lightmap texture pools: one global object (no data members: the staging textures DAT_1007abd0[5] and the five list
-// heads DAT_1007bfe8[5] are statics in the exe's .bss) whose methods are called by the texture manager (unit sys/d3d/d3d_texture)
-// when textures are (re)created and freed: FUN_10034e61 frees every pool and staging texture, FUN_10034db8 makes them (pfnCreate =
-// the texture creation function 0x1001e750: width, height, flags 0x4000 pool / 0x800 staging), FUN_10034e3d forgets them.
+// guess: the lightmap texture pools: one global object (no data members: the staging textures g_pLightmapStagingTextures[5] and the five list
+// heads g_LightmapTexturePoolLists[5] are statics in the exe's .bss) whose methods are called by the texture manager (unit sys/d3d/d3d_texture)
+// when textures are (re)created and freed: FreeTexturePools frees every pool and staging texture, CreateTexturePools makes them (pfnCreate =
+// the texture creation function 0x1001e750: width, height, flags 0x4000 pool / 0x800 staging), ResetTexturePoolLists forgets them.
 typedef RTexture *(*PFN_CreateLMTexture)(uint32 width, uint32 height, uint32 flags);
 class UnkType_LMTexturePools
 {
 public:
 	UnkType_LMTexturePools();									// 0x10034d92 (out of line copy)
-	void FUN_10034db8(PFN_CreateLMTexture pfnCreate);			// 0x10034db8
-	void FUN_10034e3d();										// 0x10034e3d
-	void FUN_10034e61();										// 0x10034e61
+	void CreateTexturePools(PFN_CreateLMTexture pfnCreate);			// 0x10034db8
+	void ResetTexturePoolLists();										// 0x10034e3d
+	void FreeTexturePools();										// 0x10034e61
 };
 // GLOBAL: D3DREN 0x1007abe4
-extern UnkType_LMTexturePools DAT_1007abe4;
+extern UnkType_LMTexturePools g_LightmapTexturePools;
 
 // ---- colour lookup tables of the lightmap code (static data classes with a constructor that fills them; used by the light animation
 // and dynamic light code of unit unk/100329b0 and by the world drawing units) ------------------------------------------------------
@@ -137,7 +137,7 @@ public:
 	uint8	m_Unk00[512];
 };
 // GLOBAL: D3DREN 0x10092168
-extern UnkType_AddClampTable DAT_10092168;
+extern UnkType_AddClampTable g_ByteSaturatingAddTable;
 
 // guess: byte multiply: [a * 256 + b] = a * b / 255
 class UnkType_MulTable
@@ -147,7 +147,7 @@ public:
 	uint8	m_Unk00[256 * 256];
 };
 // GLOBAL: D3DREN 0x10082168
-extern UnkType_MulTable DAT_10082168;
+extern UnkType_MulTable g_ByteMultiplyTable;
 
 // guess: [i] = sqrt(i / 512) * 255, clamped to 0..255
 class UnkType_SqrtTable
@@ -157,7 +157,7 @@ public:
 	uint8	m_Unk00[256];
 };
 // GLOBAL: D3DREN 0x10082068
-extern UnkType_SqrtTable DAT_10082068;
+extern UnkType_SqrtTable g_ColorSqrtTable;
 
 // ---- the six lightmap planes (engine twin: src/shared/lightmap_planes.cpp; the renderer also has SetupLMPlaneVectors) ------
 class LMPlane

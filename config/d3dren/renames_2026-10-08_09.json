@@ -1,0 +1,1002 @@
+[
+ {
+  "va": "100584e8",
+  "old": "DAT_100584e8",
+  "new": "g_bFogStateInitialized",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: d3d_Init clears it; ReadExtraConsoleVariables tests it before fog cache comparisons and sets it after fog render states are sent. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100584e8",
+   "old": "DAT_100584e8",
+   "new": "g_bFogStateInitialized",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "d3d_Init clears it; ReadExtraConsoleVariables tests it before fog cache comparisons and sets it after fog render states are sent. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100584e8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100584ec",
+  "old": "DAT_100584ec",
+  "new": "g_bDitherStateInitialized",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Cleared by d3d_Init, tested before the cached Dither value and set after DITHERENABLE is sent. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100584ec",
+   "old": "DAT_100584ec",
+   "new": "g_bDitherStateInitialized",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Cleared by d3d_Init, tested before the cached Dither value and set after DITHERENABLE is sent. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100584ec.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100584f0",
+  "old": "DAT_100584f0",
+  "new": "g_bTextureFilterStateInitialized",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Cleared by d3d_Init and set after both texture stages receive filtering states; no recorded reader, so initialized-state role is inferred from the matching cache family. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100584f0",
+   "old": "DAT_100584f0",
+   "new": "g_bTextureFilterStateInitialized",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Cleared by d3d_Init and set after both texture stages receive filtering states; no recorded reader, so initialized-state role is inferred from the matching cache family. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100584f0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058620",
+  "old": "DAT_10058620",
+  "new": "g_fSkyFogAlphaScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene writes 255 divided by SkyFogFarZ minus SkyFogNearZ; FUN_10013560 multiplies sky depth displacement by this scale. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058620",
+   "old": "DAT_10058620",
+   "new": "g_fSkyFogAlphaScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene writes 255 divided by SkyFogFarZ minus SkyFogNearZ; FUN_10013560 multiplies sky depth displacement by this scale. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058620.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058648",
+  "old": "DAT_10058648",
+  "new": "g_PolyDrawBlockBank",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initialized by d3d_InitPolyDrawPools as a StructBank of 0x100-byte objects with cache size 0x10 and terminated symmetrically. Actual allocated item semantics are absent. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058648",
+   "old": "DAT_10058648",
+   "new": "g_PolyDrawBlockBank",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Initialized by d3d_InitPolyDrawPools as a StructBank of 0x100-byte objects with cache size 0x10 and terminated symmetrically. Actual allocated item semantics are absent. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058648.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058728",
+  "old": "DAT_10058728",
+  "new": "g_nRenderScenesSinceClear",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: d3d_Clear sets zero; d3d_RenderScene increments once at its successful tail. No other role is assumed. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058728",
+   "old": "DAT_10058728",
+   "new": "g_nRenderScenesSinceClear",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "d3d_Clear sets zero; d3d_RenderScene increments once at its successful tail. No other role is assumed. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058728.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058730",
+  "old": "DAT_10058730",
+  "new": "g_bPolyDrawModeOne",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: FUN_100144b0 sets exactly nMode==1; FullDrawScene sets zero for its normal setup. No reader establishing a richer role is present. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058730",
+   "old": "DAT_10058730",
+   "new": "g_bPolyDrawModeOne",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "FUN_100144b0 sets exactly nMode==1; FullDrawScene sets zero for its normal setup. No reader establishing a richer role is present. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058730.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058734",
+  "old": "DAT_10058734",
+  "new": "g_bPolyDrawSetupComplete",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Both FUN_100144b0 branches and FullDrawScene set one after world polygon callback setup. No reader or clearing path establishes a richer role. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058734",
+   "old": "DAT_10058734",
+   "new": "g_bPolyDrawSetupComplete",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Both FUN_100144b0 branches and FullDrawScene set one after world polygon callback setup. No reader or clearing path establishes a richer role. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058734.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058758",
+  "old": "DAT_10058758",
+  "new": "g_WorldPolyNodeBank",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: StructBank initialized for 0x18-byte nodes; queue builders allocate WorldPoly pointer, clip mask, vertex range and next-node records; flushers free these nodes. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058758",
+   "old": "DAT_10058758",
+   "new": "g_WorldPolyNodeBank",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "StructBank initialized for 0x18-byte nodes; queue builders allocate WorldPoly pointer, clip mask, vertex range and next-node records; flushers free these nodes. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058758.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100587e0",
+  "old": "DAT_100587e0",
+  "new": "g_nClippedModelsDrawn",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: ModelDraw increments when g_ClipFlags is nonzero; RenderScene clears it each frame and prints as ModelProfile clipped count. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_nModelsClipped",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string the first value of \"ModelProfile: %d clipped, %d unclipped\" (ModelProfile 10057f70); zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "100587e0",
+   "old": "DAT_100587e0",
+   "new": "g_nClippedModelsDrawn",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "ModelDraw increments when g_ClipFlags is nonzero; RenderScene clears it each frame and prints as ModelProfile clipped count. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100587e0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100587e4",
+  "old": "DAT_100587e4",
+  "new": "g_nQueuedWorldPolyVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Used as the offset into DAT_100587fc, advanced by queued vertex counts and zeroed each frame. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100587e4",
+   "old": "DAT_100587e4",
+   "new": "g_nQueuedWorldPolyVertices",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Used as the offset into DAT_100587fc, advanced by queued vertex counts and zeroed each frame. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100587e4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100587e8",
+  "old": "DAT_100587e8",
+  "new": "g_pfnDrawTexturedWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: tagnodes invokes this for textured non-lightmapped non-panning-sky surfaces; frame setup chooses queue or debug callback. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_pfnDrawPolyGouraud",
+  "prior_evidence": "Function pointer set by 100144b0/10014e40 (default 10022be4 in the MultipassGouraud TU; 10013ef0 when DrawFlat); called by 1002f440 for textured non-lightmapped, non-panning world polys.",
+  "independent_opinion": {
+   "va": "100587e8",
+   "old": "DAT_100587e8",
+   "new": "g_pfnDrawTexturedWorldPoly",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "tagnodes invokes this for textured non-lightmapped non-panning-sky surfaces; frame setup chooses queue or debug callback. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100587e8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100587f0",
+  "old": "DAT_100587f0",
+  "new": "g_vNegatedGlobalLightDirection",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene assigns the negation of g_pStruct->m_GlobalLightDir directly. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100587f0",
+   "old": "DAT_100587f0",
+   "new": "g_vNegatedGlobalLightDirection",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene assigns the negation of g_pStruct->m_GlobalLightDir directly. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100587f0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100587fc",
+  "old": "DAT_100587fc",
+  "new": "g_pQueuedWorldPolyVertices",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Global TLVertex scratch allocation is grown by FUN_10013e80, filled at DAT_100587e4 offsets by queue builders and freed by TermPolyDrawPools. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_pVertexScratch",
+  "prior_evidence": "TL vertex scratch array (0x20 bytes per vertex) grown by 10013e80, freed by 10018550, base for the 1000a134 results",
+  "independent_opinion": {
+   "va": "100587fc",
+   "old": "DAT_100587fc",
+   "new": "g_pQueuedWorldPolyVertices",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Global TLVertex scratch allocation is grown by FUN_10013e80, filled at DAT_100587e4 offsets by queue builders and freed by TermPolyDrawPools. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/100587fc.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10058800",
+  "old": "DAT_10058800",
+  "new": "g_PolyDrawPoolResetValue",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Only known operation initializes this uint32 to zero in InitPolyDrawPools; the name states the observed reset without inventing a counter, pointer or flag role. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058800",
+   "old": "DAT_10058800",
+   "new": "g_PolyDrawPoolResetValue",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "Only known operation initializes this uint32 to zero in InitPolyDrawPools; the name states the observed reset without inventing a counter, pointer or flag role. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058800.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058c24",
+  "old": "DAT_10058c24",
+  "new": "g_pfnDrawLightmappedWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: tagnodes invokes this for SURF_LIGHTMAP (1<<7), confirmed by SDK ltbasedefs.h. Setup selects one-pass, multipass, unlit or debug paths. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_pfnDrawPolyLightmap",
+  "prior_evidence": "Function pointer (default 1000a16b) called by 1002f440 for surfaces with SURF_LIGHTMAP(0x80); set by 100144b0/10014e40.",
+  "independent_opinion": {
+   "va": "10058c24",
+   "old": "DAT_10058c24",
+   "new": "g_pfnDrawLightmappedWorldPoly",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "tagnodes invokes this for SURF_LIGHTMAP (1<<7), confirmed by SDK ltbasedefs.h. Setup selects one-pass, multipass, unlit or debug paths. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058c24.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10058c28",
+  "old": "DAT_10058c28",
+  "new": "g_TranslucentObjectStateRestorer",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: SetTranslucentObjectStates captures changes through this object; UnsetTranslucentObjectStates restores them. Static ctor and dtor initialize and dispose its state vectors. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_StateRestorer_Translucent",
+  "prior_evidence": "global object of the RAII state saver class (RenderState vector at +0, TextureState vector at +0xc; same class as agent R5 guess_g_StateRestorer 10063c90); only used by 10013ba0/10013df0 (apply StateChange / restore) and by its static ctor 10013a80 and atexit dtor 10013ad0",
+  "independent_opinion": {
+   "va": "10058c28",
+   "old": "DAT_10058c28",
+   "new": "g_TranslucentObjectStateRestorer",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "SetTranslucentObjectStates captures changes through this object; UnsetTranslucentObjectStates restores them. Static ctor and dtor initialize and dispose its state vectors. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058c28.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10058c68",
+  "old": "DAT_10058c68",
+  "new": "g_pFlatWorldPolyQueue",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: FUN_10013ef0 links WorldPoly and clip-mask nodes onto this head; flat/debug draw loops drain it and return nodes to the bank. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_pQueuedFlatPolys",
+  "prior_evidence": "head of the deferred DrawFlat/ShowFillInfo poly list (nodes {poly,..,clipMask +0xc,next +0x10}), drained by 10014ce0/100145f0 and then cleared",
+  "independent_opinion": {
+   "va": "10058c68",
+   "old": "DAT_10058c68",
+   "new": "g_pFlatWorldPolyQueue",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "FUN_10013ef0 links WorldPoly and clip-mask nodes onto this head; flat/debug draw loops drain it and return nodes to the bank. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058c68.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10058c90",
+  "old": "DAT_10058c90",
+  "new": "g_pMultipassWorldPolyBuckets",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: FUN_10022be4 queues through slot one into this bucket list; FUN_100235e2 drains it as the multipass Gouraud/texture pass and frees buckets. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058c90",
+   "old": "DAT_10058c90",
+   "new": "g_pMultipassWorldPolyBuckets",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "FUN_10022be4 queues through slot one into this bucket list; FUN_100235e2 drains it as the multipass Gouraud/texture pass and frees buckets. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058c90.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058c98",
+  "old": "DAT_10058c98",
+  "new": "g_WorldPolyBucketBank",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initialized with 0x0c-byte elements; FUN_10007ddb allocates per-owner bucket records and multipass flush frees them. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058c98",
+   "old": "DAT_10058c98",
+   "new": "g_WorldPolyBucketBank",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Initialized with 0x0c-byte elements; FUN_10007ddb allocates per-owner bucket records and multipass flush frees them. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058c98.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10058cd8",
+  "old": "DAT_10058cd8",
+  "new": "g_pfnDrawUntexturedWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: tagnodes calls this when the surface has no texture; normal setup selects flat queueing and debug modes replace it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_pfnDrawPolyNoTexture",
+  "prior_evidence": "Function pointer (default 10013ef0) called by 1002f440 when the Surface has no texture (+0x2c == 0); set by 100144b0/10014e40.",
+  "independent_opinion": {
+   "va": "10058cd8",
+   "old": "DAT_10058cd8",
+   "new": "g_pfnDrawUntexturedWorldPoly",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "tagnodes calls this when the surface has no texture; normal setup selects flat queueing and debug modes replace it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058cd8.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10058cdc",
+  "old": "DAT_10058cdc",
+  "new": "g_nUnclippedModelsDrawn",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: ModelDraw increments when g_ClipFlags is zero; RenderScene clears it per frame and prints as ModelProfile unclipped count. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_nModelsUnclipped",
+  "prior_evidence": "pushed as the argument of the RenderScene (10017aa0) format string the second value of \"ModelProfile: %d clipped, %d unclipped\"; zeroed once per frame (d3d_InitFrame 100103c2 or RenderScene start)",
+  "independent_opinion": {
+   "va": "10058cdc",
+   "old": "DAT_10058cdc",
+   "new": "g_nUnclippedModelsDrawn",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "ModelDraw increments when g_ClipFlags is zero; RenderScene clears it per frame and prints as ModelProfile unclipped count. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058cdc.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "10058d00",
+  "old": "DAT_10058d00",
+  "new": "g_bDrawGouraudFullbritePass",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Draw setup derives from fullbrite capability and mode; FUN_10023398 tests it before the extra full-bright additive draw of a fullbrite texture. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10058d00",
+   "old": "DAT_10058d00",
+   "new": "g_bDrawGouraudFullbritePass",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Draw setup derives from fullbrite capability and mode; FUN_10023398 tests it before the extra full-bright additive draw of a fullbrite texture. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10058d00.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10059d04",
+  "old": "DAT_10059d04",
+  "new": "g_MultipassVertexTintTableR",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene builds red byte mapping from GlobalVertexTint.x, doubles scale when Saturate; multipass vertex builder uses it for red. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10059d04",
+   "old": "DAT_10059d04",
+   "new": "g_MultipassVertexTintTableR",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene builds red byte mapping from GlobalVertexTint.x, doubles scale when Saturate; multipass vertex builder uses it for red. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10059d04.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10059e04",
+  "old": "DAT_10059e04",
+  "new": "g_MultipassVertexTintTableG",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene builds green byte mapping from GlobalVertexTint.y, doubles scale when Saturate; multipass vertex builder uses it for green. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10059e04",
+   "old": "DAT_10059e04",
+   "new": "g_MultipassVertexTintTableG",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene builds green byte mapping from GlobalVertexTint.y, doubles scale when Saturate; multipass vertex builder uses it for green. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10059e04.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "10059f04",
+  "old": "DAT_10059f04",
+  "new": "g_MultipassVertexTintTableB",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene builds blue byte mapping from GlobalVertexTint.z, doubles scale when Saturate; multipass vertex builder uses it for blue. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "10059f04",
+   "old": "DAT_10059f04",
+   "new": "g_MultipassVertexTintTableB",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene builds blue byte mapping from GlobalVertexTint.z, doubles scale when Saturate; multipass vertex builder uses it for blue. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/10059f04.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a004",
+  "old": "DAT_1005a004",
+  "new": "g_VertexTintTableR",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene builds byte mapping from GlobalVertexTint.x without multipass doubling; model, world and polygrid vertices use it for red. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a004",
+   "old": "DAT_1005a004",
+   "new": "g_VertexTintTableR",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene builds byte mapping from GlobalVertexTint.x without multipass doubling; model, world and polygrid vertices use it for red. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a004.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a104",
+  "old": "DAT_1005a104",
+  "new": "g_VertexTintTableG",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene builds byte mapping from GlobalVertexTint.y without multipass doubling; model, world and polygrid vertices use it for green. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a104",
+   "old": "DAT_1005a104",
+   "new": "g_VertexTintTableG",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene builds byte mapping from GlobalVertexTint.y without multipass doubling; model, world and polygrid vertices use it for green. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a104.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a204",
+  "old": "DAT_1005a204",
+  "new": "g_VertexTintTableB",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene builds byte mapping from GlobalVertexTint.z without multipass doubling; model, world and polygrid vertices use it for blue. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a204",
+   "old": "DAT_1005a204",
+   "new": "g_VertexTintTableB",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene builds byte mapping from GlobalVertexTint.z without multipass doubling; model, world and polygrid vertices use it for blue. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a204.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a304",
+  "old": "DAT_1005a304",
+  "new": "g_pfnDrawPanningSkyWorldPoly",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: tagnodes calls this for surface flag 0x8000, SDK SURF_PANNINGSKY; frame setup normally selects deferred panning-sky queueing or one-pass handler. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_pfnDrawPolyPanningSky",
+  "prior_evidence": "Function pointer (default 100083bf) called by 1002f440 for SURF_PANNINGSKY(0x8000) surfaces; set by 100144b0/10014e40.",
+  "independent_opinion": {
+   "va": "1005a304",
+   "old": "DAT_1005a304",
+   "new": "g_pfnDrawPanningSkyWorldPoly",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "tagnodes calls this for surface flag 0x8000, SDK SURF_PANNINGSKY; frame setup normally selects deferred panning-sky queueing or one-pass handler. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a304.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1005a308",
+  "old": "DAT_1005a308",
+  "new": "g_pTexturedWorldPolyBuckets",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: FUN_10007ddb queues into this slot-zero bucket head; textured draw flushes drain it; RenderScene clears the head each frame. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a308",
+   "old": "DAT_1005a308",
+   "new": "g_pTexturedWorldPolyBuckets",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "FUN_10007ddb queues into this slot-zero bucket head; textured draw flushes drain it; RenderScene clears the head each frame. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a308.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a330",
+  "old": "DAT_1005a330",
+  "new": "g_nLastColorTableVertexTint",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene compares packed DAT_100566bc to this cache and copies it after rebuilding color tables; common_draw builds DAT_100566bc from GlobalVertexTint. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a330",
+   "old": "DAT_1005a330",
+   "new": "g_nLastColorTableVertexTint",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene compares packed DAT_100566bc to this cache and copies it after rebuilding color tables; common_draw builds DAT_100566bc from GlobalVertexTint. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a330.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a338",
+  "old": "DAT_1005a338",
+  "new": "g_vLastColorTableLightScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Initialized to vector 5,5,5; RenderScene compares to global light scale and copies that scale after rebuilding color tables. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_vLastLightScale",
+  "prior_evidence": "three floats statically initialised to 5.0 by 10013480; RenderScene compares them with SceneDesc m_GlobalLightScale (DAT_100561f8..200, tolerance 0.001) and rebuilds the six 256-byte light-scale tables at 10059d04.. when they differ, then stores the new values (Jupiter g_vCurGamma analogue)",
+  "independent_opinion": {
+   "va": "1005a338",
+   "old": "DAT_1005a338",
+   "new": "g_vLastColorTableLightScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Initialized to vector 5,5,5; RenderScene compares to global light scale and copies that scale after rebuilding color tables. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a338.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1005a368",
+  "old": "DAT_1005a368",
+  "new": "g_nQueuedWorldPolyVertexCapacity",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: FUN_10013e80 allocates nVertices entries and stores nVertices here; queue builders check used plus requested against it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_nVertexScratchCap",
+  "prior_evidence": "capacity (elements) of the scratch array 100587fc",
+  "independent_opinion": {
+   "va": "1005a368",
+   "old": "DAT_1005a368",
+   "new": "g_nQueuedWorldPolyVertexCapacity",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "FUN_10013e80 allocates nVertices entries and stores nVertices here; queue builders check used plus requested against it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a368.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1005a36c",
+  "old": "DAT_1005a36c",
+  "new": "g_pAdditiveObjectStateChange",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Lazily created StateChange sets alpha blend enabled, Z write off and ONE/ONE source and destination blending for bAdditive. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a36c",
+   "old": "DAT_1005a36c",
+   "new": "g_pAdditiveObjectStateChange",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Lazily created StateChange sets alpha blend enabled, Z write off and ONE/ONE source and destination blending for bAdditive. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a36c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a370",
+  "old": "DAT_1005a370",
+  "new": "g_pAlphaObjectStateChange",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Lazily created StateChange sets alpha blend enabled, Z write off and SRCALPHA/INVSRCALPHA blending for normal translucent objects. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a370",
+   "old": "DAT_1005a370",
+   "new": "g_pAlphaObjectStateChange",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Lazily created StateChange sets alpha blend enabled, Z write off and SRCALPHA/INVSRCALPHA blending for normal translucent objects. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a370.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a378",
+  "old": "DAT_1005a378",
+  "new": "g_nLastRenderToFront",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: RenderScene compares RenderToFront console value to this and updates after swapping surfaces and changing render target. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a378",
+   "old": "DAT_1005a378",
+   "new": "g_nLastRenderToFront",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "RenderScene compares RenderToFront console value to this and updates after swapping surfaces and changing render target. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a378.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a3d0",
+  "old": "DAT_1005a3d0",
+  "new": "g_fSkyWorldModelTintR",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sky world-model setup writes object red/255 times GlobalVertexTint.x; sky polygon builders multiply source red by it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a3d0",
+   "old": "DAT_1005a3d0",
+   "new": "g_fSkyWorldModelTintR",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Sky world-model setup writes object red/255 times GlobalVertexTint.x; sky polygon builders multiply source red by it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a3d0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a3d4",
+  "old": "DAT_1005a3d4",
+  "new": "g_fSkyWorldModelTintG",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sky world-model setup writes object green/255 times GlobalVertexTint.y; sky polygon builders multiply source green by it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a3d4",
+   "old": "DAT_1005a3d4",
+   "new": "g_fSkyWorldModelTintG",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Sky world-model setup writes object green/255 times GlobalVertexTint.y; sky polygon builders multiply source green by it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a3d4.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005a3d8",
+  "old": "DAT_1005a3d8",
+  "new": "g_fSkyWorldModelTintB",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Sky world-model setup writes object blue/255 times GlobalVertexTint.z; sky polygon builders multiply source blue by it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005a3d8",
+   "old": "DAT_1005a3d8",
+   "new": "g_fSkyWorldModelTintB",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Sky world-model setup writes object blue/255 times GlobalVertexTint.z; sky polygon builders multiply source blue by it. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005a3d8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005c7e0",
+  "old": "DAT_1005c7e0",
+  "new": "g_bOnePassLightmappingEnabled",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: CreateDevice starts from Force1Pass and clears on failed ValidateDevice or insufficient texture stages; draw setup uses it to select one-pass queue and flush paths. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005c7e0",
+   "old": "DAT_1005c7e0",
+   "new": "g_bOnePassLightmappingEnabled",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "CreateDevice starts from Force1Pass and clears on failed ValidateDevice or insufficient texture stages; draw setup uses it to select one-pass queue and flush paths. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005c7e0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005c878",
+  "old": "DAT_1005c878",
+  "new": "g_D3DDeviceDesc",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: CreateDevice copies the returned D3DDEVICEDESC7 into this object and reads wMaxSimultaneousTextures to validate multistage rendering. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_D3DDeviceDesc7",
+  "prior_evidence": "copy (0x3b dwords) of the D3DDEVICEDESC7 filled by IDirect3DDevice7::GetCaps (slot 0xc) in 1001acc0; +0x84/+0x88 = dwMaxTextureWidth/Height (1005c8fc/1005c900), +0xba = wMaxSimultaneousTextures (1005c932); Jupiter CD3D_Device::m_DeviceCaps",
+  "independent_opinion": {
+   "va": "1005c878",
+   "old": "DAT_1005c878",
+   "new": "g_D3DDeviceDesc",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "CreateDevice copies the returned D3DDEVICEDESC7 into this object and reads wMaxSimultaneousTextures to validate multistage rendering. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005c878.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1005c99c",
+  "old": "DAT_1005c99c",
+  "new": "g_pZBufferFormatCount",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: FUN_1001aa70 assigns address of local nFormats; EnumZBufferFormatsCallback indexes the format array using its pointee and increments the pointee. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together.",
+  "primary_draft": "g_pnZBufferFormats",
+  "prior_evidence": "context pointer to the count incremented by d3d_EnumZBufferFormatsCallback (limit 0x40)",
+  "independent_opinion": {
+   "va": "1005c99c",
+   "old": "DAT_1005c99c",
+   "new": "g_pZBufferFormatCount",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "FUN_1001aa70 assigns address of local nFormats; EnumZBufferFormatsCallback indexes the format array using its pointee and increments the pointee. Runtime unhit in recorded scenarios; confidence reduced. All same-address generated declarations reviewed together."
+  },
+  "dossier": "build/d3dren/dossier/1005c99c.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1005c9a0",
+  "old": "DAT_1005c9a0",
+  "new": "g_DefaultZEnableState",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: d3d_CreateDevice writes 1 and uses it for ZENABLE; d3d_DrawNoZSprites restores this value after disabling depth testing. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005c9a0",
+   "old": "DAT_1005c9a0",
+   "new": "g_DefaultZEnableState",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "d3d_CreateDevice writes 1 and uses it for ZENABLE; d3d_DrawNoZSprites restores this value after disabling depth testing. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1005c9a0.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005ce18",
+  "old": "DAT_1005ce18",
+  "new": "g_bPortalsEnabled",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: d3d_RenderScene sets the flag from DrawPortals and CanDrawPortals; tagging and world-model drawing read it to select portal-aware drawing. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005ce18",
+   "old": "DAT_1005ce18",
+   "new": "g_bPortalsEnabled",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "d3d_RenderScene sets the flag from DrawPortals and CanDrawPortals; tagging and world-model drawing read it to select portal-aware drawing. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1005ce18.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005de1c",
+  "old": "DAT_1005de1c",
+  "new": "g_ModelHalfTexelScale",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: d3d_CreateDevice writes 0.5f; ModelDraw texture setup multiplies both stage texel sizes by it before saving the model UV terms. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005de1c",
+   "old": "DAT_1005de1c",
+   "new": "g_ModelHalfTexelScale",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "d3d_CreateDevice writes 0.5f; ModelDraw texture setup multiplies both stage texel sizes by it before saving the model UV terms. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1005de1c.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "1005de24",
+  "old": "DAT_1005de24",
+  "new": "g_pEnumeratedZBufferFormats",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Device setup assigns its local formats array here and EnumZBufferFormatsCallback writes each returned DDPIXELFORMAT through the pointer. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_pZBufferFormatList",
+  "prior_evidence": "context pointer to the stack array of DDPIXELFORMATs filled by d3d_EnumZBufferFormatsCallback (set in 1001aa70 before EnumZBufferFormats)",
+  "independent_opinion": {
+   "va": "1005de24",
+   "old": "DAT_1005de24",
+   "new": "g_pEnumeratedZBufferFormats",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Device setup assigns its local formats array here and EnumZBufferFormatsCallback writes each returned DDPIXELFORMAT through the pointer. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1005de24.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "1005f650",
+  "old": "DAT_1005f650",
+  "new": "g_ShadowTextureQuadVerts",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: D3DShadowTexture screen draw fills four TL vertices with corner positions, color and UV coordinates and submits the array to DrawPrimitive. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "1005f650",
+   "old": "DAT_1005f650",
+   "new": "g_ShadowTextureQuadVerts",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "D3DShadowTexture screen draw fills four TL vertices with corner positions, color and UV coordinates and submits the array to DrawPrimitive. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/1005f650.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ },
+ {
+  "va": "100606d0",
+  "old": "DAT_100606d0",
+  "new": "g_pShadowTextureLastErrorString",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: Every write assigns D3DAppErrorToString after shadow texture pixel-format, surface-creation or BltFast operations. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "g_pLastDXErrorString",
+  "prior_evidence": "receives the return value of D3DAppErrorToString (10019b10) right after IDirectDrawSurface7::GetSurfaceDesc/CreateSurface style calls (4 sites around 1001d1fa..1001d836): a \"last DirectDraw error text\" kept for the debugger",
+  "independent_opinion": {
+   "va": "100606d0",
+   "old": "DAT_100606d0",
+   "new": "g_pShadowTextureLastErrorString",
+   "confidence": "medium",
+   "provenance": "invented",
+   "why": "Every write assigns D3DAppErrorToString after shadow texture pixel-format, surface-creation or BltFast operations. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100606d0.md",
+  "review_decision": "Agree on role; prefer the more specific independent wording"
+ },
+ {
+  "va": "100613a8",
+  "old": "DAT_100613a8",
+  "new": "g_TextureManagerResetList",
+  "confidence": "low",
+  "provenance": "invented",
+  "why": "Lead accepted after source/callgraph review: LTList initialized with LTLink_Init and tied off by CTextureManager_Init; no recovered reader establishes a texture-bank or ownership role, and g_RTextureBank is a separate object. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming.",
+  "primary_draft": "",
+  "prior_evidence": "",
+  "independent_opinion": {
+   "va": "100613a8",
+   "old": "DAT_100613a8",
+   "new": "g_TextureManagerResetList",
+   "confidence": "low",
+   "provenance": "invented",
+   "why": "LTList initialized with LTLink_Init and tied off by CTextureManager_Init; no recovered reader establishes a texture-bank or ownership role, and g_RTextureBank is a separate object. Evidence: globals_4.json and recovered source declarations/writers/readers. Runtime status is unhit_in_recorded_scenarios, so no runtime confirmation supports this naming."
+  },
+  "dossier": "build/d3dren/dossier/100613a8.md",
+  "review_decision": "Role verified directly from the supplied source definition"
+ }
+]

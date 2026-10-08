@@ -7,15 +7,15 @@
 // (0x10025013..0x1002859f: planar and projected model shadows).  Unit name: the proposal's 0x100241e0 (NAMING.md section 4
 // names the objects: drawmodel 0x10023860-0x10025012 of which this unit holds the tail, drawmodelshadows 0x10025013-0x1002859f).
 // The three console-variable groups sit where the exe has their static initialisers (between the functions).
-// (No /Ob2: with it the 20-byte FUN_10024cd7, called only by FUN_10024c8b, is expanded into its caller, the exe calls it.)
-// FLAGS NOTE: the object map says /O1 /Ob2 (P object).  FUN_10024c8b matches only with /Ob1 (the exe keeps a callee out of line that
+// (No /Ob2: with it the 20-byte RestoreModelFillMode, called only by DrawModelPassWithVertexCallbacks, is expanded into its caller, the exe calls it.)
+// FLAGS NOTE: the object map says /O1 /Ob2 (P object).  DrawModelPassWithVertexCallbacks matches only with /Ob1 (the exe keeps a callee out of line that
 // /Ob2 inlines: an in-object inline-budget effect, not a flag difference between objects); every other function matches under both.
 // FLAGS: /O1
 // d3d.ren model drawing: the second half of the original `drawmodel` object (0x100241e0) and the `drawmodelshadows` object
 // (0x10025013..0x1002859f: planar and projected model shadows).  Unit name: the proposal's 0x100241e0 (NAMING.md section 4
 // names the objects: drawmodel 0x10023860-0x10025012 of which this unit holds the tail, drawmodelshadows 0x10025013-0x1002859f).
 // The three console-variable groups sit where the exe has their static initialisers (between the functions).
-// (No /Ob2: with it the 20-byte FUN_10024cd7, called only by FUN_10024c8b, is expanded into its caller, the exe calls it.)
+// (No /Ob2: with it the 20-byte RestoreModelFillMode, called only by DrawModelPassWithVertexCallbacks, is expanded into its caller, the exe calls it.)
 #include <math.h>
 #include <windows.h>
 #include <string.h>
@@ -57,58 +57,58 @@ ConVar g_CV_ModelTexture("ModelTexture", 1.0f);
 // d3d_QueueModel: d3d_DrawModel / d3d_QueueModel callback of BaseObjectSet::Draw (unit setupmodel, W4).
 void d3d_QueueModel(ViewParams *pParams, LTObject *pObject);
 // 0x100161e0: clips the 3D line pVerts[2] against the planes of the mask (0x3f = all); returns 0 when nothing is left.
-int FUN_100161e0(float *pVerts, int nMask);
+int d3d_ClipTLVertexLine(float *pVerts, int nMask);
 void d3d_DrawLine(const LTVector &src, const LTVector &dest, uint32 color);
-void FUN_10024cd7();
+void RestoreModelFillMode();
 
 // The static data of the original object that this scratch unit owns (all unnamed in the exe).
 // GLOBAL: D3DREN 0x10068030
-int DAT_10068030;				// guess: D3DRENDERSTATE_FILLMODE saved by FUN_100244b3, restored by FUN_10024cd7
+int g_ModelSavedFillMode;				// guess: D3DRENDERSTATE_FILLMODE saved by BeginModelRenderPass, restored by RestoreModelFillMode
 // GLOBAL: D3DREN 0x10067be8
-uint32 DAT_10067be8;			// guess: D3DTOP value of the stage 1 colour op while the model is drawn
+uint32 g_ModelStage1ColorOp;			// guess: D3DTOP value of the stage 1 colour op while the model is drawn
 // GLOBAL: D3DREN 0x10069034
-int DAT_10069034;				// guess: switch of the (never enabled) bump mapped model path of FUN_1002476b
+int g_bModelBumpMappingEnabled;				// guess: switch of the (never enabled) bump mapped model path of DrawModelRenderPasses
 // GLOBAL: D3DREN 0x1004b99c
-float DAT_1004b99c = 0.5f;		// guess: bump environment matrix _11
+float g_fModelBumpEnvMatrix00 = 0.5f;		// guess: bump environment matrix _11
 // GLOBAL: D3DREN 0x10069038
-float DAT_10069038;				// guess: bump environment matrix _12
+float g_ModelBumpEnvMat01;				// guess: bump environment matrix _12
 // GLOBAL: D3DREN 0x1006903c
-float DAT_1006903c;				// guess: bump environment matrix _21
+float g_ModelBumpEnvMat10;				// guess: bump environment matrix _21
 // GLOBAL: D3DREN 0x1004b9a0
-float DAT_1004b9a0 = 0.5f;		// guess: bump environment matrix _22
+float g_fModelBumpEnvMatrix11 = 0.5f;		// guess: bump environment matrix _22
 
 // Static data of other units.
-extern float DAT_1005de1c;		// guess: texel scale applied to the stage UV scale pair
+extern float g_ModelHalfTexelScale;		// guess: texel scale applied to the stage UV scale pair
 struct UnkType_StageUV
 {
 	float	m_Unk00;
 	float	m_Unk04;
 };
-extern UnkType_StageUV DAT_10061810[8];	// per stage UV scale (unit unk/10007930)
+extern UnkType_StageUV g_TextureStageTexelSizes[8];	// per stage UV scale (unit unk/10007930)
 extern IDirectDrawSurface7 *g_pSpecularTexture;	// guess: the specular lookup table texture (d3d_BuildSpecularLookupTexture)
-extern float DAT_100561a0;		// guess: ViewParams (+0x4a8) component the bump matrix angle is built from
-extern float DAT_100561a8;		// guess: ViewParams (+0x4b0)
+extern float g_ViewForwardX;		// guess: ViewParams (+0x4a8) component the bump matrix angle is built from
+extern float g_ViewForwardZ;		// guess: ViewParams (+0x4b0)
 
 // Vertex fillers stored in the drawer (unit unk/10001000, W1); declared exactly as that unit defines them, passed through the
 // PFN_ casts of the ModelDraw members.
-void __fastcall FUN_10001370(TLVertex *pDest, void *pSrc, float *pUV);
-void __fastcall FUN_10001390(UnkType_TLVertex40 *pDest, void *pSrc, float *pUV);
-void __fastcall FUN_100013d0(TLVertex *pDest, TLVertex *pSrc, float *pUV);
-void __fastcall FUN_100013e0(UnkType_TLVertex40 *pDest, TLVertex *pSrc, float *pUV);
-void __fastcall FUN_10001410(void *pDest, void *pSrc, float *pUV);
-void __fastcall FUN_10001420(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest);
-void __fastcall FUN_10001490(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest);
+void __fastcall FillModelBaseTexCoords(TLVertex *pDest, void *pSrc, float *pUV);
+void __fastcall FillModelDetailTexCoords(UnkType_TLVertex40 *pDest, void *pSrc, float *pUV);
+void __fastcall CopyModelGeneratedTexCoords(TLVertex *pDest, TLVertex *pSrc, float *pUV);
+void __fastcall FillModelBaseAndGeneratedTexCoords(UnkType_TLVertex40 *pDest, TLVertex *pSrc, float *pUV);
+void __fastcall GenerateModelTexCoordsNoOp(void *pDest, void *pSrc, float *pUV);
+void __fastcall GenerateModelEnvMapCoords(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest);
+void __fastcall GenerateModelSpecularCoords(UnkType_ModelDrawerVertexView *pThis, UnkType_ModelVertex *pSrc, TLVertex *pDest);
 
 // Jupiter d3d_device.h
 inline DWORD F2DW(FLOAT f) { return *((DWORD *)&f); }
 
-// ---- d3d_DrawLine / FUN_1002421e -----------------------------------------------------------------------------------------
+// ---- d3d_DrawLine / DrawAnimationDimensionsBox -----------------------------------------------------------------------------------------
 
 // guess: draws a wireframe box (the animation's dims) around the model instance.
 // FUNCTION: D3DREN 0x1002421e
-void ModelDraw::FUN_1002421e()
+void ModelDraw::DrawAnimationDimensionsBox()
 {
-	FUN_1000a27b(g_NormalTextureStage);
+	d3d_UnsetTexture(g_NormalTextureStage);
 
 	ModelInstance *pInstance = m_pInstance;
 	const LTVector &Pos = pInstance->m_Pos;
@@ -149,7 +149,7 @@ void d3d_DrawLine(const LTVector &src, const LTVector &dest, uint32 color)
 	MatVMul_InPlace_H(&g_ViewParams.m_mClipTransform, &verts[0].m_Vec);
 	MatVMul_InPlace_H(&g_ViewParams.m_mClipTransform, &verts[1].m_Vec);
 
-	if (FUN_100161e0((float *)verts, 0x3f))
+	if (d3d_ClipTLVertexLine((float *)verts, 0x3f))
 	{
 		ProjectVertexToScreen((float *)&verts[0], &g_ViewParams);
 		ProjectVertexToScreen((float *)&verts[1], &g_ViewParams);
@@ -157,22 +157,22 @@ void d3d_DrawLine(const LTVector &src, const LTVector &dest, uint32 color)
 	}
 }
 
-// ---- FUN_100244b3 --------------------------------------------------------------------------------------------------------
+// ---- BeginModelRenderPass --------------------------------------------------------------------------------------------------------
 
 // guess: starts a model draw: decides whether the model is textured, saves the fill mode (wireframe on request) and
 // reports (*pbResult) whether the model fullbrite pass is wanted.
 // FUNCTION: D3DREN 0x100244b3
-void ModelDraw::FUN_100244b3(uint32 *pbResult)
+void ModelDraw::BeginModelRenderPass(uint32 *pbResult)
 {
-	DAT_1004eb44 = 0.0f;
-	DAT_1004eb40 = 0.0f;
+	g_ModelTextureVOffset = 0.0f;
+	g_ModelTextureUOffset = 0.0f;
 	m_Unk4c8 = 0;
 	if (g_TextureModels && (m_ModelHookData.m_Flags & MHF_USETEXTURE))
 		m_Unk4c8 = 1;
 	else
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_UnsetTexture(g_NormalTextureStage);
 
-	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FILLMODE, (unsigned long *)&DAT_10068030);
+	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FILLMODE, (unsigned long *)&g_ModelSavedFillMode);
 	if (m_ModelHookData.m_ObjectFlags & FLAG_MODELWIREFRAME)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, D3DFILL_WIREFRAME);
 
@@ -180,27 +180,27 @@ void ModelDraw::FUN_100244b3(uint32 *pbResult)
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, &dwAlphaBlend);
 
 	uint32 bResult = 0;
-	if (DAT_1005c808 && g_ModelFullbrite && g_pBoundTextures[g_NormalTextureStage] &&
+	if (g_bModelFullbriteCapable && g_ModelFullbrite && g_pBoundTextures[g_NormalTextureStage] &&
 		((RTexture *)g_pBoundTextures[g_NormalTextureStage])->IsFullbrite() && !dwAlphaBlend)
 	{
 		bResult = 1;
 		if (g_ShowFullbriteModels)
 		{
 			bResult = 0;
-			FUN_1000a27b(g_NormalTextureStage);
+			d3d_UnsetTexture(g_NormalTextureStage);
 		}
 	}
 	*pbResult = bResult;
 }
 
-// ---- FUN_10024589 --------------------------------------------------------------------------------------------------------
+// ---- BindModelSkinTextures --------------------------------------------------------------------------------------------------------
 
 // guess: binds skin iSkin of the instance on the normal stage (m_Unk34; the stage is disabled when ModelTexture is off or the
 // bind fails), on the second texture stage m_Unk38 when it is in use, and the skin's linked (detail) texture on stage 1 when
-// m_Unk30 is set, before a piece is drawn (caller FUN_10004270).  Sets the texture coordinate offsets DAT_1004eb40/44 that the
+// m_Unk30 is set, before a piece is drawn (caller DrawPiecesWithCallbacks).  Sets the texture coordinate offsets g_ModelTextureUOffset/44 that the
 // fillers add.
 // FUNCTION: D3DREN 0x10024589
-void ModelDraw::FUN_10024589(uint32 iSkin)
+void ModelDraw::BindModelSkinTextures(uint32 iSkin)
 {
 	if (!m_Unk4c4)
 		return;
@@ -211,13 +211,13 @@ void ModelDraw::FUN_10024589(uint32 iSkin)
 
 		if (g_CV_ModelTexture.m_IntVal && d3d_SetTexture(pSkin, m_Unk34, m_Unk8a4))
 		{
-			// (written `DAT_1005de1c * scale`: that gives the exe's fld c / fld uv / fmul st(1); `scale * DAT_1005de1c` came out as fld c / fld st(0) / fmul uv)
-			DAT_1004eb40 = DAT_1005de1c * DAT_10061810[0].m_Unk00;
-			DAT_1004eb44 = DAT_1005de1c * DAT_10061810[0].m_Unk04;
+			// (written `g_ModelHalfTexelScale * scale`: that gives the exe's fld c / fld uv / fmul st(1); `scale * g_ModelHalfTexelScale` came out as fld c / fld st(0) / fmul uv)
+			g_ModelTextureUOffset = g_ModelHalfTexelScale * g_TextureStageTexelSizes[0].m_Unk00;
+			g_ModelTextureVOffset = g_ModelHalfTexelScale * g_TextureStageTexelSizes[0].m_Unk04;
 		}
 		else
 		{
-			FUN_1000a27b(g_NormalTextureStage);
+			d3d_UnsetTexture(g_NormalTextureStage);
 		}
 
 		if (m_Unk38 != -1)
@@ -225,27 +225,27 @@ void ModelDraw::FUN_10024589(uint32 iSkin)
 
 		if (m_Unk30 && pSkin->m_pLinkedTexture)
 		{
-			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, DAT_10067be8);
+			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, g_ModelStage1ColorOp);
 			d3d_SetTexture(pSkin->m_pLinkedTexture, 1, 0);
 		}
 		else if (m_Unk5e8 < 2)
 		{
-			g_pD3DDevice->GetTextureStageState(1, D3DTSS_COLOROP, (unsigned long *)&DAT_10067be8);
+			g_pD3DDevice->GetTextureStageState(1, D3DTSS_COLOROP, (unsigned long *)&g_ModelStage1ColorOp);
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, 1);
-			FUN_1000a27b(1);
+			d3d_UnsetTexture(1);
 		}
 
 		m_Unk4cc = iSkin;
 	}
 	else
 	{
-		FUN_1000a27b(g_NormalTextureStage);
+		d3d_UnsetTexture(g_NormalTextureStage);
 	}
 }
 
-// ---- FUN_100246b7 / FUN_1002473b -----------------------------------------------------------------------------------------
+// ---- SaveAndSetStageOneAdditiveStates / RestoreStageOneAdditiveStates -----------------------------------------------------------------------------------------
 
-// guess: the stage 1 states FUN_100246b7 saves and FUN_1002473b restores.
+// guess: the stage 1 states SaveAndSetStageOneAdditiveStates saves and RestoreStageOneAdditiveStates restores.
 struct UnkType_SavedStage1
 {
 	uint32	m_Unk00;	// D3DTSS_COLOROP
@@ -254,9 +254,9 @@ struct UnkType_SavedStage1
 
 // guess: saves the stage 1 colour op and address mode in *pSaved, then sets additive blending of the stage 1 texture.  Not used
 // by the model drawing: its caller is the device creation (0x1001acc0), which uses it for the ValidateDevice test of the
-// second stage; it lives in this object because of DAT_10067be8.
+// second stage; it lives in this object because of g_ModelStage1ColorOp.
 // FUNCTION: D3DREN 0x100246b7
-void FUN_100246b7(UnkType_SavedStage1 *pSaved)
+void SaveAndSetStageOneAdditiveStates(UnkType_SavedStage1 *pSaved)
 {
 	g_pD3DDevice->GetTextureStageState(1, D3DTSS_COLOROP, (unsigned long *)&pSaved->m_Unk00);
 	g_pD3DDevice->GetTextureStageState(1, D3DTSS_ADDRESS, (unsigned long *)&pSaved->m_Unk04);
@@ -264,30 +264,30 @@ void FUN_100246b7(UnkType_SavedStage1 *pSaved)
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
-	DAT_10067be8 = D3DTOP_ADD;
+	g_ModelStage1ColorOp = D3DTOP_ADD;
 }
 
-// guess: restores what FUN_100246b7 saved (caller: 0x1001acc0).
+// guess: restores what SaveAndSetStageOneAdditiveStates saved (caller: 0x1001acc0).
 // FUNCTION: D3DREN 0x1002473b
-void FUN_1002473b(UnkType_SavedStage1 *pSaved)
+void RestoreStageOneAdditiveStates(UnkType_SavedStage1 *pSaved)
 {
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, pSaved->m_Unk00);
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_ADDRESS, pSaved->m_Unk04);
 }
 
-// ---- FUN_1002476b --------------------------------------------------------------------------------------------------------
+// ---- DrawModelRenderPasses --------------------------------------------------------------------------------------------------------
 
 // guess: the central model draw (called once per model by 0x1000d3a7).  Clears the per-piece flag bytes, then draws the pieces:
 // first an environment map pass when EnvMapAll (or m_Unk618) is set and the engine holds an environment map texture
-// (RenderStruct::m_pEnvMapTexture: FUN_10005700 + FUN_100045a0 with the fillers 0x100013d0/0x10001420, alpha blending on);
-// unless EnvMapAll is set the normal pass follows: the bump mapped path (switch DAT_10069034, never set), the specular table
+// (RenderStruct::m_pEnvMapTexture: PrepareModelPieceVertices + SelectPieceDrawCallbacks with the fillers 0x100013d0/0x10001420, alpha blending on);
+// unless EnvMapAll is set the normal pass follows: the bump mapped path (switch g_bModelBumpMappingEnabled, never set), the specular table
 // pass (ModelSpecular, validated device, Model::m_bSpecularEnable, table texture present), the detail texture pass (m_Unk30)
-// or the plain pass, each through FUN_10024c8b with its texture coordinate filler.  Then the ALPHABLENDENABLE state is put
+// or the plain pass, each through DrawModelPassWithVertexCallbacks with its texture coordinate filler.  Then the ALPHABLENDENABLE state is put
 // back, the shadows (FLAG_SHADOW) and the model box (ModelBoxes) are drawn and the near z is restored (FLAG_REALLYCLOSE).
 // The d3d.ren StageStateSet constructor sets unconditionally, so the four temporaries of the specular pass (constructed and
 // destroyed immediately) have no effect: kept as the exe has them.
 // FUNCTION: D3DREN 0x1002476b
-void ModelDraw::FUN_1002476b()
+void ModelDraw::DrawModelRenderPasses()
 {
 	for (uint32 i = 0; i < 0x100; i++)
 	{
@@ -306,12 +306,12 @@ void ModelDraw::FUN_1002476b()
 	int bTransform = 1;
 	if ((g_EnvMapAll || m_Unk618) && g_pStruct->m_pEnvMapTexture)
 	{
-		m_Unk5f4 = (PFN_FillTexCoords)FUN_100013d0;
-		m_Unk5ec = (PFN_GenTexCoords)FUN_10001420;
-		FUN_10005700();
+		m_Unk5f4 = (PFN_FillTexCoords)CopyModelGeneratedTexCoords;
+		m_Unk5ec = (PFN_GenTexCoords)GenerateModelEnvMapCoords;
+		PrepareModelPieceVertices();
 		d3d_SetTexture(g_pStruct->m_pEnvMapTexture, g_NormalTextureStage, 0);
 		m_Unk4c4 = 0;
-		FUN_100045a0(0);
+		SelectPieceDrawCallbacks(0);
 		bTransform = 0;
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, TRUE);
 	}
@@ -321,7 +321,7 @@ void ModelDraw::FUN_1002476b()
 
 	if (!g_EnvMapAll)
 	{
-		if (DAT_10069034)
+		if (g_bModelBumpMappingEnabled)
 		{
 			m_Unk5e8 = 2;
 			m_Unk38 = 0x101;
@@ -331,15 +331,15 @@ void ModelDraw::FUN_1002476b()
 			StageStateSet ss1(1, D3DTSS_COLOROP, D3DTOP_BUMPENVMAP);
 			StageStateSet ss2(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 			StageStateSet ss3(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
-			double dAngle = atan2((double)DAT_100561a0, (double)DAT_100561a8);
-			DAT_1004b99c = (float)cos(dAngle);
-			DAT_10069038 = (float)-sin(dAngle);
-			DAT_1006903c = (float)sin(dAngle);
-			DAT_1004b9a0 = (float)cos(dAngle);
-			StageStateSet ss4(1, D3DTSS_BUMPENVMAT00, F2DW(DAT_1004b99c));
-			StageStateSet ss5(1, D3DTSS_BUMPENVMAT01, F2DW(DAT_10069038));
-			StageStateSet ss6(1, D3DTSS_BUMPENVMAT10, F2DW(DAT_1006903c));
-			StageStateSet ss7(1, D3DTSS_BUMPENVMAT11, F2DW(DAT_1004b9a0));
+			double dAngle = atan2((double)g_ViewForwardX, (double)g_ViewForwardZ);
+			g_fModelBumpEnvMatrix00 = (float)cos(dAngle);
+			g_ModelBumpEnvMat01 = (float)-sin(dAngle);
+			g_ModelBumpEnvMat10 = (float)sin(dAngle);
+			g_fModelBumpEnvMatrix11 = (float)cos(dAngle);
+			StageStateSet ss4(1, D3DTSS_BUMPENVMAT00, F2DW(g_fModelBumpEnvMatrix00));
+			StageStateSet ss5(1, D3DTSS_BUMPENVMAT01, F2DW(g_ModelBumpEnvMat01));
+			StageStateSet ss6(1, D3DTSS_BUMPENVMAT10, F2DW(g_ModelBumpEnvMat10));
+			StageStateSet ss7(1, D3DTSS_BUMPENVMAT11, F2DW(g_fModelBumpEnvMatrix11));
 			StageStateSet ss8(1, D3DTSS_MAGFILTER, D3DTFG_LINEAR);
 			StageStateSet ss9(1, D3DTSS_MINFILTER, D3DTFN_LINEAR);
 			StageStateSet ss10(2, D3DTSS_TEXCOORDINDEX, 1);
@@ -349,12 +349,12 @@ void ModelDraw::FUN_1002476b()
 			StageStateSet ss14(2, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
 			StageStateSet ss15(2, D3DTSS_MAGFILTER, D3DTFG_LINEAR);
 			StageStateSet ss16(2, D3DTSS_MINFILTER, D3DTFN_LINEAR);
-			FUN_10024c8b((PFN_FillTexCoords)FUN_100013e0, (PFN_GenTexCoords)FUN_10001490, 1);
+			DrawModelPassWithVertexCallbacks((PFN_FillTexCoords)FillModelBaseAndGeneratedTexCoords, (PFN_GenTexCoords)GenerateModelSpecularCoords, 1);
 			g_pD3DDevice->SetTexture(2, pOldTex);
 		}
 		else
 		{
-			if (g_CV_ModelSpecular.m_IntVal && DAT_1005c80c && m_pModel->m_bSpecularEnable && g_pSpecularTexture)
+			if (g_CV_ModelSpecular.m_IntVal && g_bModelSpecularBlendValidated && m_pModel->m_bSpecularEnable && g_pSpecularTexture)
 			{
 				m_Unk5e8 = 2;
 					g_pD3DDevice->GetTexture(1, &pOldTex);
@@ -363,7 +363,7 @@ void ModelDraw::FUN_1002476b()
 				StageStateSet(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 				StageStateSet(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
 				StageStateSet(1, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
-				FUN_10024c8b((PFN_FillTexCoords)FUN_100013e0, (PFN_GenTexCoords)FUN_10001490, 1);
+				DrawModelPassWithVertexCallbacks((PFN_FillTexCoords)FillModelBaseAndGeneratedTexCoords, (PFN_GenTexCoords)GenerateModelSpecularCoords, 1);
 				g_pD3DDevice->SetTexture(1, pOldTex);
 			}
 			else if (m_Unk30)
@@ -371,15 +371,15 @@ void ModelDraw::FUN_1002476b()
 				m_Unk5e8 = 2;
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_ADDSIGNED);
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-				DAT_10067be8 = D3DTOP_ADDSIGNED;
-				FUN_10024c8b((PFN_FillTexCoords)FUN_10001390, (PFN_GenTexCoords)FUN_10001410, 1);
+				g_ModelStage1ColorOp = D3DTOP_ADDSIGNED;
+				DrawModelPassWithVertexCallbacks((PFN_FillTexCoords)FillModelDetailTexCoords, (PFN_GenTexCoords)GenerateModelTexCoordsNoOp, 1);
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 				g_pD3DDevice->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 			}
 			else
 			{
-				DAT_10067be8 = D3DTOP_DISABLE;
-				FUN_10024c8b((PFN_FillTexCoords)FUN_10001370, (PFN_GenTexCoords)FUN_10001410, bTransform);
+				g_ModelStage1ColorOp = D3DTOP_DISABLE;
+				DrawModelPassWithVertexCallbacks((PFN_FillTexCoords)FillModelBaseTexCoords, (PFN_GenTexCoords)GenerateModelTexCoordsNoOp, bTransform);
 			}
 		}
 	}
@@ -390,37 +390,37 @@ void ModelDraw::FUN_1002476b()
 		DrawModelShadows();
 
 	if (g_ModelBoxes)
-		FUN_1002421e();
+		DrawAnimationDimensionsBox();
 
 	if (m_ModelHookData.m_ObjectFlags & FLAG_REALLYCLOSE)
 		g_ViewParams.m_NearZ = g_CV_NearZ.m_FloatVal;
 }
 
-// ---- FUN_10024c8b / FUN_10024cd7 -----------------------------------------------------------------------------------------
+// ---- DrawModelPassWithVertexCallbacks / RestoreModelFillMode -----------------------------------------------------------------------------------------
 
-// guess: stores the vertex fillers, begins the draw (FUN_100244b3), transforms the pieces (FUN_10005700) when asked and
-// runs the draw callbacks (FUN_100045a0).
+// guess: stores the vertex fillers, begins the draw (BeginModelRenderPass), transforms the pieces (PrepareModelPieceVertices) when asked and
+// runs the draw callbacks (SelectPieceDrawCallbacks).
 // FUNCTION: D3DREN 0x10024c8b
-void ModelDraw::FUN_10024c8b(PFN_FillTexCoords pfnTexFill, PFN_GenTexCoords pfnShade, int bTransform)
+void ModelDraw::DrawModelPassWithVertexCallbacks(PFN_FillTexCoords pfnTexFill, PFN_GenTexCoords pfnShade, int bTransform)
 {
 	m_Unk5f4 = pfnTexFill;
 	m_Unk5ec = pfnShade;
 	m_Unk4c4 = 1;
 	uint32 bResult;
-	FUN_100244b3(&bResult);
+	BeginModelRenderPass(&bResult);
 	if (bTransform)
-		FUN_10005700();
-	FUN_100045a0(bResult);
-	FUN_10024cd7();
+		PrepareModelPieceVertices();
+	SelectPieceDrawCallbacks(bResult);
+	RestoreModelFillMode();
 }
 
-// guess: restores the fill mode FUN_100244b3 saved.
-// The exe keeps this 20 byte function out of line (FUN_10024c8b calls it); that is the /Ob1 behaviour of this object (a plain function
-// is not an inline candidate), the reason this unit has no /Ob2 in its FLAGS line (with /Ob2 it would be expanded into FUN_10024c8b).
+// guess: restores the fill mode BeginModelRenderPass saved.
+// The exe keeps this 20 byte function out of line (DrawModelPassWithVertexCallbacks calls it); that is the /Ob1 behaviour of this object (a plain function
+// is not an inline candidate), the reason this unit has no /Ob2 in its FLAGS line (with /Ob2 it would be expanded into DrawModelPassWithVertexCallbacks).
 // FUNCTION: D3DREN 0x10024cd7
-void FUN_10024cd7()
+void RestoreModelFillMode()
 {
-	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, DAT_10068030);
+	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, g_ModelSavedFillMode);
 }
 
 // ---- d3d_ProcessModel ----------------------------------------------------------------------------------------------------
@@ -469,7 +469,7 @@ void d3d_DrawSolidModels()
 
 // guess: the same for the chromakey models (Talon only).
 // FUNCTION: D3DREN 0x10024dc0
-void FUN_10024dc0()
+void d3d_DrawChromaKeyModels()
 {
 	if (g_DrawModels)
 	{
@@ -493,7 +493,7 @@ void d3d_QueueTranslucentModels()
 		if (pSet->m_nObjects)
 		{
 			for (uint32 i = 0; i < pSet->m_nObjects; i++)
-				DAT_1006b934->Add(pSet->m_pObjects[i], d3d_DrawTranslucentModel);
+				g_pTranslucentObjectDrawList->Add(pSet->m_pObjects[i], d3d_DrawTranslucentModel);
 		}
 	}
 }

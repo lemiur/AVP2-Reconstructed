@@ -50,7 +50,7 @@ void d3d_DrawSolidWorldModel(ViewParams *pParams, LTObject *pObject);
 // FUNCTION: D3DREN 0x1002f360
 void d3d_ProcessWorldModel(LTObject *pObject)
 {
-	uint32 nFlags = FUN_10019880(pObject);
+	uint32 nFlags = GetWorldModelFirstSurfaceFlags(pObject);
 	if (nFlags & 8)
 		d3d_GetVisibleSet()->m_TranslucentWorldModels.Add(pObject);
 	else if (pObject->m_Flags2 & FLAG2_CHROMAKEY)
@@ -73,7 +73,7 @@ void d3d_DrawSolidWorldModels()
 
 // guess: the same for the chroma keyed world models
 // FUNCTION: D3DREN 0x1002fed0
-void FUN_1002fed0()
+void d3d_DrawChromaKeyWorldModels()
 {
 	if (g_CV_DrawWorldModels.m_IntVal)
 	{
@@ -85,9 +85,9 @@ void FUN_1002fed0()
 
 // NAME: d3d_QueueTranslucentWorldModels: Jupiter drawworldmodel.cpp (names_proposal.csv, medium; no arguments in Talon): the translucent
 // world models are queued in the sorted list (callback d3d_DrawTranslucentWorldModel), those with an additive first polygon
-// (surface flag 1<<19) are collected in a local object set and queued after the others (callback FUN_10030ad0)
+// (surface flag 1<<19) are collected in a local object set and queued after the others (callback d3d_DrawAdditiveWorldModel)
 void d3d_DrawTranslucentWorldModel(ViewParams *pParams, LTObject *pObject);
-void FUN_10030ad0(ViewParams *pParams, LTObject *pObject);
+void d3d_DrawAdditiveWorldModel(ViewParams *pParams, LTObject *pObject);
 
 // guess: an object set whose array is a local array of the function (the constructor sets the array and its size)
 struct UnkType_LocalObjectSet : public BaseObjectSet
@@ -121,22 +121,22 @@ void d3d_QueueTranslucentWorldModels()
 			else if (g_ViewParams.m_bPortalView && !(pObject->m_Flags & 0x400))
 				continue;
 
-			if (FUN_10019880(pObject) & 0x80000)
+			if (GetWorldModelFirstSurfaceFlags(pObject) & 0x80000)
 				cAdditive.Add(pObject);
 			else
-				DAT_1006b934->Add(pObject, d3d_DrawTranslucentWorldModel);
+				g_pTranslucentObjectDrawList->Add(pObject, d3d_DrawTranslucentWorldModel);
 		}
 		if (cAdditive.m_nObjects > 0)
 		{
 			for (uint32 j = 0; j < cAdditive.m_nObjects; j++)
-				DAT_1006b934->Add(aAdditive[j], FUN_10030ad0);
+				g_pTranslucentObjectDrawList->Add(aAdditive[j], d3d_DrawAdditiveWorldModel);
 		}
 	}
 }
 
 // guess: additive world model: blend factors ONE/ONE and fog colour black around the translucent world model draw
 // FUNCTION: D3DREN 0x10030ad0
-void FUN_10030ad0(ViewParams *pParams, LTObject *pObject)
+void d3d_DrawAdditiveWorldModel(ViewParams *pParams, LTObject *pObject)
 {
 	StateSet ssSrcBlend(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE);
 	StateSet ssDestBlend(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
@@ -152,34 +152,34 @@ void FUN_10030ad0(ViewParams *pParams, LTObject *pObject)
 // guess: the poly's frame tag (the tagging code sets it to the frame code of the frame the poly was seen in)
 #define WORLDPOLY_FRAMECODE(p)	(*(uint16 *)((uint8 *)(p) + 0x46))
 
-// guess: the poly draw callbacks, selected per frame by FUN_100144b0 (unit unk/100132a0): no texture, lightmapped, panning sky, plain
+// guess: the poly draw callbacks, selected per frame by d3d_SetWorldPolyDrawMode (unit unk/100132a0): no texture, lightmapped, panning sky, plain
 typedef void (*UnkType_PolyDrawFn)(WorldPoly *pPoly);
 // GLOBAL: D3DREN 0x10058cd8
-extern UnkType_PolyDrawFn DAT_10058cd8;
+extern UnkType_PolyDrawFn g_pfnDrawUntexturedWorldPoly;
 // GLOBAL: D3DREN 0x10058c24
-extern UnkType_PolyDrawFn DAT_10058c24;
+extern UnkType_PolyDrawFn g_pfnDrawLightmappedWorldPoly;
 // GLOBAL: D3DREN 0x100587e8
-extern UnkType_PolyDrawFn DAT_100587e8;
+extern UnkType_PolyDrawFn g_pfnDrawTexturedWorldPoly;
 // GLOBAL: D3DREN 0x1005a304
-extern UnkType_PolyDrawFn DAT_1005a304;
+extern UnkType_PolyDrawFn g_pfnDrawPanningSkyWorldPoly;
 // GLOBAL: D3DREN 0x1005ce18
-extern int DAT_1005ce18;		// guess: world models are drawn through the sorted poly list (translucent/portal pass)
+extern int g_bPortalsEnabled;		// guess: world models are drawn through the sorted poly list (translucent/portal pass)
 // GLOBAL: D3DREN 0x10056688
-extern int DAT_10056688;		// guess: g_nWorldPoliesProcessed (names_proposal low)
+extern int g_nWorldPolysProcessed;		// guess: g_nWorldPoliesProcessed (names_proposal low)
 
-// guess: applies the light animation pAnim to the vertex colours of one poly (see FUN_1002f780, which has the same code written out); defined
+// guess: applies the light animation pAnim to the vertex colours of one poly (see RelightWorldPolyVertices, which has the same code written out); defined
 // in unit unk/100132a0 (0x100185a0, package W2)
-int FUN_100185a0(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef);
+int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef);
 
-void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly);
+void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly);
 
 // guess: draws the polys ppPolies[0..nPolies) of a world model (pInstance): those facing pViewPos (the viewer in the model's space) and
 // not yet drawn this frame (frame tag) are dispatched by surface: no texture, lightmapped, panning sky or plain callback after
-// relighting the WPF_RELIGHT polys; with DAT_1005ce18 set, polys of surfaces with m_Unknown3A != 0x7fff are not drawn here but collected
+// relighting the WPF_RELIGHT polys; with g_bPortalsEnabled set, polys of surfaces with m_Unknown3A != 0x7fff are not drawn here but collected
 // in the visible set's sorted poly list (invisible surfaces with the model's transform).  nClipFlags is the clip plane mask of the model.
 // NAME: guess_d3d_DrawWorldModelPolys (names_proposal.csv, low)
 // FUNCTION: D3DREN 0x1002f440
-void FUN_1002f440(WorldModelInstance *pInstance, WorldPoly **ppPolies, uint32 nPolies, LTVector *pViewPos, uint32 nClipFlags)
+void DrawWorldModelPolyList(WorldModelInstance *pInstance, WorldPoly **ppPolies, uint32 nPolies, LTVector *pViewPos, uint32 nClipFlags)
 {
 	uint16 nFrameCode;
 	uint32 iPoly;
@@ -187,7 +187,7 @@ void FUN_1002f440(WorldModelInstance *pInstance, WorldPoly **ppPolies, uint32 nP
 	g_ClipFlags = nClipFlags;
 	nFrameCode = g_CurFrameCode + 1;
 
-	if (DAT_1005ce18)
+	if (g_bPortalsEnabled)
 	{
 		VisibleSet *pVisibleSet = d3d_GetVisibleSet();
 
@@ -201,7 +201,7 @@ void FUN_1002f440(WorldModelInstance *pInstance, WorldPoly **ppPolies, uint32 nP
 				if (pPoly->m_pPlane->DistTo(*pViewPos) > 0.0001f)
 				{
 					Surface *pSurface = POLY_SURFACE(pPoly);
-					if (DAT_1005ce18 && pSurface->m_Unknown3A != 0x7fff)
+					if (g_bPortalsEnabled && pSurface->m_Unknown3A != 0x7fff)
 					{
 						if (pSurface->m_Flags & SURF_INVISIBLE)
 						{
@@ -227,7 +227,7 @@ void FUN_1002f440(WorldModelInstance *pInstance, WorldPoly **ppPolies, uint32 nP
 					{
 						uint32 nSurfFlags;
 
-						DAT_10056688++;
+						g_nWorldPolysProcessed++;
 						nSurfFlags = POLY_SURFACE(pPoly)->m_Flags;
 						if (!(nSurfFlags & SURF_INVISIBLE))
 						{
@@ -235,25 +235,25 @@ void FUN_1002f440(WorldModelInstance *pInstance, WorldPoly **ppPolies, uint32 nP
 							{
 								if (nSurfFlags & 0x80)
 								{
-									DAT_10058c24(pPoly);
+									g_pfnDrawLightmappedWorldPoly(pPoly);
 								}
 								else
 								{
 									if (pPoly->m_Flags & 0x4000)
 									{
-										FUN_1002f780(DAT_10056770, pPoly);
+										RelightWorldPolyVertices(g_pFrameMainWorld, pPoly);
 										pPoly->m_Flags &= 0xbfff;
 									}
 
 									if (nSurfFlags & 0x8000)
-										DAT_1005a304(pPoly);
+										g_pfnDrawPanningSkyWorldPoly(pPoly);
 									else
-										DAT_100587e8(pPoly);
+										g_pfnDrawTexturedWorldPoly(pPoly);
 								}
 							}
 							else
 							{
-								DAT_10058cd8(pPoly);
+								g_pfnDrawUntexturedWorldPoly(pPoly);
 							}
 						}
 					}
@@ -275,7 +275,7 @@ NextPoly:;
 				{
 					uint32 nSurfFlags;
 
-					DAT_10056688++;
+					g_nWorldPolysProcessed++;
 					nSurfFlags = POLY_SURFACE(pPoly)->m_Flags;
 					if (!(nSurfFlags & SURF_INVISIBLE))
 					{
@@ -283,13 +283,13 @@ NextPoly:;
 						{
 							if (nSurfFlags & 0x80)
 							{
-								DAT_10058c24(pPoly);
+								g_pfnDrawLightmappedWorldPoly(pPoly);
 							}
 							else
 							{
 								if (pPoly->m_Flags & 0x4000)
 								{
-									MainWorld *pWorld = DAT_10056770;
+									MainWorld *pWorld = g_pFrameMainWorld;
 									UnkType_PolyVertex *pVerts;
 									uint32 nVerts;
 									uint32 j;
@@ -315,7 +315,7 @@ NextPoly:;
 										{
 											LightAnim *pAnim = &pWorld->m_LightAnims[pRef[0]];
 											if (pAnim->m_iFrames[0] != 0xffffffff && pAnim->m_fBlendPercent >= 0.02f)
-												FUN_100185a0(pVerts, nVerts, pAnim, (uint32 *)pRef);
+												d3d_AddLightAnimVertexColors(pVerts, nVerts, pAnim, (uint32 *)pRef);
 										}
 									}
 
@@ -323,14 +323,14 @@ NextPoly:;
 								}
 
 								if (nSurfFlags & 0x8000)
-									DAT_1005a304(pPoly);
+									g_pfnDrawPanningSkyWorldPoly(pPoly);
 								else
-									DAT_100587e8(pPoly);
+									g_pfnDrawTexturedWorldPoly(pPoly);
 							}
 						}
 						else
 						{
-							DAT_10058cd8(pPoly);
+							g_pfnDrawUntexturedWorldPoly(pPoly);
 						}
 					}
 				}
@@ -339,9 +339,9 @@ NextPoly:;
 	}
 }
 
-// the body of FUN_100185a0 (0x100185a0, unit unk/100132a0, W2) as the exe has it expanded inside FUN_1002f780 (the same code; a copy
+// the body of d3d_AddLightAnimVertexColors (0x100185a0, unit unk/100132a0, W2) as the exe has it expanded inside RelightWorldPolyVertices (the same code; a copy
 // in the source or an inline function)
-static inline int FUN_100185a0_Inline(void *pPolyData, uint32 nInputPolyData, LightAnim *pAnim, uint32 *pRef)
+static inline int AddLightAnimVertexColorsInline(void *pPolyData, uint32 nInputPolyData, LightAnim *pAnim, uint32 *pRef)
 {
 	// Preserve the caller count separately from this animation's clamped vertex count.
 	uint32 nPolyData;
@@ -369,9 +369,9 @@ static inline int FUN_100185a0_Inline(void *pPolyData, uint32 nInputPolyData, Li
 	{
 		for (i = 0, pColor = (uint8 *)pPolyData + 0x15; i < nPolyData; i++, pColor += 0x18)
 		{
-			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + pFrame0->m_pVertR[i]];
-			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + pFrame0->m_pVertG[i]];
-			pColor[-1] = DAT_10092168.m_Unk00[pColor[-1] + pFrame0->m_pVertB[i]];
+			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + pFrame0->m_pVertR[i]];
+			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + pFrame0->m_pVertG[i]];
+			pColor[-1] = g_ByteSaturatingAddTable.m_Unk00[pColor[-1] + pFrame0->m_pVertB[i]];
 		}
 	}
 	else
@@ -380,25 +380,25 @@ static inline int FUN_100185a0_Inline(void *pPolyData, uint32 nInputPolyData, Li
 
 		for (i = 0, pColor = (uint8 *)pPolyData + 0x15; i < nPolyData; i++, pColor += 0x18)
 		{
-			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + DAT_10082168.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
-			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
-			pColor[-1] = DAT_10092168.m_Unk00[pColor[-1] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
+			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
+			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
+			pColor[-1] = g_ByteSaturatingAddTable.m_Unk00[pColor[-1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
 		}
 	}
 	return 1;
 }
 
-void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly);
+void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly);
 
 
 // guess: relights the polygon pPoly: its vertex colours are cleared and every light animation that touches it adds its frame colours
 // (WPF_RELIGHT polys; the lightmap-less vertex colour path).  Name from names_proposal.csv (guess_d3d_RelightWorldPoly, low); loop 2 of
-// FUN_1002f440 has the same code written out.
+// DrawWorldModelPolyList has the same code written out.
 // STUB diagnosis: 720/720 bytes, 423 strict differences. A separate clamped count and per-branch green-origin
 // cursor restore the native branch-local polygon loads and colour offsets. Frame size (0x24 versus native 0x1c),
 // register allocation, nested-min scheduling and table-lookup scheduling still differ.
 // STUB: D3DREN 0x1002f780
-void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly)
+void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly)
 {
 	UnkType_PolyVertex *pVerts;
 	uint32 nVerts;
@@ -425,7 +425,7 @@ void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly)
 		{
 			LightAnim *pAnim = &pWorld->m_LightAnims[pRef[0]];
 			if (pAnim->m_iFrames[0] != 0xffffffff && pAnim->m_fBlendPercent >= 0.02f)
-				FUN_100185a0_Inline(pVerts, nVerts, pAnim, (uint32 *)pRef);
+				AddLightAnimVertexColorsInline(pVerts, nVerts, pAnim, (uint32 *)pRef);
 		}
 	}
 }
@@ -433,33 +433,33 @@ void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly)
 // ---- d3d_DrawSolidWorldModel ----------------------------------------------------------------------------------------------------------
 
 // GLOBAL: D3DREN 0x10055ce8
-extern LTVector DAT_10055ce8;	// guess: the global light colour (unit unk/10019350 declares it the same way)
+extern LTVector g_GlobalVertexTint;	// guess: the global light colour (unit unk/10019350 declares it the same way)
 // GLOBAL: D3DREN 0x10057774
-extern uint8 DAT_10057774;		// guess: the alpha byte of the vertex colours
+extern uint8 g_nPolyVertexAlpha;		// guess: the alpha byte of the vertex colours
 
 // guess: the current object colour (0..1 per channel: the object's colour bytes times the global light colour), set by the draw
 // functions of the unit before the polys are drawn
 // GLOBAL: D3DREN 0x100756d0
-extern LTVector DAT_100756d0;
+extern LTVector g_WorldModelObjectColor;
 
-// guess: sets the current object colour (DAT_100756d0: the colour bytes scaled to 0..1 and multiplied by the global light colour) and
+// guess: sets the current object colour (g_WorldModelObjectColor: the colour bytes scaled to 0..1 and multiplied by the global light colour) and
 // the vertex alpha for the polys of a world model.  An inline function of the original (the compiler's inline budget decides that
 // MatMul stays a call in the two callers below only with this expansion in front of it).
 static inline void WMSetColor(WorldModelInstance *pInstance)
 {
-	DAT_100756d0.x = ((float)pInstance->m_ColorR * (1.0f / 255.0f)) * DAT_10055ce8.x;
-	DAT_100756d0.y = ((float)pInstance->m_ColorG * (1.0f / 255.0f)) * DAT_10055ce8.y;
-	DAT_100756d0.z = ((float)pInstance->m_ColorB * (1.0f / 255.0f)) * DAT_10055ce8.z;
-	DAT_10057774 = pInstance->m_ColorA;
+	g_WorldModelObjectColor.x = ((float)pInstance->m_ColorR * (1.0f / 255.0f)) * g_GlobalVertexTint.x;
+	g_WorldModelObjectColor.y = ((float)pInstance->m_ColorG * (1.0f / 255.0f)) * g_GlobalVertexTint.y;
+	g_WorldModelObjectColor.z = ((float)pInstance->m_ColorB * (1.0f / 255.0f)) * g_GlobalVertexTint.z;
+	g_nPolyVertexAlpha = pInstance->m_ColorA;
 }
 
-void FUN_100144b0(int nMode);	// 0x100144b0 (unit unk/100132a0, W2): starts a world draw: selects the poly callbacks
-void FUN_100145f0(int a1);		// 0x100145f0 (unit unk/100132a0, W2): draws the queued polys and resets the stage state
+void d3d_SetWorldPolyDrawMode(int nMode);	// 0x100144b0 (unit unk/100132a0, W2): starts a world draw: selects the poly callbacks
+void d3d_FlushQueuedWorldDrawPasses(int a1);		// 0x100145f0 (unit unk/100132a0, W2): draws the queued polys and resets the stage state
 
 // guess: the MatVMul_H variant inlined into the world-model view-position transform at 0x1002fd1e.
 // The SDK formula is accumulated in the target's x87 order: w/y/z use x,y,z, while the x row uses y,z,x.
 // Keep this as an inline helper: writing the expansion in the caller changes its MatMul inlining decisions.
-static inline float FUN_1002fa80_Inline(LTVector *pDest, LTMatrix *pMat, LTVector *pSrc)
+static inline float TransformWorldModelViewPosition(LTVector *pDest, LTMatrix *pMat, LTVector *pSrc)
 {
 	float fW = pMat->m[3][0] * pSrc->x;
 	fW += pMat->m[3][1] * pSrc->y;
@@ -485,7 +485,7 @@ static inline float FUN_1002fa80_Inline(LTVector *pDest, LTMatrix *pMat, LTVecto
 }
 
 // NAME: d3d_DrawSolidWorldModel: Jupiter drawworldmodel.cpp d3d_DrawSolidWorldModel (names_proposal.csv, high): bound radius frustum test,
-// fog switch, the model's transform multiplied into the view matrices, the polys of the original BSP drawn by FUN_1002f440, restore
+// fog switch, the model's transform multiplied into the view matrices, the polys of the original BSP drawn by DrawWorldModelPolyList, restore
 // MATCH: initialize the clip counter before the position copy; preserve WMSetColor's byte-to-float scaling before global-light
 // multiplication, and use the target's per-term homogeneous transform above.
 // FUNCTION: D3DREN 0x1002fa80
@@ -530,21 +530,21 @@ void d3d_DrawSolidWorldModel(ViewParams *pParams, LTObject *pObject)
 	MatVMul_H(&vFogPos, &pInstance->m_BackTransform, &vOldFogPos);
 	pParams->SetupFogViewPosition(vFogPos);
 
-	FUN_100144b0(0);
+	d3d_SetWorldPolyDrawMode(0);
 
-	FUN_1002fa80_Inline(&vViewPos, &pInstance->m_BackTransform, &pParams->m_Pos);
+	TransformWorldModelViewPosition(&vViewPos, &pInstance->m_BackTransform, &pParams->m_Pos);
 	if (pInstance->m_pOriginalBsp->IsUntransformed() == 0)
 	{
 		WorldBsp *pBsp = (WorldBsp *)pInstance->m_pOriginalBsp;
-		FUN_1002f440(pInstance, pBsp->m_Polies, pBsp->m_nPolies, &vViewPos, nClipFlags);
+		DrawWorldModelPolyList(pInstance, pBsp->m_Polies, pBsp->m_nPolies, &vViewPos, nClipFlags);
 	}
 	else if (pInstance->m_pOriginalBsp->IsUntransformed() == 1)
 	{
 		TerrainSection *pSection = (TerrainSection *)pInstance->m_pOriginalBsp;
-		FUN_1002f440(pInstance, pSection->m_Polies.GetArray(), pSection->m_Polies.GetSize(), &vViewPos, nClipFlags);
+		DrawWorldModelPolyList(pInstance, pSection->m_Polies.GetArray(), pSection->m_Polies.GetSize(), &vViewPos, nClipFlags);
 	}
 
-	FUN_100145f0(0);
+	d3d_FlushQueuedWorldDrawPasses(0);
 
 	pParams->m_mClipTransform = mSaved15c;
 	pParams->m_FullTransform = mSavedFull;
@@ -554,12 +554,12 @@ void d3d_DrawSolidWorldModel(ViewParams *pParams, LTObject *pObject)
 
 // ---- d3d_DrawTranslucentWorldModel ------------------------------------------------------------------------------------------------------
 
-void FUN_10030370(WorldPoly *pPoly);
+void DrawTranslucentWorldModelPoly(WorldPoly *pPoly);
 
 // NAME: d3d_DrawTranslucentWorldModel: Jupiter drawworldmodel.cpp d3d_DrawTranslucentWorldModel role (names_proposal.csv, medium; the Talon
 // version is the sorted-list callback that draws the BSP back to front itself): the same colour/fog/matrix prologue as
 // d3d_DrawSolidWorldModel, the vertical fog position set to the origin, then the BSP of the original is walked with an explicit stack:
-// the far side of every node first, then the node's own poly (FUN_10030370, or the visible set's sorted poly list), then the near side
+// the far side of every node first, then the node's own poly (DrawTranslucentWorldModelPoly, or the visible set's sorted poly list), then the near side
 // Native traversal descends through the far child in an inner loop; explicit XYZ plane arithmetic
 // preserves the original view snapshot and x87 scheduling (768 bytes, strict byte/relocation MATCH).
 // FUNCTION: D3DREN 0x10030070
@@ -621,9 +621,9 @@ void d3d_DrawTranslucentWorldModel(ViewParams *pParams, LTObject *pObject)
 				pPoly = pNode->m_pPoly;
 				if (!(POLY_SURFACE(pPoly)->m_Flags & SURF_INVISIBLE))
 				{
-					if (!DAT_1005ce18 || POLY_SURFACE(pPoly)->m_Unknown3A == 0x7fff)
+					if (!g_bPortalsEnabled || POLY_SURFACE(pPoly)->m_Unknown3A == 0x7fff)
 					{
-						FUN_10030370(pPoly);
+						DrawTranslucentWorldModelPoly(pPoly);
 					}
 					else
 					{
@@ -665,11 +665,11 @@ NextNode:
 #define WORLDPOLY_LIGHTS(p)	((UnkType_PolyLightRef *)*(uint32 *)((uint8 *)(p) + 0x30))
 
 // GLOBAL: D3DREN 0x10057798
-extern TLRGB DAT_10057798;		// guess: the ambient world colour added to the light grid sample of a translucent world poly
+extern TLRGB g_GlobalModelDirAdd2Color;		// guess: the ambient world colour added to the light grid sample of a translucent world poly
 // GLOBAL: D3DREN 0x100566cc
-extern int DAT_100566cc;		// guess: the number of light tests this frame ("Num Light Tests")
+extern int g_nLightTests;		// guess: the number of light tests this frame ("Num Light Tests")
 // GLOBAL: D3DREN 0x100577b8
-extern uint16 DAT_100577b8;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
+extern uint16 g_CurTextureFrameCode;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
 struct UnkType_RTexW6
 {
 	void				*m_pVtbl;		// 0x00
@@ -692,8 +692,8 @@ static inline void SetUV(TLVertex *pVertex, float u, float v)
 
 void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x1000c860 (W4, unit unk/1000c860: the light grid lookup)
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
-void *FUN_10009350(void *pFirst, uint8 nStage);							// 0x10009350: the RTexture of the stage in the chain of pFirst, or 0
-int FUN_10014100(WorldPoly *pPoly);											// 0x10014100 (W2, unit unk/100132a0): draws a poly flat
+void *d3d_FindRTextureForStage(void *pFirst, uint8 nStage);							// 0x10009350: the RTexture of the stage in the chain of pFirst, or 0
+int d3d_DrawFlatWorldPoly(WorldPoly *pPoly);											// 0x10014100 (W2, unit unk/100132a0): draws a poly flat
 
 // guess: draws one translucent world poly: relights it (WPF_RELIGHT), colours the vertices with the light grid sample at the poly
 // centre plus the ambient colour times the object colour, adds the dynamic lights that touch it, transforms, clips and projects
@@ -705,7 +705,7 @@ int FUN_10014100(WorldPoly *pPoly);											// 0x10014100 (W2, unit unk/100132
 // x87 loads, the exe calls _CVector<float>::Dot (by value, 0x100187c0) in the dynamic light loop where ours inlines it, and its
 // d3d_SetTexture expansion for the detail texture is a call.  Not iterated further.
 // STUB: D3DREN 0x10030370
-void FUN_10030370(WorldPoly *pPoly)
+void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
 {
 	UnkType_TLVertex40 aVerts[0x80];
 	UnkType_PolyVertex *pSrc;
@@ -725,7 +725,7 @@ void FUN_10030370(WorldPoly *pPoly)
 
 	if (pPoly->m_Flags & 0x4000)
 	{
-		MainWorld *pWorld = DAT_10056770;
+		MainWorld *pWorld = g_pFrameMainWorld;
 		UnkType_PolyVertex *pRelightVerts;
 		uint32 nRelightVerts;
 		uint32 j;
@@ -751,14 +751,14 @@ void FUN_10030370(WorldPoly *pPoly)
 			{
 				LightAnim *pAnim = &pWorld->m_LightAnims[pRef[0]];
 				if (pAnim->m_iFrames[0] != 0xffffffff && pAnim->m_fBlendPercent >= 0.02f)
-					FUN_100185a0(pRelightVerts, nRelightVerts, pAnim, (uint32 *)pRef);
+					d3d_AddLightAnimVertexColors(pRelightVerts, nRelightVerts, pAnim, (uint32 *)pRef);
 			}
 		}
 
 		pPoly->m_Flags &= 0xbfff;
 	}
 
-	w_GetLightVal(&DAT_10056770->m_LightTable, &pPoly->m_Center, &lightRGB);
+	w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &pPoly->m_Center, &lightRGB);
 
 	if (POLY_SURFACE(pPoly)->m_pTexture)
 	{
@@ -785,12 +785,12 @@ void FUN_10030370(WorldPoly *pPoly)
 		return;
 	}
 
-	nR = DAT_10057798.r + lightRGB.r;
-	nG = DAT_10057798.g + lightRGB.g;
-	nB = DAT_10057798.b + lightRGB.b;
-	nObjR = (int)(DAT_100756d0.x * 255.0f);
-	nObjG = (int)(DAT_100756d0.y * 255.0f);
-	nObjB = (int)(DAT_100756d0.z * 255.0f);
+	nR = g_GlobalModelDirAdd2Color.r + lightRGB.r;
+	nG = g_GlobalModelDirAdd2Color.g + lightRGB.g;
+	nB = g_GlobalModelDirAdd2Color.b + lightRGB.b;
+	nObjR = (int)(g_WorldModelObjectColor.x * 255.0f);
+	nObjG = (int)(g_WorldModelObjectColor.y * 255.0f);
+	nObjB = (int)(g_WorldModelObjectColor.z * 255.0f);
 
 	pDest = aVerts;
 	for (i = nVerts; i > 0; i--)
@@ -810,10 +810,10 @@ void FUN_10030370(WorldPoly *pPoly)
 		pDest->rgb.r = (uint8)((r * nObjR) >> 8);
 		pDest->rgb.g = (uint8)((g * nObjG) >> 8);
 		pDest->rgb.b = (uint8)((b * nObjB) >> 8);
-		pDest->rgb.a = DAT_10057774;
+		pDest->rgb.a = g_nPolyVertexAlpha;
 		SetUV((TLVertex *)pDest, pSrc->m_U, pSrc->m_V);
 		if (bEnvMap)
-			FUN_1001085e(&g_ViewParams.m_Pos, &pDest->m_Vec, &pPoly->m_pPlane->m_Normal, &pDest->tu2, &pDest->tv2);
+			d3d_CalcWorldReflectionUVs(&g_ViewParams.m_Pos, &pDest->m_Vec, &pPoly->m_pPlane->m_Normal, &pDest->tu2, &pDest->tv2);
 		pSrc++;
 		pDest++;
 	}
@@ -828,7 +828,7 @@ void FUN_10030370(WorldPoly *pPoly)
 		fLightR = fLightR - (255.0f - fLightR);
 		fLightG = fLightG - (255.0f - fLightG);
 		fLightB = fLightB - (255.0f - fLightB);
-		DAT_100566cc++;
+		g_nLightTests++;
 
 		float fDist = pPoly->m_pPlane->DistTo(vLightPos);
 		if (fDist < 0.0f)
@@ -887,12 +887,12 @@ void FUN_10030370(WorldPoly *pPoly)
 	pDest = aVerts;
 	for (i = nVerts; i != 0; i--)
 	{
-		FUN_10008719(&pDest->m_Vec.x, &g_ViewParams.m_mClipTransform.m[0][0]);
+		TransformPositionInPlace(&pDest->m_Vec.x, &g_ViewParams.m_mClipTransform.m[0][0]);
 		g_pfnCalcFogAlpha(&pDest->m_Vec, &pDest->specular);
 		pDest++;
 	}
 
-	if (!FUN_10008779(g_ClipFlags, &pVerts, &nVerts))
+	if (!ClipPolygon40(g_ClipFlags, &pVerts, &nVerts))
 	{
 		d3d_UnsetDetailTexture();
 		return;
@@ -914,11 +914,11 @@ void FUN_10030370(WorldPoly *pPoly)
 			UnkType_RTexW6 *pFirst = (UnkType_RTexW6 *)pTexture->m_pRenderData;
 			uint32 nStage = g_NormalTextureStage;
 
-			pTexture->m_Unknown30 = DAT_100577b8;
-			if (pFirst && (pRTexture = (UnkType_RTexW6 *)FUN_10009350(pFirst, (uint8)nStage)) != 0)
+			pTexture->m_Unknown30 = g_CurTextureFrameCode;
+			if (pFirst && (pRTexture = (UnkType_RTexW6 *)d3d_FindRTextureForStage(pFirst, (uint8)nStage)) != 0)
 			{
 				if (pRTexture != (UnkType_RTexW6 *)g_pBoundTextures[nStage])
-					FUN_10007a89((RTexture *)pRTexture);
+					d3d_BindRTexture((RTexture *)pRTexture);
 			}
 			else
 			{
@@ -929,7 +929,7 @@ void FUN_10030370(WorldPoly *pPoly)
 					if (!pRTexture)
 					{
 						d3d_UnsetDetailTexture();
-						FUN_10014100(pPoly);
+						d3d_DrawFlatWorldPoly(pPoly);
 						return;
 					}
 					pRTexture->m_pNext = pFirst->m_pNext;
@@ -941,11 +941,11 @@ void FUN_10030370(WorldPoly *pPoly)
 					if (!pRTexture)
 					{
 						d3d_UnsetDetailTexture();
-						FUN_10014100(pPoly);
+						d3d_DrawFlatWorldPoly(pPoly);
 						return;
 					}
 				}
-				FUN_10007a89((RTexture *)pRTexture);
+				d3d_BindRTexture((RTexture *)pRTexture);
 			}
 
 			if (pRTexture->m_nLOD != 0)
@@ -954,11 +954,11 @@ void FUN_10030370(WorldPoly *pPoly)
 				pRTexture->m_nLOD = 0;
 			}
 
-			DAT_10063c90.FUN_10021da6();
+			g_TextureStateRestorer.RestoreAllStates();
 			if (POLY_SURFACE(pPoly)->m_pTexture->m_pStateChange)
-				DAT_10063c90.FUN_10021db7(POLY_SURFACE(pPoly)->m_pTexture->m_pStateChange, g_NormalTextureStage);
+				g_TextureStateRestorer.ApplyStateChange(POLY_SURFACE(pPoly)->m_pTexture->m_pStateChange, g_NormalTextureStage);
 
-			if (DAT_1005de2c && g_CV_DetailTextures.m_IntVal && g_pBoundTextures[0] && POLY_SURFACE(pPoly)->m_pTexture->m_pLinkedTexture &&
+			if (g_bTwoTextureStageBlendValidated && g_CV_DetailTextures.m_IntVal && g_pBoundTextures[0] && POLY_SURFACE(pPoly)->m_pTexture->m_pLinkedTexture &&
 				(!POLY_SURFACE(pPoly)->m_pTexture->m_eTexType || g_CV_EnvMapWorld.m_IntVal) &&
 				d3d_SetTexture(POLY_SURFACE(pPoly)->m_pTexture->m_pLinkedTexture, 1, 0))
 			{
@@ -983,13 +983,13 @@ void FUN_10030370(WorldPoly *pPoly)
 	pDest = pVerts;
 	for (i = nVerts; i != 0; i--)
 	{
-		pDest->tu *= DAT_10061810[0].m_Unk00;
-		pDest->tv *= DAT_10061810[0].m_Unk04;
+		pDest->tu *= g_TextureStageTexelSizes[0].m_Unk00;
+		pDest->tv *= g_TextureStageTexelSizes[0].m_Unk04;
 		pDest++;
 	}
 
 	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x2c4, pVerts, nVerts, 0);
-	DAT_10063c90.FUN_10021da6();
+	g_TextureStateRestorer.RestoreAllStates();
 	d3d_UnsetDetailTexture();
 }
 

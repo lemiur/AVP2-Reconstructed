@@ -81,7 +81,7 @@ extern HPOLY g_hWorldPoly;
     g_IntersectionPos = intersectionPt;\
     g_hWorldPoly = hPoly;
 
-void FUN_10010967();		// common_init: frees the device list (0x10057800)
+void d3d_FreeDeviceList();		// common_init: frees the device list (0x10057800)
 
 // guess: the DirectDraw callback of the enumeration (LPDDENUMCALLBACKA): creates a DirectDraw object for the device, reads its caps
 // and appends a node (UnkType_DeviceNode) to the device list.
@@ -122,7 +122,7 @@ BOOL WINAPI DDEnumCallback(GUID *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriv
 		}
 		strncpy(pNode->m_Unk24, lpDriverName, 100);
 		strncpy(pNode->m_Unk88, lpDriverDescription, 100);
-		DAT_10057800.AddAfter(&pNode->m_Link);
+		g_EnumeratedDeviceList.AddAfter(&pNode->m_Link);
 	}
 	pDD->Release();
 	return TRUE;
@@ -138,12 +138,12 @@ BOOL WINAPI DDEnumCallbackEx(GUID *lpGUID, LPSTR lpDriverDescription, LPSTR lpDr
 // guess: enumerates the DirectDraw devices into the device list: DirectDrawEnumerateExA through GetProcAddress when ddraw.dll has
 // it, else the plain DirectDrawEnumerate.  Called by d3d_Init and GetSupportedModes.
 // FUNCTION: D3DREN 0x10031d18
-BOOL FUN_10031d18()
+BOOL EnumerateDirectDrawDevices()
 {
 	HMODULE hModule;
 	FARPROC pfnEnumEx;
 
-	FUN_10010967();
+	d3d_FreeDeviceList();
 	hModule = GetModuleHandleA("DDRAW.DLL");
 	if (hModule)
 	{
@@ -163,7 +163,7 @@ BOOL FUN_10031d18()
 	{
 		AddDebugMessage(1, "Unable to get ddraw.dll module handle");
 	}
-	FUN_10010967();
+	d3d_FreeDeviceList();
 	return DirectDrawEnumerateA(DDEnumCallback, 0) == 0;
 }
 

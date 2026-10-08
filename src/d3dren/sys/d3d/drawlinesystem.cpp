@@ -21,8 +21,8 @@
 #include "d3dren/3d_ops.h"
 #include "d3dren/fixedpoint.h"		// RoundFloatToInt
 
-// The per-poly record of a dynamic light touching it (StructBank DAT_10056220, 0x14 bytes) and the list of lit polys (StructBank
-// DAT_10056240, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h: read through a macro).
+// The per-poly record of a dynamic light touching it (StructBank g_PolyLightBank, 0x14 bytes) and the list of lit polys (StructBank
+// g_LitPolyBank, 8 bytes); the poly's list head is WorldPoly+0x30 (padding in the shared de_objects.h: read through a macro).
 struct UnkType_PolyLight
 {
 	UnkType_PolyLight	*m_pNext;		// 0x00
@@ -42,7 +42,7 @@ void d3d_ProcessLineSystem(LTObject *pObject)
 }
 
 // Draw callback of the line system set (queues the system for the sorted translucent pass).
-void FUN_10023d60(ViewParams *pParams, LTObject *pObject);
+void d3d_QueueLineSystemDraw(ViewParams *pParams, LTObject *pObject);
 
 // NAME: d3d_QueueLineSystems: Jupiter drawlinesystem.cpp (Ghidra name): the translucent line system queueing hook.
 // FUNCTION: D3DREN 0x10023d30
@@ -53,7 +53,7 @@ void d3d_QueueLineSystems()
 		AllocSet *pSet = &d3d_GetVisibleSet()->m_LineSystems;
 		if (pSet->m_nObjects)
 		{
-			pSet->Draw((ViewParams*)&g_ViewParams, FUN_10023d60);
+			pSet->Draw((ViewParams*)&g_ViewParams, d3d_QueueLineSystemDraw);
 		}
 	}
 }
@@ -61,9 +61,9 @@ void d3d_QueueLineSystems()
 void d3d_DrawLineSystem(ViewParams *pParams, LTObject *pObject);
 
 // FUNCTION: D3DREN 0x10023d60
-void FUN_10023d60(ViewParams *pParams, LTObject *pObject)
+void d3d_QueueLineSystemDraw(ViewParams *pParams, LTObject *pObject)
 {
-	DAT_1006b934->Add(pObject, d3d_DrawLineSystem);
+	g_pTranslucentObjectDrawList->Add(pObject, d3d_DrawLineSystem);
 }
 
 
@@ -71,7 +71,7 @@ void FUN_10023d60(ViewParams *pParams, LTObject *pObject)
 extern int g_FogEnable;		// guess: g_CV_FogEnable mirror (names_proposal medium)
 
 // 0x100161e0 (unit unk/100132a0): clips the 3D line pVerts[2] against the planes of the mask (0x3f = all); 0 when nothing is left.
-int FUN_100161e0(float *pVerts, int nMask);
+int d3d_ClipTLVertexLine(float *pVerts, int nMask);
 
 // NAME: d3d_DrawLineSystem: Jupiter drawlinesystem.cpp (names_proposal medium; the Talon body transforms and clips the two
 // points itself, then DrawPrimitive's them as a pre-transformed line list).
@@ -118,7 +118,7 @@ void d3d_DrawLineSystem(ViewParams *pParams, LTObject *pObject)
 			Verts[1].rgb.b = (uint8)RoundFloatToInt(pLine->m_Points[1].b * 255.0f);
 			Verts[1].rgb.a = (uint8)RoundFloatToInt(fAlphaScale * pLine->m_Points[1].a);
 
-			if (FUN_100161e0((float*)Verts, 0x3f))
+			if (d3d_ClipTLVertexLine((float*)Verts, 0x3f))
 			{
 				ProjectVertexToScreen((float*)&Verts[0], &g_ViewParams);
 				ProjectVertexToScreen((float*)&Verts[1], &g_ViewParams);
