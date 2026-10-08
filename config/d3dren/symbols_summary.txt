@@ -1,17 +1,17 @@
 source: /d3d.ren
 .text 10001000-10045890 (Ghidra block, end clamped to PE VirtualSize)
-rows: 13672
+rows: 13693
   data: 11329
   func: 1639
   gap: 26
   import: 74
   jumptable: 30
-  label: 574
+  label: 595
 func bytes (sum of extents): 280684 (0x4486c)
 noncontig funcs: 8
 funcs whose Ghidra body leaves [entry,end): 2
 thunks to external (emitted as label): 4
-jumptables: 30  gaps: 26  imports: 74  data: 11329  labels: 570
+jumptables: 30  gaps: 26  imports: 74  data: 11329  labels: 591
 gap classes: {align=26}
 bytes in .text before first function entry: 0
 
