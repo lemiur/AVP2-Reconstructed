@@ -35,8 +35,8 @@ struct UnkType_RTexView
 	uint16				m_Unk44;		// 0x44 current LOD
 };
 
-// FUN_1001fff0 (sys/d3d/d3d_texture): finds or creates the RTexture of pTexture for the stage (bChild: chain it behind the first one).
-RTexture *FUN_1001fff0(SharedTexture *pTexture, uint32 nStage, uint8 bChild);
+// d3d_CreateAndLoadTexture (sys/d3d/d3d_texture): finds or creates the RTexture of pTexture for the stage (bChild: chain it behind the first one).
+RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);
 // FUN_10007a89 (unk/10007930): binds the RTexture on its device stage (LRU list, SetTexture, ALPHAREF, per-stage UV scale, change counter).
 void FUN_10007a89(RTexture *pRTexture);
 // GLOBAL: D3DREN 0x100577b8
@@ -75,13 +75,13 @@ inline int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLO
 		{
 			if (!pFirst)
 			{
-				pRTexture = (UnkType_RTexView *)FUN_1001fff0(pTexture, nStage, 0);
+				pRTexture = (UnkType_RTexView *)d3d_CreateAndLoadTexture(pTexture, nStage, 0);
 				if (!pRTexture)
 					return 0;
 			}
 			else
 			{
-				pRTexture = (UnkType_RTexView *)FUN_1001fff0(pTexture, nStage, 1);
+				pRTexture = (UnkType_RTexView *)d3d_CreateAndLoadTexture(pTexture, nStage, 1);
 				if (!pRTexture)
 					return 0;
 				pRTexture->m_Unk30 = pFirst->m_Unk30;

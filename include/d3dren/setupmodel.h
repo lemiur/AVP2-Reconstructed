@@ -26,7 +26,7 @@ extern ModelDraw g_ModelDraw;
 class ViewParams;
 int FUN_1000b584(ModelDraw *pDraw, ModelInstance *pInstance, uint32 *pClipFlags);	// guess: instance sphere against the view frustum
 int FUN_1000b63b(LTVector *pPos, float fRadius, LTPlane *pPlanes, uint32 *pFlags);	// guess: sphere against 6 planes (0 = outside)
-void FUN_1000b528(ViewParams *pParams, LTObject *pObject);	// guess: BaseObjectSet::Draw callback of the models
+void d3d_QueueModel(ViewParams *pParams, LTObject *pObject);	// guess: BaseObjectSet::Draw callback of the models
 void FUN_1000b6cd();			// guess: fills the warble tables
 
 #endif

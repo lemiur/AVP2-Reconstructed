@@ -95,12 +95,12 @@ void FUN_10001230(void)
 	if (g_CV_ModelVBCount.m_IntVal <= 1)
 		g_CV_ModelVBCount.m_IntVal = 1;
 	g_CV_ModelVBSize.m_IntVal = ((g_CV_ModelVBSize.m_IntVal + 2) / 3) * 3;
-	DAT_1004d620.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, DAT_10058494);
-	DAT_1004da80.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, DAT_10058494);
-	DAT_1004eb48.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, DAT_10058494);
-	DAT_1004dae0.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, DAT_10058494);
+	DAT_1004d620.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, g_TnLRast);
+	DAT_1004da80.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 0, g_TnLRast);
+	DAT_1004eb48.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, g_TnLRast);
+	DAT_1004dae0.FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCount.m_IntVal, 1, g_TnLRast);
 	UnkType_VertexBufferPool *pCache = &UnkType_ModelVBCacheHolder::DAT_10093b10;
-	pCache->FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCache.m_IntVal, 1, DAT_10058494);
+	pCache->FUN_1003a83d(g_pD3D, g_CV_ModelVBSize.m_IntVal, g_CV_ModelVBCache.m_IntVal, 1, g_TnLRast);
 	UnkType_ModelVBCacheHolder::DAT_10093b10.m_Unk60 = g_CV_ModelVBCacheDelay.m_IntVal;
 }
 
@@ -200,7 +200,7 @@ extern int DAT_10094ec0[56];	// guess: bInside[] of the left plane
 float FUN_10001a50(float *p1, float *p2, float *pOut);
 int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts);
 float FUN_10001ac0(float *p1, float *p2, float *pOut);
-void FUN_10001940(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
+void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 
 // Plane clippers for the remaining planes (flag bits 8, 0x10, 0x20, 2); the first argument is unused by them.
 int ClipPolyTop(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
@@ -273,7 +273,7 @@ int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 				if (DAT_10094de0[iPrev] != DAT_10094de0[iCur])
 				{
 					t = FUN_10001a50(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
-					FUN_10001940(pPrev, pCur, pOut, t);
+					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
 				iPrev = iCur;
@@ -318,7 +318,7 @@ int __fastcall FUN_10001530(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 				if (DAT_10094ec0[iPrev] != DAT_10094ec0[iCur])
 				{
 					t = FUN_10001ac0(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
-					FUN_10001940(pPrev, pCur, pOut, t);
+					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
 				iPrev = iCur;
@@ -467,7 +467,7 @@ int __fastcall FUN_10001b30(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnV
 
 // guess: Jupiter's TLVertex::ClipExtra (polyclip.h / clipline.h): interpolate everything but the position.
 // FUNCTION: D3DREN 0x10001940
-void FUN_10001940(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t)
+void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t)
 {
 	pOut->tu = (pCur->tu - pPrev->tu) * t + pPrev->tu;
 	pOut->tv = (pCur->tv - pPrev->tv) * t + pPrev->tv;
@@ -558,14 +558,14 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 	{ \
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nFree2 = pp->m_Unk20 - pp->m_Unk1c; \
-		(P) = (TLVertex *)pp->FUN_1003a8b1(); \
-		(E) = (char *)pp->FUN_1003a8b1() + pp->vfn_Unk18() * (nFree2 - 1); \
+		(P) = (TLVertex *)pp->Lock(); \
+		(E) = (char *)pp->Lock() + pp->vfn_Unk18() * (nFree2 - 1); \
 	}
 
 #define POOL_FLUSH_DRAW() \
 	{ \
 		UnkType_VertexBufferPool *pp = m_Unk608; \
-		uint32 nBytes = (char *)pOut - (char *)pp->FUN_1003a8b1(); \
+		uint32 nBytes = (char *)pOut - (char *)pp->Lock(); \
 		uint32 nVertsOut = nBytes / pp->vfn_Unk18(); \
 		DAT_1005626c += nVertsOut / 3; \
 		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVertsOut); \
@@ -575,12 +575,12 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 // Per triangle: the clip planes of g_ClipFlags are tested vertex by vertex (count of vertices inside: none = skip the
 // triangle, not all = it has to be clipped), then the triangle is back face tested in 2D and projected.
 #define CLIPPED_CALLBACK(REALLYCLOSE) \
-	TLVertex *pOut = (TLVertex *)m_Unk608->FUN_1003a8b1(); \
+	TLVertex *pOut = (TLVertex *)m_Unk608->Lock(); \
 	char *pEnd; \
 	{ \
 		UnkType_VertexBufferPool *pPool = m_Unk608; \
 		uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c; \
-		char *pBase = (char *)pPool->FUN_1003a8b1(); \
+		char *pBase = (char *)pPool->Lock(); \
 		pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1); \
 	} \
 	ModelTri *pTri = pLOD->m_Tris.GetArray(); \
@@ -760,10 +760,10 @@ int ModelDraw::FUN_10002bc0(PieceLOD *pLOD, TLVertex *pVerts)
 // STUB: D3DREN 0x100036d0
 int ModelDraw::FUN_100036d0(PieceLOD *pLOD, TLVertex *pVerts)
 {
-	TLVertex *pOut = (TLVertex *)m_Unk608->FUN_1003a8b1();
+	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
 	UnkType_VertexBufferPool *pPool = m_Unk608;
 	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
-	char *pBase = (char *)pPool->FUN_1003a8b1();
+	char *pBase = (char *)pPool->Lock();
 	char *pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
@@ -772,7 +772,7 @@ int ModelDraw::FUN_100036d0(PieceLOD *pLOD, TLVertex *pVerts)
 		if (nTris == 0)
 		{
 			UnkType_VertexBufferPool *p = m_Unk608;
-			uint32 nBytes = (char *)pOut - (char *)p->FUN_1003a8b1();
+			uint32 nBytes = (char *)pOut - (char *)p->Lock();
 			uint32 nVerts = nBytes / p->vfn_Unk18();
 			DAT_1005626c += nVerts / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
@@ -811,10 +811,10 @@ int ModelDraw::FUN_100036d0(PieceLOD *pLOD, TLVertex *pVerts)
 		{
 			DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
-			pOut = (TLVertex *)m_Unk608->FUN_1003a8b1();
+			pOut = (TLVertex *)m_Unk608->Lock();
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-			pEnd = (char *)p->FUN_1003a8b1() + p->vfn_Unk18() * (nFree2 - 1);
+			pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
 		}
 Skip:
 		pTri++;
@@ -826,10 +826,10 @@ Skip:
 // STUB: D3DREN 0x10003b60
 int ModelDraw::FUN_10003b60(PieceLOD *pLOD, TLVertex *pVerts)
 {
-	TLVertex *pOut = (TLVertex *)m_Unk608->FUN_1003a8b1();
+	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
 	UnkType_VertexBufferPool *pPool = m_Unk608;
 	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
-	char *pBase = (char *)pPool->FUN_1003a8b1();
+	char *pBase = (char *)pPool->Lock();
 	char *pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
@@ -838,7 +838,7 @@ int ModelDraw::FUN_10003b60(PieceLOD *pLOD, TLVertex *pVerts)
 		if (nTris == 0)
 		{
 			UnkType_VertexBufferPool *p = m_Unk608;
-			uint32 nBytes = (char *)pOut - (char *)p->FUN_1003a8b1();
+			uint32 nBytes = (char *)pOut - (char *)p->Lock();
 			uint32 nVerts = nBytes / p->vfn_Unk18();
 			DAT_1005626c += nVerts / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
@@ -878,10 +878,10 @@ int ModelDraw::FUN_10003b60(PieceLOD *pLOD, TLVertex *pVerts)
 		{
 			DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
-			pOut = (TLVertex *)m_Unk608->FUN_1003a8b1();
+			pOut = (TLVertex *)m_Unk608->Lock();
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-			pEnd = (char *)p->FUN_1003a8b1() + p->vfn_Unk18() * (nFree2 - 1);
+			pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
 		}
 Skip:
 		pTri++;
@@ -904,10 +904,10 @@ struct UnkType_TnLVertex
 // STUB: D3DREN 0x10003e00
 int ModelDraw::FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts)
 {
-	UnkType_TnLVertex *pOut = (UnkType_TnLVertex *)m_Unk608->FUN_1003a8b1();
+	UnkType_TnLVertex *pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 	UnkType_VertexBufferPool *pPool = m_Unk608;
 	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
-	char *pBase = (char *)pPool->FUN_1003a8b1();
+	char *pBase = (char *)pPool->Lock();
 	char *pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
@@ -937,10 +937,10 @@ int ModelDraw::FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts)
 				{
 					DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
-					pOut = (UnkType_TnLVertex *)m_Unk608->FUN_1003a8b1();
+					pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 					UnkType_VertexBufferPool *p = m_Unk608;
 					uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-					pEnd = (char *)p->FUN_1003a8b1() + p->vfn_Unk18() * (nFree2 - 1);
+					pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
 				}
 			}
 			pTri++;
@@ -963,16 +963,16 @@ int ModelDraw::FUN_10003e00(PieceLOD *pLOD, TLVertex *pVerts)
 			{
 				DAT_1005626c += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 				((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
-				pOut = (UnkType_TnLVertex *)m_Unk608->FUN_1003a8b1();
+				pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 				UnkType_VertexBufferPool *p = m_Unk608;
 				uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-				pEnd = (char *)p->FUN_1003a8b1() + p->vfn_Unk18() * (nFree2 - 1);
+				pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
 			}
 			pTri++;
 		}
 	}
 	UnkType_VertexBufferPool *p = m_Unk608;
-	uint32 nBytes = (char *)pOut - (char *)p->FUN_1003a8b1();
+	uint32 nBytes = (char *)pOut - (char *)p->Lock();
 	uint32 nVerts = nBytes / p->vfn_Unk18();
 	DAT_1005626c += nVerts / 3;
 	((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);

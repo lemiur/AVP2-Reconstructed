@@ -92,26 +92,26 @@ void d3d_ReadExtraConsoleVariables()
 	if (g_pD3DDevice)
 	{
 		if (!(DAT_1005c964.dwRasterCaps & D3DPRASTERCAPS_FOGTABLE))
-			DAT_1005849c = 0;
-		if (DAT_100584a0 == DAT_10048744)
-			DAT_1005849c = 0;
+			g_FogEnable = 0;
+		if (g_FogNearZ == g_FogFarZ)
+			g_FogEnable = 0;
 
-		if (!DAT_100584e8 || DAT_10057ac8 != DAT_1005849c || DAT_10058044 != DAT_10048738 || DAT_10058048 != DAT_1004873c ||
-			DAT_1005804c != DAT_10048740 || fabs(DAT_100580d0 - DAT_100584a0) > 0.001f || fabs(DAT_100578e8 - DAT_10048744) > 0.001f ||
+		if (!DAT_100584e8 || DAT_10057ac8 != g_FogEnable || DAT_10058044 != g_FogR || DAT_10058048 != g_FogG ||
+			DAT_1005804c != g_FogB || fabs(DAT_100580d0 - g_FogNearZ) > 0.001f || fabs(DAT_100578e8 - g_FogFarZ) > 0.001f ||
 			DAT_100582e0 != g_CV_TableFog.m_IntVal)
 		{
-			if (DAT_10048738 < 0)
+			if (g_FogR < 0)
 				DAT_10058040 = 0;
 			else
-				DAT_10058040 = (DAT_10048738 > 255) ? 255 : DAT_10048738;
-			if (DAT_1004873c < 0)
+				DAT_10058040 = (g_FogR > 255) ? 255 : g_FogR;
+			if (g_FogG < 0)
 				DAT_10058041 = 0;
 			else
-				DAT_10058041 = (DAT_1004873c > 255) ? 255 : DAT_1004873c;
-			if (DAT_10048740 < 0)
+				DAT_10058041 = (g_FogG > 255) ? 255 : g_FogG;
+			if (g_FogB < 0)
 				DAT_10058042 = 0;
 			else
-				DAT_10058042 = (DAT_10048740 > 255) ? 255 : DAT_10048740;
+				DAT_10058042 = (g_FogB > 255) ? 255 : g_FogB;
 
 			if (g_CV_TableFog.m_IntVal)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGTABLEMODE, D3DFOG_LINEAR);
@@ -120,28 +120,28 @@ void d3d_ReadExtraConsoleVariables()
 			DAT_100582e0 = g_CV_TableFog.m_IntVal;
 
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, (((DAT_10058040 << 8) | DAT_10058041) << 8) | DAT_10058042);
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&DAT_100584a0);
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGEND, *(DWORD *)&DAT_10048744);
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, DAT_1005849c);
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&g_FogNearZ);
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGEND, *(DWORD *)&g_FogFarZ);
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, g_FogEnable);
 
 			DAT_100579e0 = (float)(DAT_10058040 - 0x80) * 2.0f;
 			DAT_100579e4 = (float)(DAT_10058041 - 0x80) * 2.0f;
 			DAT_100579e8 = (float)(DAT_10058042 - 0x80) * 2.0f;
 			DAT_100584e8 = 1;
-			DAT_100580d0 = DAT_100584a0;
-			DAT_100578e8 = DAT_10048744;
-			DAT_10058048 = DAT_1004873c;
-			DAT_1005804c = DAT_10048740;
-			DAT_10058044 = DAT_10048738;
-			DAT_10057ac8 = DAT_1005849c;
+			DAT_100580d0 = g_FogNearZ;
+			DAT_100578e8 = g_FogFarZ;
+			DAT_10058048 = g_FogG;
+			DAT_1005804c = g_FogB;
+			DAT_10058044 = g_FogR;
+			DAT_10057ac8 = g_FogEnable;
 		}
 
-		if (!DAT_100584ec || DAT_10057ed8 != DAT_10048784)
+		if (!DAT_100584ec || DAT_10057ed8 != g_Dither)
 		{
 			if (!g_pD3DDevice)
 				return;
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DITHERENABLE, DAT_10048784);
-			DAT_10057ed8 = DAT_10048784;
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DITHERENABLE, g_Dither);
+			DAT_10057ed8 = g_Dither;
 			DAT_100584ec = 1;
 		}
 
@@ -158,17 +158,17 @@ void d3d_ReadExtraConsoleVariables()
 			}
 			else
 			{
-				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, (DAT_1005782c != 0) + 1);
-				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MAGFILTER, (DAT_1005782c != 0) + 1);
-				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MINFILTER, (DAT_1005782c != 0) + 1);
-				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MAGFILTER, (DAT_1005782c != 0) + 1);
+				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, (g_Bilinear != 0) + 1);
+				g_pD3DDevice->SetTextureStageState(0, D3DTSS_MAGFILTER, (g_Bilinear != 0) + 1);
+				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MINFILTER, (g_Bilinear != 0) + 1);
+				g_pD3DDevice->SetTextureStageState(1, D3DTSS_MAGFILTER, (g_Bilinear != 0) + 1);
 			}
 			g_pD3DDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, (g_CV_Trilinear.m_IntVal != 0) + 2);
 			g_pD3DDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS, *(DWORD *)&g_CV_MipMapBias.m_FloatVal);
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_MIPFILTER, (g_CV_Trilinear.m_IntVal != 0) + 2);
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_MIPMAPLODBIAS, *(DWORD *)&g_CV_MipMapBias.m_FloatVal);
 			DAT_100584f0 = 1;
-			DAT_100579ec = DAT_1005782c;
+			DAT_100579ec = g_Bilinear;
 		}
 	}
 }
@@ -220,7 +220,7 @@ HRENDERCONTEXT d3d_CreateContext(RenderContextInit *pInit)
 
 	pContext->m_pWorld = pInit->m_pWorld;
 	pContext->m_CurFrameCode = 0xFFFF;
-	if (DAT_10057994)
+	if (g_NoLMPages)
 	{
 		dsi_ConsolePrint("Warning: NoLMPages is TRUE");
 		return pContext;
@@ -380,7 +380,7 @@ int d3d_IsIn3D()
 
 // guess: loads a DDGAMMARAMP from a file and applies it (console command "LOADGAMMA <filename>" of d3d_RenderCommand).
 // FUNCTION: D3DREN 0x1001be30
-int FUN_1001be30(const char *pFilename)
+int d3d_LoadGamma(const char *pFilename)
 {
 	IDirectDrawGammaControl *pGammaControl;
 	DDGAMMARAMP ramp;
@@ -562,7 +562,7 @@ struct UnkType_SavedStage1;
 void FUN_100246b7(UnkType_SavedStage1 *pState);	// unit unk/10023860 region (guess: sets up the two-stage test state in the 16 byte object)
 void FUN_1002473b(UnkType_SavedStage1 *pState);	// the matching restore
 void FUN_100356d5();							// W9 (lightmap): guess: lightmap texture formats set-up for one-pass lightmapping
-int FUN_1001ec50();								// d3d_texture (CTextureManager::Init), also declared by d3dtexture.h
+int CTextureManager_Init();								// d3d_texture (CTextureManager::Init), also declared by d3dtexture.h
 
 // GLOBAL: D3DREN 0x1005c878
 extern D3DDEVICEDESC7 DAT_1005c878;		// copy of the device's D3DDEVICEDESC7 (wMaxSimultaneousTextures at +0xba is 0x1005c932)
@@ -585,7 +585,7 @@ void d3d_UnsetDetailTexture(void);				// d3dstate.h: disable stage 1 colour op a
 //   matching the exe's `jne 0x1001aff3`; the retry failure keeps its separate message push at 0x1001af72.  The reference-rasterizer,
 //   QueryInterface, and Force1Pass diagnostic literals now match the exe's strings at 0x1004b094, 0x1004aff8, and 0x1004aebc.
 // STUB: D3DREN 0x1001acc0
-int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
+int d3d_CreateDevice(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 {
 	DDCAPS ddcapsHel;
 	DDCAPS ddcapsHal;
@@ -600,23 +600,23 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 	int i;
 
 	ShowCursor(0);
-	if (DAT_1005848c)
+	if (g_RefRast)
 	{
 		g_pStruct->ConsolePrint("USING DIRECT3D REFERENCE RASTERIZER (SLOOOOOOOW!)");
 		DAT_10057828 = DDSCAPS_SYSTEMMEMORY;
 		guid = IID_IDirect3DRefDevice;
 	}
-	else if (DAT_10058488)
+	else if (g_RGBRast)
 	{
 		DAT_10057828 = DDSCAPS_SYSTEMMEMORY;
 		guid = IID_IDirect3DRGBDevice;
 	}
-	else if (DAT_10058490)
+	else if (g_MMXRast)
 	{
 		DAT_10057828 = DDSCAPS_SYSTEMMEMORY;
 		guid = IID_IDirect3DMMXDevice;
 	}
-	else if (DAT_10058494)
+	else if (g_TnLRast)
 	{
 		guid = IID_IDirect3DTnLHalDevice;
 	}
@@ -667,7 +667,7 @@ int FUN_1001acc0(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 		ddsd.dwSize = sizeof(ddsd);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
 		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX | DDSCAPS_3DDEVICE;
-		ddsd.dwBackBufferCount = (DAT_10058478 != 0) + 1;
+		ddsd.dwBackBufferCount = (g_TripleBuffer != 0) + 1;
 		if (g_pDD->CreateSurface(&ddsd, &g_pBackBuffer, 0) != 0)
 		{
 			if (ddsd.dwBackBufferCount != 2)
@@ -737,7 +737,7 @@ SurfaceCreationSucceeded:
 	{
 		AddDebugMessage(1, "Failed to create device.");
 		d3d_FreeDDraw();
-		DAT_10058494 = 0;
+		g_TnLRast = 0;
 		return 0;
 	}
 
@@ -859,8 +859,8 @@ SurfaceCreationSucceeded:
 
 	DAT_1005c838 = 0;
 	g_NormalTextureStage = 0;
-	DAT_1005c7e0 = DAT_10058480;
-	if (DAT_10058480)
+	DAT_1005c7e0 = g_Force1Pass;
+	if (g_Force1Pass)
 	{
 		DWORD dwPasses;
 
@@ -882,8 +882,8 @@ SurfaceCreationSucceeded:
 	}
 
 	CheckSpecialCards();
-	FUN_1001be30("lithtech.gam");
-	if (!FUN_1001ec50())
+	d3d_LoadGamma("lithtech.gam");
+	if (!CTextureManager_Init())
 	{
 		d3d_FreeDDraw();
 		return 0;
@@ -966,7 +966,7 @@ void d3d_RenderCommand(int argc, char **argv)
 				g_pStruct->ConsolePrint("Usage: loadgamma <filename>");
 				return;
 			}
-			FUN_1001be30(argv[1]);
+			d3d_LoadGamma(argv[1]);
 			return;
 		}
 		if (_strcmpi(argv[0], "PortalFile") == 0)

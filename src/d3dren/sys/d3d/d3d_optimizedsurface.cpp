@@ -294,7 +294,7 @@ void d3d_UnoptimizeSurface(HLTBUFFER hBuffer)
 // FUNCTION: D3DREN 0x1001c3e4
 LTBOOL d3d_OptimizeSurface(HLTBUFFER hBuffer, PValue transparentColor)
 {
-	if (!hBuffer || !DAT_10057cb8)
+	if (!hBuffer || !g_OptimizeSurfaces)
 		return LTFALSE;
 
 	RSurface *pSurface = (RSurface *)hBuffer;
@@ -401,7 +401,7 @@ LTBOOL d3d_StartOptimized2D()
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, FALSE);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZWRITEENABLE, FALSE);
 
-	if (!DAT_10058118 && DAT_1005782c)
+	if (!g_FilterOptimized && g_Bilinear)
 	{
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTFN_POINT);
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTFG_POINT);
@@ -432,7 +432,7 @@ void d3d_EndOptimized2D()
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZWRITEENABLE, TRUE);
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, g_OldFogEnable);
 
-	if (!DAT_10058118 && DAT_1005782c)
+	if (!g_FilterOptimized && g_Bilinear)
 	{
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTFN_LINEAR);
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTFG_LINEAR);

@@ -86,7 +86,7 @@ void FUN_10010967();		// common_init: frees the device list (0x10057800)
 // guess: the DirectDraw callback of the enumeration (LPDDENUMCALLBACKA): creates a DirectDraw object for the device, reads its caps
 // and appends a node (UnkType_DeviceNode) to the device list.
 // FUNCTION: D3DREN 0x10031d82
-BOOL WINAPI FUN_10031d82(GUID *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext)
+BOOL WINAPI DDEnumCallback(GUID *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext)
 {
 	LPDIRECTDRAW pDD;
 	DDCAPS halCaps;
@@ -130,9 +130,9 @@ BOOL WINAPI FUN_10031d82(GUID *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriver
 
 // guess: the DirectDrawEnumerateExA flavour of the callback (LPDDENUMCALLBACKEXA): ignores the monitor.
 // FUNCTION: D3DREN 0x10031e7c
-BOOL WINAPI FUN_10031e7c(GUID *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext, HMONITOR hm)
+BOOL WINAPI DDEnumCallbackEx(GUID *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext, HMONITOR hm)
 {
-	return FUN_10031d82(lpGUID, lpDriverDescription, lpDriverName, lpContext);
+	return DDEnumCallback(lpGUID, lpDriverDescription, lpDriverName, lpContext);
 }
 
 // guess: enumerates the DirectDraw devices into the device list: DirectDrawEnumerateExA through GetProcAddress when ddraw.dll has
@@ -150,7 +150,7 @@ BOOL FUN_10031d18()
 		pfnEnumEx = GetProcAddress(hModule, "DirectDrawEnumerateExA");
 		if (pfnEnumEx)
 		{
-			if (((LPDIRECTDRAWENUMERATEEXA)pfnEnumEx)(FUN_10031e7c, 0, DDENUM_ATTACHEDSECONDARYDEVICES | DDENUM_DETACHEDSECONDARYDEVICES | DDENUM_NONDISPLAYDEVICES) == 0)
+			if (((LPDIRECTDRAWENUMERATEEXA)pfnEnumEx)(DDEnumCallbackEx, 0, DDENUM_ATTACHEDSECONDARYDEVICES | DDENUM_DETACHEDSECONDARYDEVICES | DDENUM_NONDISPLAYDEVICES) == 0)
 				return TRUE;
 			AddDebugMessage(1, "DirectDrawEnumerateExA failed, using DirectDrawEnumerate");
 		}
@@ -164,7 +164,7 @@ BOOL FUN_10031d18()
 		AddDebugMessage(1, "Unable to get ddraw.dll module handle");
 	}
 	FUN_10010967();
-	return DirectDrawEnumerateA(FUN_10031d82, 0) == 0;
+	return DirectDrawEnumerateA(DDEnumCallback, 0) == 0;
 }
 
 

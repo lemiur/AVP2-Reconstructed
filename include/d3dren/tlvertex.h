@@ -5,7 +5,7 @@
 
 #include "ltbasedefs.h"
 
-// NAME: Jupiter runtime/render_a/src/sys/d3d/3d_ops.h TLRGB: byte order b,g,r,a (FUN_10001940 interpolates the
+// NAME: Jupiter runtime/render_a/src/sys/d3d/3d_ops.h TLRGB: byte order b,g,r,a (TLVertex_ClipExtra interpolates the
 // bytes in the order +0x12 (r), +0x11 (g), +0x10 (b), +0x13 (a), which is a TLRGB's r, g, b, a).
 struct TLRGB
 {
@@ -28,7 +28,7 @@ struct RGBColor
 // A 0x20-byte pre-transformed vertex, as the renderer stores it before DrawPrimitive.
 // NAME: TLVertex: Jupiter 3d_ops.h class TLVertex (m_Vec, rhw, color, tu, tv in the same order); that D3D9 descendant dropped
 // the specular colour, so its size is 0x1c.  The 0x20 layout is also D3DTLVERTEX (DX7 d3dtypes.h, FVF XYZRHW|DIFFUSE|
-// SPECULAR|TEX1): `specular` is named after it.  FUN_10001940 reads/writes exactly these members.
+// SPECULAR|TEX1): `specular` is named after it.  TLVertex_ClipExtra reads/writes exactly these members.
 struct TLVertex
 {
 	LTVector	m_Vec;				// 0x00 sx, sy, sz (screen or camera space)

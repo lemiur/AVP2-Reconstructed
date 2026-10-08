@@ -626,7 +626,7 @@ void DrawPolyMgr::FUN_1002a8bc(UnkType_DPMNode *pNode)
 	{
 		WorldPoly *pPoly = (WorldPoly *)pLink;
 		UnkType_PolyVertex *pSrc;
-		if (DAT_1005811c)
+		if (g_FixTJunc)
 		{
 			pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 			nVerts = pPoly->m_nExtraVertices;
@@ -672,7 +672,7 @@ void DrawPolyMgr::FUN_1002a40f(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNe
 	UnkType_DPMFogFn pfnFog;
 
 	buf.m_pPoly = pPoly;
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		buf.m_nVertices = pPoly->m_nExtraVertices;
@@ -752,7 +752,7 @@ void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPas
 	UnkType_DPMColorFn pfnColor = s_ColorFns[pPass->m_Unk10];
 	UnkType_DPMFogFn pfnFog = *s_FogFns[pPass->m_Unk14];
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVertices = pPoly->m_nExtraVertices;

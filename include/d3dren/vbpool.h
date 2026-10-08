@@ -28,7 +28,7 @@ public:
 	virtual int		FUN_1003a77c(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices, uint16 *pIndices, uint32 nIndices);	// slot 2  guess: DrawIndexedPrimitiveVB (ret 0x14)
 	virtual void	FUN_1003a805();												// slot 3  guess: release all buffers
 	virtual int		FUN_1003a83d(IDirect3D7 *pD3D, uint32 nVertices, uint32 nBuffers, int bUntransformed, int bHardware);	// slot 4  guess: (re)create the pool
-	virtual int		FUN_1003a8b1();												// slot 5
+	virtual int		Lock();												// slot 5
 	virtual int		vfn_Unk18() = 0;											// slot 6  guess: vertex size in bytes
 	virtual int		vfn_Unk1c(IDirect3D7 *pD3D) = 0;							// slot 7  guess: create the vertex buffers
 

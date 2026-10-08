@@ -113,7 +113,7 @@ void d3d_InitObjectQueues()
 
 // Draw phases and queue functions of other units (all take no arguments: they work on g_ViewParams and the VisibleSet).
 // NAME: the names of the medium rows of names_proposal.csv (Jupiter's drawing function names; Ghidra still has FUN_).
-extern void FUN_1002fa50();				// d3d_DrawSolidWorldModels, 0x1002fa50
+extern void d3d_DrawSolidWorldModels();				// d3d_DrawSolidWorldModels, 0x1002fa50
 extern void d3d_DrawSolidModels();			// 0x10024d22
 extern void d3d_DrawSolidPolyGrids();		// 0x1002cce0
 extern void d3d_DrawSolidCanvases();		// 0x10022ae3
@@ -125,10 +125,10 @@ extern void d3d_SetTranslucentObjectStates(int);	// 0x10013ba0
 extern void d3d_QueueTranslucentParticles();	// 0x100298b6
 extern void d3d_QueueTranslucentPolyGrids();	// 0x1002cdc0
 extern void d3d_QueueLineSystems();				// 0x10023d30
-extern void FUN_1002ff00();				// d3d_QueueTranslucentWorldModels, 0x1002ff00
+extern void d3d_QueueTranslucentWorldModels();				// d3d_QueueTranslucentWorldModels, 0x1002ff00
 extern void d3d_QueueTranslucentModels();		// 0x10024deb
 extern void d3d_QueueTranslucentCanvases();		// 0x10022b15
-extern void FUN_1002ea40();				// d3d_QueueTranslucentSprites, 0x1002ea40
+extern void d3d_QueueTranslucentSprites();				// d3d_QueueTranslucentSprites, 0x1002ea40
 extern void d3d_DrawNoZSprites();				// 0x1002ea90
 extern void d3d_UnsetTranslucentObjectStates(int bChangeZ);	// 0x10013df0
 
@@ -153,7 +153,7 @@ void d3d_FlushObjectQueues()
 		CountAdder cntAdd((uint32 *)((uint8 *)g_pStruct + 0x64));
 		{
 			CountAdder cntAdd2(g_pSceneDesc->m_pTicks_Render_WorldModels);
-			FUN_1002fa50();
+			d3d_DrawSolidWorldModels();
 			g_pStruct->Unknown24();
 		}
 	}
@@ -197,12 +197,12 @@ void d3d_FlushObjectQueues()
 		g_pStruct->Unknown24();
 		d3d_QueueLineSystems();
 		g_pStruct->Unknown24();
-		FUN_1002ff00();
+		d3d_QueueTranslucentWorldModels();
 		g_pStruct->Unknown24();
 		d3d_QueueTranslucentModels();
 		g_pStruct->Unknown24();
 		d3d_QueueTranslucentCanvases();
-		FUN_1002ea40();
+		d3d_QueueTranslucentSprites();
 
 		if (s_TransObjList.m_Unk14)
 		{

@@ -61,7 +61,7 @@ void d3d_ProcessWorldModel(LTObject *pObject)
 
 // NAME: d3d_DrawSolidWorldModels: Jupiter drawworldmodel.cpp (names_proposal.csv, medium; no arguments in Talon)
 // FUNCTION: D3DREN 0x1002fa50
-void FUN_1002fa50()
+void d3d_DrawSolidWorldModels()
 {
 	if (g_CV_DrawWorldModels.m_IntVal)
 	{
@@ -86,7 +86,7 @@ void FUN_1002fed0()
 // NAME: d3d_QueueTranslucentWorldModels: Jupiter drawworldmodel.cpp (names_proposal.csv, medium; no arguments in Talon): the translucent
 // world models are queued in the sorted list (callback d3d_DrawTranslucentWorldModel), those with an additive first polygon
 // (surface flag 1<<19) are collected in a local object set and queued after the others (callback FUN_10030ad0)
-void FUN_10030070(ViewParams *pParams, LTObject *pObject);
+void d3d_DrawTranslucentWorldModel(ViewParams *pParams, LTObject *pObject);
 void FUN_10030ad0(ViewParams *pParams, LTObject *pObject);
 
 // guess: an object set whose array is a local array of the function (the constructor sets the array and its size)
@@ -101,7 +101,7 @@ struct UnkType_LocalObjectSet : public BaseObjectSet
 // BaseObjectSet constructor is the shared one at 0x10062888, which lies in the uninitialised part of .data where the checker has no bytes
 // to compare: the same status as BaseObjectSet::BaseObjectSet and VisibleSet::VisibleSet)
 // FUNCTION: D3DREN 0x1002ff00
-void FUN_1002ff00()
+void d3d_QueueTranslucentWorldModels()
 {
 	LTObject *aAdditive[0x400];
 	UnkType_LocalObjectSet cAdditive(aAdditive, 0x400);
@@ -124,7 +124,7 @@ void FUN_1002ff00()
 			if (FUN_10019880(pObject) & 0x80000)
 				cAdditive.Add(pObject);
 			else
-				DAT_1006b934->Add(pObject, FUN_10030070);
+				DAT_1006b934->Add(pObject, d3d_DrawTranslucentWorldModel);
 		}
 		if (cAdditive.m_nObjects > 0)
 		{
@@ -142,7 +142,7 @@ void FUN_10030ad0(ViewParams *pParams, LTObject *pObject)
 	StateSet ssDestBlend(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
 	StateSet ssFogColor(D3DRENDERSTATE_FOGCOLOR, 0);
 
-	FUN_10030070(pParams, pObject);
+	d3d_DrawTranslucentWorldModel(pParams, pObject);
 }
 
 // ---- drawworldmodel: world polygon drawing ------------------------------------------------------------------------------------------
@@ -294,7 +294,7 @@ NextPoly:;
 									uint32 nVerts;
 									uint32 j;
 
-									if (DAT_1005811c)
+									if (g_FixTJunc)
 									{
 										pVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
 										nVerts = pPoly->m_nExtraVertices;
@@ -404,7 +404,7 @@ void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly)
 	uint32 nVerts;
 	uint32 i;
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -563,7 +563,7 @@ void FUN_10030370(WorldPoly *pPoly);
 // Native traversal descends through the far child in an inner loop; explicit XYZ plane arithmetic
 // preserves the original view snapshot and x87 scheduling (768 bytes, strict byte/relocation MATCH).
 // FUNCTION: D3DREN 0x10030070
-void FUN_10030070(ViewParams *pParams, LTObject *pObject)
+void d3d_DrawTranslucentWorldModel(ViewParams *pParams, LTObject *pObject)
 {
 	WorldModelInstance *pInstance = (WorldModelInstance *)pObject;
 	Node *aNodes[0x400];
@@ -691,7 +691,7 @@ static inline void SetUV(TLVertex *pVertex, float u, float v)
 }
 
 void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x1000c860 (W4, unit unk/1000c860: the light grid lookup)
-RTexture *FUN_1001fff0(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
+RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
 void *FUN_10009350(void *pFirst, uint8 nStage);							// 0x10009350: the RTexture of the stage in the chain of pFirst, or 0
 int FUN_10014100(WorldPoly *pPoly);											// 0x10014100 (W2, unit unk/100132a0): draws a poly flat
 
@@ -730,7 +730,7 @@ void FUN_10030370(WorldPoly *pPoly)
 		uint32 nRelightVerts;
 		uint32 j;
 
-		if (DAT_1005811c)
+		if (g_FixTJunc)
 		{
 			pRelightVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
 			nRelightVerts = pPoly->m_nExtraVertices;
@@ -768,7 +768,7 @@ void FUN_10030370(WorldPoly *pPoly)
 			bEnvMap = 0;
 	}
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -854,7 +854,7 @@ void FUN_10030370(WorldPoly *pPoly)
 						int r = (int)(fAtten * fLightR) + pColor[0];
 						int g = (int)(fAtten * fLightG) + pColor[-1];
 						int b = (int)(fAtten * fLightB) + pColor[-2];
-						if (DAT_100578ec)
+						if (g_Saturate)
 						{
 							r *= 2;
 							g *= 2;
@@ -925,7 +925,7 @@ void FUN_10030370(WorldPoly *pPoly)
 				pFirst = (UnkType_RTexW6 *)pTexture->m_pRenderData;
 				if (pFirst)
 				{
-					pRTexture = (UnkType_RTexW6 *)FUN_1001fff0(pTexture, nStage, 1);
+					pRTexture = (UnkType_RTexW6 *)d3d_CreateAndLoadTexture(pTexture, nStage, 1);
 					if (!pRTexture)
 					{
 						d3d_UnsetDetailTexture();
@@ -937,7 +937,7 @@ void FUN_10030370(WorldPoly *pPoly)
 				}
 				else
 				{
-					pRTexture = (UnkType_RTexW6 *)FUN_1001fff0(pTexture, nStage, 0);
+					pRTexture = (UnkType_RTexW6 *)d3d_CreateAndLoadTexture(pTexture, nStage, 0);
 					if (!pRTexture)
 					{
 						d3d_UnsetDetailTexture();

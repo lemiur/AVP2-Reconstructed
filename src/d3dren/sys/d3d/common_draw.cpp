@@ -547,7 +547,7 @@ extern int DAT_100566b8;
 // GLOBAL: D3DREN 0x10056270
 extern int DAT_10056270;
 // GLOBAL: D3DREN 0x10056218
-extern uint32 DAT_10056218;	// unsigned: the exe compares it with jb/jbe
+extern uint32 g_nNumObjectDynamicLights;	// unsigned: the exe compares it with jb/jbe
 // GLOBAL: D3DREN 0x100566b0
 extern int DAT_100566b0;
 // GLOBAL: D3DREN 0x10055cf4
@@ -672,7 +672,7 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 	DAT_10056690 = 0;
 	DAT_100566b8 = 0;
 	DAT_10056270 = 0;
-	DAT_10056218 = 0;
+	g_nNumObjectDynamicLights = 0;
 	DAT_100566b0 = 0;
 	DAT_10055cf4 = 0;
 	DAT_10056280 = 0;

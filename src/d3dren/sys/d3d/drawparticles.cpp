@@ -42,7 +42,7 @@ UnkType_EmptyCtor g_Unk;
 void (*g_pfnSetupTransformation)(const LTVector *, float *, LTVector *, LTMatrix *) = d3d_SetupTransformation;
 
 // guess: finds the record whose stage word (+0x42) equals nStage in the chain linked through +0x30 (the per-texture stage
-// records of a SharedTexture: see FUN_1001fff0); returns 0 when there is none.
+// records of a SharedTexture: see d3d_CreateAndLoadTexture); returns 0 when there is none.
 // FUNCTION: D3DREN 0x10009350
 void *FUN_10009350(void *pChain, uint8 nStage)
 {
@@ -59,7 +59,7 @@ void *FUN_10009350(void *pChain, uint8 nStage)
 // ---- the particle system draw ---------------------------------------------------------------------------------------------------
 // callees and globals of other units
 void FUN_10007a89(RTexture *pRTexture);											// unit unk/10007930 (pool.h): binds the RTexture on its stage
-RTexture *FUN_1001fff0(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// unit sys/d3d/d3d_texture
+RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// unit sys/d3d/d3d_texture
 extern uint16 DAT_100577b8;		// guess: current texture frame code (declared by unit unk/10007930)
 // GLOBAL: D3DREN 0x1004ffc0
 extern float DAT_1004ffc0;		// guess: colour scale (1/255) of the particle red channel; DAT_1004ffc4: green, DAT_1004ffc8: blue
@@ -80,15 +80,15 @@ extern float DAT_100513dc;
 // GLOBAL: D3DREN 0x10055cd8
 extern int DAT_10055cd8;		// guess: statistics: particles (quads) drawn this frame
 extern uint16 DAT_1006d1b8[0x300];	// the index list of the quads (0 1 2 0 2 3 ...); declared by unit unk/10029660
-PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize);
+PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize);
 
 // guess: draws a particle system: binds its texture (the inlined texture binding with the per-stage record search FUN_10009350), builds
-// the object to view matrix, and draws the particles in batches of 128 with FUN_10009370.  Its typed locals match the SDK
+// the object to view matrix, and draws the particles in batches of 128 with d3d_DrawParticleBatch.  Its typed locals match the SDK
 // IntersectQuery (52 bytes) and IntersectInfo (40 bytes); the renderer's constructor copies are at 0x1000bdeb and 0x1000be28.
 // The surrounding function body remains a STUB.
 // FUNCTION: D3DREN 0x10009020 ?MatMul@@YAXPAVLTMatrix@@00@Z
 // STUB: D3DREN 0x10008ce0
-void FUN_10008ce0(LTParticleSystem *pSystem)
+void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 {
 	IntersectQuery query;
 	IntersectInfo info;
@@ -121,11 +121,11 @@ void FUN_10008ce0(LTParticleSystem *pSystem)
 					RTexture *pFirst = (RTexture *)pTexture->m_pRenderData;
 					if (!pFirst)
 					{
-						pRTexture = FUN_1001fff0(pTexture, nStage, 0);
+						pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 0);
 					}
 					else
 					{
-						pRTexture = FUN_1001fff0(pTexture, nStage, 1);
+						pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 1);
 						if (pRTexture)
 						{
 							pRTexture->m_Unk30 = pFirst->m_Unk30;
@@ -184,9 +184,9 @@ void FUN_10008ce0(LTParticleSystem *pSystem)
 		nRest = pSystem->m_nParticles - nBatches * 128;
 		pParticle = pSystem->m_ParticleHead.m_pNext;
 		for (i = nBatches; i > 0; i--)
-			pParticle = FUN_10009370(pSystem, pParticle, 128, &mFull, 1, 0.0f);
+			pParticle = d3d_DrawParticleBatch(pSystem, pParticle, 128, &mFull, 1, 0.0f);
 		if (nRest)
-			FUN_10009370(pSystem, pParticle, nRest, &mFull, 1, 0.0f);
+			d3d_DrawParticleBatch(pSystem, pParticle, nRest, &mFull, 1, 0.0f);
 	}
 }
 
@@ -197,7 +197,7 @@ void FUN_10008ce0(LTParticleSystem *pSystem)
 // Recovered from the original: 1.2f view-volume limit, packed uint32 fog/specular colour, and once-per-call UV endpoint loads.
 // Still not byte-matched: the frame, spills, x87 expression order and vertex-store schedule differ.
 // STUB: D3DREN 0x10009370
-PSParticle *FUN_10009370(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize)
+PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize)
 {
 	TLVertex aVerts[0x80 * 4];
 	TLVertex *pOut;

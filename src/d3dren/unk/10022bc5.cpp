@@ -173,7 +173,7 @@ void FUN_10023763(WorldPoly *pPoly);
 void FUN_100236ae(WorldPoly *pPoly);
 
 // layout of CountAdder (counter.h) without the inline destructor: the exe destroys the local through the
-// out-of-line copy (unit unk/10007930's FUN_100083ae); the class dtor cannot be kept out of line by source shape.
+// out-of-line copy (unit unk/10007930's CountAdder_Destructor); the class dtor cannot be kept out of line by source shape.
 struct UnkType_CountAdderRaw
 {
 	UnkType_CountAdderRaw(uint32 *pNum)
@@ -185,7 +185,7 @@ struct UnkType_CountAdderRaw
 	Counter		m_Counter;
 	uint32		*m_pNum;
 };
-void __fastcall FUN_100083ae(CountAdder *pThis);	// unit unk/10007930: the out-of-line CountAdder::~CountAdder copy
+void __fastcall CountAdder_Destructor(CountAdder *pThis);	// unit unk/10007930: the out-of-line CountAdder::~CountAdder copy
 
 // guess: the poly vertex scratch array of the multipass draw.  In the original it is a function-local static of FUN_10022c01 of a class that has a
 // destructor (the exe has the guard bit at 0x10067be0 and registers the empty stub 0x10023397 with atexit); the array itself is at 0x10065be0.
@@ -215,7 +215,7 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 
 	bEnvMap = ((Surface *)pPoly->m_pSurface)->m_pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0 && DAT_1005de2c != 0;
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -271,7 +271,7 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
 		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHAFUNC, &dwOldAlphaFunc);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHAFUNC, D3DCMP_ALWAYS);
-		if (DAT_100578ec && bSaturate)
+		if (g_Saturate && bSaturate)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
 		else
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
@@ -322,7 +322,7 @@ void FUN_10022c01(WorldPoly *pPoly, int bSaturate)
 // The exe destroys the CountAdder out of line (`lea ecx, [ebp-0x44]; call 0x100083ae`, the COMDAT copy of CountAdder::~CountAdder emitted by
 // unit unk/10007930) -- unit unk/10007930's FUN_10007e5d has the same out-of-line dtor call, and no source shape tried (toys, decl order,
 // dead inline sites, inline_budget/inline_ballast probes) keeps counter.h's in-class dtor out of line with the RTM C1XX under /O1 /Ob2, so
-// the local is the layout-identical UnkType_CountAdderRaw (ctor inlined exactly like CountAdder's) plus an explicit call to FUN_100083ae at
+// the local is the layout-identical UnkType_CountAdderRaw (ctor inlined exactly like CountAdder's) plus an explicit call to CountAdder_Destructor at
 // the scope end.  The x87 products come from LTVector::Dot (`P.Dot(vDelta)`): written out as products they compile to `fld st(i); fmul [P]`
 // instead of the exe's `fld [P]; fmul st(i)`.  The StateSets/StageStateSets sit in their own block so their dtors run before the counter dtor.
 // FUNCTION: D3DREN 0x10022f85
@@ -379,13 +379,13 @@ void FUN_10022f85(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 							pVert++;
 						}
 						g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-						if (DAT_100578ec)
+						if (g_Saturate)
 							g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 					}
 				}
 			}
 		}
-		FUN_100083ae((CountAdder *)&cTimer);
+		CountAdder_Destructor((CountAdder *)&cTimer);
 	}
 }
 
@@ -406,7 +406,7 @@ void FUN_10023398(WorldPoly *pPoly)
 		return;
 	}
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -440,7 +440,7 @@ void FUN_10023398(WorldPoly *pPoly)
 		if (((RTexture *)g_pBoundTextures[g_NormalTextureStage])->IsFullbrite() && DAT_10058d00)
 		{
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-			if (DAT_1005849c)
+			if (g_FogEnable)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, 0);
 
 			color.rgb.a = 0xff;
@@ -461,7 +461,7 @@ void FUN_10023398(WorldPoly *pPoly)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 0);
-			if (DAT_1005849c)
+			if (g_FogEnable)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, 1);
 		}
 		else
@@ -558,7 +558,7 @@ void FUN_100236ae(WorldPoly *pPoly)
 	if (!g_CV_EnvMapWorld.m_IntVal)
 		FUN_10023398(pPoly);
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -603,7 +603,7 @@ void FUN_10023763(WorldPoly *pPoly)
 		return;
 	}
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;

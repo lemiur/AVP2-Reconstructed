@@ -114,7 +114,7 @@ void FUN_100099b9(WorldPoly *pPoly)
 	SharedTexture *pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture;
 	uint32 nSurfFlags = ((Surface *)pPoly->m_pSurface)->m_Flags & 0x100000;
 	bEnvMap = pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0 && DAT_1005de2c != 0;
-	if (DAT_1005811c != 0)
+	if (g_FixTJunc != 0)
 	{
 		pSrcVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nTotalVerts = pPoly->m_nExtraVertices;
@@ -220,7 +220,7 @@ void FUN_100099b9(WorldPoly *pPoly)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
 		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHAFUNC, &dwOldAlphaFunc);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHAFUNC, D3DCMP_ALWAYS);
-		if (DAT_100578ec != 0)
+		if (g_Saturate != 0)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
 		else
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
@@ -523,7 +523,7 @@ void FUN_1000a2a7(void)
 	{
 		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, &dwOldAlphaBlend);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-		if (DAT_100578ec != 0)
+		if (g_Saturate != 0)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
 		else
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
@@ -535,14 +535,14 @@ void FUN_1000a2a7(void)
 	while (pBucket)
 	{
 		UnkType_PoolBucket *pNextBucket = pBucket->m_Unk08;
-		if (DAT_100584e0 != 0)
+		if (g_LightmapsOnly != 0)
 			FUN_100142b0(pBucket->m_Unk04);
 		else if (pBucket->m_Unk04 != 0)
 		{
 			SharedTexture *pTexture = ((Surface *)((WorldPoly *)pBucket->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture;
 			if (FUN_100211d0(pTexture, 0) != 0 && g_bChromaKeyPass == 0 && g_CV_LMFullBright.m_IntVal == 0)
 			{
-				if (DAT_100578ec != 0)
+				if (g_Saturate != 0)
 					FUN_1000a538(pBucket, pTexture, 0, 0);
 				pBucket->m_Unk08 = pSecondPass;
 				pSecondPass = pBucket;
@@ -558,13 +558,13 @@ void FUN_1000a2a7(void)
 	if (g_bChromaKeyPass == 0 && g_CV_LMFullBright.m_IntVal == 0)
 	{
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-		if (DAT_100578ec != 0)
+		if (g_Saturate != 0)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
 		pBucket = pSecondPass;
 		while (pBucket)
 		{
 			UnkType_PoolBucket *pNextBucket = pBucket->m_Unk08;
-			FUN_1000a538(pBucket, ((Surface *)((WorldPoly *)pBucket->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture, 1, DAT_100578ec);
+			FUN_1000a538(pBucket, ((Surface *)((WorldPoly *)pBucket->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture, 1, g_Saturate);
 			((UnkType_BucketOwner *)pBucket->m_Unk00)->m_Unk1c[0] = 0;
 			sb_Free(&DAT_10058c98, pBucket);
 			pBucket = pNextBucket;
@@ -677,7 +677,7 @@ void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3)
 				if (bSaturate != ((pNode->m_Unk14 >> 1) & 1))
 				{
 					bSaturate = (pNode->m_Unk14 >> 1) & 1;
-					if (DAT_100578ec != 0 && bSaturate != 0)
+					if (g_Saturate != 0 && bSaturate != 0)
 						g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
 					else
 						g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
@@ -707,7 +707,7 @@ void FUN_1000a70d(UnkType_PoolBucket *pBucket, int a2, int a3)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
 			uint32 dwFogColor = FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
-			if (DAT_100578ec != 0)
+			if (g_Saturate != 0)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
 			else
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
@@ -768,7 +768,7 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 				if (bSaturate != ((pNode->m_Unk14 >> 1) & 1))
 				{
 					bSaturate = (pNode->m_Unk14 >> 1) & 1;
-					if (DAT_100578ec != 0 && bSaturate != 0)
+					if (g_Saturate != 0 && bSaturate != 0)
 						g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
 					else
 						g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
@@ -798,7 +798,7 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 			{
 				UnkType_PolyVertex *pSrc;
 				int nVerts;
-				if (DAT_1005811c != 0)
+				if (g_FixTJunc != 0)
 				{
 					pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 					nVerts = pPoly->m_nExtraVertices;
@@ -844,7 +844,7 @@ void FUN_1000a8c0(UnkType_PoolBucket *pBucket, int a2, int a3)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
 			uint32 dwFogColor = FUN_10013990(DAT_10058040, DAT_10058041, DAT_10058042);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
-			if (DAT_100578ec != 0)
+			if (g_Saturate != 0)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
 			else
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
@@ -1075,7 +1075,7 @@ int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 			if (DAT_10094de0[iPrev] != DAT_10094de0[iCur])
 			{
 				t = FUN_10001a50(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
-				FUN_10001940(pPrev, pCur, pOut, t);
+				TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 				++pOut;
 			}
 			iPrev = iCur;
@@ -1127,7 +1127,7 @@ int ClipPolyLeft(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 			if (DAT_10094ec0[iPrev] != DAT_10094ec0[iCur])
 			{
 				t = FUN_10001ac0(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
-				FUN_10001940(pPrev, pCur, pOut, t);
+				TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 				++pOut;
 			}
 			iPrev = iCur;

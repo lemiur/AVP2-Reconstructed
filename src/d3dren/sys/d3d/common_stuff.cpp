@@ -68,23 +68,23 @@ ConVar::ConVar(char *pName, float fDefault, int *pIntLink, float *pFloatLink)
 // FUNCTION: D3DREN 0x100111f0 _$E5
 // FUNCTION: D3DREN 0x100111f5 _$E4
 // GLOBAL: D3DREN 0x10057aa8
-ConVar g_CV_NoLMPages("NoLMPages", 0.0f, &DAT_10057994);
+ConVar g_CV_NoLMPages("NoLMPages", 0.0f, &g_NoLMPages);
 // FUNCTION: D3DREN 0x1001123f _$E8
 // FUNCTION: D3DREN 0x10011244 _$E7
 // GLOBAL: D3DREN 0x100581e0
-ConVar g_CV_ModelProfile("ModelProfile", 0.0f, &DAT_10057f70);
+ConVar g_CV_ModelProfile("ModelProfile", 0.0f, &g_ModelProfile);
 // FUNCTION: D3DREN 0x1001128e _$E11
 // FUNCTION: D3DREN 0x10011293 _$E10
 // GLOBAL: D3DREN 0x10058018
-ConVar g_CV_MaxModelLights("MaxModelLights", 4.0f, &DAT_1005803c);
+ConVar g_CV_MaxModelLights("MaxModelLights", 4.0f, &g_MaxModelLights);
 // FUNCTION: D3DREN 0x100112df _$E14
 // FUNCTION: D3DREN 0x100112e4 _$E13
 // GLOBAL: D3DREN 0x10057a38
-ConVar g_CV_MaxTexAspectRatio("MaxTexAspectRatio", 8.0f, &DAT_10057a5c);
+ConVar g_CV_MaxTexAspectRatio("MaxTexAspectRatio", 8.0f, &g_MaxTexAspectRatio);
 // FUNCTION: D3DREN 0x10011330 _$E17
 // FUNCTION: D3DREN 0x10011335 _$E16
 // GLOBAL: D3DREN 0x100578f0
-ConVar g_CV_32BitTextures("32BitTextures", 0.0f, &DAT_10057e2c);
+ConVar g_CV_32BitTextures("32BitTextures", 0.0f, &g_32BitTextures);
 // FUNCTION: D3DREN 0x1001137f _$E20
 // FUNCTION: D3DREN 0x10011384 _$E19
 // GLOBAL: D3DREN 0x10057930
@@ -92,327 +92,327 @@ ConVar g_CV_32BitLightmaps("32BitLightMaps", 0.0f, &g_b32BitLightmaps);
 // FUNCTION: D3DREN 0x100113ce _$E23
 // FUNCTION: D3DREN 0x100113d3 _$E22
 // GLOBAL: D3DREN 0x100580f8
-ConVar g_CV_MaxTextureSize("MaxTextureSize", 16384.0f, &DAT_10057f00);
+ConVar g_CV_MaxTextureSize("MaxTextureSize", 16384.0f, &g_MaxTextureSize);
 // FUNCTION: D3DREN 0x1001141f _$E26
 // FUNCTION: D3DREN 0x10011424 _$E25
 // GLOBAL: D3DREN 0x10057c50
-ConVar g_CV_DrawGuns("DrawGuns", 1.0f, &DAT_10057878);
+ConVar g_CV_DrawGuns("DrawGuns", 1.0f, &g_DrawGuns);
 // FUNCTION: D3DREN 0x1001146e _$E29
 // FUNCTION: D3DREN 0x10011473 _$E28
 // GLOBAL: D3DREN 0x10057fb8
-ConVar g_CV_TintModels("TintModels", 1.0f, &DAT_10048788);
+ConVar g_CV_TintModels("TintModels", 1.0f, &g_TintModels);
 // FUNCTION: D3DREN 0x100114bd _$E32
 // FUNCTION: D3DREN 0x100114c2 _$E31
 // GLOBAL: D3DREN 0x10057be8
-ConVar g_CV_Saturate("Saturate", 0.0f, &DAT_100578ec);
+ConVar g_CV_Saturate("Saturate", 0.0f, &g_Saturate);
 // FUNCTION: D3DREN 0x1001150c _$E35
 // FUNCTION: D3DREN 0x10011511 _$E34
 // GLOBAL: D3DREN 0x10057df8
-ConVar g_CV_Bilinear("Bilinear", 1.0f, &DAT_1005782c);
+ConVar g_CV_Bilinear("Bilinear", 1.0f, &g_Bilinear);
 // FUNCTION: D3DREN 0x1001155b _$E38
 // FUNCTION: D3DREN 0x10011560 _$E37
 // GLOBAL: D3DREN 0x10057b38
-ConVar g_CV_EnvMapEnable("EnvMapEnable", 0.0f, &DAT_10057be0);
+ConVar g_CV_EnvMapEnable("EnvMapEnable", 0.0f, &g_EnvMapEnable);
 // FUNCTION: D3DREN 0x100115aa _$E41
 // FUNCTION: D3DREN 0x100115af _$E40
 // GLOBAL: D3DREN 0x10058260
-ConVar g_CV_FixTJunc("FixTJunc", 0.0f, &DAT_1005811c);
+ConVar g_CV_FixTJunc("FixTJunc", 0.0f, &g_FixTJunc);
 // FUNCTION: D3DREN 0x100115f9 _$E44
 // FUNCTION: D3DREN 0x100115fe _$E43
 // GLOBAL: D3DREN 0x10057af0
-ConVar g_CV_LightSaturate("LightSaturate", 1.0f, 0, &DAT_10057e18);
+ConVar g_CV_LightSaturate("LightSaturate", 1.0f, 0, &g_LightSaturate);
 // FUNCTION: D3DREN 0x10011648 _$E47
 // FUNCTION: D3DREN 0x1001164d _$E46
 // GLOBAL: D3DREN 0x100579c0
-ConVar g_CV_FilterOptimized("FilterOptimized", 0.0f, &DAT_10058118);
+ConVar g_CV_FilterOptimized("FilterOptimized", 0.0f, &g_FilterOptimized);
 // FUNCTION: D3DREN 0x10011697 _$E50
 // FUNCTION: D3DREN 0x1001169c _$E49
 // GLOBAL: D3DREN 0x100582a0
-ConVar g_CV_OptimizeSurfaces("OptimizeSurfaces", 0.0f, &DAT_10057cb8);
+ConVar g_CV_OptimizeSurfaces("OptimizeSurfaces", 0.0f, &g_OptimizeSurfaces);
 // FUNCTION: D3DREN 0x100116e6 _$E53
 // FUNCTION: D3DREN 0x100116eb _$E52
 // GLOBAL: D3DREN 0x10057ff8
-ConVar g_CV_ShowSkySplits("ShowSkySplits", 0.0f, &DAT_10058038);
+ConVar g_CV_ShowSkySplits("ShowSkySplits", 0.0f, &g_ShowSkySplits);
 // FUNCTION: D3DREN 0x10011735 _$E56
 // FUNCTION: D3DREN 0x1001173a _$E55
 // GLOBAL: D3DREN 0x10057830
-ConVar g_CV_WarbleSpeed("WarbleSpeed", 25.0f, 0, &DAT_10058408);
+ConVar g_CV_WarbleSpeed("WarbleSpeed", 25.0f, 0, &g_WarbleSpeed);
 // FUNCTION: D3DREN 0x10011786 _$E59
 // FUNCTION: D3DREN 0x1001178b _$E58
 // GLOBAL: D3DREN 0x10058280
-ConVar g_CV_WarbleScale("WarbleScale", 0.92f, 0, &DAT_10057e1c);
+ConVar g_CV_WarbleScale("WarbleScale", 0.92f, 0, &g_WarbleScale);
 // FUNCTION: D3DREN 0x100117d7 _$E62
 // FUNCTION: D3DREN 0x100117dc _$E61
 // GLOBAL: D3DREN 0x100579a0
-ConVar g_CV_EnvMapAll("EnvMapAll", 0.0f, &DAT_10057dd0);
+ConVar g_CV_EnvMapAll("EnvMapAll", 0.0f, &g_EnvMapAll);
 // FUNCTION: D3DREN 0x10011826 _$E65
 // FUNCTION: D3DREN 0x1001182b _$E64
 // GLOBAL: D3DREN 0x10057eb8
-ConVar g_CV_EnvPanSpeed("EnvPanSpeed", 0.0005f, 0, &DAT_1004871c);
+ConVar g_CV_EnvPanSpeed("EnvPanSpeed", 0.0005f, 0, &g_EnvPanSpeed);
 // FUNCTION: D3DREN 0x10011877 _$E68
 // FUNCTION: D3DREN 0x1001187c _$E67
 // GLOBAL: D3DREN 0x100582c0
-ConVar g_CV_EnvScale("EnvScale", 1.0f, 0, &DAT_10057b10);
+ConVar g_CV_EnvScale("EnvScale", 1.0f, 0, &g_EnvScale);
 // FUNCTION: D3DREN 0x100118c6 _$E71
 // FUNCTION: D3DREN 0x100118cb _$E70
 // GLOBAL: D3DREN 0x10057db0
-ConVar g_CV_DrawWorld("DrawWorld", 1.0f, &DAT_10048720);
+ConVar g_CV_DrawWorld("DrawWorld", 1.0f, &g_DrawWorld);
 // FUNCTION: D3DREN 0x10011915 _$E74
 // FUNCTION: D3DREN 0x1001191a _$E73
 // GLOBAL: D3DREN 0x10057ba0
-ConVar g_CV_ShadowZRange("ShadowZRange", 17.0f, 0, &DAT_10048724);
+ConVar g_CV_ShadowZRange("ShadowZRange", 17.0f, 0, &g_ShadowZRange);
 // FUNCTION: D3DREN 0x10011966 _$E77
 // FUNCTION: D3DREN 0x1001196b _$E76
 // GLOBAL: D3DREN 0x10057f30
-ConVar g_CV_SkyScale("SkyScale", 1.0f, 0, &DAT_10048728);
+ConVar g_CV_SkyScale("SkyScale", 1.0f, 0, &g_SkyScale);
 // FUNCTION: D3DREN 0x100119b5 _$E80
 // FUNCTION: D3DREN 0x100119ba _$E79
 // GLOBAL: D3DREN 0x10057c98
-ConVar g_CV_Gamma("Gamma", 100.0f, 0, &DAT_1004872c);
+ConVar g_CV_Gamma("Gamma", 100.0f, 0, &g_Gamma);
 // FUNCTION: D3DREN 0x10011a06 _$E83
 // FUNCTION: D3DREN 0x10011a0b _$E82
 // GLOBAL: D3DREN 0x10058348
-ConVar g_CV_GroupOffset0("GroupOffset0", 0.0f, &DAT_10057d44);
+ConVar g_CV_GroupOffset0("GroupOffset0", 0.0f, &g_GroupOffset0);
 // FUNCTION: D3DREN 0x10011a55 _$E86
 // FUNCTION: D3DREN 0x10011a5a _$E85
 // GLOBAL: D3DREN 0x10058328
-ConVar g_CV_GroupOffset1("GroupOffset1", 0.0f, &DAT_10057d48);
+ConVar g_CV_GroupOffset1("GroupOffset1", 0.0f, &g_GroupOffset1);
 // FUNCTION: D3DREN 0x10011aa4 _$E89
 // FUNCTION: D3DREN 0x10011aa9 _$E88
 // GLOBAL: D3DREN 0x10058308
-ConVar g_CV_GroupOffset2("GroupOffset2", 0.0f, &DAT_10057d4c);
+ConVar g_CV_GroupOffset2("GroupOffset2", 0.0f, &g_GroupOffset2);
 // FUNCTION: D3DREN 0x10011af3 _$E92
 // FUNCTION: D3DREN 0x10011af8 _$E91
 // GLOBAL: D3DREN 0x100582e8
-ConVar g_CV_GroupOffset3("GroupOffset3", 0.0f, &DAT_10057d50);
+ConVar g_CV_GroupOffset3("GroupOffset3", 0.0f, &g_GroupOffset3);
 // FUNCTION: D3DREN 0x10011b42 _$E95
 // FUNCTION: D3DREN 0x10011b47 _$E94
 // GLOBAL: D3DREN 0x100581c0
-ConVar g_CV_GroupOffset4("GroupOffset4", 0.0f, &DAT_10057d54);
+ConVar g_CV_GroupOffset4("GroupOffset4", 0.0f, &g_GroupOffset4);
 // FUNCTION: D3DREN 0x10011b91 _$E98
 // FUNCTION: D3DREN 0x10011b96 _$E97
 // GLOBAL: D3DREN 0x100581a0
-ConVar g_CV_GroupOffset5("GroupOffset5", 0.0f, &DAT_10057d58);
+ConVar g_CV_GroupOffset5("GroupOffset5", 0.0f, &g_GroupOffset5);
 // FUNCTION: D3DREN 0x10011be0 _$E101
 // FUNCTION: D3DREN 0x10011be5 _$E100
 // GLOBAL: D3DREN 0x10058160
-ConVar g_CV_GroupOffset6("GroupOffset6", 0.0f, &DAT_10057d5c);
+ConVar g_CV_GroupOffset6("GroupOffset6", 0.0f, &g_GroupOffset6);
 // FUNCTION: D3DREN 0x10011c2f _$E104
 // FUNCTION: D3DREN 0x10011c34 _$E103
 // GLOBAL: D3DREN 0x10058140
-ConVar g_CV_GroupOffset7("GroupOffset7", 0.0f, &DAT_10057d60);
+ConVar g_CV_GroupOffset7("GroupOffset7", 0.0f, &g_GroupOffset7);
 // FUNCTION: D3DREN 0x10011c7e _$E107
 // FUNCTION: D3DREN 0x10011c83 _$E106
 // GLOBAL: D3DREN 0x10058220
-ConVar g_CV_GroupOffset8("GroupOffset8", 0.0f, &DAT_10057d64);
+ConVar g_CV_GroupOffset8("GroupOffset8", 0.0f, &g_GroupOffset8);
 // FUNCTION: D3DREN 0x10011ccd _$E110
 // FUNCTION: D3DREN 0x10011cd2 _$E109
 // GLOBAL: D3DREN 0x10058200
-ConVar g_CV_GroupOffset9("GroupOffset9", 0.0f, &DAT_10057d68);
+ConVar g_CV_GroupOffset9("GroupOffset9", 0.0f, &g_GroupOffset9);
 // FUNCTION: D3DREN 0x10011d1c _$E113
 // FUNCTION: D3DREN 0x10011d21 _$E112
 // GLOBAL: D3DREN 0x10058090
-ConVar g_CV_TripleBuffer("TripleBuffer", 0.0f, &DAT_10058478);
+ConVar g_CV_TripleBuffer("TripleBuffer", 0.0f, &g_TripleBuffer);
 // FUNCTION: D3DREN 0x10011d6b _$E116
 // FUNCTION: D3DREN 0x10011d70 _$E115
 // GLOBAL: D3DREN 0x10057c30
-ConVar g_CV_UseDX6Commands("UseDX6Commands", 1.0f, &DAT_10048730);
+ConVar g_CV_UseDX6Commands("UseDX6Commands", 1.0f, &g_UseDX6Commands);
 // FUNCTION: D3DREN 0x10011dba _$E119
 // FUNCTION: D3DREN 0x10011dbf _$E118
 // GLOBAL: D3DREN 0x10057970
-ConVar g_CV_InvertHack("InvertHack", 0.0f, &DAT_1005847c);
+ConVar g_CV_InvertHack("InvertHack", 0.0f, &g_InvertHack);
 // FUNCTION: D3DREN 0x10011e09 _$E122
 // FUNCTION: D3DREN 0x10011e0e _$E121
 // GLOBAL: D3DREN 0x10057c08
-ConVar g_CV_Force1Pass("Force1Pass", 0.0f, &DAT_10058480);
+ConVar g_CV_Force1Pass("Force1Pass", 0.0f, &g_Force1Pass);
 // FUNCTION: D3DREN 0x10011e58 _$E125
 // FUNCTION: D3DREN 0x10011e5d _$E124
 // GLOBAL: D3DREN 0x10057fd8
-ConVar g_CV_LightAddPoly("LightAddPoly", 1.0f, &DAT_10048734);
+ConVar g_CV_LightAddPoly("LightAddPoly", 1.0f, &g_LightAddPoly);
 // FUNCTION: D3DREN 0x10011ea7 _$E128
 // FUNCTION: D3DREN 0x10011eac _$E127
 // GLOBAL: D3DREN 0x10057dd8
-ConVar g_CV_ModelWarble("ModelWarble", 0.0f, &DAT_10058484);
+ConVar g_CV_ModelWarble("ModelWarble", 0.0f, &g_ModelWarble);
 // FUNCTION: D3DREN 0x10011ef6 _$E131
 // FUNCTION: D3DREN 0x10011efb _$E130
 // GLOBAL: D3DREN 0x10057a60
-ConVar g_CV_MMXRast("MMXRast", 0.0f, &DAT_10058490);
+ConVar g_CV_MMXRast("MMXRast", 0.0f, &g_MMXRast);
 // FUNCTION: D3DREN 0x10011f45 _$E134
 // FUNCTION: D3DREN 0x10011f4a _$E133
 // GLOBAL: D3DREN 0x10057f98
-ConVar g_CV_RGBRast("RGBRast", 0.0f, &DAT_10058488);
+ConVar g_CV_RGBRast("RGBRast", 0.0f, &g_RGBRast);
 // FUNCTION: D3DREN 0x10011f94 _$E137
 // FUNCTION: D3DREN 0x10011f99 _$E136
 // GLOBAL: D3DREN 0x10058450
-ConVar g_CV_RefRast("RefRast", 0.0f, &DAT_1005848c);
+ConVar g_CV_RefRast("RefRast", 0.0f, &g_RefRast);
 // FUNCTION: D3DREN 0x10011fe3 _$E140
 // FUNCTION: D3DREN 0x10011fe8 _$E139
 // GLOBAL: D3DREN 0x10057d20
-ConVar g_CV_TnLRast("TnLRast", 0.0f, &DAT_10058494);
+ConVar g_CV_TnLRast("TnLRast", 0.0f, &g_TnLRast);
 // FUNCTION: D3DREN 0x10012032 _$E143
 // FUNCTION: D3DREN 0x10012037 _$E142
 // GLOBAL: D3DREN 0x10057a80
-ConVar g_CV_Force2Pass("Force2Pass", 0.0f, &DAT_10058498);
+ConVar g_CV_Force2Pass("Force2Pass", 0.0f, &g_Force2Pass);
 // FUNCTION: D3DREN 0x10012081 _$E146
 // FUNCTION: D3DREN 0x10012086 _$E145
 // GLOBAL: D3DREN 0x10057f78
-ConVar g_CV_FogEnable("FogEnable", 0.0f, &DAT_1005849c);
+ConVar g_CV_FogEnable("FogEnable", 0.0f, &g_FogEnable);
 // FUNCTION: D3DREN 0x100120d0 _$E149
 // FUNCTION: D3DREN 0x100120d5 _$E148
 // GLOBAL: D3DREN 0x100583e8
-ConVar g_CV_FogColorR("FogR", 255.0f, &DAT_10048738);
+ConVar g_CV_FogColorR("FogR", 255.0f, &g_FogR);
 // FUNCTION: D3DREN 0x10012121 _$E152
 // FUNCTION: D3DREN 0x10012126 _$E151
 // GLOBAL: D3DREN 0x10058240
-ConVar g_CV_FogColorG("FogG", 255.0f, &DAT_1004873c);
+ConVar g_CV_FogColorG("FogG", 255.0f, &g_FogG);
 // FUNCTION: D3DREN 0x10012172 _$E155
 // FUNCTION: D3DREN 0x10012177 _$E154
 // GLOBAL: D3DREN 0x10057e78
-ConVar g_CV_FogColorB("FogB", 255.0f, &DAT_10048740);
+ConVar g_CV_FogColorB("FogB", 255.0f, &g_FogB);
 // FUNCTION: D3DREN 0x100121c3 _$E158
 // FUNCTION: D3DREN 0x100121c8 _$E157
 // GLOBAL: D3DREN 0x10058430
-ConVar g_CV_FogNearZ("FogNearZ", 0.0f, 0, &DAT_100584a0);
+ConVar g_CV_FogNearZ("FogNearZ", 0.0f, 0, &g_FogNearZ);
 // FUNCTION: D3DREN 0x10012212 _$E161
 // FUNCTION: D3DREN 0x10012217 _$E160
 // GLOBAL: D3DREN 0x10057d00
-ConVar g_CV_FogFarZ("FogFarZ", 2000.0f, 0, &DAT_10048744);
+ConVar g_CV_FogFarZ("FogFarZ", 2000.0f, 0, &g_FogFarZ);
 // FUNCTION: D3DREN 0x10012263 _$E164
 // FUNCTION: D3DREN 0x10012268 _$E163
 // GLOBAL: D3DREN 0x10057a18
-ConVar g_CV_SkyFogNearZ("SkyFogNearZ", 0.0f, 0, &DAT_10057e20);
+ConVar g_CV_SkyFogNearZ("SkyFogNearZ", 0.0f, 0, &g_SkyFogNearZ);
 // FUNCTION: D3DREN 0x100122b2 _$E167
 // FUNCTION: D3DREN 0x100122b7 _$E166
 // GLOBAL: D3DREN 0x10057f50
-ConVar g_CV_SkyFogFarZ("SkyFogFarZ", 2000.0f, 0, &DAT_10057d40);
+ConVar g_CV_SkyFogFarZ("SkyFogFarZ", 2000.0f, 0, &g_SkyFogFarZ);
 // FUNCTION: D3DREN 0x10012303 _$E170
 // FUNCTION: D3DREN 0x10012308 _$E169
 // GLOBAL: D3DREN 0x10057ad0
-ConVar g_CV_MipmapOffset("MipmapOffset", 0.0f, &DAT_100584ac);
+ConVar g_CV_MipmapOffset("MipmapOffset", 0.0f, &g_MipmapOffset);
 // FUNCTION: D3DREN 0x10012352 _$E173
 // FUNCTION: D3DREN 0x10012357 _$E172
 // GLOBAL: D3DREN 0x10058410
-ConVar g_CV_LockPVS("LockPVS", 0.0f, &DAT_100584a4);
+ConVar g_CV_LockPVS("LockPVS", 0.0f, &g_LockPVS);
 // FUNCTION: D3DREN 0x100123a1 _$E176
 // FUNCTION: D3DREN 0x100123a6 _$E175
 // GLOBAL: D3DREN 0x10057b18
-ConVar g_CV_ShowFullbriteModels("ShowFullbriteModels", 0.0f, &DAT_100584a8);
+ConVar g_CV_ShowFullbriteModels("ShowFullbriteModels", 0.0f, &g_ShowFullbriteModels);
 // FUNCTION: D3DREN 0x100123f0 _$E179
 // FUNCTION: D3DREN 0x100123f5 _$E178
 // GLOBAL: D3DREN 0x10058120
-ConVar g_CV_BumpMap("BumpMap", 0.0f, &DAT_100584b0);
+ConVar g_CV_BumpMap("BumpMap", 0.0f, &g_BumpMap);
 // FUNCTION: D3DREN 0x1001243f _$E182
 // FUNCTION: D3DREN 0x10012444 _$E181
 // GLOBAL: D3DREN 0x10057e58
-ConVar g_CV_DrawSky("DrawSky", 1.0f, &DAT_10048748);
+ConVar g_CV_DrawSky("DrawSky", 1.0f, &g_DrawSky);
 // FUNCTION: D3DREN 0x1001248e _$E185
 // FUNCTION: D3DREN 0x10012493 _$E184
 // GLOBAL: D3DREN 0x100580d8
-ConVar g_CV_EnableSky("EnableSky", 1.0f, &DAT_1004874c);
+ConVar g_CV_EnableSky("EnableSky", 1.0f, &g_EnableSky);
 // FUNCTION: D3DREN 0x100124dd _$E188
 // FUNCTION: D3DREN 0x100124e2 _$E187
 // GLOBAL: D3DREN 0x100583a8
-ConVar g_CV_TextureModels("TextureModels", 1.0f, &DAT_10048750);
+ConVar g_CV_TextureModels("TextureModels", 1.0f, &g_TextureModels);
 // FUNCTION: D3DREN 0x1001252c _$E191
 // FUNCTION: D3DREN 0x10012531 _$E190
 // GLOBAL: D3DREN 0x100583c8
-ConVar g_CV_ShowFillInfo("ShowFillInfo", 0.0f, &DAT_100584b4);
+ConVar g_CV_ShowFillInfo("ShowFillInfo", 0.0f, &g_ShowFillInfo);
 // FUNCTION: D3DREN 0x1001257b _$E194
 // FUNCTION: D3DREN 0x10012580 _$E193
 // GLOBAL: D3DREN 0x10058050
-ConVar g_CV_DrawAll("DrawAll", 0.0f, &DAT_100584b8);
+ConVar g_CV_DrawAll("DrawAll", 0.0f, &g_DrawAll);
 // FUNCTION: D3DREN 0x100125ca _$E197
 // FUNCTION: D3DREN 0x100125cf _$E196
 // GLOBAL: D3DREN 0x10058388
-ConVar g_CV_DrawSprites("DrawSprites", 1.0f, &DAT_10048754);
+ConVar g_CV_DrawSprites("DrawSprites", 1.0f, &g_DrawSprites);
 // FUNCTION: D3DREN 0x10012619 _$E200
 // FUNCTION: D3DREN 0x1001261e _$E199
 // GLOBAL: D3DREN 0x10057bc0
-ConVar g_CV_DrawPolyGrids("DrawPolyGrids", 1.0f, &DAT_10048758);
+ConVar g_CV_DrawPolyGrids("DrawPolyGrids", 1.0f, &g_DrawPolyGrids);
 // FUNCTION: D3DREN 0x10012668 _$E203
 // FUNCTION: D3DREN 0x1001266d _$E202
 // GLOBAL: D3DREN 0x10058070
-ConVar g_CV_DrawParticles("DrawParticles", 1.0f, &DAT_10048774);
+ConVar g_CV_DrawParticles("DrawParticles", 1.0f, &g_DrawParticles);
 // FUNCTION: D3DREN 0x100126b7 _$E206
 // FUNCTION: D3DREN 0x100126bc _$E205
 // GLOBAL: D3DREN 0x10057e38
-ConVar g_CV_DrawModels("DrawModels", 1.0f, &DAT_10048778);
+ConVar g_CV_DrawModels("DrawModels", 1.0f, &g_DrawModels);
 // FUNCTION: D3DREN 0x10012706 _$E209
 // FUNCTION: D3DREN 0x1001270b _$E208
 // GLOBAL: D3DREN 0x10057e98
-ConVar g_CV_DrawLineSystems("DrawLineSystems", 1.0f, &DAT_1004877c);
+ConVar g_CV_DrawLineSystems("DrawLineSystems", 1.0f, &g_DrawLineSystems);
 // FUNCTION: D3DREN 0x10012755 _$E212
 // FUNCTION: D3DREN 0x1001275a _$E211
 // GLOBAL: D3DREN 0x100580b0
-ConVar g_CV_ShowSplits("ShowSplits", 0.0f, &DAT_100584bc);
+ConVar g_CV_ShowSplits("ShowSplits", 0.0f, &g_ShowSplits);
 // FUNCTION: D3DREN 0x100127a4 _$E215
 // FUNCTION: D3DREN 0x100127a9 _$E214
 // GLOBAL: D3DREN 0x10057910
-ConVar g_CV_DynamicLight("DynamicLight", 1.0f, &DAT_1004875c);
+ConVar g_CV_DynamicLight("DynamicLight", 1.0f, &g_DynamicLight);
 // FUNCTION: D3DREN 0x100127f3 _$E218
 // FUNCTION: D3DREN 0x100127f8 _$E217
 // GLOBAL: D3DREN 0x10057ee0
-ConVar g_CV_FastLight("FastLight", 0.0f, &DAT_100584c0);
+ConVar g_CV_FastLight("FastLight", 0.0f, &g_FastLight);
 // FUNCTION: D3DREN 0x10012842 _$E221
 // FUNCTION: D3DREN 0x10012847 _$E220
 // GLOBAL: D3DREN 0x10057950
-ConVar g_CV_LightModels("LightModels", 1.0f, &DAT_10048760);
+ConVar g_CV_LightModels("LightModels", 1.0f, &g_LightModels);
 // FUNCTION: D3DREN 0x10012891 _$E224
 // FUNCTION: D3DREN 0x10012896 _$E223
 // GLOBAL: D3DREN 0x10057b80
-ConVar g_CV_ModelFullbrite("ModelFullbrite", 1.0f, &DAT_10048764);
+ConVar g_CV_ModelFullbrite("ModelFullbrite", 1.0f, &g_ModelFullbrite);
 // FUNCTION: D3DREN 0x100128e0 _$E227
 // FUNCTION: D3DREN 0x100128e5 _$E226
 // GLOBAL: D3DREN 0x10058368
-ConVar g_CV_ShowTextureCounts("ShowTextureCounts", 0.0f, &DAT_100584c4);
+ConVar g_CV_ShowTextureCounts("ShowTextureCounts", 0.0f, &g_ShowTextureCounts);
 // FUNCTION: D3DREN 0x1001292f _$E230
 // FUNCTION: D3DREN 0x10012934 _$E229
 // GLOBAL: D3DREN 0x10057d70
-ConVar g_CV_ShadowLodOffset("ShadowLodOffset", 100.0f, &DAT_10048768);
+ConVar g_CV_ShadowLodOffset("ShadowLodOffset", 100.0f, &g_ShadowLodOffset);
 // FUNCTION: D3DREN 0x10012980 _$E233
 // FUNCTION: D3DREN 0x10012985 _$E232
 // GLOBAL: D3DREN 0x10057cc0
-ConVar g_CV_MaxModelShadows("MaxModelShadows", 1.0f, &DAT_1004876c);
+ConVar g_CV_MaxModelShadows("MaxModelShadows", 1.0f, &g_MaxModelShadows);
 // FUNCTION: D3DREN 0x100129cf _$E236
 // FUNCTION: D3DREN 0x100129d4 _$E235
 // GLOBAL: D3DREN 0x10057d90
-ConVar g_CV_LodScale("LodScale", 1.0f, 0, &DAT_10048770);
+ConVar g_CV_LodScale("LodScale", 1.0f, 0, &g_LodScale);
 // FUNCTION: D3DREN 0x10012a1e _$E239
 // FUNCTION: D3DREN 0x10012a23 _$E238
 // GLOBAL: D3DREN 0x10058180
-ConVar g_CV_LodOffset("LodOffset", 0.0f, &DAT_100584c8);
+ConVar g_CV_LodOffset("LodOffset", 0.0f, &g_LodOffset);
 // FUNCTION: D3DREN 0x10012a6d _$E242
 // FUNCTION: D3DREN 0x10012a72 _$E241
 // GLOBAL: D3DREN 0x10057b60
-ConVar g_CV_Wireframe("Wireframe", 0.0f, &DAT_100584cc);
+ConVar g_CV_Wireframe("Wireframe", 0.0f, &g_Wireframe);
 // FUNCTION: D3DREN 0x10012abc _$E245
 // FUNCTION: D3DREN 0x10012ac1 _$E244
 // GLOBAL: D3DREN 0x100579f0
-ConVar g_CV_ModelBoxes("ModelBoxes", 0.0f, &DAT_100584d0);
+ConVar g_CV_ModelBoxes("ModelBoxes", 0.0f, &g_ModelBoxes);
 // FUNCTION: D3DREN 0x10012b0b _$E248
 // FUNCTION: D3DREN 0x10012b10 _$E247
 // GLOBAL: D3DREN 0x10057f08
-ConVar g_CV_RenderDebug("RenderDebug", 0.0f, &DAT_100584d4);
+ConVar g_CV_RenderDebug("RenderDebug", 0.0f, &g_RenderDebug);
 // FUNCTION: D3DREN 0x10012b5a _$E251
 // FUNCTION: D3DREN 0x10012b5f _$E250
 // GLOBAL: D3DREN 0x100578c8
-ConVar g_CV_ShowPolyCounts("ShowPolyCounts", 0.0f, &DAT_100584d8);
+ConVar g_CV_ShowPolyCounts("ShowPolyCounts", 0.0f, &g_ShowPolyCounts);
 // FUNCTION: D3DREN 0x10012ba9 _$E254
 // FUNCTION: D3DREN 0x10012bae _$E253
 // GLOBAL: D3DREN 0x10057c70
-ConVar g_CV_LightMap("LightMap", 1.0f, &DAT_10048780);
+ConVar g_CV_LightMap("LightMap", 1.0f, &g_LightMap);
 // FUNCTION: D3DREN 0x10012bf8 _$E257
 // FUNCTION: D3DREN 0x10012bfd _$E256
 // GLOBAL: D3DREN 0x10057ce0
-ConVar g_CV_DrawFlat("DrawFlat", 0.0f, &DAT_100584dc);
+ConVar g_CV_DrawFlat("DrawFlat", 0.0f, &g_DrawFlat);
 // FUNCTION: D3DREN 0x10012c47 _$E260
 // FUNCTION: D3DREN 0x10012c4c _$E259
 // GLOBAL: D3DREN 0x100578a8
-ConVar g_CV_LightmapsOnly("LightmapsOnly", 0.0f, &DAT_100584e0);
+ConVar g_CV_LightmapsOnly("LightmapsOnly", 0.0f, &g_LightmapsOnly);
 // FUNCTION: D3DREN 0x10012c96 _$E263
 // FUNCTION: D3DREN 0x10012c9b _$E262
 // GLOBAL: D3DREN 0x10057880
-ConVar g_CV_Dither("Dither", 1.0f, &DAT_10048784);
+ConVar g_CV_Dither("Dither", 1.0f, &g_Dither);
 
 // These helpers are called out of line by the objects that precede this one in the exe (common_draw, common_init), which only see
 // the declarations in common_stuff.h.
@@ -474,7 +474,7 @@ void AddDebugMessage(int debugLevel, const char *pMsg, ...)
 	va_list marker;
 	char msg[256];
 
-	if (debugLevel <= DAT_100584d4)
+	if (debugLevel <= g_RenderDebug)
 	{
 		va_start(marker, pMsg);
 		_vsnprintf(msg, 255, pMsg, marker);
@@ -530,7 +530,7 @@ void d3d_ReadConsoleVariables()
 
 	d3d_ReadExtraConsoleVariables();
 	if (DAT_10057a10)
-		DAT_10048780 = 0;
+		g_LightMap = 0;
 }
 
 // FUNCTION: D3DREN 0x10012eaf

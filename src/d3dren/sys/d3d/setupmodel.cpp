@@ -22,9 +22,9 @@ extern int DAT_100587e0;		// guess: models drawn with clipping this frame ("Mode
 // GLOBAL: D3DREN 0x10058cdc
 extern int DAT_10058cdc;		// guess: models drawn without clipping this frame
 // GLOBAL: D3DREN 0x10056218
-extern uint32 DAT_10056218;		// guess: g_nNumObjectDynamicLights (declared by unit unk/1000f160)
+extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (declared by unit unk/1000f160)
 // GLOBAL: D3DREN 0x100566d0
-extern DynamicLight *DAT_100566d0[];	// guess: g_ObjectDynamicLights (same)
+extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (same)
 // GLOBAL: D3DREN 0x10055ce8
 extern LTVector DAT_10055ce8;	// guess: colour scale of the model lighting
 void FUN_10001230();	// unit unk/10001000: sets up the model vertex buffer pools from the console variables
@@ -167,12 +167,12 @@ ConVar g_CV_ModelUseTnL("ModelUseTnL", 0.0f);
 // vbcache.h declares a static class-type data member (it takes a `_$E` number): include it after this unit's own static initialisers.
 #include "d3dren/vbcache.h"
 
-// ---- FUN_1000b528 and the frustum test ----
+// ---- d3d_QueueModel and the frustum test ----
 
 // guess: the per-model draw callback of BaseObjectSet::Draw (Jupiter: d3d_QueueModel(const ViewParams&, LTObject*)).
 // FUNCTION: D3DREN 0x1000b560 ?IsValid@LTAnimTracker@@QAEIXZ
 // FUNCTION: D3DREN 0x1000b528
-void FUN_1000b528(ViewParams *pParams, LTObject *pObject)
+void d3d_QueueModel(ViewParams *pParams, LTObject *pObject)
 {
 	ModelInstance *pInstance = (ModelInstance *)pObject;
 	ModelDraw *pDraw = &g_ModelDraw;
@@ -244,7 +244,7 @@ void FUN_1000b6cd()
 	for (i = 0; i < 32; i++)
 	{
 		fSin = (float)sin(((float)i * 0.03125f) * 6.2831855f);
-		fScale = DAT_10057e1c;
+		fScale = g_WarbleScale;
 		fClamped = LTCLAMP(fScale, 0.0f, 1.0f);
 		fAmp = (1.0f - fClamped) * 0.5f;
 		fSum = fScale;
@@ -530,7 +530,7 @@ void ModelDraw::SetupModelLight()
 	UnkType_StaticLightCBData CallbackData;
 
 	m_nModelLights = 0;
-	m_nMaxModelLights = DAT_1005803c;
+	m_nMaxModelLights = g_MaxModelLights;
 	m_nMaxModelLights = LTMIN(m_nMaxModelLights, 16);
 
 	if (m_pModel->m_bNormalRef)
@@ -557,7 +557,7 @@ void ModelDraw::SetupModelLight()
 	m_LightAdd = g_pSceneDesc->m_GlobalModelLightAdd;
 	CallModelHook();
 	m_ObjectColor *= 1.0f / 255.0f;
-	if (DAT_100578ec)
+	if (g_Saturate)
 		m_ObjectColor *= g_CV_ModelSaturation.m_FloatVal;
 
 	if (m_pInstance->m_Flags & FLAG_NOLIGHT)
@@ -618,9 +618,9 @@ void ModelDraw::SetupModelLight()
 	uint32 i;
 
 	vNoDir.Init();
-	for (i = 0; i < DAT_10056218; i++)
+	for (i = 0; i < g_nNumObjectDynamicLights; i++)
 	{
-		DynamicLight *pLight = DAT_100566d0[i];
+		DynamicLight *pLight = g_ObjectDynamicLights[i];
 
 		FUN_1000bafe(&mInvTransform, &pLight->m_Pos, pLight->m_LightRadius,
 			pLight->m_ColorR, pLight->m_ColorG, pLight->m_ColorB, 0.0f, 0.0f, 0.0f, &vNoDir, -1.0f);
@@ -1047,7 +1047,7 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 
 	if (!g_CV_DrawModelsRigid.m_IntVal && m_pModel->m_bRigid)
 		return;
-	if (!DAT_10057878 && (pInstance->m_Flags & FLAG_REALLYCLOSE))
+	if (!g_DrawGuns && (pInstance->m_Flags & FLAG_REALLYCLOSE))
 		return;
 
 	m_Unk30 = (m_pInstance->m_Flags >> 3) & 1;
@@ -1086,7 +1086,7 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 			m_Unk8a8 = m_pInstance->m_ColorA;
 	}
 
-	m_Unk618 = ((DAT_10057dd0 || (pInstance->m_Flags & FLAG_ENVIRONMENTMAP)) && DAT_10057be0 && g_pStruct->m_pEnvMapTexture) ? 1 : 0;
+	m_Unk618 = ((g_EnvMapAll || (pInstance->m_Flags & FLAG_ENVIRONMENTMAP)) && g_EnvMapEnable && g_pStruct->m_pEnvMapTexture) ? 1 : 0;
 
 	m_fModelDist = g_ViewParams.m_Pos.Dist(m_Unk5d0);
 	m_fModelDist = m_fModelDist / g_CV_ModelZoomScale.m_FloatVal;
@@ -1118,7 +1118,7 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 		DAT_10054888 = g_CurFrameCode;
 	}
 
-	m_Unk638 = (DAT_10048788 && (pInstance->m_Flags & FLAG_MODELTINT) && pInstance->m_ColorA == 0xff) ? 1 : 0;
+	m_Unk638 = (g_TintModels && (pInstance->m_Flags & FLAG_MODELTINT) && pInstance->m_ColorA == 0xff) ? 1 : 0;
 
 	m_Unk8b0 = (m_Unk8ac || (g_CV_ModelUseTnL.m_IntVal && !(m_pInstance->m_Flags & FLAG_REALLYCLOSE) && !m_pModel->m_bFovOffset)) ? 1 : 0;
 
@@ -1246,8 +1246,8 @@ void ModelDraw::FUN_1000d3a7(ModelInstance *pInstance)
 	if (m_pInstance->m_NodeControlFn && !(m_pInstance->m_Unknown188 & 8))
 		g_ClipFlags |= 0x3f;
 
-	m_Unk5dc = DAT_10058484 ? FUN_1000ddb4 : FUN_1000dd18;
-	m_Unk5e0 = DAT_10058484 ? FUN_1000ddc5 : FUN_1000dd19;
+	m_Unk5dc = g_ModelWarble ? FUN_1000ddb4 : FUN_1000dd18;
+	m_Unk5e0 = g_ModelWarble ? FUN_1000ddc5 : FUN_1000dd19;
 
 	m_Unk00c.m_Flags = 0;
 	if (m_pInstance->m_HookFn)

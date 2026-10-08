@@ -123,7 +123,7 @@ void ModelDraw::FUN_10025078(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 	int nVerts;
 	int i, iVert, iDraw;
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -234,8 +234,8 @@ void ModelDraw::DrawModelShadows()
 
 	// Figure out how many shadows we're going to try for.
 	nShadows = NUM_MODEL_SHADOWS;
-	if (nShadows > DAT_1004876c)
-		nShadows = DAT_1004876c;
+	if (nShadows > g_MaxModelShadows)
+		nShadows = g_MaxModelShadows;
 	if (nShadows > NUM_MODEL_SHADOWS)
 		nShadows = NUM_MODEL_SHADOWS;
 	if (nShadows < 0)
@@ -864,7 +864,7 @@ void ModelDraw::FUN_10026d6a(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDi
 	int nVerts;
 	int i, iVert, iDraw;
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;

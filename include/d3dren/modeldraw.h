@@ -218,7 +218,7 @@ public:
 	float			m_Unk62c;				// 0x62c guess: specular power of the piece
 	float			m_Unk630;				// 0x630 guess: specular scale of the piece
 	float			m_Unk634;				// 0x634 guess: bounding sphere radius of the instance (Model::m_GlobalRadius * the largest scale), 0x1000b584
-	int				m_Unk638;				// 0x638 guess: FLAG_MODELTINT on an opaque (alpha 255) instance and the DAT_10048788 console mirror set (0x1000d3a7)
+	int				m_Unk638;				// 0x638 guess: FLAG_MODELTINT on an opaque (alpha 255) instance and the g_TintModels console mirror set (0x1000d3a7)
 	float			m_fModelDist;				// 0x63c guess: distance from the viewer to the instance (divided by ModelZoomScale)
 	uint32			m_Unk640;				// 0x640 guess: specular colour word written into every vertex
 	LTVector		m_ShadowLights[8];		// 0x644 NAME: Jupiter ModelDraw::m_ShadowLights[NUM_MODEL_SHADOWS] (DrawModelShadows reads and sets element 0; 0x1000b7af fills the first three)

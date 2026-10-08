@@ -31,7 +31,7 @@
 // FUNCTION: D3DREN 0x10023860
 void d3d_ProcessLight(LTObject *pObject)
 {
-	if (DAT_1004875c)
+	if (g_DynamicLight)
 	{
 		d3d_GetVisibleSet()->m_Lights.Add(pObject);
 	}
@@ -167,9 +167,9 @@ void FUN_10023b00(WorldTreeObj *pObj, void *pUser)
 	}
 }
 // GLOBAL: D3DREN 0x10056218
-extern uint32 DAT_10056218;		// guess: g_nNumObjectDynamicLights (names_proposal low)
+extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (names_proposal low)
 // GLOBAL: D3DREN 0x100566d0
-extern DynamicLight *DAT_100566d0[];	// guess: g_ObjectDynamicLights (names_proposal low)
+extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (names_proposal low)
 // GLOBAL: D3DREN 0x10056770
 extern MainWorld *DAT_10056770;	// guess: g_pMainWorld (names_proposal low)
 
@@ -192,10 +192,10 @@ void FUN_10023b20(ViewParams *pParams, LTObject *pObject)
 
 	if (!(pObject->m_Flags & FLAG_ONLYLIGHTWORLD))
 	{
-		if (DAT_10056218 < 0x28)
+		if (g_nNumObjectDynamicLights < 0x28)
 		{
-			DAT_100566d0[DAT_10056218] = (DynamicLight*)pObject;
-			DAT_10056218++;
+			g_ObjectDynamicLights[g_nNumObjectDynamicLights] = (DynamicLight*)pObject;
+			g_nNumObjectDynamicLights++;
 		}
 	}
 
@@ -215,7 +215,7 @@ void FUN_10023b20(ViewParams *pParams, LTObject *pObject)
 // FUNCTION: D3DREN 0x10023cb0
 void FUN_10023cb0()
 {
-	if (DAT_1004875c)
+	if (g_DynamicLight)
 	{
 		d3d_GetVisibleSet()->m_Lights.Draw((ViewParams*)&g_ViewParams, FUN_10023b20);
 	}

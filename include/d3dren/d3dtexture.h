@@ -158,13 +158,13 @@ extern float g_fSpecularTexturePower;							// the specular power the lookup tex
 // ---- the texture manager's functions (free functions in d3d.ren; Jupiter's CTextureManager members) ----------------------------
 // NAME: FUN_<addr> with the Jupiter CTextureManager member name in the comment where names_proposal.csv has one (medium): the
 // d3d.ren versions work on globals and have no `this`.
-int FUN_10021960(BPPIdent bpp, uint32 *pFourCC);			// 0x10021960 S3TCFormatConv: DXT FOURCC of a compressed BPPIdent
-int FUN_10021a50(BPPIdent bpp);								// 0x10021a50 IsS3TCFormatSupported
+int CTextureManager_S3TCFormatConv(BPPIdent bpp, uint32 *pFourCC);			// 0x10021960 S3TCFormatConv: DXT FOURCC of a compressed BPPIdent
+int CTextureManager_IsS3TCFormatSupported(BPPIdent bpp);								// 0x10021a50 IsS3TCFormatSupported
 int d3d_GetFirstUsableMipmap(TextureData *pTexture);		// 0x10020f20
 void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *outHeight);	// 0x100219b0
 TextureFormat *FUN_1001f590(const TextureFormatSpec *pSpecs, uint32 nSpecs);	// 0x1001f590 search the enumerated formats for the first spec that matches
-HRESULT WINAPI FUN_1001f0d0(LPDDPIXELFORMAT pFormat, LPVOID pContext);	// 0x1001f0d0 d3d_EnumTextureFormatsCallback
-void FUN_1001f850(RTexture *pTexture, int bChained);		// 0x1001f850 FreeTexture (frees the chained stage textures; an additional-stage RTexture only when bChained)
+HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pContext);	// 0x1001f0d0 d3d_EnumTextureFormatsCallback
+void CTextureManager_FreeTexture(RTexture *pTexture, int bChained);		// 0x1001f850 FreeTexture (frees the chained stage textures; an additional-stage RTexture only when bChained)
 // The three values the texture creation functions take from the caller (SharedTexture, its TextureData and the device stage flags).
 struct UnkType_RTextureBuild
 {
@@ -173,14 +173,14 @@ struct UnkType_RTextureBuild
 	uint32			m_nFlags;			// 0x08 stage in the low byte, 0x100 = bump map stage
 };
 int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData);	// 0x10020360 copies the mipmaps of pTextureData into the surface chain of pTexture; 0 on failure
-RTexture *FUN_10021290(UnkType_RTextureBuild *pBuild, int bAdditional);	// 0x10021290 CreateRTexture
+RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdditional);	// 0x10021290 CreateRTexture
 void FUN_1001f920(LTLink *pList);							// 0x1001f920 FreeTexture on every RTexture of an LTLink list, then tie the head off
 void d3d_FreeAllTextures();
 void FUN_1001f600();										// 0x1001f600 sets the DXT support flags from the enumerated formats
 void FUN_1001f670();										// 0x1001f670 builds the shadow blob texture
 void d3d_ReinitLightmapTextureSupport();										// 0x1001eb80 re-creates the lightmap texture pools and the lightmap dummy surface
 void d3d_BuildSpecularLookupTexture(float fPower);							// 0x1001e910 builds the specular lookup texture
-int FUN_1001ec50();											// 0x1001ec50 CTextureManager::Init (called by the device creation 0x1001acc0)
+int CTextureManager_Init();											// 0x1001ec50 CTextureManager::Init (called by the device creation 0x1001acc0)
 void d3d_TermTextureManager();										// 0x1001f770 Term (CTextureManager::Term)
 void d3d_ListTextureFormats();										// 0x1001f9b0 ListTextureFormats (LISTTEXTUREFORMATS)
 void d3d_PrintFormatInfo(const char *pStart, TextureFormat *pFormat);	// 0x1001fa40 prints one format with its DDPF_ flag names										// 0x1001f960 FreeAllTextures (g_Textures)

@@ -192,7 +192,7 @@ int FUN_10032c40(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, 
 		FUN_10032a60(pWorld, pPoly, &pNode->m_Unk08, pBits, pitch, w, h, pLight->m_LightRadius,
 			pLight->m_ColorR, pLight->m_ColorG, pLight->m_ColorB, &ctx);
 
-		if (DAT_100584c0 == 0 && !(pLight->m_Flags & 0x10) && ctx.m_Unk3c != 0)
+		if (g_FastLight == 0 && !(pLight->m_Flags & 0x10) && ctx.m_Unk3c != 0)
 		{
 			if (!bNot32Bit)
 			{

@@ -684,7 +684,7 @@ void d3d_ProcessPolyGrid(LTObject *pObject)
 // FUNCTION: D3DREN 0x1002cce0
 void d3d_DrawSolidPolyGrids()
 {
-	if (DAT_10048758)
+	if (g_DrawPolyGrids)
 	{
 		VisibleSet *pSet = d3d_GetVisibleSet();
 		uint32 i;
@@ -718,7 +718,7 @@ void d3d_DrawSolidPolyGrids()
 // FUNCTION: D3DREN 0x1002cdc0
 void d3d_QueueTranslucentPolyGrids()
 {
-	if (DAT_10048758)
+	if (g_DrawPolyGrids)
 	{
 		d3d_GetVisibleSet()->m_TranslucentPolyGrids.Draw(&g_ViewParams, FUN_1002cdf0);
 	}

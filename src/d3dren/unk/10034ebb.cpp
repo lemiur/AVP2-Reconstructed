@@ -479,7 +479,7 @@ void FUN_100356b8(WorldPoly *pPoly)
 }
 
 // guess: sets the texture stage states of the lightmap passes: stage 0 modulates the diffuse colour with the base texture,
-// stage 1 (unless DAT_100584e0) modulates the lightmap with it (add when DAT_1007d424).
+// stage 1 (unless g_LightmapsOnly) modulates the lightmap with it (add when DAT_1007d424).
 // The stage 1 setup calls are written out in both branches and the compiler tail-merges the two shared ones; written as a
 // single copy after the if/else, the constant 2 is not CSE'd into edi (it needs 6 uses; the merged copy shows only 5 pushes).
 // FUNCTION: D3DREN 0x100356d5
@@ -495,7 +495,7 @@ void FUN_100356d5()
 	if (DAT_1007d424)
 		op = D3DTOP_MODULATE2X;
 
-	if (DAT_100584e0)
+	if (g_LightmapsOnly)
 	{
 		g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
 		g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);

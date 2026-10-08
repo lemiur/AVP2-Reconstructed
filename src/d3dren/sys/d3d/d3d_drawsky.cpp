@@ -86,7 +86,7 @@ void FUN_10019351(WorldPoly *pPoly)
 	TLVertex *pVerts;
 	int nVerts;
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -130,7 +130,7 @@ void FUN_10019351(WorldPoly *pPoly)
 	if (ClipPoly(0x3f, &pVerts, &nVerts))
 	{
 		SharedTexture *pTexture;
-		if (DAT_10058038 || !(pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture) || !d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
+		if (g_ShowSkySplits || !(pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture) || !d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
 			FUN_1000a27b(g_NormalTextureStage);
 
 		pDest = pVerts;
@@ -215,8 +215,8 @@ void d3d_DrawSkyObjects()
 	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_ZWRITEENABLE, FALSE));
 	DWORD oldFogEnable;
 	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_ZENABLE, FALSE));
-	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&DAT_10057e20));
-	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_FOGEND, *(DWORD *)&DAT_10057d40));
+	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&g_SkyFogNearZ));
+	saver.FUN_10021e28(RenderState(D3DRENDERSTATE_FOGEND, *(DWORD *)&g_SkyFogFarZ));
 	saver.FUN_10021dfd(TextureState(1, D3DTSS_COLOROP, D3DTOP_DISABLE), 1);
 
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FOGENABLE, &oldFogEnable);
@@ -318,7 +318,7 @@ void FUN_10019923(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 						int r = (int)(fAtten * fLightR) + pColor[0];
 						int g = (int)(fAtten * fLightG) + pColor[-1];
 						int b = (int)(fAtten * fLightB) + pColor[-2];
-						if (DAT_100578ec)
+						if (g_Saturate)
 						{
 							r *= 2;
 							g *= 2;

@@ -195,13 +195,13 @@ extern int DAT_10055cf4;				// guess: g_nVisibleLeaves (names_proposal low): "Vi
 // GLOBAL: D3DREN 0x10056688
 extern int DAT_10056688;				// guess: g_nWorldPoliesProcessed (names_proposal low)
 // GLOBAL: D3DREN 0x100584a4
-extern int DAT_100584a4;				// g_CV_LockPVS mirror (names_proposal medium, not in rendererconsolevars.h yet)
+extern int g_LockPVS;				// g_CV_LockPVS mirror (names_proposal medium, not in rendererconsolevars.h yet)
 // GLOBAL: D3DREN 0x100584b8
-extern int DAT_100584b8;				// g_CV_DrawAll mirror (names_proposal medium)
+extern int g_DrawAll;				// g_CV_DrawAll mirror (names_proposal medium)
 // GLOBAL: D3DREN 0x100584dc
-extern int DAT_100584dc;				// g_CV_DrawFlat mirror (names_proposal medium)
+extern int g_DrawFlat;				// g_CV_DrawFlat mirror (names_proposal medium)
 // GLOBAL: D3DREN 0x1005811c
-extern int DAT_1005811c;				// g_CV_FixTJunc mirror (names_proposal medium)
+extern int g_FixTJunc;				// g_CV_FixTJunc mirror (names_proposal medium)
 // GLOBAL: D3DREN 0x1005ce18
 extern int DAT_1005ce18;
 
@@ -286,7 +286,7 @@ static inline void d3d_TagPoly(WorldPoly *pPoly)
 		pSurface = (Surface*)pPoly->m_pSurface;
 		if (!(pSurface->m_Flags & SURF_INVISIBLE))
 		{
-			if ((pSurface->m_Flags & 0x10) && !DAT_100584dc)
+			if ((pSurface->m_Flags & 0x10) && !g_DrawFlat)
 			{
 				d3d_AddPoly(g_VisibleSet.m_Unk28, g_VisibleSet.m_nUnk3c, pPoly);
 			}
@@ -361,7 +361,7 @@ void FUN_10039100(WorldBsp *pBsp)
 }
 
 // The default callbacks of a vis query (VisQueryRequest's constructor stores them): d3d.ren has its own copies.
-// Called by FUN_10039540 only through the constructor; defined in another unit.
+// Called by d3d_TagVisibleLeaves only through the constructor; defined in another unit.
 
 // 0x1000f458 (common_draw): the leaf visibility test of a vis query (VisQueryRequest::m_Unknown24).
 LTBOOL FUN_1000f458(BspPortal *pPortal);
@@ -381,26 +381,26 @@ void d3d_DrawSky();		// 0x1002d4c0 (unit unk/1002d080, W6; named there from name
 void FUN_10023cb0();		// 0x10023cb0 (unit unk/10023860, W8)
 
 // Called from the render-scene function: picks the VisBSP path (1) unless the world has a VisBSP and DrawAll is off.
-void FUN_10039540(int bUseVisBSP);
+void d3d_TagVisibleLeaves(int bUseVisBSP);
 // FUNCTION: D3DREN 0x10039510
 void FUN_10039510()
 {
-	if ((DAT_10056770->m_WorldFlags & WORLD_HASVISBSP) && !DAT_100584b8)
-		FUN_10039540(0);
+	if ((DAT_10056770->m_WorldFlags & WORLD_HASVISBSP) && !g_DrawAll)
+		d3d_TagVisibleLeaves(0);
 	else
-		FUN_10039540(1);
+		d3d_TagVisibleLeaves(1);
 }
 
 // The vis query callbacks (defined below, after this function: address order).
-void FUN_10039900(LTObject *pObject);
+void d3d_CheckAndProcessObject(LTObject *pObject);
 void FUN_10039a40(LTLink *pHead, LTObject ***ppObjects, uint32 *pnObjects);
 void FUN_10039ae0(Leaf *pLeaf);
-LTBOOL FUN_10039d90(WorldTreeNode *pNode);
+LTBOOL d3d_IsWorldNodeVisible(WorldTreeNode *pNode);
 
 // Tags the visible leaves (world tree query or VisBSP walk), queues the objects and draws the tagged world polys.
 // bUseVisBSP = 0: the Talon world tree query (callbacks below); else walk the VisBSP (FUN_10039100).
 // FUNCTION: D3DREN 0x10039540
-void FUN_10039540(int bUseVisBSP)
+void d3d_TagVisibleLeaves(int bUseVisBSP)
 {
 	VisQueryRequest request;
 	WorldBsp *pBsp;
@@ -416,7 +416,7 @@ void FUN_10039540(int bUseVisBSP)
 	MainWorld *pWorld;
 	LTPlane *pPlane;
 
-	if ((g_VisibleSet.m_Unk0c & 1) && !DAT_100584a4)
+	if ((g_VisibleSet.m_Unk0c & 1) && !g_LockPVS)
 	{
 		g_VisibleSet.ClearSet();
 
@@ -440,12 +440,12 @@ void FUN_10039540(int bUseVisBSP)
 			pViewPos = g_ViewParams.m_bPortalView ? (LTVector*)((uint8*)&g_ViewParams + 0x4d8) : &g_ViewParams.m_Pos;
 			request.m_Viewpoint = *pViewPos;
 			request.m_ViewRadius = 10000.0f;
-			request.m_AddObject = (VQAddObjectFn)FUN_10039900;
+			request.m_AddObject = (VQAddObjectFn)d3d_CheckAndProcessObject;
 			request.m_Unknown18 = (void*)FUN_10039a40;
 			request.m_pUserData = LTNULL;
 			request.m_Unknown20 = (void*)FUN_10039ae0;
 			request.m_Unknown24 = (void*)FUN_1000f458;
-			request.m_NodeFilterFn = FUN_10039d90;
+			request.m_NodeFilterFn = d3d_IsWorldNodeVisible;
 			DAT_10056770->m_WorldTree.DoVisQuery(&request);
 		}
 	}
@@ -453,7 +453,7 @@ void FUN_10039540(int bUseVisBSP)
 	d3d_DrawSky();
 	FUN_10023cb0();
 
-	if (DAT_10048720)
+	if (g_DrawWorld)
 	{
 		ppPoly = g_VisibleSet.m_Unk10.GetArray();
 		if (g_VisibleSet.m_nUnk24)
@@ -493,7 +493,7 @@ void FUN_10039540(int bUseVisBSP)
 								if (pPoly->m_Flags & 0x4000)
 								{
 									pWorld = DAT_10056770;
-									if (DAT_1005811c)
+									if (g_FixTJunc)
 									{
 										pVerts = pPoly->m_pVertices;
 										nVerts = pPoly->m_nExtraVertices;
@@ -543,7 +543,7 @@ NextPoly:
 
 // VQAddObjectFn: an object the world tree query found.
 // FUNCTION: D3DREN 0x10039900
-void FUN_10039900(LTObject *pObject)
+void d3d_CheckAndProcessObject(LTObject *pObject)
 {
 	if (!(pObject->m_InternalFlags & 0x400))
 	{
@@ -616,7 +616,7 @@ void FUN_10039ae0(Leaf *pLeaf)
 
 // VisQueryRequest::m_NodeFilterFn: is a world tree node (its bounding sphere) inside the view frustum?
 // FUNCTION: D3DREN 0x10039d90
-LTBOOL FUN_10039d90(WorldTreeNode *pNode)
+LTBOOL d3d_IsWorldNodeVisible(WorldTreeNode *pNode)
 {
 	LTVector vCenter;
 	float fRadius;

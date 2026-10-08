@@ -74,7 +74,7 @@ public:
 // the object and its console variable, in the order of the exe's static initialisers (0x10022424, 0x1002242e/0x10022433)
 // FUNCTION: D3DREN 0x10022424 _$E4
 // GLOBAL: D3DREN 0x10064370
-CanvasDrawMgr DAT_10064370;
+CanvasDrawMgr g_CanvasDrawMgr;
 // FUNCTION: D3DREN 0x1002242e _$E7
 // FUNCTION: D3DREN 0x10022433 _$E6
 // GLOBAL: D3DREN 0x10064350
@@ -326,7 +326,7 @@ LTRESULT CanvasDrawMgr::GetTexelSize(float &fSizeU, float &fSizeV)
 // FUNCTION: D3DREN 0x10022a90
 void d3d_DrawCanvasCB(ViewParams *pParams, LTObject *pCanvas)
 {
-	DAT_10064370.DrawCanvas((Canvas *)pCanvas);
+	g_CanvasDrawMgr.DrawCanvas((Canvas *)pCanvas);
 }
 
 // FUNCTION: D3DREN 0x10022a9f

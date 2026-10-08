@@ -74,7 +74,7 @@ void d3d_ProcessParticles(LTObject *pObject)
 
 // ---- externals (other units) ----
 // NAME: d3d_DrawParticleSystem: Jupiter drawparticles.cpp (names_proposal.csv; unit unk/10008cd0 has the d3d.ren copy)
-void FUN_10008ce0(LTParticleSystem *pSystem);
+void d3d_DrawParticleSystem(LTParticleSystem *pSystem);
 
 // NAME: d3d_TestAndDrawPS: Jupiter drawparticles_A.cpp (names_proposal.csv: medium; the d3d.ren body adds the sphere-in-frustum
 // test that Jupiter's lacks)
@@ -99,7 +99,7 @@ void d3d_TestAndDrawPS(ViewParams *pParams, LTObject *pObj)
 		StateSet ssFog(D3DRENDERSTATE_FOGENABLE, dwFog);
 		StateSet ssFogColor(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 
-		FUN_10008ce0(pSystem);
+		d3d_DrawParticleSystem(pSystem);
 	}
 }
 
@@ -110,7 +110,7 @@ void FUN_100298da(ViewParams *pParams, LTObject *pObject);
 // FUNCTION: D3DREN 0x100298b6
 void d3d_QueueTranslucentParticles()
 {
-	if (DAT_10048774)	// the DrawParticles console variable's mirror
+	if (g_DrawParticles)	// the DrawParticles console variable's mirror
 	{
 		VisibleSet *pVisibleSet = d3d_GetVisibleSet();
 		pVisibleSet->m_ParticleSystems.Draw(&g_ViewParams, FUN_100298da);

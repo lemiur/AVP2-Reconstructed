@@ -48,7 +48,7 @@ void FUN_10023d60(ViewParams *pParams, LTObject *pObject);
 // FUNCTION: D3DREN 0x10023d30
 void d3d_QueueLineSystems()
 {
-	if (DAT_1004877c)
+	if (g_DrawLineSystems)
 	{
 		AllocSet *pSet = &d3d_GetVisibleSet()->m_LineSystems;
 		if (pSet->m_nObjects)
@@ -58,17 +58,17 @@ void d3d_QueueLineSystems()
 	}
 }
 
-void FUN_10023d80(ViewParams *pParams, LTObject *pObject);
+void d3d_DrawLineSystem(ViewParams *pParams, LTObject *pObject);
 
 // FUNCTION: D3DREN 0x10023d60
 void FUN_10023d60(ViewParams *pParams, LTObject *pObject)
 {
-	DAT_1006b934->Add(pObject, FUN_10023d80);
+	DAT_1006b934->Add(pObject, d3d_DrawLineSystem);
 }
 
 
 // GLOBAL: D3DREN 0x1005849c
-extern int DAT_1005849c;		// guess: g_CV_FogEnable mirror (names_proposal medium)
+extern int g_FogEnable;		// guess: g_CV_FogEnable mirror (names_proposal medium)
 
 // 0x100161e0 (unit unk/100132a0): clips the 3D line pVerts[2] against the planes of the mask (0x3f = all); 0 when nothing is left.
 int FUN_100161e0(float *pVerts, int nMask);
@@ -76,7 +76,7 @@ int FUN_100161e0(float *pVerts, int nMask);
 // NAME: d3d_DrawLineSystem: Jupiter drawlinesystem.cpp (names_proposal medium; the Talon body transforms and clips the two
 // points itself, then DrawPrimitive's them as a pre-transformed line list).
 // FUNCTION: D3DREN 0x10023d80
-void FUN_10023d80(ViewParams *pParams, LTObject *pObject)
+void d3d_DrawLineSystem(ViewParams *pParams, LTObject *pObject)
 {
 	float rhw0;
 	float fAlphaScale;
@@ -86,7 +86,7 @@ void FUN_10023d80(ViewParams *pParams, LTObject *pObject)
 
 	LineSystem *pSystem = (LineSystem*)pObject;
 
-	if (DAT_1005849c)
+	if (g_FogEnable)
 	{
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, 0);
 	}
@@ -129,7 +129,7 @@ void FUN_10023d80(ViewParams *pParams, LTObject *pObject)
 		} while (pLine != &pSystem->m_LineHead);
 	}
 
-	if (DAT_1005849c)
+	if (g_FogEnable)
 	{
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, 1);
 	}

@@ -73,7 +73,7 @@ float g_SkyMinY;
 // GLOBAL: D3DREN 0x100739b4
 float g_SkyMinX;
 // GLOBAL: D3DREN 0x10048728
-extern float DAT_10048728;	// guess: the SkyScale console variable's float mirror
+extern float g_SkyScale;	// guess: the SkyScale console variable's float mirror
 
 void d3d_InitViewBox2(ViewBoxDef *pDef, float nearZ, float farZ, const ViewParams &PrevParams, float screenMinX, float screenMinY,
 	float screenMaxX, float screenMaxY);
@@ -251,7 +251,7 @@ void d3d_DrawSky()
 {
 	CountAdder cntAdd((uint32 *)((uint8 *)g_pStruct + 0x6c));
 
-	if (!DAT_10048748 || !DAT_1004874c || g_pSceneDesc->m_nSkyObjects <= 0)
+	if (!g_DrawSky || !g_EnableSky || g_pSceneDesc->m_nSkyObjects <= 0)
 		return;
 	if (!FUN_1002d0d0())
 		return;
@@ -264,7 +264,7 @@ void d3d_DrawSky()
 		mat.SetTranslation(g_ViewParams.m_SkyViewPos);
 
 		d3d_InitFrustum2(&g_SkyParams, &viewBox, g_SkyMinX, g_SkyMinY, g_SkyMaxX, g_SkyMaxY, &mat,
-			LTVector(DAT_10048728, DAT_10048728, DAT_10048728));
+			LTVector(g_SkyScale, g_SkyScale, g_SkyScale));
 
 		d3d_DrawSkyObjects();
 	}

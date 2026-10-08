@@ -55,9 +55,9 @@ void ViewParams::SetupFogViewPosition(LTVector vPos)
 }
 
 // GLOBAL: D3DREN 0x10056218
-extern uint32 DAT_10056218;		// guess: g_nNumObjectDynamicLights (names_proposal low): lights touching the leaf
+extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (names_proposal low): lights touching the leaf
 // GLOBAL: D3DREN 0x100566d0
-extern DynamicLight *DAT_100566d0[];	// guess: g_ObjectDynamicLights (names_proposal low)
+extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (names_proposal low)
 
 // NAME: d3d_CalcLightAdd: Jupiter 3d_ops.cpp d3d_CalcLightAdd (same body; Talon has no FLAG_ONLYLIGHTWORLD test and
 // gates the loop on the LightModels mirror).
@@ -70,11 +70,11 @@ void d3d_CalcLightAdd(LTObject *pObject, LTVector *pLightAdd)
 
 	pLightAdd->Init();
 
-	if (DAT_10048760)
+	if (g_LightModels)
 	{
-		for (i = 0; i < DAT_10056218; i++)
+		for (i = 0; i < g_nNumObjectDynamicLights; i++)
 		{
-			pLight = DAT_100566d0[i];
+			pLight = g_ObjectDynamicLights[i];
 
 			distSquared = pLight->GetPos().DistSqr(pObject->GetPos());
 

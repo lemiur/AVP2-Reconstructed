@@ -54,8 +54,8 @@ ConVar g_CV_ModelTexture("ModelTexture", 1.0f);
 
 // ---- declarations of other units -------------------------------------------------------------------------------------------
 
-// FUN_1000b528: d3d_DrawModel / d3d_QueueModel callback of BaseObjectSet::Draw (unit setupmodel, W4).
-void FUN_1000b528(ViewParams *pParams, LTObject *pObject);
+// d3d_QueueModel: d3d_DrawModel / d3d_QueueModel callback of BaseObjectSet::Draw (unit setupmodel, W4).
+void d3d_QueueModel(ViewParams *pParams, LTObject *pObject);
 // 0x100161e0: clips the 3D line pVerts[2] against the planes of the mask (0x3f = all); returns 0 when nothing is left.
 int FUN_100161e0(float *pVerts, int nMask);
 void d3d_DrawLine(const LTVector &src, const LTVector &dest, uint32 color);
@@ -167,7 +167,7 @@ void ModelDraw::FUN_100244b3(uint32 *pbResult)
 	DAT_1004eb44 = 0.0f;
 	DAT_1004eb40 = 0.0f;
 	m_Unk4c8 = 0;
-	if (DAT_10048750 && (m_ModelHookData.m_Flags & MHF_USETEXTURE))
+	if (g_TextureModels && (m_ModelHookData.m_Flags & MHF_USETEXTURE))
 		m_Unk4c8 = 1;
 	else
 		FUN_1000a27b(g_NormalTextureStage);
@@ -180,11 +180,11 @@ void ModelDraw::FUN_100244b3(uint32 *pbResult)
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, &dwAlphaBlend);
 
 	uint32 bResult = 0;
-	if (DAT_1005c808 && DAT_10048764 && g_pBoundTextures[g_NormalTextureStage] &&
+	if (DAT_1005c808 && g_ModelFullbrite && g_pBoundTextures[g_NormalTextureStage] &&
 		((RTexture *)g_pBoundTextures[g_NormalTextureStage])->IsFullbrite() && !dwAlphaBlend)
 	{
 		bResult = 1;
-		if (DAT_100584a8)
+		if (g_ShowFullbriteModels)
 		{
 			bResult = 0;
 			FUN_1000a27b(g_NormalTextureStage);
@@ -304,7 +304,7 @@ void ModelDraw::FUN_1002476b()
 
 	IDirectDrawSurface7 *pOldTex;
 	int bTransform = 1;
-	if ((DAT_10057dd0 || m_Unk618) && g_pStruct->m_pEnvMapTexture)
+	if ((g_EnvMapAll || m_Unk618) && g_pStruct->m_pEnvMapTexture)
 	{
 		m_Unk5f4 = (PFN_FillTexCoords)FUN_100013d0;
 		m_Unk5ec = (PFN_GenTexCoords)FUN_10001420;
@@ -319,7 +319,7 @@ void ModelDraw::FUN_1002476b()
 	if ((float)m_Unk8a8 < 255.0f)
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, TRUE);
 
-	if (!DAT_10057dd0)
+	if (!g_EnvMapAll)
 	{
 		if (DAT_10069034)
 		{
@@ -389,7 +389,7 @@ void ModelDraw::FUN_1002476b()
 	if (m_ModelHookData.m_ObjectFlags & FLAG_SHADOW)
 		DrawModelShadows();
 
-	if (DAT_100584d0)
+	if (g_ModelBoxes)
 		FUN_1002421e();
 
 	if (m_ModelHookData.m_ObjectFlags & FLAG_REALLYCLOSE)
@@ -451,7 +451,7 @@ void d3d_ProcessModel(LTObject *pObject)
 // FUNCTION: D3DREN 0x10024d22
 void d3d_DrawSolidModels()
 {
-	if (DAT_10048778)
+	if (g_DrawModels)
 	{
 		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_SolidModels;
 		if (pSet->m_nObjects)
@@ -461,7 +461,7 @@ void d3d_DrawSolidModels()
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
-			pSet->Draw(&g_ViewParams, FUN_1000b528);
+			pSet->Draw(&g_ViewParams, d3d_QueueModel);
 			g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 		}
 	}
@@ -471,11 +471,11 @@ void d3d_DrawSolidModels()
 // FUNCTION: D3DREN 0x10024dc0
 void FUN_10024dc0()
 {
-	if (DAT_10048778)
+	if (g_DrawModels)
 	{
 		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_Unk184;
 		if (pSet->m_nObjects)
-			pSet->Draw(&g_ViewParams, FUN_1000b528);
+			pSet->Draw(&g_ViewParams, d3d_QueueModel);
 	}
 }
 
@@ -487,7 +487,7 @@ static void d3d_DrawTranslucentModel(ViewParams *pParams, LTObject *pObject);
 // FUNCTION: D3DREN 0x10024deb
 void d3d_QueueTranslucentModels()
 {
-	if (DAT_10048778)
+	if (g_DrawModels)
 	{
 		AllocSet *pSet = &d3d_GetVisibleSet()->m_TranslucentModels;
 		if (pSet->m_nObjects)
@@ -514,7 +514,7 @@ static void d3d_DrawTranslucentModel(ViewParams *pParams, LTObject *pObject)
 	StateSet ssFog(D3DRENDERSTATE_FOGENABLE, dwFog);
 	StateSet ssFogColor(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 
-	FUN_1000b528(&g_ViewParams, pObject);
+	d3d_QueueModel(&g_ViewParams, pObject);
 
 	g_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 }

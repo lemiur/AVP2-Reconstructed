@@ -48,7 +48,7 @@ public:
 
 	virtual int		FUN_1003a6fb(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices);	// slot 1 override FUN_1003ac2e
 	virtual void	FUN_1003a805();												// slot 3 override FUN_1003ac8f
-	virtual int		FUN_1003a8b1();												// slot 5 override FUN_1003a9f0
+	virtual int		Lock();												// slot 5 override Lock
 	virtual int		vfn_Unk18() { return m_Unk54; }								// slot 6 FUN_1003a9d0
 	virtual int		vfn_Unk1c(IDirect3D7 *pD3D);								// slot 7 FUN_1003aa6d
 

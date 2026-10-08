@@ -117,17 +117,17 @@ void __fastcall FUN_100134b0(LTVector *pPos, uint32 *pSpecular)
 {
 	float fDist = (*pPos - g_ViewParams.m_FogViewPos).Mag();
 
-	if (fDist < DAT_100584a0)
+	if (fDist < g_FogNearZ)
 	{
 		*pSpecular = 0xffffffff;
 		return;
 	}
-	if (fDist > DAT_10048744)
+	if (fDist > g_FogFarZ)
 	{
 		*pSpecular = 0;
 		return;
 	}
-	fDist = (fDist - DAT_100584a0) * DAT_10057990;
+	fDist = (fDist - g_FogNearZ) * DAT_10057990;
 	((uint8 *)pSpecular)[3] = (uint8)(0xff - (uint8)RoundFloatToInt(fDist));
 }
 
@@ -136,17 +136,17 @@ void __fastcall FUN_10013560(LTVector *pPos, uint32 *pSpecular)
 {
 	float fFog;
 
-	if (pPos->z < DAT_10057e20)
+	if (pPos->z < g_SkyFogNearZ)
 	{
 		((uint8 *)pSpecular)[3] = 0xff;
 		return;
 	}
-	if (pPos->z > DAT_10057d40)
+	if (pPos->z > g_SkyFogFarZ)
 	{
 		((uint8 *)pSpecular)[3] = 0;
 		return;
 	}
-	fFog = (pPos->z - DAT_10057e20) * DAT_10058620;
+	fFog = (pPos->z - g_SkyFogNearZ) * DAT_10058620;
 	((uint8 *)pSpecular)[3] = (uint8)(0xff - (uint8)RoundFloatToInt(fFog));
 }
 
@@ -263,7 +263,7 @@ uint32 FUN_100139d0(uint8 r, uint8 g, uint8 b)
 // FUNCTION: D3DREN 0x100139f0
 void FUN_100139f0(void)
 {
-	if (DAT_10048730)
+	if (g_UseDX6Commands)
 	{
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
@@ -498,7 +498,7 @@ void d3d_Clear(LTRect *pRect, uint32 flags, LTVector *pColor)
 }
 
 // GLOBAL: D3DREN 0x100584bc
-extern int DAT_100584bc;	// g_CV_ShowSplits mirror
+extern int g_ShowSplits;	// g_CV_ShowSplits mirror
 // GLOBAL: D3DREN 0x100566b0
 extern int DAT_100566b0;	// guess: triangles of the polys drawn this frame
 // GLOBAL: D3DREN 0x10056694
@@ -599,12 +599,12 @@ int FUN_10014100(WorldPoly *pPoly)
 	int i;
 
 	dwColor = (uint32)pPoly;
-	if (!DAT_100584bc)
+	if (!g_ShowSplits)
 		dwColor = (uint32)pPoly->m_pSurface;
 
 	d3d_DisableTexture(g_NormalTextureStage);
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -641,7 +641,7 @@ int FUN_10014100(WorldPoly *pPoly)
 
 // ---- the poly draw callbacks (selected per frame by FUN_10014e40) and the world poly flush -------------------------------------
 // GLOBAL: D3DREN 0x1005c7e0
-extern int DAT_1005c7e0;	// guess: one-pass lightmapping enabled (set from the DAT_10058480 console variable unless the device cannot do it)
+extern int DAT_1005c7e0;	// guess: one-pass lightmapping enabled (set from the g_Force1Pass console variable unless the device cannot do it)
 // GLOBAL: D3DREN 0x10058730
 extern int DAT_10058730;	// guess: member of the object at 0x1005872c (the fog alpha hook g_pfnCalcFogAlpha is its first member)
 // GLOBAL: D3DREN 0x10058734
@@ -684,21 +684,21 @@ inline void FUN_10014e40(int nMode)
 	{
 		DAT_10058c24 = FUN_1000a16b;
 	}
-	if (DAT_100584b4)
+	if (g_ShowFillInfo)
 	{
 		DAT_1005a304 = FUN_10013f40;
 		DAT_10058c24 = FUN_10013f40;
 		DAT_100587e8 = FUN_10013f40;
 		DAT_10058cd8 = FUN_10013f40;
 	}
-	else if (DAT_100584dc)
+	else if (g_DrawFlat)
 	{
 		DAT_1005a304 = FUN_10013ef0;
 		DAT_10058c24 = FUN_10013ef0;
 		DAT_100587e8 = FUN_10013ef0;
 		DAT_10058cd8 = FUN_10013ef0;
 	}
-	else if (!(DAT_10048780 && DAT_1005de20 && (DAT_10056770->m_WorldFlags & WORLD_HASBASELIGHT)))
+	else if (!(g_LightMap && DAT_1005de20 && (DAT_10056770->m_WorldFlags & WORLD_HASBASELIGHT)))
 	{
 		DAT_10058c24 = FUN_10022be4;
 		DAT_1005a304 = FUN_10022be4;
@@ -812,7 +812,7 @@ void FUN_100145f0(int a1)
 			g_ClipFlags = pNode->m_Unk0c;
 			pPoly = (WorldPoly *)pNode->m_Unk00;
 			UnkType_FlushVertex aVerts[40];
-			dwColor = DAT_100584bc ? (uint32)pPoly : (uint32)pPoly->m_pSurface;
+			dwColor = g_ShowSplits ? (uint32)pPoly : (uint32)pPoly->m_pSurface;
 			FUN_1000a27b(g_NormalTextureStage);
 			FUN_100147b0(pPoly, &pSrc, &nVerts);
 			pDest = aVerts;
@@ -846,7 +846,7 @@ void FUN_100145f0(int a1)
 // FUNCTION: D3DREN 0x100147b0
 void FUN_100147b0(WorldPoly *pPoly, UnkType_PolyVertex **ppVerts, int *pnVerts)
 {
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		*ppVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		*pnVerts = pPoly->m_nExtraVertices;
@@ -1071,10 +1071,10 @@ void FUN_10014ce0(UnkType_PoolNode *pList)
 		g_ClipFlags = pNode->m_Unk0c;
 		pPoly = (WorldPoly *)pNode->m_Unk00;
 		dwColor = (uint32)pPoly;
-		if (!DAT_100584bc)
+		if (!g_ShowSplits)
 			dwColor = (uint32)pPoly->m_pSurface;
 		d3d_DisableTexture(g_NormalTextureStage);
-		if (DAT_1005811c)
+		if (g_FixTJunc)
 		{
 			pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 			nVerts = pPoly->m_nExtraVertices;
@@ -1120,7 +1120,7 @@ void d3d_DrawLightAddPoly(const LTVector &vAdd)
 	static UnkType_TLVertexCD verts[6];
 	union { TLRGB rgb; uint32 color; } theColor;
 
-	if (!DAT_10048734 || !DAT_1005cdc8)
+	if (!g_LightAddPoly || !DAT_1005cdc8)
 		return;
 	if ((vAdd.x < 0.001f) && (vAdd.y < 0.001f) && (vAdd.z < 0.001f))
 		return;
@@ -1176,13 +1176,13 @@ void d3d_DrawLightScalePoly(const LTVector &vScale)
 	if ((vScale.x > 0.99f) && (vScale.y > 0.99f) && (vScale.z > 0.99f) &&
 		(vScale.x < 1.01f) && (vScale.y < 1.01f) && (vScale.z < 1.01f))
 	{
-		if (!DAT_1005847c)
+		if (!g_InvertHack)
 			return;
 		fMul = 255.0f;
 	}
 	else
 	{
-		fMul = DAT_1005847c ? 255.0f : 127.5f;
+		fMul = g_InvertHack ? 255.0f : 127.5f;
 	}
 
 	theColor.rgb.r = (uint8)(vScale.x * fMul);
@@ -1216,8 +1216,8 @@ void d3d_DrawLightScalePoly(const LTVector &vScale)
 	StateSet ssZEnable(D3DRENDERSTATE_ZENABLE, FALSE);
 	StateSet ssZWriteEnable(D3DRENDERSTATE_ZWRITEENABLE, FALSE);
 	StateSet ssAlphaBlendEnable(D3DRENDERSTATE_ALPHABLENDENABLE, TRUE);
-	StateSet ssSrcBlend(D3DRENDERSTATE_SRCBLEND, DAT_1005847c ? D3DBLEND_INVDESTCOLOR : D3DBLEND_DESTCOLOR);
-	StateSet ssDestBlend(D3DRENDERSTATE_DESTBLEND, DAT_1005847c ? D3DBLEND_ZERO : D3DBLEND_SRCCOLOR);
+	StateSet ssSrcBlend(D3DRENDERSTATE_SRCBLEND, g_InvertHack ? D3DBLEND_INVDESTCOLOR : D3DBLEND_DESTCOLOR);
+	StateSet ssDestBlend(D3DRENDERSTATE_DESTBLEND, g_InvertHack ? D3DBLEND_ZERO : D3DBLEND_SRCCOLOR);
 
 	g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, verts, 4, 0);
 }
@@ -1230,7 +1230,7 @@ void d3d_DrawLightScalePoly(const LTVector &vScale)
 // vertex uv, the per-vertex fog hook for the specular alpha, clipped with the plane mask 0x3f and drawn as a triangle fan.  Only called by the mirror pass
 // when the surface has the overlay bit.  The exe expands the inline d3d_SetTexture here; the call below is the out-of-line one.
 // STUB diagnosis (W2): 560 of 624 bytes, 198 aligned mismatches.  Statement order, calls, constants and the loop are those of the exe.  Differences: (1) the exe expands the
-//   inline d3d_SetTexture (`mov edi,[pTexture+0xc]` ... FUN_1001fff0 / FUN_10007a89 / SetLOD), ours calls the out-of-line copy; (2) the exe calls the two vector member
+//   inline d3d_SetTexture (`mov edi,[pTexture+0xc]` ... d3d_CreateAndLoadTexture / FUN_10007a89 / SetLOD), ours calls the out-of-line copy; (2) the exe calls the two vector member
 //   destructors out of line (0x10018aa0 / 0x100188e0, the node allocator's deallocate expanded inside them) after the inline ~UnkType_StateRestorer body (FUN_10021da6),
 //   ours expands them.  With the plain inline d3d_SetTexture of d3d_texture.h (tried) the destructors do come out of line (as
 //   ??1?$_Vector_base@URenderState, 80 bytes) but the function grows to 672 bytes and the copy of __node_alloc::deallocate (0x10018f80) is no longer emitted separately,
@@ -1253,7 +1253,7 @@ void FUN_100155b0(WorldPoly *pPoly, LTMatrix *pMatrix)
 
 	saver.FUN_10021e28(rsBlend);
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVert *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -1374,7 +1374,7 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 		g_ClipFlags = 0x3f;
 
 		uint32 dwColor;
-		if (DAT_100584bc)
+		if (g_ShowSplits)
 			dwColor = (uint32)pPoly;
 		else
 			dwColor = (uint32)pPoly->m_pSurface;
@@ -1441,11 +1441,11 @@ void FUN_10015820(SceneDesc *pDesc, VisibleSet *pSet)
 			g_ViewParams.m_fCullSign = FUN_10015820_CullSign(g_ViewParams.m_bCullFlip);
 			g_ViewParams.m_bPortalView = 1;
 
-			int oldLightMap = DAT_10048780;
+			int oldLightMap = g_LightMap;
 			if (!g_CV_PortalLightmap.m_IntVal)
-				DAT_10048780 = 0;
+				g_LightMap = 0;
 			d3d_FullDrawScene(pDesc);
-			DAT_10048780 = oldLightMap;
+			g_LightMap = oldLightMap;
 			g_ViewParams = backupView;
 
 			FUN_10015820_SetState(D3DRENDERSTATE_ZFUNC, D3DCMP_ALWAYS);
@@ -1821,7 +1821,7 @@ extern int DAT_100566b8;
 // GLOBAL: D3DREN 0x10056270
 extern int DAT_10056270;
 // GLOBAL: D3DREN 0x10056218
-extern uint32 DAT_10056218;
+extern uint32 g_nNumObjectDynamicLights;
 // GLOBAL: D3DREN 0x10056690
 extern int DAT_10056690;
 // GLOBAL: D3DREN 0x10055cdc
@@ -1903,26 +1903,26 @@ int d3d_RenderScene(SceneDesc *pDesc)
 	else
 		DAT_1005ce18 = 0;
 
-	if (!DAT_10058474 || DAT_10057e18 != DAT_10057c94)
+	if (!DAT_10058474 || g_LightSaturate != DAT_10057c94)
 	{
-		FUN_100329d0(DAT_10057e18);
-		DAT_10057c94 = DAT_10057e18;
+		FUN_100329d0(g_LightSaturate);
+		DAT_10057c94 = g_LightSaturate;
 		DAT_10058474 = 1;
 	}
 
-	DAT_10052f9c = DAT_1004871c * pDesc->m_Pos.x + 0.5f;
+	DAT_10052f9c = g_EnvPanSpeed * pDesc->m_Pos.x + 0.5f;
 	DAT_10058cdc = 0;
 	DAT_100587e0 = 0;
-	DAT_10052fa0 = DAT_1004871c * pDesc->m_Pos.z + 0.5f;
-	DAT_10052fa4 = (1.0f / DAT_10057b10) * 0.5f;
+	DAT_10052fa0 = g_EnvPanSpeed * pDesc->m_Pos.z + 0.5f;
+	DAT_10052fa4 = (1.0f / g_EnvScale) * 0.5f;
 	DAT_10052fa8 = DAT_10052fa4;
 	DAT_100587f0 = -g_pStruct->m_GlobalLightDir;
 
 	if (d3d_InitFrame(pDesc, (TLVertex *)aScratch, 0x5000))
 	{
 		DAT_10058c40 = FUN_10013560;
-		DAT_10058620 = (1.0f / (DAT_10057d40 - DAT_10057e20)) * 255.0f;
-		DAT_100578a0 = DAT_10048744 - DAT_100584a0;
+		DAT_10058620 = (1.0f / (g_SkyFogFarZ - g_SkyFogNearZ)) * 255.0f;
+		DAT_100578a0 = g_FogFarZ - g_FogNearZ;
 		DAT_10057990 = (1.0f / DAT_100578a0) * 255.0f;
 
 		if (g_CV_TableFog.m_IntVal)
@@ -1942,7 +1942,7 @@ int d3d_RenderScene(SceneDesc *pDesc)
 			fabsf(DAT_100561f8.z - DAT_1005a338.z) > 0.001f ||
 			*(uint32 *)&DAT_100566bc != (uint32)DAT_1005a330)
 		{
-			if (DAT_100578ec)
+			if (g_Saturate)
 			{
 				BuildColorTable(DAT_10059d04, (DAT_10055ce8.x + DAT_10055ce8.x) * 65536.0f);
 				BuildColorTable(DAT_10059e04, (DAT_10055ce8.y + DAT_10055ce8.y) * 65536.0f);
@@ -1970,7 +1970,7 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		*(uint32 *)&g_pStruct->m_Pad48[4] = 0;
 		*(uint32 *)&g_pStruct->m_Pad48[0] = 0;
 
-		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, DAT_100584cc ? D3DFILL_WIREFRAME : D3DFILL_SOLID);
+		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, g_Wireframe ? D3DFILL_WIREFRAME : D3DFILL_SOLID);
 		if (!g_CV_ShowPortalBounds.m_IntVal)
 		{
 			DAT_1006cd70 = FUN_100161c0;
@@ -1979,13 +1979,13 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		}
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID);
 
-		if (DAT_100584c4)
+		if (g_ShowTextureCounts)
 		{
 			AddDebugMessage(0, "Texture changes: %d", DAT_10057794);
 			AddDebugMessage(0, "Texture uploads: %d", DAT_10056280);
 		}
 
-		if (DAT_100584d8)
+		if (g_ShowPolyCounts)
 		{
 			g_pStruct->ConsolePrint("World Polies Processed: %d", DAT_10056688);
 			g_pStruct->ConsolePrint("World Polies Drawn: %d", DAT_100566ac);
@@ -1998,12 +1998,12 @@ int d3d_RenderScene(SceneDesc *pDesc)
 			g_pStruct->ConsolePrint("Sky Portals: %d", DAT_100566b8);
 			g_pStruct->ConsolePrint("Sky Polies (fragments): %d", DAT_10056270);
 			g_pStruct->ConsolePrint("Portals: %d", d3d_GetVisibleSet()->m_nUnk140);
-			g_pStruct->ConsolePrint("Visible lights: %d, rejected: %d", DAT_10056218, DAT_10056690);
+			g_pStruct->ConsolePrint("Visible lights: %d, rejected: %d", g_nNumObjectDynamicLights, DAT_10056690);
 			g_pStruct->ConsolePrint("Texture upload saves: %d", DAT_10055cdc);
 			g_pStruct->ConsolePrint("Triangles: %d", DAT_100566b0);
 		}
 
-		if (DAT_100584b4)
+		if (g_ShowFillInfo)
 		{
 			g_pStruct->ConsolePrint("Tri area drawn: %.3f", DAT_10056694);
 			g_pStruct->ConsolePrint("Overdraw: %.3f", DAT_10056694 / (float)((g_ViewParams.m_Rect.bottom - g_ViewParams.m_Rect.top) * (g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left)));
@@ -2058,18 +2058,18 @@ int d3d_RenderScene(SceneDesc *pDesc)
 
 	d3d_NullCallback();
 
-	if (!DAT_100584e4 || DAT_10057e1c != DAT_10057a58)
+	if (!DAT_100584e4 || g_WarbleScale != DAT_10057a58)
 	{
 		AddDebugMessage(9, "Rebuilding warble table");
 		FUN_1000b6cd();
 		DAT_100584e4 = 1;
-		DAT_10057a58 = DAT_10057e1c;
+		DAT_10057a58 = g_WarbleScale;
 	}
 
-	DAT_10053278 = DAT_10058408 * g_pSceneDesc->m_FrameTime + DAT_10053278;
+	DAT_10053278 = g_WarbleSpeed * g_pSceneDesc->m_FrameTime + DAT_10053278;
 	DAT_10054870 = DAT_10053278 - (float)floor(DAT_10053278);
 
-	if (DAT_10057f70)
+	if (g_ModelProfile)
 		g_pStruct->ConsolePrint("ModelProfile: %d clipped, %d unclipped", DAT_100587e0, DAT_10058cdc);
 
 	DAT_10058728++;

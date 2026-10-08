@@ -50,14 +50,14 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 	{ \
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nFree2 = pp->m_Unk20 - pp->m_Unk1c; \
-		(P) = (TLVertex *)pp->FUN_1003a8b1(); \
-		(E) = (char *)pp->FUN_1003a8b1() + pp->vfn_Unk18() * (nFree2 - 1); \
+		(P) = (TLVertex *)pp->Lock(); \
+		(E) = (char *)pp->Lock() + pp->vfn_Unk18() * (nFree2 - 1); \
 	}
 
 #define POOL_FLUSH_DRAW() \
 	{ \
 		UnkType_VertexBufferPool *pp = m_Unk608; \
-		uint32 nBytes = (char *)pOut - (char *)pp->FUN_1003a8b1(); \
+		uint32 nBytes = (char *)pOut - (char *)pp->Lock(); \
 		uint32 nVertsOut = nBytes / pp->vfn_Unk18(); \
 		DAT_1005626c += nVertsOut / 3; \
 		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVertsOut); \
@@ -67,12 +67,12 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 // Per triangle: the clip planes of g_ClipFlags are tested vertex by vertex (count of vertices inside: none = skip the
 // triangle, not all = it has to be clipped), then the triangle is back face tested in 2D and projected.
 #define CLIPPED_CALLBACK(REALLYCLOSE) \
-	TLVertex *pOut = (TLVertex *)m_Unk608->FUN_1003a8b1(); \
+	TLVertex *pOut = (TLVertex *)m_Unk608->Lock(); \
 	char *pEnd; \
 	{ \
 		UnkType_VertexBufferPool *pPool = m_Unk608; \
 		uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c; \
-		char *pBase = (char *)pPool->FUN_1003a8b1(); \
+		char *pBase = (char *)pPool->Lock(); \
 		pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1); \
 	} \
 	ModelTri *pTri = pLOD->m_Tris.GetArray(); \

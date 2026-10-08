@@ -57,9 +57,9 @@ void FUN_1002ea70(ViewParams *pParams, LTObject *pObject);
 
 // NAME: d3d_QueueTranslucentSprites: Jupiter drawsprite.cpp (names_proposal.csv, medium; no arguments in Talon)
 // FUNCTION: D3DREN 0x1002ea40
-void FUN_1002ea40()
+void d3d_QueueTranslucentSprites()
 {
-	if (DAT_10048754)	// the DrawSprites console variable's mirror
+	if (g_DrawSprites)	// the DrawSprites console variable's mirror
 	{
 		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_TranslucentSprites;
 		pSet->Draw(&g_ViewParams, FUN_1002ea70);
@@ -80,7 +80,7 @@ extern uint32 DAT_1005c9a0;		// guess: the device's normal D3DRENDERSTATE_ZENABL
 // FUNCTION: D3DREN 0x1002ea90
 void d3d_DrawNoZSprites()
 {
-	if (DAT_10048754)
+	if (g_DrawSprites)
 	{
 		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_NoZSprites;
 		if (pSet->m_nObjects > 0)
@@ -129,7 +129,7 @@ static inline int ClipPoly_Inline(uint32 nFlags, TLVertex **ppVerts, int *pnVert
 
 // guess: the two sprite drawers: the camera facing one (unit-internal, 0x1002d860) and the rotatable one (0x1002e310); both take the
 // view parameters, the sprite, its position (&m_Pos), its x and y scale and the frame's texture
-void FUN_1002d860(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture);
+void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture);
 void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture);
 
 // NAME: d3d_DrawSprite: Jupiter drawsprite.cpp d3d_DrawSprite(Params, pObj) (names_proposal.csv, high): the BaseObjectSet / ObjectDrawList
@@ -179,7 +179,7 @@ void d3d_DrawSprite(ViewParams *pParams, LTObject *pObject)
 		if (pObject->m_Flags & FLAG_ROTATEABLESPRITE)
 			d3d_DrawRotatableSprite(pParams, pInstance, &pInstance->m_Pos, pInstance->m_Scale.x, pInstance->m_Scale.y, pFrame->m_pTex);
 		else
-			FUN_1002d860(pParams, pInstance, &pInstance->m_Pos, pInstance->m_Scale.x, pInstance->m_Scale.y, pFrame->m_pTex);
+			d3d_DrawSprite_NonRotatable(pParams, pInstance, &pInstance->m_Pos, pInstance->m_Scale.x, pInstance->m_Scale.y, pFrame->m_pTex);
 	}
 }
 
@@ -217,11 +217,11 @@ extern LTVector DAT_10055ce8;	// guess: the global light colour (unit unk/100193
 extern uint16 DAT_100577b8;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
 
 void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x1000c860 (W4, unit unk/1000c860: the light grid lookup)
-RTexture *FUN_1001fff0(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
+RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
 
 // ---- d3d_ClipSprite ------------------------------------------------------------------------------------------------------------------
 
-// Jupiter polyclip.h T::ClipExtra for TLVertex (unit unk/10001000 has the out-of-line copy FUN_10001940; d3d_ClipSprite has it expanded)
+// Jupiter polyclip.h T::ClipExtra for TLVertex (unit unk/10001000 has the out-of-line copy TLVertex_ClipExtra; d3d_ClipSprite has it expanded)
 static inline void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t)
 {
 	pOut->tu = (pCur->tu - pPrev->tu) * t + pPrev->tu;
@@ -444,13 +444,13 @@ static inline int SpriteSetTexture(SharedTexture *pTexture, uint32 nStage)
 		{
 			if (!pFirst)
 			{
-				pRTexture = FUN_1001fff0(pTexture, nStage, 0);
+				pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 0);
 				if (!pRTexture)
 					return 0;
 			}
 			else
 			{
-				pRTexture = FUN_1001fff0(pTexture, nStage, 1);
+				pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 1);
 				if (!pRTexture)
 					return 0;
 				pRTexture->m_Unk30 = pFirst->m_Unk30;
@@ -533,7 +533,7 @@ static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
 // first 0x17f bytes line up, after that the block placement of the d3d_SetTexture expansion (the exe lays the `create + link` block
 // before the `found` compare) and register/frame assignment shift everything (839 aligned mismatches).  Not iterated further.
 // STUB: D3DREN 0x1002d860
-void FUN_1002d860(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
+void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
 {
 	LTVector vCam;
 	float fNearZ;

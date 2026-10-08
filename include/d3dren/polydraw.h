@@ -126,7 +126,7 @@ extern int DAT_10094de0[56];	// guess: inside flags of the near plane clip
 extern int DAT_10094ec0[56];	// guess: inside flags of the left plane clip
 float FUN_10001a50(float *p1, float *p2, float *pOut);
 float FUN_10001ac0(float *p1, float *p2, float *pOut);
-void FUN_10001940(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
+void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 // Plane clippers for the flag bits 8, 0x10, 0x20, 2 (unit unk/10001000); the first argument is unused.
 int ClipPolyTop(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 int ClipPolyRight(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);

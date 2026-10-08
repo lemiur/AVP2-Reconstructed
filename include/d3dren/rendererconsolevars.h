@@ -33,179 +33,179 @@ public:
 extern ConVar *g_pConVars;
 // Mirror variables bound to console variables (names unknown).
 // GLOBAL: D3DREN 0x10048720
-extern int DAT_10048720;
+extern int g_DrawWorld;
 // GLOBAL: D3DREN 0x10048730
-extern int DAT_10048730;
+extern int g_UseDX6Commands;
 // GLOBAL: D3DREN 0x10048734
-extern int DAT_10048734;
+extern int g_LightAddPoly;
 // GLOBAL: D3DREN 0x10048738
-extern int DAT_10048738;
+extern int g_FogR;
 // GLOBAL: D3DREN 0x1004873c
-extern int DAT_1004873c;
+extern int g_FogG;
 // GLOBAL: D3DREN 0x10048740
-extern int DAT_10048740;
+extern int g_FogB;
 // GLOBAL: D3DREN 0x10048748
-extern int DAT_10048748;
+extern int g_DrawSky;
 // GLOBAL: D3DREN 0x1004874c
-extern int DAT_1004874c;
+extern int g_EnableSky;
 // GLOBAL: D3DREN 0x10048750
-extern int DAT_10048750;
+extern int g_TextureModels;
 // GLOBAL: D3DREN 0x10048754
-extern int DAT_10048754;
+extern int g_DrawSprites;
 // GLOBAL: D3DREN 0x10048758
-extern int DAT_10048758;
+extern int g_DrawPolyGrids;
 // GLOBAL: D3DREN 0x1004875c
-extern int DAT_1004875c;
+extern int g_DynamicLight;
 // GLOBAL: D3DREN 0x10048760
-extern int DAT_10048760;
+extern int g_LightModels;
 // GLOBAL: D3DREN 0x10048764
-extern int DAT_10048764;
+extern int g_ModelFullbrite;
 // GLOBAL: D3DREN 0x10048768
-extern int DAT_10048768;
+extern int g_ShadowLodOffset;
 // GLOBAL: D3DREN 0x1004876c
-extern int DAT_1004876c;
+extern int g_MaxModelShadows;
 // GLOBAL: D3DREN 0x10048774
-extern int DAT_10048774;
+extern int g_DrawParticles;
 // GLOBAL: D3DREN 0x10048778
-extern int DAT_10048778;
+extern int g_DrawModels;
 // GLOBAL: D3DREN 0x1004877c
-extern int DAT_1004877c;
+extern int g_DrawLineSystems;
 // GLOBAL: D3DREN 0x10048780
-extern int DAT_10048780;
+extern int g_LightMap;
 // GLOBAL: D3DREN 0x10048784
-extern int DAT_10048784;
+extern int g_Dither;
 // GLOBAL: D3DREN 0x10048788
-extern int DAT_10048788;
+extern int g_TintModels;
 // GLOBAL: D3DREN 0x1005782c
-extern int DAT_1005782c;
+extern int g_Bilinear;
 // GLOBAL: D3DREN 0x10057878
-extern int DAT_10057878;
+extern int g_DrawGuns;
 // GLOBAL: D3DREN 0x100578ec
-extern int DAT_100578ec;
+extern int g_Saturate;
 // GLOBAL: D3DREN 0x10057994
-extern int DAT_10057994;
+extern int g_NoLMPages;
 // GLOBAL: D3DREN 0x10057a5c
-extern int DAT_10057a5c;
+extern int g_MaxTexAspectRatio;
 // GLOBAL: D3DREN 0x10057be0
-extern int DAT_10057be0;
+extern int g_EnvMapEnable;
 // GLOBAL: D3DREN 0x10057cb8
-extern int DAT_10057cb8;
+extern int g_OptimizeSurfaces;
 // GLOBAL: D3DREN 0x10057d44
-extern int DAT_10057d44;
+extern int g_GroupOffset0;
 // GLOBAL: D3DREN 0x10057d48
-extern int DAT_10057d48;
+extern int g_GroupOffset1;
 // GLOBAL: D3DREN 0x10057d4c
-extern int DAT_10057d4c;
+extern int g_GroupOffset2;
 // GLOBAL: D3DREN 0x10057d50
-extern int DAT_10057d50;
+extern int g_GroupOffset3;
 // GLOBAL: D3DREN 0x10057d54
-extern int DAT_10057d54;
+extern int g_GroupOffset4;
 // GLOBAL: D3DREN 0x10057d58
-extern int DAT_10057d58;
+extern int g_GroupOffset5;
 // GLOBAL: D3DREN 0x10057d5c
-extern int DAT_10057d5c;
+extern int g_GroupOffset6;
 // GLOBAL: D3DREN 0x10057d60
-extern int DAT_10057d60;
+extern int g_GroupOffset7;
 // GLOBAL: D3DREN 0x10057d64
-extern int DAT_10057d64;
+extern int g_GroupOffset8;
 // GLOBAL: D3DREN 0x10057d68
-extern int DAT_10057d68;
+extern int g_GroupOffset9;
 // GLOBAL: D3DREN 0x10057dd0
-extern int DAT_10057dd0;
+extern int g_EnvMapAll;
 // GLOBAL: D3DREN 0x10057e2c
-extern int DAT_10057e2c;
+extern int g_32BitTextures;
 // GLOBAL: D3DREN 0x10057f00
-extern int DAT_10057f00;
+extern int g_MaxTextureSize;
 // GLOBAL: D3DREN 0x10057f70
-extern int DAT_10057f70;
+extern int g_ModelProfile;
 // GLOBAL: D3DREN 0x10057f74
 extern int g_b32BitLightmaps;
 // GLOBAL: D3DREN 0x10058038
-extern int DAT_10058038;
+extern int g_ShowSkySplits;
 // GLOBAL: D3DREN 0x1005803c
-extern int DAT_1005803c;
+extern int g_MaxModelLights;
 // GLOBAL: D3DREN 0x10058118
-extern int DAT_10058118;
+extern int g_FilterOptimized;
 // GLOBAL: D3DREN 0x1005811c
-extern int DAT_1005811c;
+extern int g_FixTJunc;
 // GLOBAL: D3DREN 0x10058478
-extern int DAT_10058478;
+extern int g_TripleBuffer;
 // GLOBAL: D3DREN 0x1005847c
-extern int DAT_1005847c;
+extern int g_InvertHack;
 // GLOBAL: D3DREN 0x10058480
-extern int DAT_10058480;
+extern int g_Force1Pass;
 // GLOBAL: D3DREN 0x10058484
-extern int DAT_10058484;
+extern int g_ModelWarble;
 // GLOBAL: D3DREN 0x10058488
-extern int DAT_10058488;
+extern int g_RGBRast;
 // GLOBAL: D3DREN 0x1005848c
-extern int DAT_1005848c;
+extern int g_RefRast;
 // GLOBAL: D3DREN 0x10058490
-extern int DAT_10058490;
+extern int g_MMXRast;
 // GLOBAL: D3DREN 0x10058494
-extern int DAT_10058494;
+extern int g_TnLRast;
 // GLOBAL: D3DREN 0x10058498
-extern int DAT_10058498;
+extern int g_Force2Pass;
 // GLOBAL: D3DREN 0x1005849c
-extern int DAT_1005849c;
+extern int g_FogEnable;
 // GLOBAL: D3DREN 0x100584a4
-extern int DAT_100584a4;
+extern int g_LockPVS;
 // GLOBAL: D3DREN 0x100584a8
-extern int DAT_100584a8;
+extern int g_ShowFullbriteModels;
 // GLOBAL: D3DREN 0x100584ac
-extern int DAT_100584ac;
+extern int g_MipmapOffset;
 // GLOBAL: D3DREN 0x100584b0
-extern int DAT_100584b0;
+extern int g_BumpMap;
 // GLOBAL: D3DREN 0x100584b4
-extern int DAT_100584b4;
+extern int g_ShowFillInfo;
 // GLOBAL: D3DREN 0x100584b8
-extern int DAT_100584b8;
+extern int g_DrawAll;
 // GLOBAL: D3DREN 0x100584bc
-extern int DAT_100584bc;
+extern int g_ShowSplits;
 // GLOBAL: D3DREN 0x100584c0
-extern int DAT_100584c0;
+extern int g_FastLight;
 // GLOBAL: D3DREN 0x100584c4
-extern int DAT_100584c4;
+extern int g_ShowTextureCounts;
 // GLOBAL: D3DREN 0x100584c8
-extern int DAT_100584c8;
+extern int g_LodOffset;
 // GLOBAL: D3DREN 0x100584cc
-extern int DAT_100584cc;
+extern int g_Wireframe;
 // GLOBAL: D3DREN 0x100584d0
-extern int DAT_100584d0;
+extern int g_ModelBoxes;
 // GLOBAL: D3DREN 0x100584d4
-extern int DAT_100584d4;
+extern int g_RenderDebug;
 // GLOBAL: D3DREN 0x100584d8
-extern int DAT_100584d8;
+extern int g_ShowPolyCounts;
 // GLOBAL: D3DREN 0x100584dc
-extern int DAT_100584dc;
+extern int g_DrawFlat;
 // GLOBAL: D3DREN 0x100584e0
-extern int DAT_100584e0;
+extern int g_LightmapsOnly;
 // GLOBAL: D3DREN 0x1004871c
-extern float DAT_1004871c;
+extern float g_EnvPanSpeed;
 // GLOBAL: D3DREN 0x10048724
-extern float DAT_10048724;
+extern float g_ShadowZRange;
 // GLOBAL: D3DREN 0x10048728
-extern float DAT_10048728;
+extern float g_SkyScale;
 // GLOBAL: D3DREN 0x1004872c
-extern float DAT_1004872c;
+extern float g_Gamma;
 // GLOBAL: D3DREN 0x10048744
-extern float DAT_10048744;
+extern float g_FogFarZ;
 // GLOBAL: D3DREN 0x10048770
-extern float DAT_10048770;
+extern float g_LodScale;
 // GLOBAL: D3DREN 0x10057b10
-extern float DAT_10057b10;
+extern float g_EnvScale;
 // GLOBAL: D3DREN 0x10057d40
-extern float DAT_10057d40;
+extern float g_SkyFogFarZ;
 // GLOBAL: D3DREN 0x10057e18
-extern float DAT_10057e18;
+extern float g_LightSaturate;
 // GLOBAL: D3DREN 0x10057e1c
-extern float DAT_10057e1c;
+extern float g_WarbleScale;
 // GLOBAL: D3DREN 0x10057e20
-extern float DAT_10057e20;
+extern float g_SkyFogNearZ;
 // GLOBAL: D3DREN 0x10058408
-extern float DAT_10058408;
+extern float g_WarbleSpeed;
 // GLOBAL: D3DREN 0x100584a0
-extern float DAT_100584a0;
+extern float g_FogNearZ;
 
 // GLOBAL: D3DREN 0x10057a10
 extern int DAT_10057a10;

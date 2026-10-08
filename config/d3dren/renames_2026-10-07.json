@@ -1,0 +1,701 @@
+[
+ {
+  "va": "100083ae",
+  "old": "FUN_100083ae",
+  "new": "CountAdder_Destructor",
+  "why": "ledger high exe-decomp: out-of-line CountAdder::~CountAdder (counter.h), written as a __fastcall free function"
+ },
+ {
+  "va": "",
+  "old": "DAT_1004871c",
+  "new": "g_EnvPanSpeed",
+  "why": "console variable \"EnvPanSpeed\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048720",
+  "new": "g_DrawWorld",
+  "why": "console variable \"DrawWorld\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048724",
+  "new": "g_ShadowZRange",
+  "why": "console variable \"ShadowZRange\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048728",
+  "new": "g_SkyScale",
+  "why": "console variable \"SkyScale\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1004872c",
+  "new": "g_Gamma",
+  "why": "console variable \"Gamma\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048730",
+  "new": "g_UseDX6Commands",
+  "why": "console variable \"UseDX6Commands\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048734",
+  "new": "g_LightAddPoly",
+  "why": "console variable \"LightAddPoly\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048738",
+  "new": "g_FogR",
+  "why": "console variable \"FogR\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1004873c",
+  "new": "g_FogG",
+  "why": "console variable \"FogG\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048740",
+  "new": "g_FogB",
+  "why": "console variable \"FogB\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048744",
+  "new": "g_FogFarZ",
+  "why": "console variable \"FogFarZ\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048748",
+  "new": "g_DrawSky",
+  "why": "console variable \"DrawSky\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1004874c",
+  "new": "g_EnableSky",
+  "why": "console variable \"EnableSky\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048750",
+  "new": "g_TextureModels",
+  "why": "console variable \"TextureModels\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048754",
+  "new": "g_DrawSprites",
+  "why": "console variable \"DrawSprites\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048758",
+  "new": "g_DrawPolyGrids",
+  "why": "console variable \"DrawPolyGrids\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1004875c",
+  "new": "g_DynamicLight",
+  "why": "console variable \"DynamicLight\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048760",
+  "new": "g_LightModels",
+  "why": "console variable \"LightModels\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048764",
+  "new": "g_ModelFullbrite",
+  "why": "console variable \"ModelFullbrite\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048768",
+  "new": "g_ShadowLodOffset",
+  "why": "console variable \"ShadowLodOffset\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1004876c",
+  "new": "g_MaxModelShadows",
+  "why": "console variable \"MaxModelShadows\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048770",
+  "new": "g_LodScale",
+  "why": "console variable \"LodScale\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048774",
+  "new": "g_DrawParticles",
+  "why": "console variable \"DrawParticles\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048778",
+  "new": "g_DrawModels",
+  "why": "console variable \"DrawModels\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1004877c",
+  "new": "g_DrawLineSystems",
+  "why": "console variable \"DrawLineSystems\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048780",
+  "new": "g_LightMap",
+  "why": "console variable \"LightMap\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048784",
+  "new": "g_Dither",
+  "why": "console variable \"Dither\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10048788",
+  "new": "g_TintModels",
+  "why": "console variable \"TintModels\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1005782c",
+  "new": "g_Bilinear",
+  "why": "console variable \"Bilinear\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057878",
+  "new": "g_DrawGuns",
+  "why": "console variable \"DrawGuns\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100578ec",
+  "new": "g_Saturate",
+  "why": "console variable \"Saturate\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057994",
+  "new": "g_NoLMPages",
+  "why": "console variable \"NoLMPages\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057a5c",
+  "new": "g_MaxTexAspectRatio",
+  "why": "console variable \"MaxTexAspectRatio\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057b10",
+  "new": "g_EnvScale",
+  "why": "console variable \"EnvScale\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057be0",
+  "new": "g_EnvMapEnable",
+  "why": "console variable \"EnvMapEnable\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057cb8",
+  "new": "g_OptimizeSurfaces",
+  "why": "console variable \"OptimizeSurfaces\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d40",
+  "new": "g_SkyFogFarZ",
+  "why": "console variable \"SkyFogFarZ\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d44",
+  "new": "g_GroupOffset0",
+  "why": "console variable \"GroupOffset0\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d48",
+  "new": "g_GroupOffset1",
+  "why": "console variable \"GroupOffset1\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d4c",
+  "new": "g_GroupOffset2",
+  "why": "console variable \"GroupOffset2\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d50",
+  "new": "g_GroupOffset3",
+  "why": "console variable \"GroupOffset3\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d54",
+  "new": "g_GroupOffset4",
+  "why": "console variable \"GroupOffset4\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d58",
+  "new": "g_GroupOffset5",
+  "why": "console variable \"GroupOffset5\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d5c",
+  "new": "g_GroupOffset6",
+  "why": "console variable \"GroupOffset6\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d60",
+  "new": "g_GroupOffset7",
+  "why": "console variable \"GroupOffset7\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d64",
+  "new": "g_GroupOffset8",
+  "why": "console variable \"GroupOffset8\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057d68",
+  "new": "g_GroupOffset9",
+  "why": "console variable \"GroupOffset9\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057dd0",
+  "new": "g_EnvMapAll",
+  "why": "console variable \"EnvMapAll\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057e18",
+  "new": "g_LightSaturate",
+  "why": "console variable \"LightSaturate\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057e1c",
+  "new": "g_WarbleScale",
+  "why": "console variable \"WarbleScale\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057e20",
+  "new": "g_SkyFogNearZ",
+  "why": "console variable \"SkyFogNearZ\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057e2c",
+  "new": "g_32BitTextures",
+  "why": "console variable \"32BitTextures\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057f00",
+  "new": "g_MaxTextureSize",
+  "why": "console variable \"MaxTextureSize\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10057f70",
+  "new": "g_ModelProfile",
+  "why": "console variable \"ModelProfile\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058038",
+  "new": "g_ShowSkySplits",
+  "why": "console variable \"ShowSkySplits\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1005803c",
+  "new": "g_MaxModelLights",
+  "why": "console variable \"MaxModelLights\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058118",
+  "new": "g_FilterOptimized",
+  "why": "console variable \"FilterOptimized\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1005811c",
+  "new": "g_FixTJunc",
+  "why": "console variable \"FixTJunc\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058408",
+  "new": "g_WarbleSpeed",
+  "why": "console variable \"WarbleSpeed\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058478",
+  "new": "g_TripleBuffer",
+  "why": "console variable \"TripleBuffer\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1005847c",
+  "new": "g_InvertHack",
+  "why": "console variable \"InvertHack\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058480",
+  "new": "g_Force1Pass",
+  "why": "console variable \"Force1Pass\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058484",
+  "new": "g_ModelWarble",
+  "why": "console variable \"ModelWarble\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058488",
+  "new": "g_RGBRast",
+  "why": "console variable \"RGBRast\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1005848c",
+  "new": "g_RefRast",
+  "why": "console variable \"RefRast\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058490",
+  "new": "g_MMXRast",
+  "why": "console variable \"MMXRast\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058494",
+  "new": "g_TnLRast",
+  "why": "console variable \"TnLRast\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_10058498",
+  "new": "g_Force2Pass",
+  "why": "console variable \"Force2Pass\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_1005849c",
+  "new": "g_FogEnable",
+  "why": "console variable \"FogEnable\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584a0",
+  "new": "g_FogNearZ",
+  "why": "console variable \"FogNearZ\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584a4",
+  "new": "g_LockPVS",
+  "why": "console variable \"LockPVS\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584a8",
+  "new": "g_ShowFullbriteModels",
+  "why": "console variable \"ShowFullbriteModels\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584ac",
+  "new": "g_MipmapOffset",
+  "why": "console variable \"MipmapOffset\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584b0",
+  "new": "g_BumpMap",
+  "why": "console variable \"BumpMap\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584b4",
+  "new": "g_ShowFillInfo",
+  "why": "console variable \"ShowFillInfo\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584b8",
+  "new": "g_DrawAll",
+  "why": "console variable \"DrawAll\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584bc",
+  "new": "g_ShowSplits",
+  "why": "console variable \"ShowSplits\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584c0",
+  "new": "g_FastLight",
+  "why": "console variable \"FastLight\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584c4",
+  "new": "g_ShowTextureCounts",
+  "why": "console variable \"ShowTextureCounts\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584c8",
+  "new": "g_LodOffset",
+  "why": "console variable \"LodOffset\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584cc",
+  "new": "g_Wireframe",
+  "why": "console variable \"Wireframe\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584d0",
+  "new": "g_ModelBoxes",
+  "why": "console variable \"ModelBoxes\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584d4",
+  "new": "g_RenderDebug",
+  "why": "console variable \"RenderDebug\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584d8",
+  "new": "g_ShowPolyCounts",
+  "why": "console variable \"ShowPolyCounts\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584dc",
+  "new": "g_DrawFlat",
+  "why": "console variable \"DrawFlat\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "",
+  "old": "DAT_100584e0",
+  "new": "g_LightmapsOnly",
+  "why": "console variable \"LightmapsOnly\" stores its value here (ConVar mirror)"
+ },
+ {
+  "va": "1001be30",
+  "old": "FUN_1001be30",
+  "new": "d3d_LoadGamma",
+  "why": "ledger string: fopen(name,\"rb\") of one DDGAMMARAMP, IDirectDrawGammaControl"
+ },
+ {
+  "va": "10031d82",
+  "old": "FUN_10031d82",
+  "new": "DDEnumCallback",
+  "why": "ledger dx-sdk: LPDDENUMCALLBACKA passed to DirectDrawEnumerateA"
+ },
+ {
+  "va": "10031e7c",
+  "old": "FUN_10031e7c",
+  "new": "DDEnumCallbackEx",
+  "why": "ledger dx-sdk: LPDDENUMCALLBACKEXA passed to DirectDrawEnumerateExA"
+ },
+ {
+  "va": "1001f0d0",
+  "old": "FUN_1001f0d0",
+  "new": "d3d_EnumTextureFormatsCallback",
+  "why": "ledger dx-sdk: LPD3DENUMPIXELFORMATSCALLBACK of EnumTextureFormats"
+ },
+ {
+  "va": "10008ce0",
+  "old": "FUN_10008ce0",
+  "new": "d3d_DrawParticleSystem",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10009370",
+  "old": "FUN_10009370",
+  "new": "d3d_DrawParticleBatch",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10001940",
+  "old": "FUN_10001940",
+  "new": "TLVertex_ClipExtra",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)",
+  "allow": true
+ },
+ {
+  "va": "1000b528",
+  "old": "FUN_1000b528",
+  "new": "d3d_QueueModel",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1001acc0",
+  "old": "FUN_1001acc0",
+  "new": "d3d_CreateDevice",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1001ec50",
+  "old": "FUN_1001ec50",
+  "new": "CTextureManager_Init",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1001f850",
+  "old": "FUN_1001f850",
+  "new": "CTextureManager_FreeTexture",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1001fff0",
+  "old": "FUN_1001fff0",
+  "new": "d3d_CreateAndLoadTexture",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10021290",
+  "old": "FUN_10021290",
+  "new": "CTextureManager_CreateRTexture",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10021960",
+  "old": "FUN_10021960",
+  "new": "CTextureManager_S3TCFormatConv",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10021a50",
+  "old": "FUN_10021a50",
+  "new": "CTextureManager_IsS3TCFormatSupported",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10023d80",
+  "old": "FUN_10023d80",
+  "new": "d3d_DrawLineSystem",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1002d860",
+  "old": "FUN_1002d860",
+  "new": "d3d_DrawSprite_NonRotatable",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1002ea40",
+  "old": "FUN_1002ea40",
+  "new": "d3d_QueueTranslucentSprites",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1002fa50",
+  "old": "FUN_1002fa50",
+  "new": "d3d_DrawSolidWorldModels",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1002ff00",
+  "old": "FUN_1002ff00",
+  "new": "d3d_QueueTranslucentWorldModels",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10030070",
+  "old": "FUN_10030070",
+  "new": "d3d_DrawTranslucentWorldModel",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10039540",
+  "old": "FUN_10039540",
+  "new": "d3d_TagVisibleLeaves",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10039900",
+  "old": "FUN_10039900",
+  "new": "d3d_CheckAndProcessObject",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10039d90",
+  "old": "FUN_10039d90",
+  "new": "d3d_IsWorldNodeVisible",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10064370",
+  "old": "DAT_10064370",
+  "new": "g_CanvasDrawMgr",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "10056218",
+  "old": "DAT_10056218",
+  "new": "g_nNumObjectDynamicLights",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "100566d0",
+  "old": "DAT_100566d0",
+  "new": "g_ObjectDynamicLights",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)"
+ },
+ {
+  "va": "1003a8b1",
+  "old": "FUN_1003a8b1",
+  "new": "Lock",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)",
+  "allow": true
+ },
+ {
+  "va": "1003a9f0",
+  "old": "FUN_1003a9f0",
+  "new": "Lock",
+  "why": "Jupiter render_a counterpart (names_proposal.csv / tools/d3dren_names_jupiter.py)",
+  "allow": true
+ }
+]

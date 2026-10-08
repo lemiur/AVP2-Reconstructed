@@ -159,7 +159,7 @@ int UnkType_VertexBufferPool::FUN_1003a83d(IDirect3D7 *pD3D, uint32 nVertices, u
 // FUNCTION: D3DREN 0x1003a8b1
 // guess: locks the current buffer and returns the address of the vertex at the current offset (NOOVERWRITE when
 // appending, DISCARDCONTENTS at the start of the buffer).  vfn_Unk18() is the vertex size.
-int UnkType_VertexBufferPool::FUN_1003a8b1()
+int UnkType_VertexBufferPool::Lock()
 {
 	DWORD flags;
 
@@ -213,7 +213,7 @@ UnkType_VertexBufferCache::UnkType_VertexBufferCache() : m_Unk60(4)
 }
 
 // FUNCTION: D3DREN 0x1003a9f0
-int UnkType_VertexBufferCache::FUN_1003a8b1()
+int UnkType_VertexBufferCache::Lock()
 {
 	D3DVERTEXBUFFERDESC desc;
 	LPDIRECT3DVERTEXBUFFER7 pVB;
@@ -234,7 +234,7 @@ int UnkType_VertexBufferCache::FUN_1003a8b1()
 			bOK = 0;
 	}
 	if (bOK)
-		return UnkType_VertexBufferPool::FUN_1003a8b1();
+		return UnkType_VertexBufferPool::Lock();
 	return 0;
 }
 

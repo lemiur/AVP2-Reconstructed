@@ -306,7 +306,7 @@ void d3d_ReinitLightmapTextureSupport()
 // the later surface description and writes repeated values from registers, while this compilation uses a larger frame and some
 // immediate stores.
 // STUB: D3DREN 0x1001ec50
-int FUN_1001ec50()
+int CTextureManager_Init()
 {
 	memset(g_TextureFormats, 0, sizeof(g_TextureFormats));
 	g_pBoundTextures[0] = 0;
@@ -320,7 +320,7 @@ int FUN_1001ec50()
 	DAT_1007abe4.FUN_10034e3d();
 	g_RTextureBank.Init(0x40, 0);
 	g_bTextureManagerInitialized = 1;
-	g_pD3DDevice->EnumTextureFormats(FUN_1001f0d0, 0);
+	g_pD3DDevice->EnumTextureFormats(d3d_EnumTextureFormatsCallback, 0);
 
 	// The wanted formats (bits of red, green, blue, alpha; one of these DDPF_ flags; none of these) in the order of preference.
 	TextureFormatSpec spec32[1] = { { 8, 8, 8, 8, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
@@ -460,7 +460,7 @@ static void FUN_CalcShift(uint32 refMask, uint32 mask, int *pRight, int *pLeft)
 // pending calls or ballast reproduces the exe's pattern of expansions after that (about 40 placements and counts tried), so the
 // original nests the shift helper differently from FUN_CalcShift (inline, two FUN_1001f540 calls).
 // STUB: D3DREN 0x1001f0d0
-HRESULT WINAPI FUN_1001f0d0(LPDDPIXELFORMAT pFormat, LPVOID pContext)
+HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pContext)
 {
 	TextureFormat *pNode = (TextureFormat *)dalloc(sizeof(TextureFormat));
 	if (pNode)
@@ -622,7 +622,7 @@ void d3d_TermTextureManager()
 // Frees an RTexture: the chain of its other stages, the SharedTexture link, the surface, the g_Textures link, then the bank.
 // NAME: names_proposal.csv CTextureManager::FreeTexture (medium, Jupiter): a global function in d3d.ren
 // FUNCTION: D3DREN 0x1001f850
-void FUN_1001f850(RTexture *pTexture, int bChained)
+void CTextureManager_FreeTexture(RTexture *pTexture, int bChained)
 {
 	if (pTexture->m_Unk49 & 1)
 	{
@@ -635,7 +635,7 @@ void FUN_1001f850(RTexture *pTexture, int bChained)
 		while (pChild)
 		{
 			RTexture *pNext = pChild->m_Unk30;
-			FUN_1001f850(pChild, 1);
+			CTextureManager_FreeTexture(pChild, 1);
 			pChild = pNext;
 		}
 	}
@@ -672,7 +672,7 @@ void FUN_1001f920(LTLink *pList)
 	while (pCur != pList)
 	{
 		LTLink *pNext = pCur->m_pNext;
-		FUN_1001f850((RTexture *)pCur->m_pData, 0);
+		CTextureManager_FreeTexture((RTexture *)pCur->m_pData, 0);
 		pCur = pNext;
 	}
 	pList->TieOff();
@@ -687,7 +687,7 @@ void d3d_FreeAllTextures()
 	while (pCur != pListHead)
 	{
 		LTLink *pNext = pCur->m_pNext;
-		FUN_1001f850((RTexture *)pCur->m_pData, 0);
+		CTextureManager_FreeTexture((RTexture *)pCur->m_pData, 0);
 		pCur = pNext;
 	}
 	pListHead->TieOff();
@@ -813,7 +813,7 @@ char *d3d_AddToString(char *pStr, const char *pToAdd)
 // at the top; they change the size non-monotonically).  The three copies (0x10020330, 0x10020350, 0x10020fb0) are emitted and
 // verified through the STANDIN below, which calls them with inline_depth(0).
 // STUB: D3DREN 0x1001fff0
-RTexture *FUN_1001fff0(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 bAdditional)
+RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 bAdditional)
 {
 	RTexture *pRTexture = 0;
 	Counter cCount1(0);
@@ -841,7 +841,7 @@ RTexture *FUN_1001fff0(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 
 	else
 	{
 		uint32 dtxFlags = pTextureData->m_Flags;
-		if (!(dtxFlags & DTX_PREFER16BIT) && DAT_10057e2c && g_TextureFormats[FORMAT_32BIT])
+		if (!(dtxFlags & DTX_PREFER16BIT) && g_32BitTextures && g_TextureFormats[FORMAT_32BIT])
 			iFormat = FORMAT_32BIT;
 		else if (dtxFlags & DTX_PREFER5551)
 			iFormat = FORMAT_FULLBRITE;
@@ -857,7 +857,7 @@ RTexture *FUN_1001fff0(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 
 		int iGroup = pTextureData->m_Header.m_Extra[0];
 		if (iGroup > 9)
 			iGroup = 9;
-		iStartMipmap = (&DAT_10057d44)[iGroup] + pTextureData->m_Header.m_Extra[4] + DAT_100584ac;
+		iStartMipmap = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.m_Extra[4] + g_MipmapOffset;
 		if (g_CV_S3TCEnable.m_IntVal == 0)
 			iStartMipmap += pTextureData->m_Header.m_Extra[3];
 		if (iStartMipmap < 0)
@@ -927,7 +927,7 @@ RTexture *FUN_1001fff0(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 
 	if (!r_TransferTexture(pRTexture, pTextureData))
 	{
 		AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-		FUN_1001f850(pRTexture, 0);
+		CTextureManager_FreeTexture(pRTexture, 0);
 		pRTexture = 0;
 	}
 done:
@@ -936,7 +936,7 @@ done:
 }
 
 
-// STANDIN: forces the out-of-line copies of three tiny functions that FUN_1001fff0 calls out of line in the exe and expands in
+// STANDIN: forces the out-of-line copies of three tiny functions that d3d_CreateAndLoadTexture calls out of line in the exe and expands in
 // our build (CheapLTLink::AddAfter on g_Textures, the implicit UnkType_RTextureData destructor and its implicit assignment, the
 // latter called with the stack temporary).  With inline_depth(0) the copies come out byte-identical to the exe's.  (not in d3d.ren)
 // FUNCTION: D3DREN 0x10020330 ?AddAfter@CheapLTLink@@QAEXPAV1@@Z
@@ -1214,8 +1214,8 @@ static inline int InlineIsS3TCSupported(uint32 bpp)
 // Creates the DirectDraw texture surface of an RTexture (iStartMipmap, nMipmaps and the format iFormat chosen by the caller) and fills
 // in the UnkType_RTextureData pData with it (surface, 1/width and 1/height scaled by the texture's U/V shift, the AlphaRef of the DTX
 // command string).  Handles the "ColorKey r g b" and "AlphaRef n" tokens of the command string, DXT formats and the aspect ratio
-// limit.  The older generation of the code: the DXT / aspect ratio helpers are written out here, the newer FUN_10021290 calls
-// FUN_10021960 / FUN_100219b0 / FUN_10021a50 instead.
+// limit.  The older generation of the code: the DXT / aspect ratio helpers are written out here, the newer CTextureManager_CreateRTexture calls
+// CTextureManager_S3TCFormatConv / FUN_100219b0 / CTextureManager_IsS3TCFormatSupported instead.
 // NAME: names_proposal.csv guess_CreateRTextureSurface (low, invented): not used
 // NOT MATCHING (1072 vs 1136 bytes): the statements, their order and the stores are the exe's (flags 0x121007, caps 0x401008 /
 // 0x40090, the DXT FOURCC branch, the ColorKey / AlphaRef parsing with the command string initialised again before each ParseFind,
@@ -1275,12 +1275,12 @@ int FUN_10020ab0(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uin
 	{
 		width = height = LTMAX(width, height);
 	}
-	else if (DAT_10057a5c > 0)
+	else if (g_MaxTexAspectRatio > 0)
 	{
 		uint32 *pMin = width > height ? &height : &width;
 		uint32 *pMax = width > height ? &width : &height;
-		if ((int)(*pMax / *pMin) > DAT_10057a5c)
-			*pMin = *pMax / (uint32)DAT_10057a5c;
+		if ((int)(*pMax / *pMin) > g_MaxTexAspectRatio)
+			*pMin = *pMax / (uint32)g_MaxTexAspectRatio;
 	}
 	ddsd.dwWidth = width;
 	ddsd.dwHeight = height;
@@ -1326,12 +1326,12 @@ ParseColorKey:
 	{
 		uOutWidth = uOutHeight = LTMAX(width, height);
 	}
-	else if (DAT_10057a5c > 0)
+	else if (g_MaxTexAspectRatio > 0)
 	{
 		uint32 *pMin = width > height ? &height : &width;
 		uint32 *pMax = width > height ? &width : &height;
-		if ((int)(*pMax / *pMin) > DAT_10057a5c)
-			*pMin = *pMax / (uint32)DAT_10057a5c;
+		if ((int)(*pMax / *pMin) > g_MaxTexAspectRatio)
+			*pMin = *pMax / (uint32)g_MaxTexAspectRatio;
 		uOutWidth = width;
 		uOutHeight = height;
 	}
@@ -1351,8 +1351,8 @@ ParseColorKey:
 // FUNCTION: D3DREN 0x10020f20
 int d3d_GetFirstUsableMipmap(TextureData *pTexture)
 {
-	uint32 maxWidth = LTMIN((uint32)DAT_10057f00, DAT_1005c8fc);
-	uint32 maxHeight = LTMIN((uint32)DAT_10057f00, DAT_1005c900);
+	uint32 maxWidth = LTMIN((uint32)g_MaxTextureSize, DAT_1005c8fc);
+	uint32 maxHeight = LTMIN((uint32)g_MaxTextureSize, DAT_1005c900);
 	if (!maxWidth)
 		maxWidth = 256;
 	if (!maxHeight)
@@ -1442,11 +1442,11 @@ int FUN_100211d0(SharedTexture *pSharedTexture, uint32 nStageFlags)
 			build.m_pSharedTexture = pSharedTexture;
 			build.m_pTextureData = pTextureData;
 			build.m_nFlags = nStageFlags;
-			RTexture *pRTexture = FUN_10021290(&build, 0);
+			RTexture *pRTexture = CTextureManager_CreateRTexture(&build, 0);
 			if (pRTexture && !r_TransferTexture(pRTexture, pTextureData))
 			{
 				AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-				FUN_1001f850(pRTexture, 0);
+				CTextureManager_FreeTexture(pRTexture, 0);
 				pRTexture = 0;
 			}
 			g_pStruct->FreeTexture(pSharedTexture);
@@ -1460,15 +1460,15 @@ done:
 }
 
 // Creates the RTexture of a SharedTexture's TextureData for a device stage (UnkType_RTextureBuild: SharedTexture, TextureData, stage flags;
-// bAdditional bit 0: an additional-stage texture that is not stored in the SharedTexture): the newer generation of FUN_1001fff0 +
+// bAdditional bit 0: an additional-stage texture that is not stored in the SharedTexture): the newer generation of d3d_CreateAndLoadTexture +
 // FUN_10020ab0 with the surface creation written out in place (DXT / aspect ratio through the helpers 0x10021a50 / 0x10021960 /
 // 0x100219b0), the RTexture taken from the bank and linked into g_Textures.  The mipmaps are not transferred here.  Returns the
 // RTexture or 0.  The 0x1608 byte frame is the ConParse of the command string.
 // NOT MATCHING: first transcription from the disassembly (the check output gives the sizes); the first usable mipmap search and the
 // bank allocation are expanded in place in the exe (our d3d_GetFirstUsableMipmap / ObjectBank::Allocate are calls / an out-of-line
-// AllocVoid in the same inline-budget position as in FUN_1001fff0).
+// AllocVoid in the same inline-budget position as in d3d_CreateAndLoadTexture).
 // STUB: D3DREN 0x10021290
-RTexture *FUN_10021290(UnkType_RTextureBuild *pBuild, int bAdditional)
+RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdditional)
 {
 	TextureData *pTextureData = pBuild->m_pTextureData;
 	uint32 nStageFlags = pBuild->m_nFlags;
@@ -1493,7 +1493,7 @@ RTexture *FUN_10021290(UnkType_RTextureBuild *pBuild, int bAdditional)
 	else
 	{
 		uint32 dtxFlags = pTextureData->m_Flags;
-		if (!(dtxFlags & DTX_PREFER16BIT) && DAT_10057e2c && g_TextureFormats[FORMAT_32BIT])
+		if (!(dtxFlags & DTX_PREFER16BIT) && g_32BitTextures && g_TextureFormats[FORMAT_32BIT])
 			iFormat = FORMAT_32BIT;
 		else if (dtxFlags & DTX_PREFER5551)
 			iFormat = FORMAT_FULLBRITE;
@@ -1509,7 +1509,7 @@ RTexture *FUN_10021290(UnkType_RTextureBuild *pBuild, int bAdditional)
 
 		if (iGroup > 9)
 			iGroup = 9;
-		iStart = (&DAT_10057d44)[iGroup] + pTextureData->m_Header.m_Extra[4] + DAT_100584ac;
+		iStart = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.m_Extra[4] + g_MipmapOffset;
 		if (g_CV_S3TCEnable.m_IntVal == 0)
 			iStart += pTextureData->m_Header.m_Extra[3];
 		if (iStart < 0)
@@ -1553,12 +1553,12 @@ RTexture *FUN_10021290(UnkType_RTextureBuild *pBuild, int bAdditional)
 	{
 		bpp = BPP_32;
 	}
-	else if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && FUN_10021a50((BPPIdent)bpp))
+	else if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
 	{
 		memset(&ddsd.ddpfPixelFormat, 0, sizeof(ddsd.ddpfPixelFormat));
 		ddsd.ddpfPixelFormat.dwFlags |= DDPF_FOURCC;
 		ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		if (!FUN_10021960((BPPIdent)bpp, &ddsd.ddpfPixelFormat.dwFourCC))
+		if (!CTextureManager_S3TCFormatConv((BPPIdent)bpp, &ddsd.ddpfPixelFormat.dwFourCC))
 			return 0;
 		goto ParseColorKey;
 	}
@@ -1574,7 +1574,7 @@ ParseColorKey:
 		uint32 b = atoi(cParse.m_Args[3]);
 
 		colorValue = (((b << 8) | g) << 8) | r;
-		if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && FUN_10021a50((BPPIdent)bpp))
+		if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
 			cFormat.InitPValueFormat();
 		else
 			DDPFToPFormat(&ddsd.ddpfPixelFormat, &cFormat);
@@ -1643,7 +1643,7 @@ ParseColorKey:
 
 // NAME: names_proposal.csv CTextureManager::S3TCFormatConv (medium, Jupiter): a global function in d3d.ren (BPPIdent -> DXT FOURCC)
 // FUNCTION: D3DREN 0x10021960
-int FUN_10021960(BPPIdent bpp, uint32 *pFourCC)
+int CTextureManager_S3TCFormatConv(BPPIdent bpp, uint32 *pFourCC)
 {
 	if (bpp == BPP_S3TC_DXT1)
 	{
@@ -1673,13 +1673,13 @@ void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *ou
 	}
 	else
 	{
-		if (DAT_10057a5c > 0)
+		if (g_MaxTexAspectRatio > 0)
 		{
 			uint32 *pMin = width > height ? &height : &width;
 			uint32 *pMax = width > height ? &width : &height;
-			if ((int)(*pMax / *pMin) > DAT_10057a5c)
+			if ((int)(*pMax / *pMin) > g_MaxTexAspectRatio)
 			{
-				*pMin = *pMax / (uint32)DAT_10057a5c;
+				*pMin = *pMax / (uint32)g_MaxTexAspectRatio;
 			}
 		}
 	}
@@ -1689,7 +1689,7 @@ void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *ou
 
 // NAME: names_proposal.csv CTextureManager::IsS3TCFormatSupported (medium, Jupiter): a global function in d3d.ren
 // FUNCTION: D3DREN 0x10021a50
-int FUN_10021a50(BPPIdent bpp)
+int CTextureManager_IsS3TCFormatSupported(BPPIdent bpp)
 {
 	if (bpp == BPP_S3TC_DXT1)
 		return DAT_10062854;
@@ -1714,11 +1714,11 @@ int FUN_10021a80(SharedTexture *pSharedTexture, uint32 nStageFlags, float *pU, f
 			build.m_pSharedTexture = pSharedTexture;
 			build.m_pTextureData = pTextureData;
 			build.m_nFlags = nStageFlags;
-			RTexture *pRTexture = FUN_10021290(&build, 0);
+			RTexture *pRTexture = CTextureManager_CreateRTexture(&build, 0);
 			if (pRTexture && !r_TransferTexture(pRTexture, pTextureData))
 			{
 				AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-				FUN_1001f850(pRTexture, 0);
+				CTextureManager_FreeTexture(pRTexture, 0);
 				pRTexture = 0;
 			}
 			g_pStruct->FreeTexture(pSharedTexture);
@@ -1774,11 +1774,11 @@ void d3d_BindTexture(SharedTexture *pSharedTexture, LTBOOL bTextureChanged)
 			build.m_pSharedTexture = pSharedTexture;
 			build.m_pTextureData = pTextureData;
 			build.m_nFlags = nStage;
-			RTexture *pNew = FUN_10021290(&build, 0);
+			RTexture *pNew = CTextureManager_CreateRTexture(&build, 0);
 			if (pNew && !r_TransferTexture(pNew, pTextureData))
 			{
 				AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-				FUN_1001f850(pNew, 0);
+				CTextureManager_FreeTexture(pNew, 0);
 			}
 			g_pStruct->FreeTexture(pSharedTexture);
 		}
@@ -1792,7 +1792,7 @@ void d3d_UnbindTexture(SharedTexture *pSharedTexture)
 {
 	RTexture *pTexture = (RTexture *)pSharedTexture->m_pRenderData;
 	if (pTexture)
-		FUN_1001f850(pTexture, 0);
+		CTextureManager_FreeTexture(pTexture, 0);
 }
 
 // Template code of the RTexture bank (ObjectBank<RTexture, NullCS>, stdlith object_bank.h): the out-of-line copies of its virtuals.

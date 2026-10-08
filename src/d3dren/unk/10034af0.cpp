@@ -80,7 +80,7 @@ int UnkType_LMLock::FUN_10034af0(WorldPoly *pPoly, int bClear, uint32 width, uin
 
 	if (bClear)
 	{
-		if (!WORLDPOLY_LMPAGE(pPoly) || !DAT_10048780)
+		if (!WORLDPOLY_LMPAGE(pPoly) || !g_LightMap)
 		{
 			DDBLTFX bltfx;
 			memset(&bltfx, 0, sizeof(bltfx));

@@ -213,7 +213,7 @@ void FUN_10007b41(WorldPoly *pPoly)
 	struct { D3DRENDERSTATETYPE m_Type; DWORD m_Val; } saved;
 	DWORD dwFogColor;
 
-	if (DAT_1005811c)
+	if (g_FixTJunc)
 	{
 		pSrc = (UnkType_PolyVert *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
@@ -366,10 +366,10 @@ void FUN_100083bf(WorldPoly *pPoly)
 // FUNCTION: D3DREN 0x1000832e ?Apply4x4@LTMatrix@@QAEXABV?$_CVector@M@@AAV2@@Z
 
 // NAME: CountAdder::~CountAdder (names_proposal.csv, high): counter.h's inline destructor `*m_pNum += cnt_EndCounter(m_Counter)`.  The exe's out-of-line copy is
-// called by FUN_10007e5d, FUN_10008ce0-area code and 0x10020ff0 / 0x10021d70 / 0x10023860 (the shared COMDAT, emitted in this object); this build never keeps
+// called by FUN_10007e5d, d3d_DrawParticleSystem-area code and 0x10020ff0 / 0x10021d70 / 0x10023860 (the shared COMDAT, emitted in this object); this build never keeps
 // the destructor out of line (it is expanded at every scope exit), so the copy is written as the equivalent __fastcall function (same register contract: this in ecx).
 // FUNCTION: D3DREN 0x100083ae
-void __fastcall FUN_100083ae(CountAdder *pThis)
+void __fastcall CountAdder_Destructor(CountAdder *pThis)
 {
 	uint32 nTicks = cnt_EndCounter(pThis->m_Counter);
 	*pThis->m_pNum += nTicks;
@@ -472,7 +472,7 @@ void FUN_10007e5d(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 		g_pD3DDevice->SetRenderState(rsDestBlend.m_Type, rsDestBlend.m_Val);
 		g_pD3DDevice->SetRenderState(rsSrcBlend.m_Type, rsSrcBlend.m_Val);
 		g_pD3DDevice->SetRenderState(rsAlphaBlend.m_Type, rsAlphaBlend.m_Val);
-		FUN_100083ae((CountAdder *)&cTimer);
+		CountAdder_Destructor((CountAdder *)&cTimer);
 	}
 }
 
@@ -524,7 +524,7 @@ void FUN_100083ec(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, int param_3)
 					int g = (int)(t * fG) + pVert->rgb.g;
 					int b = (int)(t * fB) + pVert->rgb.b;
 
-					if (DAT_100578ec)
+					if (g_Saturate)
 					{
 						r *= 2;
 						g *= 2;

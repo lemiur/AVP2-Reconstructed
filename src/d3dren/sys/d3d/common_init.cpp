@@ -130,7 +130,7 @@ void FUN_10012eaf(char *pStr);
 void CD3D_Device_FreeDevice();
 void FUN_1001b840();
 int FUN_1001b870();
-int FUN_1001acc0(UnkType_DeviceNode *pDevice, RenderStructInit *pInit);
+int d3d_CreateDevice(UnkType_DeviceNode *pDevice, RenderStructInit *pInit);
 
 // guess: releases the DirectDraw objects (clipper, primary/offscreen surfaces, IDirectDraw7) and shows the cursor again
 // (names_proposal: guess_d3d_FreeDDraw, low)
@@ -251,7 +251,7 @@ int d3d_Init(RenderStructInit *pInit)
 		pDevice = FUN_10010e36(pInit->m_Mode.m_InternalName);
 		if (pDevice)
 		{
-			if (FUN_1001acc0(pDevice, pInit))
+			if (d3d_CreateDevice(pDevice, pInit))
 				goto DeviceReady;
 
 			AddDebugMessage(1, "Can't initialize hardware device: %s", pInit->m_Mode.m_InternalName);
@@ -265,7 +265,7 @@ int d3d_Init(RenderStructInit *pInit)
 	for (pCur = DAT_10057800.m_pNext; pCur != &DAT_10057800; pCur = pCur->m_pNext)
 	{
 		pDevice = (UnkType_DeviceNode *)pCur->m_pData;
-		if (FUN_1001acc0(pDevice, pInit))
+		if (d3d_CreateDevice(pDevice, pInit))
 			goto DeviceReady;
 	}
 
