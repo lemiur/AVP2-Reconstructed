@@ -64,15 +64,16 @@ The DLL was built with a different compiler from the engine: the VC6 RTM front e
 
 | d3d.ren | |
 |---|---|
-| Annotated functions matching | 1,188 of 1,188 (1,186 addresses) |
-| Function code matched by source | 145,377 of 280,684 bytes (51.794%) |
-| Written but not yet matching (`// STUB:`) | 74 functions (88,097 compiled bytes) |
+| Annotated functions matching | 1,191 of 1,191 (1,189 addresses) |
+| Function code matched by source | 147,745 of 280,684 bytes (52.637%) |
+| Written but not yet matching (`// STUB:`) | 71 functions (85,796 compiled bytes) |
 | Prebuilt library code (VC6 RTM CRT) | 469 functions, 41,550 bytes (14.8%) |
-| objdiff | 66.49% of code, 1,654 of 1,729 functions, 154 of 178 units complete |
+| objdiff | 67.34% of code, 1,657 of 1,729 functions, 154 of 178 units complete |
 
 The source is organised as the DLL's 52 original object files, recovered from the binary's layout. The 2026-10-07
-checkpoint adds eleven exact matches (6,648 bytes), including one more match (288 bytes) in the latest continuation;
-details and validation are in `README_D3DREN.md`.
+checkpoint includes fourteen exact matches (9,016 bytes) added across these passes. The tenth continuation improves
+object flushing, sky-portal processing and console-variable refresh to 103, 639 and 587 differing bytes after independent
+review, preserving all prior exact matches. Full validation and remaining differences are documented in `README_D3DREN.md`.
 Still to do: the remaining stubs, the data sections (initialisers, vtables, ownership and
 order), removing the last three stand-in definitions, and a relink of the DLL itself. Its string resource and its
 three exports are already reconstructed (`config/d3dren/d3dren.rc`, `d3dren.def`) and verified against the

@@ -115,12 +115,64 @@ static inline int ClipPoly_Inline(uint32 nFlags, TLVertex **ppVerts, int *pnVert
 	return 0;
 }
 
+static inline float FUN_1002d0d0_Transform(LTVector *pDest, const LTMatrix *pMat, const LTVector *pSrc)
+{
+	float fW = pMat->m[3][2] * pSrc->z;
+	fW += pMat->m[3][1] * pSrc->y;
+	fW += pMat->m[3][0] * pSrc->x;
+	fW += pMat->m[3][3];
+	fW = 1.0f / fW;
+	float fX = pMat->m[0][2] * pSrc->z;
+	fX += pMat->m[0][1] * pSrc->y;
+	fX += pMat->m[0][0] * pSrc->x;
+	fX += pMat->m[0][3];
+	pDest->x = fX * fW;
+	float fY = pMat->m[1][0] * pSrc->x;
+	fY += pMat->m[1][2] * pSrc->z;
+	fY += pMat->m[1][1] * pSrc->y;
+	fY += pMat->m[1][3];
+	pDest->y = fY * fW;
+	float fZ = pMat->m[2][0] * pSrc->x;
+	fZ += pMat->m[2][2] * pSrc->z;
+	fZ += pMat->m[2][1] * pSrc->y;
+	fZ += pMat->m[2][3];
+	pDest->z = fZ * fW;
+	return fW;
+}
+
+static inline float FUN_1002d0d0_Project(LTVector *pDest, const LTMatrix *pMat, const LTVector *pSrc)
+{
+	float fW = pMat->m[3][2] * pSrc->z;
+	fW += pMat->m[3][0] * pSrc->x;
+	fW += pMat->m[3][1] * pSrc->y;
+	fW += pMat->m[3][3];
+	fW = 1.0f / fW;
+	float fX = pMat->m[0][2] * pSrc->z;
+	fX += pMat->m[0][0] * pSrc->x;
+	fX += pMat->m[0][1] * pSrc->y;
+	fX += pMat->m[0][3];
+	pDest->x = fW * fX;
+	float fY = pMat->m[1][2] * pSrc->z;
+	fY += pMat->m[1][0] * pSrc->x;
+	fY += pMat->m[1][1] * pSrc->y;
+	fY += pMat->m[1][3];
+	pDest->y = fW * fY;
+	float fZ = pMat->m[2][2] * pSrc->z;
+	fZ += pMat->m[2][0] * pSrc->x;
+	fZ += pMat->m[2][1] * pSrc->y;
+	fZ += pMat->m[2][3];
+	pDest->z = fW * fZ;
+	return fW;
+}
 // guess: the screen extents of the sky: every visible sky portal polygon (the polygons the tagging code collected, or the world's
 // sky polygons when AllSkyPortals is set) is transformed to camera space, clipped and projected, and its extents are accumulated in
 // g_SkyMinX/Y, g_SkyMaxX/Y; true when both extents are more than 0.9 (Jupiter's ExtendSkyBounds + the "> 0.9f" test).
-// STUB diagnosis (W6): 1008 bytes, same size and loop structure; 680 bytes differ: the exe sums the first camera-space transform in the order
-// z, y, x (ours x, y, z) and interleaves the extent compares differently; MatVMul_H on a local copy / pointer variants and the
-// permuter (best 91 mismatches) do not give the exe's order.
+// STUB diagnosis (2026-10-07, tenth pass): 639/1008 bytes differ at the same 1008-byte extent. The first camera-space
+// transform follows the target's z,y,x order for W/X and x,z,y for Y/Z; the projected-vertex transform uses z,x,y per row.
+// Fetching each polygon count before its array pointer and snapshotting/incrementing the source and destination cursors before
+// each transform reduce strict differences from 680 to 639 bytes. The advisory ALIGNED score worsens from 76/71 to 123/117
+// (including/ignoring stack offsets). Remaining differences are in list-selection and clipping control flow, register allocation,
+// and projection/extent scheduling; no unsafe access or changed vertex bounds is involved.
 // STUB: D3DREN 0x1002d0d0
 int FUN_1002d0d0()
 {
@@ -137,14 +189,14 @@ int FUN_1002d0d0()
 
 	if (g_CV_AllSkyPortals.m_IntVal && DAT_10056770)
 	{
-		ppPolys = DAT_10056770->m_SkyPolies.GetArray();
 		nPolys = DAT_10056770->m_SkyPolies.GetSize();
+		ppPolys = DAT_10056770->m_SkyPolies.GetArray();
 		nClipFlags = 0x3d;
 	}
 	else
 	{
-		ppPolys = pVisibleSet->m_Unk28.GetArray();
 		nPolys = pVisibleSet->m_nUnk3c;
+		ppPolys = pVisibleSet->m_Unk28.GetArray();
 		nClipFlags = 0x3f;
 	}
 
@@ -157,9 +209,9 @@ int FUN_1002d0d0()
 		LTMatrix *pMat = (LTMatrix *)&g_ViewParams.m_mClipTransform;
 		for (i = 0; i < pPoly->m_nVertices; i++)
 		{
-			MatVMul_H(&pDest->m_Vec, pMat, pSrc->m_Vec);
-			pSrc++;
-			pDest++;
+			UnkType_PolyVertex *pCurSrc = pSrc++;
+			TLVertex *pCurDest = pDest++;
+			FUN_1002d0d0_Transform(&pCurDest->m_Vec, pMat, pCurSrc->m_Vec);
 		}
 
 		TLVertex *pVerts = aVerts;
@@ -169,7 +221,7 @@ int FUN_1002d0d0()
 			for (i = 0; i < nVerts; i++)
 			{
 				LTVector v;
-				float fW = MatVMul_H(&v, (LTMatrix *)&g_ViewParams.m_DeviceTimesProjection, &pVerts[i].m_Vec);
+				float fW = FUN_1002d0d0_Project(&v, (LTMatrix *)&g_ViewParams.m_DeviceTimesProjection, &pVerts[i].m_Vec);
 				float fX = v.x;
 				float fY = v.y;
 				if (fX <= g_SkyMinX)

@@ -134,17 +134,17 @@ extern void d3d_UnsetTranslucentObjectStates(int bChangeZ);	// 0x10013df0
 
 // GLOBAL: D3DREN 0x1006cd70
 extern void (*DAT_1006cd70)();		// guess: optional callback run after the solid objects (RenderScene sets it)
+// The native draw loop reuses one DWORD flags value for its visible and portal-visible tests.
+// Keep the accessor/getter inline sites while reading the same fully constructed LTObject member.
+static inline uint32 FUN_10028660_Flags(const ObjectDrawer &d)
+{
+	return d.m_pObject->m_Flags;
+}
 // STUB: D3DREN 0x10028660
-// Remaining difference: constant registers only.  Every instruction is in the exe's order and every call matches, but our
-// build keeps the constants 1 (ebx: static guard bit, FLAG_VISIBLE and FLAG2 tests, push 1) and 0 (edi: seven `push 0`, the
-// m_Unk14 store, the loop start) in callee-saved registers (`xor edi,edi` / `mov ebx,1`, extra push/pop ebx: 752 instead of
-// 768 bytes) where the exe keeps immediates and uses only ebp/esi/edi.  Evidence that this is the only difference: changing
-// one `& FLAG_VISIBLE` (1) to `& 2` removes both constant registers and leaves 5 differing bytes (that immediate and its
-// test).  With the original compiler this is a source-shape problem: the exe's function contains one constant-1 use less in
-// the allocator's count (or a differently shaped loop); do-while loop, local flags variable, reordered tests, `!(a && b)`
-// forms and pending-site ballast make no difference.  The function-static CMoArray constructor reaches the exe's shape (Clear
-// and Init out of line) only with enough pending inline sites after it (the five `s_TransObjList[i]` uses of the draw loop
-// supply them).
+// STUB diagnosis: 768/768 bytes, 103 strict differences. Caching the full object flags restores
+// the native DWORD flag load, byte tests and immediate constants, including the profiling calls
+// and static-list initialization. The loop's portal guard/load schedule, index registers and final
+// counter epilogue still differ. ALIGNED 20/20; the independently reviewed sort remains exact.
 void d3d_FlushObjectQueues()
 {
 	g_pStruct->Unknown24();
@@ -211,10 +211,12 @@ void d3d_FlushObjectQueues()
 			s_TransObjList.FUN_100289b0(&g_ViewParams);
 			for (i = 0; i < s_TransObjList.m_Unk14; i++)
 			{
+				// This same-width read is inside the live object, also when the portal guard skips drawing.
+				uint32 flags = FUN_10028660_Flags(s_TransObjList[i]);
 				if (g_ViewParams.m_bPortalView == 0 || (s_TransObjList[i].m_pObject->m_Flags2 & FLAG2_PORTALINVISIBLE) == 0)
 				{
-					if ((s_TransObjList[i].m_pObject->m_Flags & FLAG_VISIBLE) ||
-						(g_ViewParams.m_bPortalView != 0 && (s_TransObjList[i].m_pObject->m_Flags & FLAG_PORTALVISIBLE)))
+					if ((flags & FLAG_VISIBLE) ||
+						(g_ViewParams.m_bPortalView != 0 && (flags & FLAG_PORTALVISIBLE)))
 					{
 						s_TransObjList[i].m_pDrawFn(&g_ViewParams, s_TransObjList[i].m_pObject);
 					}
@@ -248,14 +250,36 @@ float ObjectDrawList::CalcDistance(const LTObject *pObject, const ViewParams &Pa
 		return pObject->GetPos().MagSqr();
 }
 
-// STUB: D3DREN 0x100289b0
-// Remaining difference: register assignment and block layout.  The distance part now has the exe's structure (the static
-// CalcDistance of Jupiter's ObjectDrawList is what makes the LTVector constructor 0x1000dfb6 stay out of line and MagSqr
-// inline), and the shell-sort part (gap tables, operator< with the sbb/neg form of the REALLYCLOSE compare, swap through a
-// temporary) has the exe's structure; but the exe keeps `this` in ebp and the pass/loop counters in ebx/edi where we use
-// ebx/ebp, stores the compare result in a stack slot ([esp+0x24]) and has one `fstp` per branch of the distance
-// computation where we merge them (480 instead of 496 bytes).  The permuter (build/permute/100289b0) reached 41 aligned
-// mismatches with semantically broken variants only.
+// Native +0xb3 and +0xda store the distance in each branch. This helper retains those stores
+// and the out-of-line vector constructor while preserving the CalcDistance formulas.
+static inline void FUN_100289b0_Distance(ObjectDrawer *pDrawer, const ViewParams &Params)
+{
+	if ((pDrawer->m_pObject->m_Flags & FLAG_REALLYCLOSE) == 0)
+		pDrawer->m_fDistance = (pDrawer->m_pObject->GetPos() - Params.m_Pos).MagSqr();
+	else
+		pDrawer->m_fDistance = pDrawer->m_pObject->GetPos().MagSqr();
+}
+
+// Native 0x10028aa2 caches the array after distance calculation; sorting cannot resize it.
+// Keep two inline accessor sites, with CMoArray's unsigned 32-bit index conversion.
+static inline ObjectDrawer &FUN_100289b0_At(ObjectDrawer *pArray, uint32 index)
+{
+	return pArray[index];
+}
+
+// The native comparator returns a 32-bit result; the same ObjectDrawer ordering expressions
+// retain the comparison spill, frame size and register lifetimes when expanded here.
+static inline int FUN_100289b0_Compare(const ObjectDrawer &a, const ObjectDrawer &b)
+{
+	if ((a.m_pObject->m_Flags & FLAG_REALLYCLOSE) == (b.m_pObject->m_Flags & FLAG_REALLYCLOSE))
+		return a.m_fDistance < b.m_fDistance;
+	else
+		return (b.m_pObject->m_Flags & FLAG_REALLYCLOSE) < (a.m_pObject->m_Flags & FLAG_REALLYCLOSE);
+}
+
+// FUNCTION: D3DREN 0x100289b0
+// Both accessor sites and the out-of-line LTVector constructor preserve native inlining.
+// Computing the higher-index drawer first reproduces the original sort address schedule.
 void ObjectDrawList::FUN_100289b0(ViewParams *pParams)
 {
 	uint32 i;
@@ -267,8 +291,10 @@ void ObjectDrawList::FUN_100289b0(ViewParams *pParams)
 	{
 		ObjectDrawer *pDrawer = &(*this)[i];
 
-		pDrawer->m_fDistance = CalcDistance(pDrawer->m_pObject, *pParams);
+		FUN_100289b0_Distance(pDrawer, *pParams);
 	}
+
+	ObjectDrawer *pArray = GetArray();
 
 	for (pass = 0; pass < 10; pass++)
 	{
@@ -278,10 +304,10 @@ void ObjectDrawList::FUN_100289b0(ViewParams *pParams)
 
 		for (j = 0; j < n; j++)
 		{
-			ObjectDrawer *pA = &(*this)[j << shift];
-			ObjectDrawer *pB = &(*this)[gap + (j << shift)];
+			ObjectDrawer *pB = &FUN_100289b0_At(pArray, gap + (j << shift));
+			ObjectDrawer *pA = &FUN_100289b0_At(pArray, j << shift);
 
-			if (*pA < *pB)
+			if (FUN_100289b0_Compare(*pA, *pB))
 			{
 				ObjectDrawer tmp = *pA;
 				*pA = *pB;

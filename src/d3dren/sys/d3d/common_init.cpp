@@ -214,23 +214,15 @@ VisibleSet *d3d_GetVisibleSet();				// 0x10039e00
 
 // NAME: d3d_Init: RenderStruct::Init (+0x70), Jupiter common_init.cpp's rdll_RenderDLLSetup name for the slot (names_proposal medium)
 // STUB: D3DREN 0x10010b22
-// Remaining difference: 752 instead of 747 bytes, 428 bytes differ but only in register / block layout: same calls, same strings, same
-// stores.  The exe keeps pInit in esi, the constant 0 in ebx and pDevice in edi and spills the device-list cursor into the dead
-// parameter slot [ebp+8] (and compares the list head with `cmp eax, 0x10057800`); we keep the cursor in ebx, use xor-ed zeros and
-// emit the three failure tails in a different order.  `g_bRunWindowed` is `mov [g],1; cmp; je; mov [g],0` in the exe (a store of 1
-// BEFORE the atoi compare is evaluated: `x = p && atoi(p) == 1` as one expression), ours stores after the compare.  if/else forms of
-// that line, a do-while search loop and moving the declarations did not change the layout.
+// Remaining difference: 20 of 747 bytes (8 aligned instructions, 7 ignoring stack offsets). The device-search and failure
+// paths now follow the original; only the RECT setup at 0x10010d1a-0x10010d30 differs in register choice and scheduling.
+// The original deliberately reuses the horizontal center for both left and top; retain that behavior.
 int d3d_Init(RenderStructInit *pInit)
 {
 	UnkType_DeviceNode *pDevice;
 	LTLink *pCur;
-	char *pMsg;
 	char *pWindowed;
 	RECT rcDesktop, rcWindow;
-	int x;
-	UINT uFlags;
-	HWND hWndInsertAfter;
-	int cx, cy, posX, posY;
 
 	pInit->m_RendererVersion = LTRENDER_VERSION;
 
@@ -262,13 +254,12 @@ int d3d_Init(RenderStructInit *pInit)
 			if (FUN_1001acc0(pDevice, pInit))
 				goto DeviceReady;
 
-			pMsg = "Can't initialize hardware device: %s";
+			AddDebugMessage(1, "Can't initialize hardware device: %s", pInit->m_Mode.m_InternalName);
 		}
 		else
 		{
-			pMsg = "Can't find hardware device: %s";
+			AddDebugMessage(1, "Can't find hardware device: %s", pInit->m_Mode.m_InternalName);
 		}
-		AddDebugMessage(1, pMsg, pInit->m_Mode.m_InternalName);
 	}
 
 	for (pCur = DAT_10057800.m_pNext; pCur != &DAT_10057800; pCur = pCur->m_pNext)
@@ -278,15 +269,18 @@ int d3d_Init(RenderStructInit *pInit)
 			goto DeviceReady;
 	}
 
-	pDevice = 0;
+	if (pCur == &DAT_10057800)
+		goto NoDevice;
 
 DeviceReady:
 	if (pDevice == 0)
 	{
+NoDevice:
 		FUN_10010967();
 		FUN_1001b840();
 		d3d_FreeDDraw();
-		pMsg = "Can't find any d3d devices to use!";
+		AddDebugMessage(0, "Can't find any d3d devices to use!");
+		return 1;
 	}
 	else
 	{
@@ -302,22 +296,16 @@ DeviceReady:
 
 		if (!g_bRunWindowed && !d3d_IsNullRenderOn())
 		{
-			uFlags = SWP_NOSIZE | SWP_NOMOVE;
-			cy = 0;
-			cx = 0;
-			hWndInsertAfter = HWND_TOPMOST;
-			posX = 0;
-			posY = 0;
+			SetWindowPos(g_hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 		}
 		else
 		{
 			// Center the window on the desktop.
 			GetWindowRect(GetDesktopWindow(), &rcDesktop);
-			x = (uint32)((rcDesktop.right - pInit->m_Mode.m_Width) - rcDesktop.left) >> 1;
-			rcWindow.left = x;
-			rcWindow.top = x;
-			rcWindow.right = x + pInit->m_Mode.m_Width;
-			rcWindow.bottom = x + pInit->m_Mode.m_Height;
+			rcWindow.top = (uint32)((rcDesktop.right - pInit->m_Mode.m_Width) - rcDesktop.left) >> 1;
+			rcWindow.right = pInit->m_Mode.m_Width + rcWindow.top;
+			rcWindow.bottom = rcWindow.top + pInit->m_Mode.m_Height;
+			rcWindow.left = rcWindow.top;
 			AdjustWindowRect(&rcWindow, 0xcf0000, 0);
 			if (rcWindow.left < 0)
 			{
@@ -329,21 +317,17 @@ DeviceReady:
 				rcWindow.bottom -= rcWindow.top;
 				rcWindow.top = 0;
 			}
-			uFlags = SWP_NOOWNERZORDER;
-			cy = rcWindow.bottom - rcWindow.top;
-			cx = rcWindow.right - rcWindow.left;
-			hWndInsertAfter = 0;
-			posX = rcWindow.left;
-			posY = rcWindow.top;
+			SetWindowPos(g_hWnd, 0, rcWindow.left, rcWindow.top,
+			rcWindow.right - rcWindow.left, rcWindow.bottom - rcWindow.top, SWP_NOOWNERZORDER);
 		}
-		SetWindowPos(g_hWnd, hWndInsertAfter, posX, posY, cx, cy, uFlags);
 
 		if (!r_GetBufferFormatOfSurface(g_pBackBuffer, &DAT_100577c8))
 		{
 			FUN_10010967();
 			FUN_1001b840();
 			d3d_FreeDDraw();
-			pMsg = "r_GetBufferFormatOfSurface failed.";
+			AddDebugMessage(0, "r_GetBufferFormatOfSurface failed.");
+			return 1;
 		}
 		else
 		{
@@ -351,18 +335,17 @@ DeviceReady:
 			g_pStruct->m_Width = g_pStruct->m_Width / DAT_10057e24;
 			g_pStruct->m_Height = g_pStruct->m_Height / DAT_10057e28;
 
-			if (d3d_GetVisibleSet()->Init())
-				return 0;
-
-			FUN_10010967();
-			FUN_1001b840();
-			d3d_FreeDDraw();
-			pMsg = "VisibleSet::Init failed (invalid object list size?).";
+			if (!d3d_GetVisibleSet()->Init())
+			{
+				FUN_10010967();
+				FUN_1001b840();
+				d3d_FreeDDraw();
+				AddDebugMessage(0, "VisibleSet::Init failed (invalid object list size?).");
+				return 1;
+			}
+			return 0;
 		}
 	}
-
-	AddDebugMessage(0, pMsg);
-	return 1;
 }
 
 // NAME: d3d_IsNullRenderOn: Jupiter common_init.cpp (same job: the "nullrender" console parameter != 0)

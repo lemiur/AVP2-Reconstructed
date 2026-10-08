@@ -647,7 +647,7 @@ int FUN_10007100(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 
 // guess: bottom plane (inside: -z < y), flag 0x20 (0x28-byte vertices)
 // Not matching (11/704 bytes): identical except for the tail of the inlined ClipExtra: the exe schedules `xor ecx,ecx` (the zero
-// extension for `mov cl,[pCur->specular_rgb.a]`) before the store of rgb.b, ours after it.  The same function for the top and
+// extension for `mov cl,[pCur->rgb.a]` at vertex offset +0x13) before the store of rgb.b, ours after it.  The same function for the top and
 // right planes (FUN_10006e40/10007100) and the 0x20-byte twins match with this source shape; 4000 permuter candidates found nothing.
 // STUB: D3DREN 0x100073b0
 int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)
@@ -707,7 +707,7 @@ int FUN_100073b0(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkT
 
 // guess: far plane (inside: z <= g_ViewParams.m_ClipFarZ), flag 2 (0x28-byte vertices)
 // Not matching (11/704 bytes): identical except for the tail of the inlined ClipExtra: the exe schedules `xor ecx,ecx` (the zero
-// extension for `mov cl,[pCur->specular_rgb.a]`) before the store of rgb.b, ours after it.  The same function for the top and
+// extension for `mov cl,[pCur->rgb.a]` at vertex offset +0x13) before the store of rgb.b, ours after it.  The same function for the top and
 // right planes (FUN_10006e40/10007100) and the 0x20-byte twins match with this source shape; 4000 permuter candidates found nothing.
 // STUB: D3DREN 0x10007670
 int FUN_10007670(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)

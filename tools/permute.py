@@ -956,6 +956,49 @@ def type_kind(t, enum=False):
     return 'class'
 
 
+def parse_probe_type_diagnostic(line):
+    """Return (source line number, probed expression type) for a VC6 assignment probe diagnostic.
+
+    C2440 is localized in some VC6 installs, so use its stable code and the quoted assignment
+    operand/types rather than the English "cannot convert from" wording.  C2679 accepts both
+    English right-hand-operand diagnostics and localized diagnostics with quoted operand types.
+    """
+    loc = re.search(r'\((\d+)\)\s*:\s*error\s+(C2440|C2679)\s*:', line)
+    if not loc:
+        return None
+    line_no, code = int(loc.group(1)), loc.group(2)
+    message = line[loc.end():]
+
+    if code == 'C2440':
+        if not re.match(r"\s*'='\s*:", message):
+            return None
+        quoted = re.findall(r"'([^']*)'", message)
+        if len(quoted) < 3 or quoted[0] != '=':
+            return None
+        source_type = quoted[1].strip()
+        has_probe_destination = any(
+            re.search(r'__tpT\s*\*\s*$', destination)
+            for destination in quoted[2:]
+        )
+        if not source_type or not has_probe_destination:
+            return None
+        return line_no, source_type
+
+    english = re.match(r"\s*binary\s+'='\s*:", message)
+    if english:
+        right_type = re.search(
+            r"right-hand operand of type\s+'([^']+)'", message
+        )
+        if right_type:
+            return line_no, right_type.group(1).strip()
+
+    # Some VC6 locales translate the C2679 prose but retain the quoted operator and type.
+    quoted = re.findall(r"'([^']*)'", message)
+    if len(quoted) >= 2 and quoted[0] == '=' and quoted[1].strip():
+        return line_no, quoted[1].strip()
+    return None
+
+
 def gettype(ctx, expr):
     """(type text, kind) from the probe cache, or None (unknown types are queued for the next probe)."""
     tc = ctx.setdefault('types', {})
@@ -1982,13 +2025,13 @@ class Target:
                 L2[i] = L2[i][:m.start()] + '(*(__tpT**)0 = (%s), (%s))' % (e, e) + L2[i][m.end():]
             msgs = self.compile(head + '\tstruct __tpT;\n' + '\n'.join(L2) + tail, 'probe%d' % k, want_msgs=True)
             res = {}
-            for l in msgs.splitlines():
-                m = re.match(r'^.*?\((\d+)\) : error C2440: \'=\' : cannot convert from \'(.+)\' to \'[^\']*__tpT \*\'', l) or \
-                    re.match(r'^.*?\((\d+)\) : error C2679: binary \'=\' : no operator defined which takes a right-hand operand of type \'(.+)\' \(or', l)
-                if m:
-                    i = int(m.group(1)) - hl - 2
+            for line in msgs.splitlines():
+                diagnostic = parse_probe_type_diagnostic(line)
+                if diagnostic:
+                    line_no, raw_type = diagnostic
+                    i = line_no - hl - 2
                     if i in g and g[i][0] not in res:
-                        t, enum = norm_type(m.group(2))
+                        t, enum = norm_type(raw_type)
                         res[g[i][0]] = (t, type_kind(t, enum))
             return res
         with ThreadPoolExecutor(max(1, min(jobs, len(groups)))) as ex:

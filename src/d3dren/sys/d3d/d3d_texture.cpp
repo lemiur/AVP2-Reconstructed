@@ -138,12 +138,10 @@ TextureFormat *d3d_GetLightmapTextureFormat()
 // Creates a lightmap page texture surface (the DirectDraw surface in the lightmap format, DDSD_TEXTURESTAGE for one-pass lightmapping)
 // and an RTexture for it: the allocator callback the lightmap texture pools use (UnkType_LMTexturePools::FUN_10034db8).
 // NAME: names_proposal.csv guess_CreateLightmapPageTexture (low, invented): not used
-// NOT MATCHING (400 vs 416 bytes): the statements and the order of the stores match the exe (ddsd, CreateSurface, the inline bank
-// allocation with the inline RTexture constructor stores followed by the overriding assignments, 1/width and 1/height), what differs is
-// (1) the block layout of the exits: the exe emits the three `return 0` exits with their own epilogues, the first one inline right
-// behind the format test (`jne` over it), ours jumps from the first two to one shared epilogue and then lays the body out
-// behind it; (2) the register assignment: the exe keeps width in ebp (and re-reads height from its argument slot), ours keeps height.
-// Tried: the order of the ddsd stores, the format test as one condition / three ifs / the inline d3d_GetLightmapTextureFormat, none changes either.
+// NOT MATCHING (400 vs 432 bytes, 306 strict differences): earlier reciprocal stores improve scheduling, but the native width
+// reciprocal remains live across overriding assignments whereas ours is stored sooner. The native out-of-line data constructor,
+// separate failure epilogues, and saved-width register assignment remain unresolved. Nested/goto/else failure shapes and local
+// width/height aliases do not recover those differences. All other owning-unit function bytes and relocations are preserved.
 // STUB: D3DREN 0x1001e750
 RTexture *FUN_1001e750(uint32 width, uint32 height, uint32 flags)
 {
@@ -169,6 +167,8 @@ RTexture *FUN_1001e750(uint32 width, uint32 height, uint32 flags)
 	pRTexture = g_RTextureBank.Allocate();
 	if (pRTexture)
 	{
+		pRTexture->m_Data.m_Unk04 = 1.0f / (float)width;
+		pRTexture->m_Data.m_Unk08 = 1.0f / (float)height;
 		pRTexture->m_Data.m_pOwner = pRTexture;
 		pRTexture->m_Data.m_pSurface = pSurface;
 		pRTexture->m_BaseHeight = height;
@@ -177,8 +177,6 @@ RTexture *FUN_1001e750(uint32 width, uint32 height, uint32 flags)
 		pRTexture->m_Flags = 0;
 		pRTexture->m_BaseWidth = width;
 		pRTexture->m_Data.m_nTextureFrameCode = 0;
-		pRTexture->m_Data.m_Unk04 = 1.0f / (float)width;
-		pRTexture->m_Data.m_Unk08 = 1.0f / (float)height;
 		return pRTexture;
 	}
 	pSurface->Release();

@@ -83,9 +83,9 @@ int DAT_100584f0;			// guess: the filter states have been sent (cleared by d3d_I
 // NAME: d3d_ReadExtraConsoleVariables: Jupiter d3d_init.cpp (fog from the console variables: FogNearZ == FogFarZ disables fog
 // ("This handles a TNT bug"), SetRenderState FOGCOLOR/FOGSTART/FOGEND/FOGENABLE, DITHERENABLE, anisotropic/bilinear/trilinear
 // filter states); the D3D7 original caches what it sent and only updates when a value changed.
-// STUB diagnosis: 1104 of 1104 bytes (same size), 594 differ: the exe keeps the clamp limit 0xff in eax for the three fog colour channels
-//   (`mov eax, 0xff` before the first `jge`, then `cmp edx, eax` / `mov [DAT], al`), ours compares with the immediate 0xff each time; the byte
-//   globals are read with `xor ecx, ecx; mov cl, [DAT]` / `mov bl, [DAT]` in a different register order afterwards.  Same control flow otherwise.
+// STUB diagnosis: 1104 of 1104 bytes (same size), 587 differ after reordering ten independent scalar stores following the fog-state calls.
+//   The target keeps the clamp limit 0xff in eax for all three fog colour comparisons; this source still compares with the immediate, and byte
+//   channel reads/register choices and the remaining call/state schedule differ.  The ten store right-hand sides and API call order are unchanged.
 // STUB: D3DREN 0x1001a400
 void d3d_ReadExtraConsoleVariables()
 {
@@ -125,15 +125,15 @@ void d3d_ReadExtraConsoleVariables()
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, DAT_1005849c);
 
 			DAT_100579e0 = (float)(DAT_10058040 - 0x80) * 2.0f;
-			DAT_10057ac8 = DAT_1005849c;
-			DAT_10058044 = DAT_10048738;
-			DAT_1005804c = DAT_10048740;
-			DAT_10058048 = DAT_1004873c;
 			DAT_100579e4 = (float)(DAT_10058041 - 0x80) * 2.0f;
-			DAT_100578e8 = DAT_10048744;
-			DAT_100580d0 = DAT_100584a0;
-			DAT_100584e8 = 1;
 			DAT_100579e8 = (float)(DAT_10058042 - 0x80) * 2.0f;
+			DAT_100584e8 = 1;
+			DAT_100580d0 = DAT_100584a0;
+			DAT_100578e8 = DAT_10048744;
+			DAT_10058048 = DAT_1004873c;
+			DAT_1005804c = DAT_10048740;
+			DAT_10058044 = DAT_10048738;
+			DAT_10057ac8 = DAT_1005849c;
 		}
 
 		if (!DAT_100584ec || DAT_10057ed8 != DAT_10048784)

@@ -341,8 +341,10 @@ NextPoly:;
 
 // the body of FUN_100185a0 (0x100185a0, unit unk/100132a0, W2) as the exe has it expanded inside FUN_1002f780 (the same code; a copy
 // in the source or an inline function)
-static inline int FUN_100185a0_Inline(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef)
+static inline int FUN_100185a0_Inline(void *pPolyData, uint32 nInputPolyData, LightAnim *pAnim, uint32 *pRef)
 {
+	// Preserve the caller count separately from this animation's clamped vertex count.
+	uint32 nPolyData;
 	LAPolyRef *pPolyRef = (LAPolyRef *)pRef;
 	uint8 percent;
 	LAPolyFrame *pFrame0, *pFrame1;
@@ -360,27 +362,27 @@ static inline int FUN_100185a0_Inline(void *pPolyData, uint32 nPolyData, LightAn
 	else if (percent == 0xff)
 		pFrame0 = pFrame1;
 
-	nPolyData = LTMIN(nPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
+	nPolyData = LTMIN(nInputPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
 
-	pColor = (uint8 *)pPolyData + 0x14;
+	// Green-origin cursor: +1/0/-1 address the same R/G/B bytes at vertex offsets 0x16/0x15/0x14.
 	if (pFrame0 == pFrame1)
 	{
-		for (i = 0; i < nPolyData; i++, pColor += 0x18)
+		for (i = 0, pColor = (uint8 *)pPolyData + 0x15; i < nPolyData; i++, pColor += 0x18)
 		{
-			pColor[2] = DAT_10092168.m_Unk00[pColor[2] + pFrame0->m_pVertR[i]];
-			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + pFrame0->m_pVertG[i]];
-			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + pFrame0->m_pVertB[i]];
+			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + pFrame0->m_pVertR[i]];
+			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + pFrame0->m_pVertG[i]];
+			pColor[-1] = DAT_10092168.m_Unk00[pColor[-1] + pFrame0->m_pVertB[i]];
 		}
 	}
 	else
 	{
 		uint32 inv = (uint8)(-percent - 1);
 
-		for (i = 0; i < nPolyData; i++, pColor += 0x18)
+		for (i = 0, pColor = (uint8 *)pPolyData + 0x15; i < nPolyData; i++, pColor += 0x18)
 		{
-			pColor[2] = DAT_10092168.m_Unk00[pColor[2] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + DAT_10082168.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
-			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
-			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
+			pColor[1] = DAT_10092168.m_Unk00[pColor[1] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + DAT_10082168.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
+			pColor[0] = DAT_10092168.m_Unk00[pColor[0] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
+			pColor[-1] = DAT_10092168.m_Unk00[pColor[-1] + DAT_10092168.m_Unk00[DAT_10082168.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + DAT_10082168.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
 		}
 	}
 	return 1;
@@ -392,10 +394,9 @@ void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly);
 // guess: relights the polygon pPoly: its vertex colours are cleared and every light animation that touches it adds its frame colours
 // (WPF_RELIGHT polys; the lightmap-less vertex colour path).  Name from names_proposal.csv (guess_d3d_RelightWorldPoly, low); loop 2 of
 // FUN_1002f440 has the same code written out.
-// STUB diagnosis (W6): 720 bytes like the exe; 528 differ (register assignment): the exe reloads pPoly from the stack in each branch (ours
-// hoists `mov ecx,[esp+8]` in front of the test) and has a 0x1c byte frame (ours 0x20), keeps pFrame1 in ebp/[esp+0x18] and reloads the
-// anim count and the world pointer in the loop.  The inlined FUN_100185a0 body is the exe's (same order of the six table lookups); the
-// two-frame form (`percent == 0` / `0xff` after loading both frames) and LTMIN(LTMIN()) were needed to get there.  Permuter 6 minutes.
+// STUB diagnosis: 720/720 bytes, 423 strict differences. A separate clamped count and per-branch green-origin
+// cursor restore the native branch-local polygon loads and colour offsets. Frame size (0x24 versus native 0x1c),
+// register allocation, nested-min scheduling and table-lookup scheduling still differ.
 // STUB: D3DREN 0x1002f780
 void FUN_1002f780(MainWorld *pWorld, WorldPoly *pPoly)
 {
@@ -446,22 +447,48 @@ extern LTVector DAT_100756d0;
 // MatMul stays a call in the two callers below only with this expansion in front of it).
 static inline void WMSetColor(WorldModelInstance *pInstance)
 {
-	DAT_100756d0.x = (float)pInstance->m_ColorR * (1.0f / 255.0f) * DAT_10055ce8.x;
-	DAT_100756d0.y = (float)pInstance->m_ColorG * (1.0f / 255.0f) * DAT_10055ce8.y;
-	DAT_100756d0.z = (float)pInstance->m_ColorB * (1.0f / 255.0f) * DAT_10055ce8.z;
+	DAT_100756d0.x = ((float)pInstance->m_ColorR * (1.0f / 255.0f)) * DAT_10055ce8.x;
+	DAT_100756d0.y = ((float)pInstance->m_ColorG * (1.0f / 255.0f)) * DAT_10055ce8.y;
+	DAT_100756d0.z = ((float)pInstance->m_ColorB * (1.0f / 255.0f)) * DAT_10055ce8.z;
 	DAT_10057774 = pInstance->m_ColorA;
 }
 
 void FUN_100144b0(int nMode);	// 0x100144b0 (unit unk/100132a0, W2): starts a world draw: selects the poly callbacks
 void FUN_100145f0(int a1);		// 0x100145f0 (unit unk/100132a0, W2): draws the queued polys and resets the stage state
 
+// guess: the MatVMul_H variant inlined into the world-model view-position transform at 0x1002fd1e.
+// The SDK formula is accumulated in the target's x87 order: w/y/z use x,y,z, while the x row uses y,z,x.
+// Keep this as an inline helper: writing the expansion in the caller changes its MatMul inlining decisions.
+static inline float FUN_1002fa80_Inline(LTVector *pDest, LTMatrix *pMat, LTVector *pSrc)
+{
+	float fW = pMat->m[3][0] * pSrc->x;
+	fW += pMat->m[3][1] * pSrc->y;
+	fW += pMat->m[3][2] * pSrc->z;
+	fW += pMat->m[3][3];
+	fW = 1.0f / fW;
+	float fX = pMat->m[0][1] * pSrc->y;
+	fX += pMat->m[0][2] * pSrc->z;
+	fX += pMat->m[0][0] * pSrc->x;
+	fX += pMat->m[0][3];
+	pDest->x = fW * fX;
+	float fY = pMat->m[1][0] * pSrc->x;
+	fY += pMat->m[1][1] * pSrc->y;
+	fY += pMat->m[1][2] * pSrc->z;
+	fY += pMat->m[1][3];
+	pDest->y = fW * fY;
+	float fZ = pMat->m[2][0] * pSrc->x;
+	fZ += pMat->m[2][1] * pSrc->y;
+	fZ += pMat->m[2][2] * pSrc->z;
+	fZ += pMat->m[2][3];
+	pDest->z = fW * fZ;
+	return fW;
+}
+
 // NAME: d3d_DrawSolidWorldModel: Jupiter drawworldmodel.cpp d3d_DrawSolidWorldModel (names_proposal.csv, high): bound radius frustum test,
 // fog switch, the model's transform multiplied into the view matrices, the polys of the original BSP drawn by FUN_1002f440, restore
-// STUB diagnosis (W6): 1104 bytes like the exe, 44 bytes differ: the first part (the frustum loop) uses ecx/edx where the exe uses edx/ecx
-// and tests the loop counter against 6 where ours tests the plane pointer; the second MatVMul_H (the view position in the model's
-// space) has its three terms in x, z, y order where the exe has x, y, z for w and the rows 1 and 2 but y, z, x for row 0.
-// (WMSetColor and the LTVector operator* variants were tried; the operator form drops the by-value temporaries the exe has.)
-// STUB: D3DREN 0x1002fa80
+// MATCH: initialize the clip counter before the position copy; preserve WMSetColor's byte-to-float scaling before global-light
+// multiplication, and use the target's per-term homogeneous transform above.
+// FUNCTION: D3DREN 0x1002fa80
 void d3d_DrawSolidWorldModel(ViewParams *pParams, LTObject *pObject)
 {
 	WorldModelInstance *pInstance = (WorldModelInstance *)pObject;
@@ -475,10 +502,11 @@ void d3d_DrawSolidWorldModel(ViewParams *pParams, LTObject *pObject)
 	LTVector vOldFogPos, vFogPos, vViewPos;
 
 	fRadius = pInstance->m_pOriginalBsp->GetBoundRadius();
+	i = 0;
 	vPos = pInstance->m_Pos;
 	nClipFlags = 0x3f;
 	pPlane = g_ViewParams.m_ClipPlanes;
-	for (i = 0; i < 6; pPlane++, i++)
+	for (; i < 6; pPlane++, i++)
 	{
 		float fDist = pPlane->DistTo(vPos);
 		if (fDist < -fRadius)
@@ -504,7 +532,7 @@ void d3d_DrawSolidWorldModel(ViewParams *pParams, LTObject *pObject)
 
 	FUN_100144b0(0);
 
-	MatVMul_H(&vViewPos, &pInstance->m_BackTransform, &pParams->m_Pos);
+	FUN_1002fa80_Inline(&vViewPos, &pInstance->m_BackTransform, &pParams->m_Pos);
 	if (pInstance->m_pOriginalBsp->IsUntransformed() == 0)
 	{
 		WorldBsp *pBsp = (WorldBsp *)pInstance->m_pOriginalBsp;
@@ -532,11 +560,9 @@ void FUN_10030370(WorldPoly *pPoly);
 // version is the sorted-list callback that draws the BSP back to front itself): the same colour/fog/matrix prologue as
 // d3d_DrawSolidWorldModel, the vertical fog position set to the origin, then the BSP of the original is walked with an explicit stack:
 // the far side of every node first, then the node's own poly (FUN_10030370, or the visible set's sorted poly list), then the near side
-// STUB diagnosis (W6): 784 vs 768 bytes: the frame is 0x20a4 against 0x20a0 (one extra local), the BSP stack index lives in ebp where the
-// exe uses edi and the constant 3 of the leaf test is kept in bl (`test [ecx+0x16],bl`) where the exe has the immediate; the zero
-// vector for SetupFogViewPosition is built in a different order.  Control flow and calls are the exe's (WMSetColor expansion is what keeps
-// MatMul out of line).  Permuter best 38 mismatches.
-// STUB: D3DREN 0x10030070
+// Native traversal descends through the far child in an inner loop; explicit XYZ plane arithmetic
+// preserves the original view snapshot and x87 scheduling (768 bytes, strict byte/relocation MATCH).
+// FUNCTION: D3DREN 0x10030070
 void FUN_10030070(ViewParams *pParams, LTObject *pObject)
 {
 	WorldModelInstance *pInstance = (WorldModelInstance *)pObject;
@@ -568,17 +594,21 @@ void FUN_10030070(ViewParams *pParams, LTObject *pObject)
 	{
 		for (;;)
 		{
-			if (!(pNode->m_Flags & (NF_IN | NF_OUT)))
+			while (!(pNode->m_Flags & (NF_IN | NF_OUT)))
 			{
-				iSide = (pNode->m_pPoly->m_pPlane->DistTo(g_ViewParams.m_Pos) >= 0.0f);
+				// Native 0x100301f9-0x10030211 snapshots view XYZ before the plane load.
+				LTVector vView = g_ViewParams.m_Pos;
+				LTPlane *pPlane = pNode->m_pPoly->m_pPlane;
+				iSide = ((pPlane->m_Normal.x * vView.x + pPlane->m_Normal.y * vView.y + pPlane->m_Normal.z * vView.z - pPlane->m_Dist) >= 0.0f);
 				aNodes[iStack] = pNode;
 				aNear[iStack] = pNode->m_Sides[iSide];
 				iStack++;
 				if (iStack < 0x400)
 				{
-					pNode = pNode->m_Sides[iSide == 0];
+					pNode = pNode->m_Sides[!iSide];
 					continue;
 				}
+				break;
 			}
 
 			pNode = aNodes[iStack - 1];

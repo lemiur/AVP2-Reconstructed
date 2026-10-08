@@ -215,7 +215,7 @@ void d3d_SetupPerspectiveMatrix(LTMatrix *pMatrix, float nearZ, float farZ);
 // pMat is the viewer matrix and vScale an extra scale that scales all the coordinates up.
 // STUB: D3DREN 0x1000f72b
 // Remaining difference (41 bytes / 7 aligned instructions of 952; same size 2766). The named half-screen width and height
-// copies below align the device-transform and fRange scheduling. The remaining hunks are the m_mShearView copy relative to
+// copies below align the device-transform and fRange scheduling. The remaining hunks are the m_mClipTransform copy relative to
 // the next MatMul argument setup, and push/LEA order around the final hidden-return matrix temporary.
 LTBOOL d3d_InitFrustum2(ViewParams *pParams,
 	ViewBoxDef *pViewBox,
@@ -462,10 +462,8 @@ void d3d_SetupPerspectiveMatrix(LTMatrix *pMatrix, float nearZ, float farZ)
 // NAME: d3d_SetupSkyStuff: Jupiter common_draw.cpp static d3d_SetupSkyStuff (the Talon one takes no arguments: it works on
 // g_pSceneDesc->m_SkyDef and g_ViewParams)
 // STUB: D3DREN 0x100102b9
-// Remaining difference: the exe takes the world extents and the percents through by-value LTVector temporaries
-// (min is copied with movsd three times, percents is assigned from a temporary through the same slot as the min copies,
-// frame 0x30 instead of our 0x24, 265 bytes instead of 232); `percents = (m_Pos - min) / (max - min)` with the SDK
-// operators gives 285 bytes, per-component code 232.  The exact expression shape of the original is not found.
+// Remaining difference: 266 vs 265 bytes, 202 differing bytes. The final vector temporary preserves the original three-DWORD
+// copy into m_SkyViewPos; the world-extents/percentage temporaries and register allocation still differ.
 void d3d_SetupSkyStuff()
 {
 	LTVector percents;
@@ -482,13 +480,12 @@ void d3d_SetupSkyStuff()
 	}
 
 	const SkyDef &Def = g_pSceneDesc->m_SkyDef;
-	LTVector v = Def.m_ViewMax - Def.m_ViewMin;
-
-	v.x *= percents.x;
-	v.y *= percents.y;
-	v.z *= percents.z;
-
-	g_ViewParams.m_SkyViewPos = Def.m_ViewMin + v;
+	const LTVector &min = Def.m_ViewMin;
+	LTVector vRange, vWeighted, vOut;
+	VEC_SUB(vRange, Def.m_ViewMax, min);
+	VEC_MUL(vWeighted, vRange, percents);
+	VEC_ADD(vOut, min, vWeighted);
+	g_ViewParams.m_SkyViewPos = vOut;
 }
 
 // Globals written by d3d_InitFrame (Jupiter common_draw.cpp has the first three; the others are renderer statistics and
@@ -517,7 +514,7 @@ extern LTVector DAT_100561f8;			// guess: the global light scale (SceneDesc +0x5
 // GLOBAL: D3DREN 0x10056208
 extern LTVector DAT_10056208;			// guess: DAT_100561f8 * 255
 // GLOBAL: D3DREN 0x100566c0
-extern LTVector DAT_100566c0;			// guess: DAT_10056208 / 255 * 255 ... (scaled by 1/255)
+extern LTVector DAT_100566c0;			// DAT_100561f8 / 255 (original loads at 0x100104cb/0x100104d2/0x100104dd)
 // GLOBAL: D3DREN 0x10056698
 extern TLRGB DAT_10056698;				// guess: the light scale as a packed colour
 // GLOBAL: D3DREN 0x10057774
@@ -565,22 +562,40 @@ extern int DAT_10056278;
 extern int DAT_10055cdc;
 // DAT_1005626c, DAT_1005668c, g_ClipFlags, g_pClipScratchVerts: include/d3dren/viewparams.h
 
+// NAME: d3d_InitFrustum: Jupiter common_draw.cpp, expanded in d3d_InitFrame in Talon.
+inline LTBOOL d3d_InitFrustum(ViewParams *pParams,
+    float xFov, float yFov, float nearZ, float farZ,
+    float screenMinX, float screenMinY, float screenMaxX, float screenMaxY,
+    const LTVector *pPos, const LTRotation *pRotation)
+{
+    LTMatrix mat;
+    quat_ConvertToMatrix(pRotation->m_Quat, mat.m);
+    mat.SetTranslation(*pPos);
+    ViewBoxDef viewBox;
+    d3d_InitViewBox(&viewBox, nearZ, farZ, xFov, yFov);
+    return d3d_InitFrustum2(pParams, &viewBox,
+        screenMinX, screenMinY, screenMaxX, screenMaxY,
+        &mat, LTVector(1.0f, 1.0f, 1.0f));
+}
+
+// Component-wise SDK VEC_MULSCALAR formula, returned through the original-style vector temporary.
+inline LTVector FUN_100103c2_Scale(LTVector v, float scale)
+{
+    LTVector ret;
+    VEC_MULSCALAR(ret, v, scale);
+    return ret;
+}
+
 // NAME: d3d_InitFrame: Jupiter common_draw.cpp d3d_InitFrame (names_proposal medium); the Talon form takes two more arguments (the
 // scratch vertex buffer of the polygon clippers, stored in g_pClipScratchVerts, and an int stored in DAT_1005625c) and has Jupiter's
 // d3d_InitFrustum inlined (it has no copy of its own in d3d.ren).
 // STUB: D3DREN 0x100103c2
-// Remaining difference: 864 instead of 949 bytes (511 bytes differ, same statements, calls, globals and constants).  The exe
-// evaluates `light scale * 255` and `* 1/255` per component with the constant as a memory operand (`fld [x]; fmul [255.0]; fst
-// [temp]` ... then movsd of the temporary into the global) where our compile keeps 255.0 on the x87 stack (`fld 255; fmul
-// st(1)`) and builds the vectors directly; the same holds for the three colour packings (`fld; fmul [255]; fstp [tmp]; fld [tmp];
-// fistp` per channel in the exe, shorter in ours), so the packed colours' source form is not the SDK operator* on a global.  Tried:
-// a named LTVector temporary, 1/255 as 0.003921569f, per-component scaling.  The frame (0x88 locals in the exe, 0x78 ours) and the
-// call sequence of d3d_InitViewBox / d3d_InitFrustum2 (the inlined Jupiter d3d_InitFrustum) are otherwise the same.
+// Remaining difference: 939 instead of 949 bytes (486 bytes differ). The inline frustum call snapshots its FOV, near/far,
+// and screen parameters before matrix construction, as in the original. The scaled vectors pass through local float
+// temporaries before their DWORD copies. Some vector copies and x87 scheduling still differ.
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 {
 	RenderContext *pContext;
-	LTMatrix mat;
-	ViewBoxDef viewBox;
 	short control;
 
 	// d3d_SetFPState (Jupiter common_draw.h): lower the floating point precision to speed up multiplies and divides.
@@ -625,9 +640,9 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 	DAT_100566a0 = pDesc->m_Unknown44;
 
 	DAT_100561f8 = pDesc->m_GlobalLightScale;
-	DAT_10056208 = DAT_100561f8 * 255.0f;
-	DAT_100566c0 = DAT_10056208 * (1.0f / 255.0f);
-	DAT_10056698.r = (uint8)RoundFloatToInt(DAT_10056208.x);
+	DAT_10056208 = FUN_100103c2_Scale(DAT_100561f8, 255.0f);
+	DAT_100566c0 = FUN_100103c2_Scale(DAT_100561f8, 1.0f / 255.0f);
+	DAT_10056698.r = (uint8)RoundFloatToInt(DAT_100561f8.x * 255.0f);
 	DAT_10056698.g = (uint8)RoundFloatToInt(DAT_100561f8.y * 255.0f);
 	DAT_10056698.b = (uint8)RoundFloatToInt(DAT_100561f8.z * 255.0f);
 	DAT_10056698.a = 0xff;
@@ -665,18 +680,11 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 	DAT_10056278 = 0;
 	DAT_10055cdc = 0;
 
-	// d3d_InitFrustum (Jupiter common_draw.cpp), inlined.
-	quat_ConvertToMatrix(pDesc->m_Rotation.m_Quat, mat.m);
-	mat.SetTranslation(pDesc->m_Pos);
-
-	d3d_InitViewBox(&viewBox, g_CV_NearZ.m_FloatVal, pDesc->m_FarZ, pDesc->m_xFov, pDesc->m_yFov);
-
-	// Note: since the numbers are truncated when converted to integers, it takes a little
-	// off the right and bottom to make sure it never exceeds those.
-	return d3d_InitFrustum2(&g_ViewParams, &viewBox,
-		(float)pDesc->m_Rect.left, (float)pDesc->m_Rect.top,
-		(float)pDesc->m_Rect.right - 0.1f, (float)pDesc->m_Rect.bottom - 0.1f,
-		&mat, LTVector(1.0f, 1.0f, 1.0f));
+    return d3d_InitFrustum(&g_ViewParams,
+        pDesc->m_xFov, pDesc->m_yFov, g_CV_NearZ.m_FloatVal, pDesc->m_FarZ,
+        (float)pDesc->m_Rect.left, (float)pDesc->m_Rect.top,
+        (float)pDesc->m_Rect.right - 0.1f, (float)pDesc->m_Rect.bottom - 0.1f,
+        &pDesc->m_Pos, &pDesc->m_Rotation);
 }
 
 // ------------------------------------------------------------------ //
