@@ -530,12 +530,15 @@ CMovingCylinder::EHeightSection CMovingCylinder::GetHeightSection(float fYValue)
 // direction) -> 349/181, 2176 bytes. Audit: behaviour matches, no inline-budget question (the model reproduces
 // the exe's calls at any budget). Left: the register/frame layout above and 64 bytes of size in the vertex loop
 // (the exe walks the vertices with a pointer in edx and the count in ebp).
-// Wave 9: VEC_SUB for the two XZ offsets (vTo, vToProj) and the vertex array indexed from pPoly at each use (no hoisted
-// pVert; the exe's `[pPoly + n*0x18 + 0x40]` is Jupiter's trailing WorldPoly::m_Vertices[1] member, which our
-// WorldPoly lacks): 166 -> 72 aligned ignoring stack offsets, everything matches up to the XZ edge length. Left: the exe
-// keeps vEdge.x on the FPU and a second home for vEdge.z through the length, t and VEC_ADDSCALED; its vCur fallback copies
-// use fld/fstp and share the final vPt.z store with VEC_ADDSCALED (ours: mov copies, 32 bytes smaller). Tried: x/z orders
-// of the length and t, `vPt = vCur`, Init(), *pCur.
+// Wave 9: VEC_SUB for the two XZ offsets (vTo, vToProj), the vertex array indexed from pPoly at each use (no hoisted
+// pVert; the exe's `[pPoly + n*0x18 + 0x40]` is Jupiter's trailing WorldPoly::m_Vertices member), and the XZ edge as an
+// LTVector of its own (`vEdgeXZ(vEdge.x, 0, vEdge.z)`, length by Mag(): the exe recomputes the squares in Norm, so
+// they are not the same expression as the XZ length): 166 -> 66 aligned ignoring stack offsets. Left: the exe keeps
+// vEdgeXZ.z in memory (fst, frame 16 bytes larger) and reads it again for VEC_ADDSCALED; its vCur fallback copies use
+// fld/fstp and share the final vPt.z store with VEC_ADDSCALED (ours: mov copies). Tried without gain: x/z orders of the
+// length and t, float locals for the XZ components, an inline XZ-length helper, the edge-point block as an inline
+// helper (reference or pointer output, one shared copy), `vEdgeXZ *= fInv` / `/= fLen` (size matches, 75), copy-and-
+// zero-y and Init/VEC_SET forms, `vPt = vCur`, Init(), *pCur.
 // STUB: LITHTECH 0x004190f0
 LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 {
@@ -600,11 +603,12 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 		if (iPrevSection != iCurSection || iPrevSection == HEIGHT_MIDDLE)
 		{
 			// The point of the edge nearest the end position (in XZ).
-			fLen = (float)sqrt(vEdge.z * vEdge.z + vEdge.x * vEdge.x);
+			LTVector vEdgeXZ(vEdge.x, 0.0f, vEdge.z);
+			fLen = vEdgeXZ.Mag();
 			if (fLen > 0.01f)
 			{
 				fInv = 1.0f / fLen;
-				t = (vEdge.z * fInv * (m_vEnd.z - vPrev.z) + vEdge.x * fInv * (m_vEnd.x - vPrev.x)) * fInv;
+				t = (vEdgeXZ.z * fInv * (m_vEnd.z - vPrev.z) + vEdgeXZ.x * fInv * (m_vEnd.x - vPrev.x)) * fInv;
 				if (t >= 0.0f && t <= 1.0f)
 					VEC_ADDSCALED(vPt, vPrev, vEdge, t)
 				else
