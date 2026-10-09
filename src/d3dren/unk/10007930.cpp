@@ -160,7 +160,7 @@ void DrawWorldTexturePoly(WorldPoly *pPoly)
 	}
 	else
 	{
-		pSrc = (UnkType_PolyVert *)((uint8 *)pPoly + 0x58);
+		pSrc = (UnkType_PolyVert *)pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 
