@@ -398,25 +398,25 @@ int CTextureManager_Init()
 
 // The bit range of a colour mask: *pEnd = index just above the run of set bits, *pStart = index of the lowest set bit.
 // NAME: names_proposal.csv guess_GetMaskBitRange (low, invented): not used
-// An inline function in the original: the callback below calls the copy that follows it (0x1001f540) from its first sites and
-// expands it in the later ones.
+// An inline function in the original: the callback below calls the copy that follows it (0x1001f540) at all but one site and
+// expands the 0x7c00 one.
 inline void GetColorMaskBitRange(uint32 mask, uint32 *pEnd, uint32 *pStart)
 {
 	*pStart = 0;
 	uint32 bit = 1;
 	for (uint32 i = 0; i < 32; i++)
 	{
-		if (mask & bit)
+		if ((mask & bit) != 0)
 			break;
-		bit <<= 1;
+		bit = bit << 1;
 		(*pStart)++;
 	}
 	*pEnd = *pStart;
 	for (uint32 j = 0; j < 32; j++)
 	{
-		if (!(mask & bit))
+		if ((mask & bit) == 0)
 			return;
-		bit <<= 1;
+		bit = bit << 1;
 		(*pEnd)++;
 	}
 }
@@ -447,15 +447,10 @@ static void CalcColorMaskAlignmentShifts(uint32 refMask, uint32 mask, int *pRigh
 // IDirect3DDevice7::EnumTextureFormats callback: records every enumerated pixel format in the list g_TextureFormatList with its bit counts
 // and the channel shifts for the conversion routines.
 // NAME: d3d_EnumTextureFormatsCallback: names_proposal.csv (medium, LPD3DENUMPIXELFORMATSCALLBACK shape)
-// NOT MATCHING (1152 vs 1136 bytes): same statements and order as the exe.  GetColorMaskBitRange (the bit range of a mask; its out-of-line copy
-// follows this function at 0x1001f540, so it is an inline function in the original) is called at the first seven of the ten
-// shift calculations (two calls each) in the exe and the same in ours up to there, but ours expands GetColorMaskBitRange from the seventh site
-// on, while the exe expands only the constant-mask call at some later sites (the 0x7c00 and 0x3e0 ones) and keeps calling for the
-// variable-mask one.  With a free inline call after the 7th site and one after the 10th the first seven sites are byte-identical to the
-// exe, registers included (pNode in ebx, pFormat in ebp; without them ours swaps the two), and the size is the exe's; no placement of
-// pending calls or ballast reproduces the exe's pattern of expansions after that (about 40 placements and counts tried), so the
-// original nests the shift helper differently from CalcColorMaskAlignmentShifts (inline, two GetColorMaskBitRange calls).
-// STUB: D3DREN 0x1001f0d0
+// GetColorMaskBitRange is an inline function (its out-of-line copy follows at 0x1001f540): the exe calls it at every site but the
+// constant-mask one of the 0x7c00 shift, which its budget share expands.  That needs GetColorMaskBitRange's explicit `!= 0` / `== 0`
+// tests and `bit = bit << 1` (its front-end size, ~133u); `if (mask & bit)` / `bit <<= 1` (123u) expands it from the 6th pair on.
+// FUNCTION: D3DREN 0x1001f0d0
 HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pContext)
 {
 	TextureFormat *pNode = (TextureFormat *)dalloc(sizeof(TextureFormat));
