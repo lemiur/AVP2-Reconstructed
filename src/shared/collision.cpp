@@ -540,6 +540,9 @@ CMovingCylinder::EHeightSection CMovingCylinder::GetHeightSection(float fYValue)
 // length and t, float locals for the XZ components, an inline XZ-length helper, the edge-point block as an inline
 // helper (reference or pointer output, one shared copy), `vEdgeXZ *= fInv` / `/= fLen` (size matches, 75), copy-and-
 // zero-y and Init/VEC_SET forms, `vPt = vCur`, Init(), *pCur.
+// Also tried: the two height slides as an inline SlideToHeight(vPt, fY, fSlopeX, fSlopeZ) (62), block-local fDist, a
+// named vEdgeXZ.z/x for t, a scaled direction vector; a 10-minute permuter run reaches 28 only through unauthentic
+// mutations (a float copy of vEdgeXZ.z, LTBOOLs retyped).
 // STUB: LITHTECH 0x004190f0
 LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 {

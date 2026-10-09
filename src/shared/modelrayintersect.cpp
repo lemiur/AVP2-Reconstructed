@@ -281,7 +281,10 @@ inline LTVector GetTriNormal(RayTri *pTri)
 // Left: `1.0f / Dot` is fdivr in ours; the exe keeps the dot on the x87 stack (fld 1.0; fdiv st(1); fstp; fstp st(0)),
 // VC6's reciprocal form for several divides by one value (LTMatrix::Normalize's VEC_DIVSCALAR in GetNodeTransform).
 // Tried: a named fDet (with and without dividing u/v/t by it, every subset), the divide after vT, an inline reciprocal
-// helper, VEC_DOT for the inline Dots (shifts the inline decisions).
+// helper, VEC_DOT for the inline Dots (shifts the inline decisions); wave 9 pass 2: Jupiter's ray/triangle test
+// (d3d_renderblock.cpp, culling form) has no other shape that fits, a double det, `1.0f / fDet` with fDet in any scope,
+// u/v/t divided by fDet (reciprocal computed after the vT constructor), a ScaledDot helper for u/v/t (inlining shifts).
+// PARKED: x87 form of `1.0f / Dot` only (exe fld 1.0; fdiv st(1); fstp; fstp st(0), ours fdivr; 8 aligned); calls, size and behaviour match
 // STUB: LITHTECH 0x0045b640
 void CModelRayIntersect::IntersectRay(ILTModel::LTRayResult *pRay)
 {
