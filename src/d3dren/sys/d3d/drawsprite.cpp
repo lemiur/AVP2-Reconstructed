@@ -43,54 +43,24 @@ static UnkType_EmptyCtorW6 s_Empty2;
 // FUNCTION: D3DREN 0x1002d650 _$E5
 static UnkType_EmptyCtorW6 s_Empty3;
 
-// NAME: d3d_ProcessSprite: Jupiter drawsprite.cpp (names_proposal.csv, high): g_ObjectHandlers[OT_SPRITE].m_ProcessObjectFn; Jupiter
-// adds to one set, the Talon version to the NOZ set when FLAG_SPRITE_NOZ is set (BaseObjectSet::Add expanded inline)
-// FUNCTION: D3DREN 0x1002e9f0
-void d3d_ProcessSprite(LTObject *pObject)
-{
-	VisibleSet *pVisibleSet = d3d_GetVisibleSet();
-	BaseObjectSet *pSet = (pObject->m_Flags & FLAG_SPRITE_NOZ) ? &pVisibleSet->m_NoZSprites : &pVisibleSet->m_TranslucentSprites;
-	pSet->Add(pObject);
-}
+// ---- drawworldmodel: world polygon drawing ------------------------------------------------------------------------------------------
 
-void d3d_DrawSprite(ViewParams *pParams, LTObject *pObject);
-void d3d_QueueSprite(ViewParams *pParams, LTObject *pObject);
+// the polygon's surface (WorldPoly::m_pSurface is a void * in de_objects.h)
+#define POLY_SURFACE(p)		((Surface *)(p)->m_pSurface)
+// guess: the poly's frame tag (the tagging code sets it to the frame code of the frame the poly was seen in)
+#define WORLDPOLY_FRAMECODE(p)	(*(uint16 *)((uint8 *)(p) + 0x46))
 
-// NAME: d3d_QueueTranslucentSprites: Jupiter drawsprite.cpp (names_proposal.csv, medium; no arguments in Talon)
-// FUNCTION: D3DREN 0x1002ea40
-void d3d_QueueTranslucentSprites()
-{
-	if (g_DrawSprites)	// the DrawSprites console variable's mirror
-	{
-		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_TranslucentSprites;
-		pSet->Draw(&g_ViewParams, d3d_QueueSprite);
-	}
-}
-
-// guess: BaseObjectSet::Draw callback that queues the sprite in the sorted list of translucent objects
-// FUNCTION: D3DREN 0x1002ea70
-void d3d_QueueSprite(ViewParams *pParams, LTObject *pObject)
-{
-	g_pTranslucentObjectDrawList->Add(pObject, d3d_DrawSprite);
-}
+// ---- d3d_DrawSolidWorldModel ----------------------------------------------------------------------------------------------------------
 
 
-// NAME: d3d_DrawNoZSprites: Jupiter drawsprite.cpp (names_proposal.csv, high)
-// FUNCTION: D3DREN 0x1002ea90
-void d3d_DrawNoZSprites()
-{
-	if (g_DrawSprites)
-	{
-		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_NoZSprites;
-		if (pSet->m_nObjects > 0)
-		{
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, 0);
-			pSet->Draw(&g_ViewParams, d3d_DrawSprite);
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, g_DefaultZEnableState);
-		}
-	}
-}
+// ---- d3d_DrawTranslucentWorldPoly ----------------------------------------------------------------------------------------------------
 
+#define WORLDPOLY_LIGHTS(p)	((UnkType_PolyLightRef *)*(uint32 *)((uint8 *)(p) + 0x30))
+// GLOBAL: D3DREN 0x100577b8
+extern uint16 g_CurTextureFrameCode;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
+
+void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x1000c860 (W4, unit unk/1000c860: the light grid lookup)
+RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
 
 // guess: Jupiter polyclip.h's clipper dispatch as an inline function of the original (the exe expands it in several of this unit's
 // functions; unit unk/100098d0 has the out-of-line copy ClipPoly): the polygon *ppVerts / *pnVerts is clipped against the planes
@@ -125,6 +95,35 @@ static inline int ClipPoly_Inline(uint32 nFlags, TLVertex **ppVerts, int *pnVert
 	return 0;
 }
 
+
+// Inline helpers of ClipAndProjectPolyWithDepthBias and the sprite drawers (the exe expands them); their out-of-line copies are TransformPositionInPlace
+// (0x10008719, unit unk/10007930) and ProjectPositionWithDepthBias (0x100062e0, unit unk/100062e0), which take float pointers.
+// helper written for this decompilation (TransformPositionInPlace expanded): camera space transform of one position, in place.
+static inline void TransformTLVertexInPlace(TLVertex *pVert, const float *pMatrix)
+{
+	float x = pMatrix[0] * pVert->m_Vec.x + pMatrix[1] * pVert->m_Vec.y + pMatrix[2] * pVert->m_Vec.z + pMatrix[3];
+	float y = pMatrix[4] * pVert->m_Vec.x + pMatrix[5] * pVert->m_Vec.y + pMatrix[6] * pVert->m_Vec.z + pMatrix[7];
+	float z = pMatrix[8] * pVert->m_Vec.x + pMatrix[9] * pVert->m_Vec.y + pMatrix[10] * pVert->m_Vec.z + pMatrix[11];
+	pVert->m_Vec.z = z;
+	pVert->m_Vec.x = x;
+	pVert->m_Vec.y = y;
+}
+
+// helper written for this decompilation (ProjectPositionWithDepthBias expanded): projects the vertex in place; x and y use the
+// unbiased w, z and rhw those of the position moved fZBias along z.  The bias parameter itself carries the biased z (a separate
+// local gives the exe's code only out of line).
+static inline void ProjectTLVertexWithDepthBias(TLVertex *pVert, float fZBias)
+{
+	LTVector result;
+	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.x = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
+	result.y = (g_ViewParams.m_DeviceTimesProjection.m[1][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[1][3]) * w;
+	fZBias += pVert->m_Vec.z;
+	float w2 = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * fZBias + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.z = (g_ViewParams.m_DeviceTimesProjection.m[2][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[2][2] * fZBias + g_ViewParams.m_DeviceTimesProjection.m[2][3]) * w2;
+	pVert->rhw = w2;
+	pVert->m_Vec = result;
+}
 
 // guess: the two sprite drawers: the camera facing one (unit-internal, 0x1002d860) and the rotatable one (0x1002e310); both take the
 // view parameters, the sprite, its position (&m_Pos), its x and y scale and the frame's texture
@@ -182,6 +181,420 @@ void d3d_DrawSprite(ViewParams *pParams, LTObject *pObject)
 	}
 }
 
+// ---- d3d_DrawSprite (the camera facing sprite) ----------------------------------------------------------------------------------------
+
+
+void d3d_CalcLightAdd(LTObject *pObject, LTVector *pLightAdd);		// 0x1000f270 (unit unk/1000f160)
+
+// the sprite size / bias constants of Jupiter drawsprite.cpp
+// They are file constants, not literals: the exe loads them from .rdata (the argument -20.0 is pushed from memory) and computes
+// MAXFACTORDIST - MINFACTORDIST and MAXFACTOR - MINFACTOR at run time, which VC6 does for `static const float` but folds for literals.
+// GLOBAL: D3DREN 0x10046498
+static const float SPRITE_MINFACTORDIST = 10.0f;
+// GLOBAL: D3DREN 0x1004649c
+static const float SPRITE_MAXFACTORDIST = 500.0f;
+// GLOBAL: D3DREN 0x100464a0
+static const float SPRITE_MINFACTOR = 0.1f;
+// GLOBAL: D3DREN 0x100464a4
+static const float SPRITE_MAXFACTOR = 2.0f;
+// GLOBAL: D3DREN 0x100464a8
+static const float SPRITE_POSITION_ZBIAS = -20.0f;
+
+// guess: the colour of a sprite: its colour bytes times the ambient world colour, plus (unless FLAG_NOLIGHT) the light grid sample at
+// its position and the dynamic lights (d3d_CalcLightAdd), clamped to 0..255; Jupiter drawsprite.cpp d3d_GetSpriteColor.  An inline
+// function of the original (expanded in both sprite draw functions).
+static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
+{
+	TLRGB color;
+
+	color.a = pInstance->m_ColorA;
+	if (!(pInstance->m_Flags & FLAG_NOLIGHT) && g_pFrameMainWorld)
+	{
+		LTRGB lightRGB;
+		LTVector vAdd;
+		LTVector c;
+
+		w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &pInstance->m_Pos, &lightRGB);
+		d3d_CalcLightAdd(pInstance, &vAdd);
+
+		c.x = ((float)pInstance->m_ColorR * g_GlobalVertexTint.x + vAdd.x) * ((float)lightRGB.r * 0.003921569f);
+		if (c.x < 0.0f)
+			c.x = 0.0f;
+		else if (c.x > 255.0f)
+			c.x = 255.0f;
+
+		c.y = ((float)pInstance->m_ColorG * g_GlobalVertexTint.y + vAdd.y) * ((float)lightRGB.g * 0.003921569f);
+		if (c.y < 0.0f)
+			c.y = 0.0f;
+		else if (c.y > 255.0f)
+			c.y = 255.0f;
+
+		c.z = ((float)pInstance->m_ColorB * g_GlobalVertexTint.z + vAdd.z) * ((float)lightRGB.b * 0.003921569f);
+		if (c.z < 0.0f)
+			c.z = 0.0f;
+		else if (c.z > 255.0f)
+			c.z = 255.0f;
+
+		color.r = (uint8)RoundFloatToInt(c.x);
+		color.g = (uint8)RoundFloatToInt(c.y);
+		color.b = (uint8)RoundFloatToInt(c.z);
+	}
+	else
+	{
+		color.r = (uint8)RoundFloatToInt((float)pInstance->m_ColorR * g_GlobalVertexTint.x);
+		color.g = (uint8)RoundFloatToInt((float)pInstance->m_ColorG * g_GlobalVertexTint.y);
+		color.b = (uint8)RoundFloatToInt((float)pInstance->m_ColorB * g_GlobalVertexTint.z);
+	}
+	return *(uint32 *)&color;
+}
+
+// NAME: guess_d3d_DrawSprite_NonRotatable (names_proposal.csv, medium): Jupiter's static d3d_DrawSprite(Params, pInstance, pShared)
+// overload: the sprite is a camera facing quad around pPos (m_Pos) of the size of its texture times fScaleX/fScaleY (and the glow
+// factor with FLAG_GLOWSPRITE), lit like the other objects, optionally with its texture coordinates rotated by the object rotation
+// (FLAG2_SPRITE_TROTATE), clipped to the clip mask, projected (with the z bias for FLAG_SPRITEBIAS) and drawn as a fan.
+// STUB diagnosis: 2640 vs 2736 bytes.  The first 0x11c bytes (camera transform, fog, near test) are the exe's; the bias / really close
+// projection loops (ProjectTLVertexWithDepthBias), the projection branch order (SPRITEBIAS, else REALLYCLOSE, else the screen
+// projection), the glow factor (LTCLAMP; file constants loaded from .rdata) and the colour terms have the exe's instruction shape.
+// Wall: inline call set.  The exe calls the LTVector constructor (inside the inlined operator-) and Mag out of line for the
+// unused distance `pInstance->m_Pos.Dist(pParams->m_Pos)` (operator- takes the by-value copy of pParams->m_Pos the exe makes);
+// ours inlines both and drops the dead code, which shifts registers and frame slots of everything after it.  tools/inline_budget.py:
+// Dist's share here is (A - 13) / (1 + pending) = 344u; the exe's decisions need 68..130u, i.e. 15..30 inline call sites after Dist
+// at the top level where this source has 5, at an unchanged budget.  Writing the colour code out (no SpriteGetColor) moves the wrong
+// way (bigger budget).  Open: the original's extra top-level inline sites (accessors?) after the distance.
+// STUB: D3DREN 0x1002d860
+void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
+{
+	LTVector vCam;
+	float fNearZ;
+	uint32 nSpecular;
+	TLVertex aVerts[4];
+	TLVertex *pVerts;
+	int nVerts;
+	RTexture *pBound;
+	float fWidth, fHeight, fHalfX, fHalfY;
+	float uMin, uMax, vMin, vMax;
+	uint32 nColor;
+	float fSavedNearPlane;
+	int i;
+
+	if (pInstance->m_Flags & FLAG_REALLYCLOSE)
+	{
+		MatVMul(&vCam, &pParams->m_mReallyCloseClipTransform, pPos);
+		fNearZ = g_CV_ReallyCloseNearZ.m_FloatVal;
+	}
+	else
+	{
+		MatVMul(&vCam, &pParams->m_mClipTransform, pPos);
+		fNearZ = g_CV_NearZ.m_FloatVal;
+	}
+
+	g_pfnCalcFogAlpha(&pInstance->m_Pos, &nSpecular);
+	if (vCam.z <= fNearZ)
+		return;
+
+	pInstance->m_Pos.Dist(pParams->m_Pos);
+
+	if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
+		return;
+
+	pBound = (RTexture *)g_pBoundTextures[g_NormalTextureStage];
+	fWidth = (float)pBound->m_Data.GetBaseWidth();
+	fHeight = (float)pBound->m_Data.GetBaseHeight();
+	uMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
+	uMax = (fWidth - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
+	vMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
+	vMax = (fHeight - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
+
+	fHalfX = fWidth * pParams->m_fFovXScale * fScaleX;
+	fHalfY = fHeight * pParams->m_fFovYScale * fScaleY;
+	if (pInstance->m_Flags & FLAG_GLOWSPRITE)
+	{
+		float fFactor = (vCam.z - SPRITE_MINFACTORDIST) / (SPRITE_MAXFACTORDIST - SPRITE_MINFACTORDIST);
+		fFactor = LTCLAMP(fFactor, 0.0f, 1.0f);
+		fFactor = SPRITE_MINFACTOR + ((SPRITE_MAXFACTOR - SPRITE_MINFACTOR) * fFactor);
+		fHalfX *= fFactor;
+		fHalfY *= fFactor;
+	}
+
+	nColor = SpriteGetColor(pInstance);
+
+	aVerts[0].m_Vec.x = vCam.x - fHalfX;
+	aVerts[0].m_Vec.y = vCam.y + fHalfY;
+	aVerts[0].m_Vec.z = vCam.z;
+	aVerts[0].color = nColor;
+	aVerts[0].specular = nSpecular;
+	aVerts[0].tu = uMin;
+	aVerts[0].tv = vMin;
+	aVerts[1].m_Vec.x = vCam.x + fHalfX;
+	aVerts[1].m_Vec.y = vCam.y + fHalfY;
+	aVerts[1].m_Vec.z = vCam.z;
+	aVerts[1].color = nColor;
+	aVerts[1].specular = nSpecular;
+	aVerts[1].tu = uMax;
+	aVerts[1].tv = vMin;
+	aVerts[2].m_Vec.x = vCam.x + fHalfX;
+	aVerts[2].m_Vec.y = vCam.y - fHalfY;
+	aVerts[2].m_Vec.z = vCam.z;
+	aVerts[2].color = nColor;
+	aVerts[2].specular = nSpecular;
+	aVerts[2].tu = uMax;
+	aVerts[2].tv = vMax;
+	aVerts[3].m_Vec.x = vCam.x - fHalfX;
+	aVerts[3].m_Vec.y = vCam.y - fHalfY;
+	aVerts[3].m_Vec.z = vCam.z;
+	aVerts[3].color = nColor;
+	aVerts[3].specular = nSpecular;
+	aVerts[3].tu = uMin;
+	aVerts[3].tv = vMax;
+
+	if (pInstance->m_Flags2 & FLAG2_SPRITE_TROTATE)
+	{
+		float mRot[4][4];
+		float fCenterU = (uMin + uMax) * 0.5f;
+		float fCenterV = (vMin + vMax) * 0.5f;
+
+		quat_ConvertToMatrix((float *)&pInstance->m_Rotation, mRot);
+		for (i = 0; i < 4; i++)
+		{
+			float fDV = aVerts[i].tv - fCenterV;
+			float fDU = aVerts[i].tu - fCenterU;
+			aVerts[i].tu = fDV * mRot[1][0] + fDU * mRot[0][0] + fCenterU;
+			aVerts[i].tv = fDV * mRot[1][1] + fDU * mRot[0][1] + fCenterV;
+		}
+		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
+	}
+
+	fSavedNearPlane = g_ViewParams.m_NearZ;
+	pVerts = aVerts;
+	nVerts = 4;
+	if (pInstance->m_Flags & FLAG_REALLYCLOSE)
+		g_ViewParams.m_NearZ = g_CV_ReallyCloseNearZ.m_FloatVal;
+
+	if (ClipPoly_Inline(g_ClipFlags, &pVerts, &nVerts))
+	{
+		if (pInstance->m_Flags & FLAG_SPRITEBIAS)
+		{
+			float fBias = SPRITE_POSITION_ZBIAS;
+			if (SPRITE_POSITION_ZBIAS + vCam.z < g_CV_NearZ.m_FloatVal)
+				fBias = g_CV_NearZ.m_FloatVal - vCam.z;
+
+			for (i = 0; i < nVerts; i++)
+				ProjectTLVertexWithDepthBias(&pVerts[i], fBias);
+		}
+		else if (pInstance->m_Flags & FLAG_REALLYCLOSE)
+		{
+			for (i = 0; i < nVerts; i++)
+				ProjectTLVertexWithDepthBias(&pVerts[i], g_CV_NearZ.m_FloatVal);
+		}
+		else
+		{
+			TLVertex *pVert = pVerts;
+			for (i = nVerts; i != 0; i--)
+			{
+				ProjectVertexToScreen(&pVert->m_Vec.x, &g_ViewParams);
+				pVert++;
+			}
+		}
+
+		g_TextureStateRestorer.RestoreAllStates();
+		if (pTexture->m_pStateChange)
+			g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
+		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
+	}
+
+	if (pInstance->m_Flags2 & FLAG2_SPRITE_TROTATE)
+		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_WRAP);
+	g_ViewParams.m_NearZ = fSavedNearPlane;
+}
+
+// the helpers of d3d_DrawRotatableSprite, defined after it (in the exe they follow the set callbacks)
+void TransformVertexPositionsHomogeneous(TLVertex *pVerts, int nVerts, LTMatrix *pMat);
+int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, uint32 *pnPoints, TLVertex *pOut);
+int ClipAndProjectPolyWithDepthBias(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int a4, float fBias);
+
+// ---- d3d_DrawRotatableSprite ------------------------------------------------------------------------------------------------------------
+
+void d3d_DrawDevicePrimitive(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags);	// 0x1000d340 (W4, unit unk/100098d0): DrawPrimitive wrapper
+
+// the order the four corners of the rotatable sprite are stored in, for a viewer in front of / behind it (two int[4] tables at
+// 0x1004bd9c and 0x1004bdac)
+// GLOBAL: D3DREN 0x1004bd9c
+static int s_CornerOrderFront[4] = { 0, 1, 2, 3 };
+// GLOBAL: D3DREN 0x1004bdac
+static int s_CornerOrderBack[4] = { 3, 2, 1, 0 };
+
+// NAME: d3d_DrawRotatableSprite: Jupiter drawsprite.cpp d3d_DrawRotatableSprite (names_proposal.csv, high): the sprite quad (the size of its
+// texture) is turned by the object rotation and scale, placed at the object position, optionally clipped to a clipper poly
+// (d3d_ClipSprite), projected (with the z bias for FLAG_SPRITEBIAS) and drawn as a fan
+// STUB diagnosis: 1824 vs 1760 bytes, 553 vs 538 instructions.  Evidence used: the exe calls LTVector::operator- and Mag out of line
+// with the by-value copy of pParams->m_Pos (LTVector::Dist), MatVMul_3x3 followed by a copy back into vForward
+// (MatVMul_InPlace_3x3), and computes the facing test from a by-value copy of *pPos (operator- / Dot inlined); the colour terms
+// and the corner stores have the exe's shape.  Wall: inline call set (tools/inline_budget.py).  The exe calls operator- and Mag
+// (nested in Dist), d3d_FindRTextureForStage (nested in d3d_SetTexture, after a `pTexture->m_pRenderData` test the caller makes)
+// and TransformVertexPositionsHomogeneous out of line; ours inlines all four.  The model needs Dist's share < 62u (ours 165u:
+// about 24 top-level inline sites after it, ours 8-10), d3d_FindRTextureForStage's limit < 51u (ours 112-142u) and 43u more
+// charge before TransformVertexPositionsHomogeneous.  Measured, not kept: TransformVertexPositionsHomogeneous, d3d_ClipSprite
+// and ClipAndProjectPolyWithDepthBias as templates (the exe emits them after the set callbacks, as template instances at the end
+// of the object would be; refused templates are pending sites: Dist's share drops to 137u, but the template TransformVertex-
+// PositionsHomogeneous is then inlined everywhere and loses its out-of-line copy); a d3d_SetTexture helper that tests
+// m_pRenderData before d3d_FindRTextureForStage (include/d3dren/d3d_texture.h) refuses the search only at >= 64u, which
+// contradicts d3d_DrawPolyGrid (the exe inlines both searches there), and any new declaration in that header moves
+// ClipPolyNear40 / ClipPolyLeft40 (unit unk/10007930) by 4 bytes.
+// STUB: D3DREN 0x1002e310
+void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
+{
+	TLVertex aClipped[300];
+	TLVertex aVerts[4];
+	LTMatrix mRotation;
+	LTVector vForward;
+	uint32 nSpecular;
+	TLVertex *pVerts;
+	uint32 nVerts;
+	float fWidth, fHeight;
+	float uMin, uMax, vMin, vMax;
+	uint32 nColor;
+	int *pOrder;
+	TLVertex *pVert;
+
+	pInstance->m_Pos.Dist(pParams->m_Pos);
+
+	if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
+		return;
+
+	g_TextureStateRestorer.RestoreAllStates();
+	if (pTexture->m_pStateChange)
+		g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
+
+	fWidth = (float)(g_pBoundTextures[g_NormalTextureStage]->GetBaseWidth() >> pTexture->m_Unknown3C);
+	fHeight = (float)(g_pBoundTextures[g_NormalTextureStage]->GetBaseHeight() >> pTexture->m_Unknown3C);
+
+	g_pfnCalcFogAlpha(&pInstance->m_Pos, &nSpecular);
+
+	uMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
+	uMax = (fWidth - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
+	vMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
+	vMax = (fHeight - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
+
+	d3d_SetupTransformation(&pInstance->m_Pos, (float *)&pInstance->m_Rotation, &pInstance->m_Scale, &mRotation);
+
+	// which side of the sprite the viewer is on decides the corner order (winding)
+	vForward.Init(0.0f, 0.0f, -1.0f);
+	MatVMul_InPlace_3x3(&mRotation, &vForward);
+	pOrder = s_CornerOrderBack;
+	if (vForward.Dot(pParams->m_Pos - *pPos) >= 0.0f)
+		pOrder = s_CornerOrderFront;
+
+	nColor = SpriteGetColor(pInstance);
+
+	pVert = &aVerts[pOrder[0]];
+	pVert->m_Vec.x = fWidth;
+	pVert->m_Vec.y = fHeight;
+	pVert->m_Vec.z = 0.0f;
+	pVert->color = nColor;
+	pVert->specular = nSpecular;
+	pVert->tu = uMin;
+	pVert->tv = vMin;
+
+	pVert = &aVerts[pOrder[1]];
+	pVert->m_Vec.x = -fWidth;
+	pVert->m_Vec.y = fHeight;
+	pVert->m_Vec.z = 0.0f;
+	pVert->color = nColor;
+	pVert->specular = nSpecular;
+	pVert->tu = uMax;
+	pVert->tv = vMin;
+
+	pVert = &aVerts[pOrder[2]];
+	pVert->m_Vec.x = -fWidth;
+	pVert->m_Vec.y = -fHeight;
+	pVert->m_Vec.z = 0.0f;
+	pVert->color = nColor;
+	pVert->specular = nSpecular;
+	pVert->tu = uMax;
+	pVert->tv = vMax;
+
+	pVert = &aVerts[pOrder[3]];
+	pVert->m_Vec.x = fWidth;
+	pVert->m_Vec.y = -fHeight;
+	pVert->m_Vec.z = 0.0f;
+	pVert->color = nColor;
+	pVert->specular = nSpecular;
+	pVert->tu = uMin;
+	pVert->tv = vMax;
+
+	TransformVertexPositionsHomogeneous(aVerts, 4, &mRotation);
+
+	pVerts = aVerts;
+	nVerts = 4;
+	if (pInstance->m_ClipperPoly != INVALID_HPOLY)
+	{
+		if (!d3d_ClipSprite(pInstance, pInstance->m_ClipperPoly, &pVerts, &nVerts, aClipped))
+			return;
+	}
+
+	if (pInstance->m_Flags & FLAG_SPRITEBIAS)
+	{
+		if (!ClipAndProjectPolyWithDepthBias(&pVerts, (int *)&nVerts, &g_ViewParams, 0, SPRITE_POSITION_ZBIAS))
+			return;
+	}
+	else
+	{
+		if (!d3d_ClipAndProjectTLVertices(&pVerts, (int *)&nVerts, &g_ViewParams, 0))
+			return;
+	}
+
+	d3d_DrawDevicePrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
+}
+
+// NAME: d3d_ProcessSprite: Jupiter drawsprite.cpp (names_proposal.csv, high): g_ObjectHandlers[OT_SPRITE].m_ProcessObjectFn; Jupiter
+// adds to one set, the Talon version to the NOZ set when FLAG_SPRITE_NOZ is set (BaseObjectSet::Add expanded inline)
+// FUNCTION: D3DREN 0x1002e9f0
+void d3d_ProcessSprite(LTObject *pObject)
+{
+	VisibleSet *pVisibleSet = d3d_GetVisibleSet();
+	BaseObjectSet *pSet = (pObject->m_Flags & FLAG_SPRITE_NOZ) ? &pVisibleSet->m_NoZSprites : &pVisibleSet->m_TranslucentSprites;
+	pSet->Add(pObject);
+}
+
+void d3d_DrawSprite(ViewParams *pParams, LTObject *pObject);
+void d3d_QueueSprite(ViewParams *pParams, LTObject *pObject);
+
+// NAME: d3d_QueueTranslucentSprites: Jupiter drawsprite.cpp (names_proposal.csv, medium; no arguments in Talon)
+// FUNCTION: D3DREN 0x1002ea40
+void d3d_QueueTranslucentSprites()
+{
+	if (g_DrawSprites)	// the DrawSprites console variable's mirror
+	{
+		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_TranslucentSprites;
+		pSet->Draw(&g_ViewParams, d3d_QueueSprite);
+	}
+}
+
+// guess: BaseObjectSet::Draw callback that queues the sprite in the sorted list of translucent objects
+// FUNCTION: D3DREN 0x1002ea70
+void d3d_QueueSprite(ViewParams *pParams, LTObject *pObject)
+{
+	g_pTranslucentObjectDrawList->Add(pObject, d3d_DrawSprite);
+}
+
+
+// NAME: d3d_DrawNoZSprites: Jupiter drawsprite.cpp (names_proposal.csv, high)
+// FUNCTION: D3DREN 0x1002ea90
+void d3d_DrawNoZSprites()
+{
+	if (g_DrawSprites)
+	{
+		BaseObjectSet *pSet = &d3d_GetVisibleSet()->m_NoZSprites;
+		if (pSet->m_nObjects > 0)
+		{
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, 0);
+			pSet->Draw(&g_ViewParams, d3d_DrawSprite);
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, g_DefaultZEnableState);
+		}
+	}
+}
+
+
 // ---- drawsprite: the vertex helpers --------------------------------------------------------------------------------------------------
 
 // guess: projects nVerts 0x20-byte vertices (x, y, z at +0) through the matrix pMat with the homogeneous divide (the SDK's
@@ -196,25 +609,6 @@ void TransformVertexPositionsHomogeneous(TLVertex *pVerts, int nVerts, LTMatrix 
 		nVerts--;
 	}
 }
-
-// ---- drawworldmodel: world polygon drawing ------------------------------------------------------------------------------------------
-
-// the polygon's surface (WorldPoly::m_pSurface is a void * in de_objects.h)
-#define POLY_SURFACE(p)		((Surface *)(p)->m_pSurface)
-// guess: the poly's frame tag (the tagging code sets it to the frame code of the frame the poly was seen in)
-#define WORLDPOLY_FRAMECODE(p)	(*(uint16 *)((uint8 *)(p) + 0x46))
-
-// ---- d3d_DrawSolidWorldModel ----------------------------------------------------------------------------------------------------------
-
-
-// ---- d3d_DrawTranslucentWorldPoly ----------------------------------------------------------------------------------------------------
-
-#define WORLDPOLY_LIGHTS(p)	((UnkType_PolyLightRef *)*(uint32 *)((uint8 *)(p) + 0x30))
-// GLOBAL: D3DREN 0x100577b8
-extern uint16 g_CurTextureFrameCode;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
-
-void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x1000c860 (W4, unit unk/1000c860: the light grid lookup)
-RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
 
 // ---- d3d_ClipSprite ------------------------------------------------------------------------------------------------------------------
 
@@ -366,35 +760,6 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 // ---- the biased sprite projection ----------------------------------------------------------------------------------------------------
 
 
-// The two inline helpers of the function: the exe expands both here; their out-of-line copies are TransformPositionInPlace
-// (0x10008719, unit unk/10007930) and ProjectPositionWithDepthBias (0x100062e0, unit unk/100062e0), which take float pointers.
-// helper written for this decompilation (TransformPositionInPlace expanded): camera space transform of one position, in place.
-static inline void TransformTLVertexInPlace(TLVertex *pVert, const float *pMatrix)
-{
-	float x = pMatrix[0] * pVert->m_Vec.x + pMatrix[1] * pVert->m_Vec.y + pMatrix[2] * pVert->m_Vec.z + pMatrix[3];
-	float y = pMatrix[4] * pVert->m_Vec.x + pMatrix[5] * pVert->m_Vec.y + pMatrix[6] * pVert->m_Vec.z + pMatrix[7];
-	float z = pMatrix[8] * pVert->m_Vec.x + pMatrix[9] * pVert->m_Vec.y + pMatrix[10] * pVert->m_Vec.z + pMatrix[11];
-	pVert->m_Vec.z = z;
-	pVert->m_Vec.x = x;
-	pVert->m_Vec.y = y;
-}
-
-// helper written for this decompilation (ProjectPositionWithDepthBias expanded): projects the vertex in place; x and y use the
-// unbiased w, z and rhw those of the position moved fZBias along z.  The bias parameter itself carries the biased z (a separate
-// local gives the exe's code only out of line).
-static inline void ProjectTLVertexWithDepthBias(TLVertex *pVert, float fZBias)
-{
-	LTVector result;
-	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
-	result.x = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
-	result.y = (g_ViewParams.m_DeviceTimesProjection.m[1][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[1][3]) * w;
-	fZBias += pVert->m_Vec.z;
-	float w2 = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * fZBias + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
-	result.z = (g_ViewParams.m_DeviceTimesProjection.m[2][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[2][2] * fZBias + g_ViewParams.m_DeviceTimesProjection.m[2][3]) * w2;
-	pVert->rhw = w2;
-	pVert->m_Vec = result;
-}
-
 // guess: transforms the 0x20-byte vertices *ppVerts (*pnVerts of them) to camera space, clips them against the planes of the current
 // clip mask (g_ClipFlags; 0 when nothing is left) and projects them to the screen; the z (and the reciprocal w) is that of the vertex
 // moved fBias along z, but not in front of the near plane (the sprite bias: Jupiter SPRITE_POSITION_ZBIAS).  The fourth argument is not
@@ -434,384 +799,4 @@ int ClipAndProjectPolyWithDepthBias(TLVertex **ppVerts, int *pnVerts, ViewParams
 		pVert++;
 	}
 	return 1;
-}
-
-// ---- d3d_DrawSprite (the camera facing sprite) ----------------------------------------------------------------------------------------
-
-
-void d3d_CalcLightAdd(LTObject *pObject, LTVector *pLightAdd);		// 0x1000f270 (unit unk/1000f160)
-
-// the sprite size / bias constants of Jupiter drawsprite.cpp
-#define SPRITE_POSITION_ZBIAS	-20.0f
-#define SPRITE_MINFACTORDIST	10.0f
-#define SPRITE_MAXFACTORDIST	500.0f
-#define SPRITE_MINFACTOR		0.1f
-#define SPRITE_MAXFACTOR		2.0f
-
-// guess: the colour of a sprite: its colour bytes times the ambient world colour, plus (unless FLAG_NOLIGHT) the light grid sample at
-// its position and the dynamic lights (d3d_CalcLightAdd), clamped to 0..255; Jupiter drawsprite.cpp d3d_GetSpriteColor.  An inline
-// function of the original (expanded in both sprite draw functions).
-static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
-{
-	TLRGB color;
-
-	color.a = pInstance->m_ColorA;
-	if (!(pInstance->m_Flags & FLAG_NOLIGHT) && g_pFrameMainWorld)
-	{
-		LTRGB lightRGB;
-		LTVector vAdd;
-		LTVector c;
-
-		w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &pInstance->m_Pos, &lightRGB);
-		d3d_CalcLightAdd(pInstance, &vAdd);
-
-		c.x = (float)lightRGB.r * 0.003921569f * ((float)pInstance->m_ColorR * g_GlobalVertexTint.x + vAdd.x);
-		if (c.x >= 0.0f)
-		{
-			if (c.x > 255.0f)
-				c.x = 255.0f;
-		}
-		else
-			c.x = 0.0f;
-
-		c.y = (float)lightRGB.g * 0.003921569f * ((float)pInstance->m_ColorG * g_GlobalVertexTint.y + vAdd.y);
-		if (c.y >= 0.0f)
-		{
-			if (c.y > 255.0f)
-				c.y = 255.0f;
-		}
-		else
-			c.y = 0.0f;
-
-		c.z = (float)lightRGB.b * 0.003921569f * ((float)pInstance->m_ColorB * g_GlobalVertexTint.z + vAdd.z);
-		if (c.z >= 0.0f)
-		{
-			if (c.z > 255.0f)
-				c.z = 255.0f;
-		}
-		else
-			c.z = 0.0f;
-
-		color.r = (uint8)RoundFloatToInt(c.x);
-		color.g = (uint8)RoundFloatToInt(c.y);
-		color.b = (uint8)RoundFloatToInt(c.z);
-	}
-	else
-	{
-		color.r = (uint8)RoundFloatToInt((float)pInstance->m_ColorR * g_GlobalVertexTint.x);
-		color.g = (uint8)RoundFloatToInt((float)pInstance->m_ColorG * g_GlobalVertexTint.y);
-		color.b = (uint8)RoundFloatToInt((float)pInstance->m_ColorB * g_GlobalVertexTint.z);
-	}
-	return *(uint32 *)&color;
-}
-
-// NAME: guess_d3d_DrawSprite_NonRotatable (names_proposal.csv, medium): Jupiter's static d3d_DrawSprite(Params, pInstance, pShared)
-// overload: the sprite is a camera facing quad around pPos (m_Pos) of the size of its texture times fScaleX/fScaleY (and the glow
-// factor with FLAG_GLOWSPRITE), lit like the other objects, optionally with its texture coordinates rotated by the object rotation
-// (FLAG2_SPRITE_TROTATE), clipped to the clip mask, projected (with the z bias for FLAG_SPRITEBIAS) and drawn as a fan.
-// STUB diagnosis (W6): written from the disassembly: 2720 vs 2736 bytes; the branch order of the REALLYCLOSE test is the exe's, the
-// first 0x17f bytes line up, after that the block placement of the d3d_SetTexture expansion (the exe lays the `create + link` block
-// before the `found` compare) and register/frame assignment shift everything (839 aligned mismatches).  Not iterated further.
-// STUB: D3DREN 0x1002d860
-void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
-{
-	LTVector vCam;
-	float fNearZ;
-	uint32 nSpecular;
-	TLVertex aVerts[4];
-	TLVertex *pVerts;
-	int nVerts;
-	RTexture *pBound;
-	float fWidth, fHeight, fHalfX, fHalfY;
-	float uMin, uMax, vMin, vMax;
-	uint32 nColor;
-	float fSavedNearPlane;
-	int i;
-
-	if (pInstance->m_Flags & FLAG_REALLYCLOSE)
-	{
-		MatVMul(&vCam, &pParams->m_mReallyCloseClipTransform, pPos);
-		fNearZ = g_CV_ReallyCloseNearZ.m_FloatVal;
-	}
-	else
-	{
-		MatVMul(&vCam, &pParams->m_mClipTransform, pPos);
-		fNearZ = g_CV_NearZ.m_FloatVal;
-	}
-
-	g_pfnCalcFogAlpha(&pInstance->m_Pos, &nSpecular);
-	if (vCam.z <= fNearZ)
-		return;
-
-	{
-		LTVector vDelta(pInstance->m_Pos.x - pParams->m_Pos.x, pInstance->m_Pos.y - pParams->m_Pos.y, pInstance->m_Pos.z - pParams->m_Pos.z);
-		vDelta.Mag();
-	}
-
-	if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
-		return;
-
-	pBound = (RTexture *)g_pBoundTextures[g_NormalTextureStage];
-	fWidth = (float)pBound->m_Data.GetBaseWidth();
-	fHeight = (float)pBound->m_Data.GetBaseHeight();
-	uMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
-	uMax = (fWidth - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
-	vMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
-	vMax = (fHeight - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
-
-	fHalfX = fWidth * pParams->m_fFovXScale * fScaleX;
-	fHalfY = fHeight * pParams->m_fFovYScale * fScaleY;
-	if (pInstance->m_Flags & FLAG_GLOWSPRITE)
-	{
-		float fFactor = (vCam.z - SPRITE_MINFACTORDIST) / (SPRITE_MAXFACTORDIST - SPRITE_MINFACTORDIST);
-		if (fFactor >= 0.0f)
-		{
-			if (fFactor > 1.0f)
-				fFactor = 1.0f;
-		}
-		else
-			fFactor = 0.0f;
-		fFactor = (SPRITE_MAXFACTOR - SPRITE_MINFACTOR) * fFactor + SPRITE_MINFACTOR;
-		fHalfX *= fFactor;
-		fHalfY *= fFactor;
-	}
-
-	nColor = SpriteGetColor(pInstance);
-
-	aVerts[0].m_Vec.x = vCam.x - fHalfX;
-	aVerts[0].m_Vec.y = vCam.y + fHalfY;
-	aVerts[0].m_Vec.z = vCam.z;
-	aVerts[0].color = nColor;
-	aVerts[0].specular = nSpecular;
-	aVerts[0].tu = uMin;
-	aVerts[0].tv = vMin;
-	aVerts[1].m_Vec.x = vCam.x + fHalfX;
-	aVerts[1].m_Vec.y = vCam.y + fHalfY;
-	aVerts[1].m_Vec.z = vCam.z;
-	aVerts[1].color = nColor;
-	aVerts[1].specular = nSpecular;
-	aVerts[1].tu = uMax;
-	aVerts[1].tv = vMin;
-	aVerts[2].m_Vec.x = vCam.x + fHalfX;
-	aVerts[2].m_Vec.y = vCam.y - fHalfY;
-	aVerts[2].m_Vec.z = vCam.z;
-	aVerts[2].color = nColor;
-	aVerts[2].specular = nSpecular;
-	aVerts[2].tu = uMax;
-	aVerts[2].tv = vMax;
-	aVerts[3].m_Vec.x = vCam.x - fHalfX;
-	aVerts[3].m_Vec.y = vCam.y - fHalfY;
-	aVerts[3].m_Vec.z = vCam.z;
-	aVerts[3].color = nColor;
-	aVerts[3].specular = nSpecular;
-	aVerts[3].tu = uMin;
-	aVerts[3].tv = vMax;
-
-	if (pInstance->m_Flags2 & FLAG2_SPRITE_TROTATE)
-	{
-		float mRot[4][4];
-		float fCenterU = (uMin + uMax) * 0.5f;
-		float fCenterV = (vMin + vMax) * 0.5f;
-
-		quat_ConvertToMatrix((float *)&pInstance->m_Rotation, mRot);
-		for (i = 0; i < 4; i++)
-		{
-			float fDV = aVerts[i].tv - fCenterV;
-			float fDU = aVerts[i].tu - fCenterU;
-			aVerts[i].tu = fDV * mRot[1][0] + fDU * mRot[0][0] + fCenterU;
-			aVerts[i].tv = fDV * mRot[1][1] + fDU * mRot[0][1] + fCenterV;
-		}
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
-	}
-
-	fSavedNearPlane = g_ViewParams.m_NearZ;
-	pVerts = aVerts;
-	nVerts = 4;
-	if (pInstance->m_Flags & FLAG_REALLYCLOSE)
-		g_ViewParams.m_NearZ = g_CV_ReallyCloseNearZ.m_FloatVal;
-
-	if (ClipPoly_Inline(g_ClipFlags, &pVerts, &nVerts))
-	{
-		if (!(pInstance->m_Flags & FLAG_SPRITEBIAS))
-		{
-			if (!(pInstance->m_Flags & FLAG_REALLYCLOSE))
-			{
-				for (i = nVerts; i != 0; i--)
-					ProjectVertexToScreen(&pVerts[nVerts - i].m_Vec.x, &g_ViewParams);
-			}
-			else
-			{
-				for (i = 0; i < nVerts; i++)
-				{
-					LTMatrix *pMat = &g_ViewParams.m_DeviceTimesProjection;
-					LTVector vProj, vProjBiased;
-					float fW = MatVMul_H(&vProj, pMat, &pVerts[i].m_Vec);
-					LTVector vBiased = pVerts[i].m_Vec;
-					float fWBiased;
-
-					vBiased.z += g_CV_NearZ.m_FloatVal;
-					fWBiased = MatVMul_H(&vProjBiased, pMat, &vBiased);
-					pVerts[i].m_Vec.x = vProj.x;
-					pVerts[i].m_Vec.y = vProj.y;
-					pVerts[i].rhw = fWBiased;
-					pVerts[i].m_Vec.z = vProjBiased.z;
-				}
-			}
-		}
-		else
-		{
-			float fBias = SPRITE_POSITION_ZBIAS;
-			if (SPRITE_POSITION_ZBIAS + vCam.z < g_CV_NearZ.m_FloatVal)
-				fBias = g_CV_NearZ.m_FloatVal - vCam.z;
-
-			for (i = 0; i < nVerts; i++)
-			{
-				LTMatrix *pMat = &g_ViewParams.m_DeviceTimesProjection;
-				LTVector vProj, vProjBiased;
-				float fW = MatVMul_H(&vProj, pMat, &pVerts[i].m_Vec);
-				LTVector vBiased = pVerts[i].m_Vec;
-				float fWBiased;
-
-				vBiased.z += fBias;
-				fWBiased = MatVMul_H(&vProjBiased, pMat, &vBiased);
-				pVerts[i].m_Vec.x = vProj.x;
-				pVerts[i].m_Vec.y = vProj.y;
-				pVerts[i].rhw = fWBiased;
-				pVerts[i].m_Vec.z = vProjBiased.z;
-			}
-		}
-
-		g_TextureStateRestorer.RestoreAllStates();
-		if (pTexture->m_pStateChange)
-			g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
-		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-	}
-
-	if (pInstance->m_Flags2 & FLAG2_SPRITE_TROTATE)
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_WRAP);
-	g_ViewParams.m_NearZ = fSavedNearPlane;
-}
-
-// ---- d3d_DrawRotatableSprite ------------------------------------------------------------------------------------------------------------
-
-void d3d_DrawDevicePrimitive(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags);	// 0x1000d340 (W4, unit unk/100098d0): DrawPrimitive wrapper
-
-// the order the four corners of the rotatable sprite are stored in, for a viewer in front of / behind it (two int[4] tables at
-// 0x1004bd9c and 0x1004bdac)
-// GLOBAL: D3DREN 0x1004bd9c
-static int s_CornerOrderFront[4] = { 0, 1, 2, 3 };
-// GLOBAL: D3DREN 0x1004bdac
-static int s_CornerOrderBack[4] = { 3, 2, 1, 0 };
-
-// NAME: d3d_DrawRotatableSprite: Jupiter drawsprite.cpp d3d_DrawRotatableSprite (names_proposal.csv, high): the sprite quad (the size of its
-// texture) is turned by the object rotation and scale, placed at the object position, optionally clipped to a clipper poly
-// (d3d_ClipSprite), projected (with the z bias for FLAG_SPRITEBIAS) and drawn as a fan
-// STUB diagnosis (W6): written from the disassembly: 1824 vs 1760 bytes (the exe's d3d_SetTexture expansion calls d3d_FindRTextureForStage for the
-// chain walk and its TL vertex array is built differently); not iterated.
-// STUB: D3DREN 0x1002e310
-void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
-{
-	TLVertex aClipped[300];
-	TLVertex aVerts[4];
-	LTMatrix mRotation;
-	LTVector vFacing, vForward;
-	uint32 nSpecular;
-	TLVertex *pVerts;
-	uint32 nVerts;
-	RTexture *pBound;
-	float fWidth, fHeight;
-	float uMin, uMax, vMin, vMax;
-	uint32 nColor;
-	const int *pOrder;
-	int iVert;
-	int bResult;
-
-	{
-		LTVector vDelta = pInstance->m_Pos - pParams->m_Pos;
-		vDelta.Mag();
-	}
-
-	if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
-		return;
-
-	g_TextureStateRestorer.RestoreAllStates();
-	if (pTexture->m_pStateChange)
-		g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
-
-	pBound = (RTexture *)g_pBoundTextures[g_NormalTextureStage];
-	fWidth = (float)(pBound->m_Data.GetBaseWidth() >> pTexture->m_Unknown3C);
-	fHeight = (float)(pBound->m_Data.GetBaseHeight() >> pTexture->m_Unknown3C);
-
-	g_pfnCalcFogAlpha(&pInstance->m_Pos, &nSpecular);
-
-	uMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
-	uMax = (fWidth - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
-	vMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
-	vMax = (fHeight - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
-
-	d3d_SetupTransformation(&pInstance->m_Pos, (float *)&pInstance->m_Rotation, &pInstance->m_Scale, &mRotation);
-
-	vForward.Init(0.0f, 0.0f, -1.0f);
-	MatVMul_3x3(&vFacing, &mRotation, &vForward);
-
-	// which side of the sprite the viewer is on decides the corner order (winding)
-	pOrder = s_CornerOrderBack;
-	if (0.0f <= vFacing.x * (pParams->m_Pos.x - pPos->x) + vFacing.y * (pParams->m_Pos.y - pPos->y) + vFacing.z * (pParams->m_Pos.z - pPos->z))
-		pOrder = s_CornerOrderFront;
-
-	nColor = SpriteGetColor(pInstance);
-
-	iVert = pOrder[0];
-	aVerts[iVert].m_Vec.x = fWidth;
-	aVerts[iVert].m_Vec.y = fHeight;
-	aVerts[iVert].m_Vec.z = 0.0f;
-	aVerts[iVert].color = nColor;
-	aVerts[iVert].specular = nSpecular;
-	aVerts[iVert].tu = uMin;
-	aVerts[iVert].tv = vMin;
-
-	iVert = pOrder[1];
-	aVerts[iVert].m_Vec.x = -fWidth;
-	aVerts[iVert].m_Vec.y = fHeight;
-	aVerts[iVert].m_Vec.z = 0.0f;
-	aVerts[iVert].color = nColor;
-	aVerts[iVert].specular = nSpecular;
-	aVerts[iVert].tu = uMax;
-	aVerts[iVert].tv = vMin;
-
-	iVert = pOrder[2];
-	aVerts[iVert].m_Vec.x = -fWidth;
-	aVerts[iVert].m_Vec.y = -fHeight;
-	aVerts[iVert].m_Vec.z = 0.0f;
-	aVerts[iVert].color = nColor;
-	aVerts[iVert].specular = nSpecular;
-	aVerts[iVert].tu = uMax;
-	aVerts[iVert].tv = vMax;
-
-	iVert = pOrder[3];
-	aVerts[iVert].m_Vec.x = fWidth;
-	aVerts[iVert].m_Vec.y = -fHeight;
-	aVerts[iVert].m_Vec.z = 0.0f;
-	aVerts[iVert].color = nColor;
-	aVerts[iVert].specular = nSpecular;
-	aVerts[iVert].tu = uMin;
-	aVerts[iVert].tv = vMax;
-
-	TransformVertexPositionsHomogeneous(aVerts, 4, &mRotation);
-
-	pVerts = aVerts;
-	nVerts = 4;
-	if (pInstance->m_ClipperPoly != INVALID_HPOLY)
-	{
-		if (!d3d_ClipSprite(pInstance, pInstance->m_ClipperPoly, &pVerts, &nVerts, aClipped))
-			return;
-	}
-
-	if (!(pInstance->m_Flags & FLAG_SPRITEBIAS))
-		bResult = d3d_ClipAndProjectTLVertices(&pVerts, (int *)&nVerts, &g_ViewParams, 0);
-	else
-		bResult = ClipAndProjectPolyWithDepthBias(&pVerts, (int *)&nVerts, &g_ViewParams, 0, SPRITE_POSITION_ZBIAS);
-
-	if (bResult)
-		d3d_DrawDevicePrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 }
