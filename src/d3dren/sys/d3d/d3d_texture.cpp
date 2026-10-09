@@ -855,8 +855,10 @@ void StandIn_RTextureInlines()
 // temporary system memory DXT surface and BltFast'ed); for the bump map format (DDPF_BUMPDUDV, 16 bit) the 8 bit luminance of the
 // source is turned into signed (du, dv) pairs.  A mipmap smaller than the surface level is tiled to fill it.  Returns 0 on failure.
 // NAME: r_TransferTexture: Ghidra / names_proposal.csv (high; Jupiter d3d_texture.cpp r_TransferTexture)
-// NOT MATCHING (first transcription of the whole function from the disassembly, the byte comparison has not been iterated):
-// the code layout follows the exe's (the same locals, the BUMPDUDV / BPP_32 / DXT branch order, the common tiling tail).
+// NOT MATCHING (1840 vs 1872 bytes): the code layout follows the exe's (the BUMPDUDV / BPP_32 / DXT branch order, the common tiling
+// tail, each failure unlocking and returning in place, which the exe cross-jumps into two tails, the DXT FOURCC through the expanded
+// CTextureManager_S3TCFormatConv).  Open: the exe keeps bpp in esi and has the lock description below the temporary DXT surface
+// description on the stack (declaration order and names do not move them), and the tail-merge grouping.
 // STUB: D3DREN 0x10020360
 int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 {
@@ -912,10 +914,16 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 			uint32 y, x;
 
 			if (ddsdLock.ddpfPixelFormat.dwRGBBitCount != 16)
-				goto Fail;
+			{
+				pSurface->Unlock(0);
+				return 0;
+			}
 			pTemp = (uint8 *)operator new(pMip->m_Width * pMip->m_Height);
 			if (!pTemp)
-				goto Fail;
+			{
+				pSurface->Unlock(0);
+				return 0;
+			}
 			pTextureData->SetupPFormat(cReqBump.m_pSrcFormat);
 			cReqBump.m_pSrc = pMip->m_Data;
 			cReqBump.m_SrcPitch = pMip->m_Pitch;
@@ -927,7 +935,10 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 			if (g_FormatMgr.ConvertPixels(&cReqBump) != LT_OK)
 			{
 				operator delete(pTemp);
-				goto Fail;
+			{
+				pSurface->Unlock(0);
+				return 0;
+			}
 			}
 
 			memset(pBits, 0, pMip->m_Width * 2);
@@ -967,26 +978,29 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 			cReq.m_Height = mipHeight;
 			cReq.m_Flags = 0;
 			if (g_FormatMgr.ConvertPixels(&cReq) != LT_OK)
-				goto Fail;
+			{
+				pSurface->Unlock(0);
+				return 0;
+			}
 		}
 		else
 		{
 			uint32 fourCC, size;
 
-			if (bpp == BPP_S3TC_DXT1)
-				fourCC = 0x31545844;
-			else if (bpp == BPP_S3TC_DXT3)
-				fourCC = 0x33545844;
-			else if (bpp == BPP_S3TC_DXT5)
-				fourCC = 0x35545844;
-			else
-				goto Fail;
+			if (!CTextureManager_S3TCFormatConv((BPPIdent)bpp, &fourCC))
+			{
+				pSurface->Unlock(0);
+				return 0;
+			}
 			size = CalcImageSize((BPPIdent)bpp, pMip->m_Width, pMip->m_Height);
 
 			if (ddsdSurf.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
 			{
 				if (fourCC != ddsdSurf.ddpfPixelFormat.dwFourCC || (long)size != ddsdLock.lPitch)
-					goto Fail;
+				{
+					pSurface->Unlock(0);
+					return 0;
+				}
 				memcpy(ddsdLock.lpSurface, pMip->m_Data, size);
 			}
 			else
@@ -1092,10 +1106,6 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 		surfHeight >>= 1;
 	}
 	return 1;
-
-Fail:
-	pSurface->Unlock(0);
-	return 0;
 }
 
 // Creates the DirectDraw texture surface of an RTexture (iStartMipmap, nMipmaps and the format iFormat chosen by the caller) and fills
