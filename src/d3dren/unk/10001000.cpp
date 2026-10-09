@@ -749,7 +749,8 @@ int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 				pOut = (TLVertex *)m_Unk608->Lock();
 				pEnd = PoolLastVertex(m_Unk608);
 			}
-			for (int i = 1; i < nPoly - 1; i++)
+			nPoly--;
+			for (int i = 1; i < nPoly; i++)
 			{
 				m_Unk5fc(pOut, pPoly);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
@@ -894,7 +895,8 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 				pOut = (TLVertex *)m_Unk608->Lock();
 				pEnd = PoolLastVertex(m_Unk608);
 			}
-			for (int i = 1; i < nPoly - 1; i++)
+			nPoly--;
+			for (int i = 1; i < nPoly; i++)
 			{
 				m_Unk5fc(pOut, pPoly);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
