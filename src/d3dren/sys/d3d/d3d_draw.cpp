@@ -162,13 +162,14 @@ float g_fVFogDensityScale;				// guess: 255 / VFogDensity (set by RenderScene wh
 // integrates a fog density that is VFogMinYVal below VFogMinY, VFogMaxYVal above VFogMaxY and linear in between along the ray from the viewer to the vertex
 // (the viewer's own density and zone are cached in g_ViewParams.m_fVFogViewDensity / m_nVFogViewZone by ViewParams::SetupFogViewPosition), clamps it to VFogMax and
 // stores 255 - fog in the specular alpha.  Same fastcall contract as the other fog hooks (position in ecx, specular in edx).
-// STUB diagnosis: 260 aligned mismatches, 91 ignoring stack offsets (was 403 / 307).  The distances are the SDK's Dist (its out-of-line
+// STUB diagnosis: 181 aligned mismatches, 83 ignoring stack offsets (was 403 / 307); the crossing point is built with the 3-float
+//   constructor (its inlined charge gives the exe's 5 out-of-line ctors).  The distances are the SDK's Dist (its out-of-line
 //   copy 0x1000dfcf is in the DLL), the same-zone branch computes one distance and doubles it (the exe has 6 Mag sites, `fadd st(0),st(0)`),
 //   the zone and the clamped density are the inline helpers d3d_GetVFogZone / d3d_GetVFogDensity (ViewParams::SetupFogViewPosition uses
 //   both and still matches), and one float (fFog) carries the density, the first leg and the result as in the exe's [ebp-4].
 //   Remaining: the call set.  The exe calls Mag out of line at all 6 Dist sites, the 3-float ctor at 5 and the whole operator- at the
-//   last; ours keeps Mag out of line only at the first 3 (nested shares: the original has less budget or more pending sites after
-//   each Dist), and the frame differs accordingly.
+//   last; ours inlines Mag at the 4th and 5th site and the last operator- (nested shares: the original has less budget or more pending
+//   sites after each Dist; inline_budget.py --solve finds no pending/budget combination), and the frame differs accordingly.
 // STUB: D3DREN 0x100135c0
 void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 {
@@ -195,12 +196,8 @@ void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 	else
 	{
 		float fT = (g_CV_VFogMaxY.m_FloatVal - vEye.y) / (vPos.y - vEye.y);
-		LTVector vCross;
+		LTVector vCross((vPos.x - vEye.x) * fT + vEye.x, g_CV_VFogMaxY.m_FloatVal, (vPos.z - vEye.z) * fT + vEye.z);
 		float fFogB;
-
-		vCross.x = (vPos.x - vEye.x) * fT + vEye.x;
-		vCross.y = g_CV_VFogMaxY.m_FloatVal;
-		vCross.z = (vPos.z - vEye.z) * fT + vEye.z;
 
 		if (g_ViewParams.m_nVFogViewZone == 1)
 		{
