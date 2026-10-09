@@ -209,6 +209,8 @@ void d3d_SetupPerspectiveMatrix(LTMatrix *pMatrix, float nearZ, float farZ);
 // Sets up pParams.
 // pViewBox is the view window, the screen rectangle is the area on the screen that it maps into,
 // pMat is the viewer matrix and vScale an extra scale that scales all the coordinates up.
+// A 3000-candidate permuter run found nothing better than 7.
+// PARKED: complete body; 7-instruction schedule residue (operator* result copies interleaved with the next MatMul's argument setup)
 // STUB: D3DREN 0x1000f72b
 // Remaining difference (41 bytes / 7 aligned instructions of 952; same size 2766). The named half-screen width and height
 // copies below align the device-transform and fRange scheduling. The remaining hunks are the m_mClipTransform copy relative to
