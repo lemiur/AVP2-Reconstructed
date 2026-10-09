@@ -1049,45 +1049,45 @@ Skip:
 
 // guess: the untransformed variant of DrawPieceTransformed: writes XYZ + diffuse + specular vertices (stride m_Unk5f8 - 4) so that
 // Direct3D transforms them; the back face test (m_Unk8b4) is done on the model-space x/y of the vertices.
-// Not matching (1056 vs 1072 bytes): the stack-frame/loop-exit residue of DrawPieceTransformed (decrementing the count before the
-// cursor step, as there, does not help here).
-// STUB: D3DREN 0x10003e00
+// The vertex pointer array and the count decremented before the cursor step as in DrawPieceTransformed.
+// FUNCTION: D3DREN 0x10003e00
 int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
 	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
+	TLVertex *pV[3];
 	if (m_Unk8b4)
 	{
 		while (nTris)
 		{
-			TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
-			TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
-			TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
-			float fCross = (pV1->m_Vec.x - pV0->m_Vec.x) * (pV2->m_Vec.y - pV0->m_Vec.y)
-				- (pV2->m_Vec.x - pV0->m_Vec.x) * (pV1->m_Vec.y - pV0->m_Vec.y);
+			pV[0] = &pVerts[pTri->m_Indices[0]];
+			pV[1] = &pVerts[pTri->m_Indices[1]];
+			pV[2] = &pVerts[pTri->m_Indices[2]];
+			float fCross = (pV[1]->m_Vec.x - pV[0]->m_Vec.x) * (pV[2]->m_Vec.y - pV[0]->m_Vec.y)
+				- (pV[2]->m_Vec.x - pV[0]->m_Vec.x) * (pV[1]->m_Vec.y - pV[0]->m_Vec.y);
 			if (g_ViewParams.m_bCullFlip)
 				fCross = -fCross;
 			if (fCross > g_CV_ModelMinTri.m_FloatVal)
 			{
-				pOut->m_Vec = pV0->m_Vec;
+				pOut->m_Vec = pV[0]->m_Vec;
 				pOut = (TLVertex *)((char *)pOut - 4);
-				pOut->color = pV0->color;
+				pOut->color = pV[0]->color;
 				pOut->specular = m_Unk640;
-				m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
+				m_Unk5f4(pOut, pV[0], &pTri->m_UVs[0].tu);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-				pOut->m_Vec = pV1->m_Vec;
+				pOut->m_Vec = pV[1]->m_Vec;
 				pOut = (TLVertex *)((char *)pOut - 4);
-				pOut->color = pV1->color;
+				pOut->color = pV[1]->color;
 				pOut->specular = m_Unk640;
-				m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
+				m_Unk5f4(pOut, pV[1], &pTri->m_UVs[1].tu);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-				pOut->m_Vec = pV2->m_Vec;
+				pOut->m_Vec = pV[2]->m_Vec;
 				pOut = (TLVertex *)((char *)pOut - 4);
-				pOut->color = pV2->color;
+				pOut->color = pV[2]->color;
 				pOut->specular = m_Unk640;
-				m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
+				m_Unk5f4(pOut, pV[2], &pTri->m_UVs[2].tu);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 				if ((char *)pOut > pEnd && nTris > 1)
 				{
@@ -1096,34 +1096,34 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 					pEnd = PoolLastVertex(m_Unk608);
 				}
 			}
-			pTri++;
 			nTris--;
+			pTri++;
 		}
 	}
 	else
 	{
 		while (nTris)
 		{
-			TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
-			TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
-			TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
-			pOut->m_Vec = pV0->m_Vec;
+			pV[0] = &pVerts[pTri->m_Indices[0]];
+			pV[1] = &pVerts[pTri->m_Indices[1]];
+			pV[2] = &pVerts[pTri->m_Indices[2]];
+			pOut->m_Vec = pV[0]->m_Vec;
 			pOut = (TLVertex *)((char *)pOut - 4);
-			pOut->color = pV0->color;
+			pOut->color = pV[0]->color;
 			pOut->specular = m_Unk640;
-			m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
+			m_Unk5f4(pOut, pV[0], &pTri->m_UVs[0].tu);
 			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-			pOut->m_Vec = pV1->m_Vec;
+			pOut->m_Vec = pV[1]->m_Vec;
 			pOut = (TLVertex *)((char *)pOut - 4);
-			pOut->color = pV1->color;
+			pOut->color = pV[1]->color;
 			pOut->specular = m_Unk640;
-			m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
+			m_Unk5f4(pOut, pV[1], &pTri->m_UVs[1].tu);
 			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-			pOut->m_Vec = pV2->m_Vec;
+			pOut->m_Vec = pV[2]->m_Vec;
 			pOut = (TLVertex *)((char *)pOut - 4);
-			pOut->color = pV2->color;
+			pOut->color = pV[2]->color;
 			pOut->specular = m_Unk640;
-			m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
+			m_Unk5f4(pOut, pV[2], &pTri->m_UVs[2].tu);
 			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 			if ((char *)pOut > pEnd && nTris > 1)
 			{
@@ -1131,8 +1131,8 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 				pOut = (TLVertex *)m_Unk608->Lock();
 				pEnd = PoolLastVertex(m_Unk608);
 			}
-			pTri++;
 			nTris--;
+			pTri++;
 		}
 	}
 	FlushModelPool(this, pOut);
