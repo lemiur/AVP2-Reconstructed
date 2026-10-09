@@ -27,11 +27,6 @@
 int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat);
 void InitLightColorClampTable();	// 0x10032a30 (lightmap unit unk/100329b0)
 int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit);	// 0x10032c40 (unit unk/100329b0)
-// guess: counters of the dynamic lightmap refresh (d3d_RefreshWorldPolyLightmap): staging lightmaps locked, and lightmaps where no light changed a texel
-// GLOBAL: D3DREN 0x10056278
-extern int g_nDynamicLightmapsRefreshed;
-// GLOBAL: D3DREN 0x10055cdc
-extern int g_nTextureUploadSaves;
 
 // RenderStruct::GetTexture as the renderer calls it: with a second (output) argument that the engine's function ignores
 // (renderstruct.h declares one parameter).
@@ -1378,9 +1373,9 @@ int d3d_GetFirstUsableMipmap(TextureData *pTexture)
 // Returns 1 when the lightmap was updated (0 when the poly has none / nothing was built).  The time spent is added to the scene's
 // polygrid tick counter.
 // The first lock uses WAIT|NOSYSLOCK (0x801); SURFACEMEMORYPTR is zero in the DirectX 8 headers used by this object.
-// The early-return form for the missing surface / failed lock and the final lock result reduces the aligned diff to 66 instructions
-// (45 ignoring stack offsets), from 121. Current source is 464 bytes with 362 byte differences; local/register layout still differs.
-// STUB: D3DREN 0x10020ff0
+// The staging path reads the lock's pitch and texel pointer into locals after the counter increment: the exe loads both before the
+// pixel-format call (pitch into edi, texels into ebx).
+// FUNCTION: D3DREN 0x10020ff0
 int d3d_RefreshWorldPolyLightmap(WorldPoly *pPoly, int bFirst)
 {
 	CountAdder cntAdd(g_pSceneDesc->m_pTicks_Render_PolyGrids);
@@ -1413,7 +1408,9 @@ int d3d_RefreshWorldPolyLightmap(WorldPoly *pPoly, int bFirst)
 
 		int nBuild;
 		g_nDynamicLightmapsRefreshed++;
-		nBuild = ApplyPolyDynamicLightsToLightmap(g_pFrameMainWorld, pPoly, lock.m_Unk00, lock.m_Unk04, pPoly->m_LMWidth, pPoly->m_LMHeight,
+		long nPitch = lock.m_Unk04;
+		uint8 *pData = lock.m_Unk00;
+		nBuild = ApplyPolyDynamicLightsToLightmap(g_pFrameMainWorld, pPoly, pData, nPitch, pPoly->m_LMWidth, pPoly->m_LMHeight,
 			lock.m_Unk0c.GetType() != BPP_32);
 		if (!nBuild)
 			g_nTextureUploadSaves++;
