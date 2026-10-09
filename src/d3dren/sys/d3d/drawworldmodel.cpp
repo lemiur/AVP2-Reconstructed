@@ -327,14 +327,14 @@ NextPoly:;
 
 // the body of d3d_AddLightAnimVertexColors (0x100185a0, unit unk/100132a0, W2) as the exe has it expanded inside RelightWorldPolyVertices (the same code; a copy
 // in the source or an inline function)
-static inline int AddLightAnimVertexColorsInline(void *pPolyData, uint32 nInputPolyData, LightAnim *pAnim, uint32 *pRef)
+static inline int AddLightAnimVertexColorsInline(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef)
 {
-	uint32 nPolyData;
 	LAPolyRef *pPolyRef = (LAPolyRef *)pRef;
 	uint8 percent;
 	LAPolyFrame *pFrame0, *pFrame1;
 	SPolyVertex *pVerts = (SPolyVertex *)pPolyData;
 	uint32 i;
+	uint32 nVerts;
 
 	if (pPolyRef->m_iPoly >= pAnim->m_nPolies)
 		return 0;
@@ -347,11 +347,11 @@ static inline int AddLightAnimVertexColorsInline(void *pPolyData, uint32 nInputP
 	else if (percent == 0xff)
 		pFrame0 = pFrame1;
 
-	nPolyData = LTMIN(nInputPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
+	nVerts = LTMIN(nPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
 
 	if (pFrame0 == pFrame1)
 	{
-		for (i = 0; i < nPolyData; i++)
+		for (i = 0; i < nVerts; i++)
 		{
 			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + pFrame0->m_pVertR[i]];
 			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + pFrame0->m_pVertG[i]];
@@ -360,12 +360,11 @@ static inline int AddLightAnimVertexColorsInline(void *pPolyData, uint32 nInputP
 	}
 	else
 	{
-		for (i = 0; i < nPolyData; i++)
+		for (i = 0; i < nVerts; i++)
 		{
-			uint32 inv = (uint8)(0xff - percent);
-			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + (uint32)percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv]]];
-			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertG[i] * 0x100 + (uint32)percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertG[i] * 0x100 + inv]]];
-			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertB[i] * 0x100 + (uint32)percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertB[i] * 0x100 + inv]]];
+			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + (uint8)(0xff - percent)]]];
+			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertG[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertG[i] * 0x100 + (uint8)(0xff - percent)]]];
+			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertB[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertB[i] * 0x100 + (uint8)(0xff - percent)]]];
 		}
 	}
 	return 1;
