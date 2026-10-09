@@ -983,9 +983,9 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 	surfHeight = ddsdSurf.dwHeight;
 	AddDebugMessage(4, "Uploading a (%dx%d) texture", ddsdSurf.dwWidth, ddsdSurf.dwHeight);
 
-	pMip = &pTextureData->m_Mips[pTexture->m_iStartMipmap];
-	for (i = pTexture->m_iStartMipmap; i < (uint32)pTexture->m_iStartMipmap + pTexture->m_Unk47; i++, pMip++)
+	for (i = pTexture->m_iStartMipmap; i < (uint32)pTexture->m_iStartMipmap + pTexture->m_Unk47; i++)
 	{
+		pMip = &pTextureData->m_Mips[i];
 		uint32 mipWidth, mipHeight;
 		long pitch;
 		uint8 *pBits;
