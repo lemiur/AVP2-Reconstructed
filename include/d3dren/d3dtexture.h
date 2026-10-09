@@ -186,4 +186,9 @@ void d3d_ListTextureFormats();										// 0x1001f9b0 ListTextureFormats (LISTTE
 void d3d_PrintFormatInfo(const char *pStart, TextureFormat *pFormat);	// 0x1001fa40 prints one format with its DDPF_ flag names										// 0x1001f960 FreeAllTextures (g_Textures)
 void d3d_UnbindTexture(SharedTexture *pSharedTexture);		// 0x10021c60 (RenderStruct::UnbindTexture)
 
+// NAME: g_FormatMgr: Jupiter d3d_texture.h `extern FormatMgr g_FormatMgr;` (defined by sys/d3d/d3d_texture, constructed by the static
+// initialiser 0x1001e660).
+// GLOBAL: D3DREN 0x10060710
+extern FormatMgr g_FormatMgr;
+
 #endif

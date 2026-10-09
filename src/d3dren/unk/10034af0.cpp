@@ -37,8 +37,6 @@ uint32 g_LightmapPoolTextureSizes[5] = { 4, 8, 0x10, 0x20, 0x40 };
 uint32 g_LightmapPoolTextureCounts[5] = { 0x7d, 0x48, 0x18, 10, 10 };
 // GLOBAL: D3DREN 0x1007abd0
 RTexture *g_pLightmapStagingTextures[5];
-// GLOBAL: D3DREN 0x1007bfe8
-extern LTLink g_LightmapTexturePoolLists[5];
 // Not matching (133 vs 138 instructions, 24 aligned mismatches): the size-class search.  The exe keeps both the running pointer into the
 // size table (compared with the end address 0x1004bf50: `jl`, as `(int)pSize < (int)&g_LightmapPoolTextureSizes[5]` gives in ResetTexturePoolLists) and a separate
 // index in the parameter slots [ebp+0x10]/[ebp+8]; our compiler always strength-reduces both into one byte offset counter

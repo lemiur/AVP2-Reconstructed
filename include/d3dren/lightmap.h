@@ -126,6 +126,9 @@ public:
 };
 // GLOBAL: D3DREN 0x1007abe4
 extern UnkType_LMTexturePools g_LightmapTexturePools;
+// The free lists of the lightmap pool textures, one per size class (g_LightmapPoolTextureSizes); defined in unit unk/10034af0.
+// GLOBAL: D3DREN 0x1007bfe8
+extern LTLink g_LightmapTexturePoolLists[5];
 
 // ---- colour lookup tables of the lightmap code (static data classes with a constructor that fills them; used by the light animation
 // and dynamic light code of unit unk/100329b0 and by the world drawing units) ------------------------------------------------------

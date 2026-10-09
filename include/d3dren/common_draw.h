@@ -97,5 +97,7 @@ extern int g_nTextureChanges;
 extern int g_nDynamicLightmapsRefreshed;
 // GLOBAL: D3DREN 0x10055cdc
 extern int g_nTextureUploadSaves;
+// GLOBAL: D3DREN 0x10056214
+extern int g_nLitPolies;				// guess: number of polys in the lit list ("Num Lit Polies")
 
 #endif

@@ -12,6 +12,8 @@
 #include "de_objects.h"
 #include "d3dren/rendererconsolevars.h"
 #include "d3dren/viewparams.h"
+#include "d3dren/common_draw.h"
+#include "d3dren/d3d_draw.h"
 
 // FUNCTION: D3DREN 0x1000f160 _$E2
 // GLOBAL: D3DREN 0x10055cb0
@@ -20,10 +22,6 @@ ConVar g_CV_NearZ("NearZ", 7.0f);
 // GLOBAL: D3DREN 0x10054890
 ConVar g_CV_ReallyCloseNearZ("ReallyCloseNearZ", 0.01f);
 
-// GLOBAL: D3DREN 0x100584f8
-extern float g_fVFogValueRange;		// guess: derived from the VFog console variables by d3d_ReadExtraConsoleVariables (written elsewhere)
-// GLOBAL: D3DREN 0x10058778
-extern float g_fInvVFogHeightRange;		// guess: same
 
 // guess: member of ViewParams (the Talon g_ViewParams, include/d3dren/viewparams.h): stores the viewer position and derives the
 // vertical fog value and zone from its height; the height read is the global g_ViewParams.m_Pos.y, not an argument.
@@ -54,10 +52,6 @@ void ViewParams::SetupFogViewPosition(LTVector vPos)
 	m_nVFogViewZone = nZone;
 }
 
-// GLOBAL: D3DREN 0x10056218
-extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (names_proposal low): lights touching the leaf
-// GLOBAL: D3DREN 0x100566d0
-extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (names_proposal low)
 
 // NAME: d3d_CalcLightAdd: Jupiter 3d_ops.cpp d3d_CalcLightAdd (same body; Talon has no FLAG_ONLYLIGHTWORLD test and
 // gates the loop on the LightModels mirror).

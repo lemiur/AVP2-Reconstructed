@@ -16,6 +16,8 @@
 #include "d3dren/pool.h"
 #include "d3dren/setupmodel.h"
 #include "d3dren/polydraw.h"
+#include "d3dren/common_draw.h"
+#include "d3dren/d3d_draw.h"
 
 // ---- DrawPolyMgr -------------------------------------------------------------------------------------------------------------
 
@@ -106,14 +108,6 @@ DrawPolyMgr::~DrawPolyMgr()
 // guess: finds/creates the RTexture of pTexture for the stage and returns its 1/width, 1/height in *pU, *pV (unit sys/d3d/d3d_texture)
 int d3d_EnsureTextureAndGetUVScale(SharedTexture *pTexture, uint32 nStageFlags, float *pU, float *pV);
 
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];		// guess: colour correction table of the red channel
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];
-// GLOBAL: D3DREN 0x10057774
-extern uint8 g_nPolyVertexAlpha;			// guess: the alpha byte of the vertex colours
 
 // ---- the callbacks of the passes (tables below) ----------------------------------------------------------------------------
 
@@ -454,8 +448,6 @@ ConVar g_CV_TestGouraud("TestGouraud", 0.0f);
 // GLOBAL: D3DREN 0x1006e7e0
 ConVar g_CV_TestLightmap("TestLightmap", 1.0f);
 
-// GLOBAL: D3DREN 0x10056284
-extern RenderContext *g_pFrameRenderContext;		// guess: the render context of the frame (CreateContext's object; m_CurFrameCode at +0xc)
 
 // guess: Flush
 // STUB diagnosis (W6): 867 vs 845 bytes: the frame is 0x34 bytes against the exe's 0x30 (one extra 4-byte local slot) and the shared zero

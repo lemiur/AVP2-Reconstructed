@@ -77,6 +77,9 @@ ConVar g_CV_RenderToFront("RenderToFront", 0.0f);
 #include "d3dren/rendererconsolevars.h"
 #include "d3dren/common_stuff.h"
 #include "d3dren/d3d_draw.h"
+#include "d3dren/common_draw.h"
+#include "d3dren/common_init.h"
+#include "d3dren/d3dtexture.h"
 #include "d3dren/drawpolymgr.h"
 #include "d3dren/scenedesc.h"
 #include "d3dren/drawobjects.h"
@@ -93,10 +96,8 @@ ConVar g_CV_RenderToFront("RenderToFront", 0.0f);
 // Globals
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-// GLOBAL: D3DREN 0x10057990
-extern float g_fFogAlphaScale;		// guess: 255 / (FogFarZ - FogNearZ)
-// GLOBAL: D3DREN 0x10058620
-extern float g_fSkyFogAlphaScale;		// guess: 255 / (SkyFogFarZ - SkyFogNearZ)
+float g_fFogAlphaScale;		// guess: 255 / (FogFarZ - FogNearZ)
+float g_fSkyFogAlphaScale;		// guess: 255 / (SkyFogFarZ - SkyFogNearZ)
 
 // guess: the global the exe's static initialiser 0x10013480 sets to (5, 5, 5): the light scale RenderScene last handed to the lightmap
 // colour tables (compared with SceneDesc::m_GlobalLightScale each frame, see d3d_RenderScene).
@@ -150,10 +151,8 @@ void __fastcall d3d_CalcSkyFogAlpha(LTVector *pPos, uint32 *pSpecular)
 	((uint8 *)pSpecular)[3] = (uint8)(0xff - (uint8)RoundFloatToInt(fFog));
 }
 
-// GLOBAL: D3DREN 0x100584f8
-extern float g_fVFogValueRange;		// guess: VFogMaxYVal - VFogMinYVal (set by RenderScene when VFog is on)
-// GLOBAL: D3DREN 0x10058778
-extern float g_fInvVFogHeightRange;		// guess: 1 / (VFogMaxY - VFogMinY)
+float g_fVFogValueRange;		// guess: VFogMaxYVal - VFogMinYVal (set by RenderScene when VFog is on)
+float g_fInvVFogHeightRange;		// guess: 1 / (VFogMaxY - VFogMinY)
 // GLOBAL: D3DREN 0x10058774
 float g_fVFogDensityScale;				// guess: 255 / VFogDensity (set by RenderScene when VFog is on)
 
@@ -391,8 +390,7 @@ int d3d_GrowTLVertexBuffer(int nVertices)
 	return 1;
 }
 
-// GLOBAL: D3DREN 0x10058c68
-extern UnkType_PoolNode *g_pFlatWorldPolyQueue;	// guess: head of a list of polys (nodes of the pool 0x10058758)
+UnkType_PoolNode *g_pFlatWorldPolyQueue;	// guess: head of a list of polys (nodes of the pool 0x10058758)
 
 // guess: adds pPoly (with the current clip mask) to the list g_pFlatWorldPolyQueue.
 // FUNCTION: D3DREN 0x10013ef0
@@ -419,9 +417,6 @@ void d3d_FreeWorldPolyQueue(UnkType_PoolNode *pList)
 	}
 }
 
-// GLOBAL: D3DREN 0x100577c8
-extern PFormat g_ScreenPixelFormat;	// the screen format (filled by the device bring-up)
-extern FormatMgr g_FormatMgr;	// 0x10060710
 // NAME: InvalidateRect: names_proposal.csv (high, Jupiter dirtyrect.cpp InvalidateRect; unit dirtyrect)
 void InvalidateRect(LTRect *pRect);		// 0x10022151
 // GLOBAL: D3DREN 0x10058728
@@ -497,12 +492,6 @@ void d3d_Clear(LTRect *pRect, uint32 flags, LTVector *pColor)
 	InvalidateRect(pRect);
 }
 
-// GLOBAL: D3DREN 0x100584bc
-extern int g_ShowSplits;	// g_CV_ShowSplits mirror
-// GLOBAL: D3DREN 0x100566b0
-extern int g_nPolygonTriangles;	// guess: triangles of the polys drawn this frame
-// GLOBAL: D3DREN 0x10056694
-extern float g_fScreenTriangleArea;	// guess: accumulated screen area of the drawn polys ("Overdraw")
 // TransformPositionInPlace (world space -> camera space), ClipPoly (clip by the plane mask), ProjectVertexToScreen (camera -> screen): declared in pool.h / polydraw.h.
 // MatVMul_InPlace_H: ltmatrix.h.
 
@@ -640,18 +629,11 @@ int d3d_DrawFlatWorldPoly(WorldPoly *pPoly)
 }
 
 // ---- the poly draw callbacks (selected per frame by d3d_SelectWorldPolyDrawCallbacks) and the world poly flush -------------------------------------
-// GLOBAL: D3DREN 0x1005c7e0
-extern int g_bOnePassLightmappingEnabled;	// guess: one-pass lightmapping enabled (set from the g_Force1Pass console variable unless the device cannot do it)
-// GLOBAL: D3DREN 0x10058730
-extern int g_bPolyDrawModeOne;	// guess: member of the object at 0x1005872c (the fog alpha hook g_pfnCalcFogAlpha is its first member)
-// GLOBAL: D3DREN 0x10058734
-extern int g_bPolyDrawSetupComplete;	// guess: member of the object at 0x1005872c
-// GLOBAL: D3DREN 0x10058d00
-extern int g_bDrawGouraudFullbritePass;	// guess: draw state flag (Gouraud fullbrites in use)
-// GLOBAL: D3DREN 0x10058c90
-extern UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of ... (head of a list whose nodes come from the pool at 0x10058c98)
-// GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *g_pGlobalPanInfo;	// &g_pStruct->m_GlobalPans
+int g_bOnePassLightmappingEnabled;	// guess: one-pass lightmapping enabled (set from the g_Force1Pass console variable unless the device cannot do it)
+int g_bPolyDrawModeOne;	// guess: member of the object at 0x1005872c (the fog alpha hook g_pfnCalcFogAlpha is its first member)
+int g_bPolyDrawSetupComplete;	// guess: member of the object at 0x1005872c
+int g_bDrawGouraudFullbritePass;	// guess: draw state flag (Gouraud fullbrites in use)
+UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of ... (head of a list whose nodes come from the pool at 0x10058c98)
 
 extern void (*g_pfnDrawUntexturedWorldPoly)(WorldPoly *pPoly);
 extern void (*g_pfnDrawTexturedWorldPoly)(WorldPoly *pPoly);
@@ -1288,7 +1270,6 @@ void d3d_DrawMirrorSurfaceOverlay(WorldPoly *pPoly, LTMatrix *pMatrix)
 	}
 }
 
-extern uint32 g_CurObjectFrameCode;
 extern void (*g_pfnDrawVisibleReflections)();
 void d3d_IncrementFrameCode(RenderContext *pContext);
 void d3d_InitViewBox2(ViewBoxDef *pDef, float nearZ, float farZ,
@@ -1779,53 +1760,16 @@ extern int g_bPortalsEnabled;
 extern int g_nUnclippedModelsDrawn;
 // GLOBAL: D3DREN 0x100587e0
 extern int g_nClippedModelsDrawn;
-// GLOBAL: D3DREN 0x100561f8
-extern LTVector g_GlobalLightScale;	// guess: the global light scale (SceneDesc +0x50, "GlobalLightScale")
-// GLOBAL: D3DREN 0x1005a330
-extern int g_nLastColorTableVertexTint;
-// GLOBAL: D3DREN 0x10055ce8
-extern LTVector g_GlobalVertexTint;	// guess: colour scale of the model lighting
-// GLOBAL: D3DREN 0x10059d04
-extern uint8 g_MultipassVertexTintTableR[256];	// guess: red lighting table (multipass / dynamic light pass); the next two are green and blue
-// GLOBAL: D3DREN 0x10059e04
-extern uint8 g_MultipassVertexTintTableG[256];
-// GLOBAL: D3DREN 0x10059f04
-extern uint8 g_MultipassVertexTintTableB[256];
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];	// guess: red lighting table
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];
+int g_nLastColorTableVertexTint;
+uint8 g_MultipassVertexTintTableR[256];	// guess: red lighting table (multipass / dynamic light pass); the next two are green and blue
+uint8 g_MultipassVertexTintTableG[256];
+uint8 g_MultipassVertexTintTableB[256];
+uint8 g_VertexTintTableR[256];	// guess: red lighting table
+uint8 g_VertexTintTableG[256];
+uint8 g_VertexTintTableB[256];
 // GLOBAL: D3DREN 0x1006cd70
 extern void (*g_pfnDrawVisibleReflections)();	// guess: optional callback run after the solid objects (RenderScene sets it)
 void __fastcall d3d_NullPreFrameCallback(LTVector *pPos, uint32 *pSpecular);	// 0x1002cc80: the table fog hook
-// GLOBAL: D3DREN 0x10057794
-extern int g_nTextureChanges;
-// GLOBAL: D3DREN 0x10056280
-extern int g_nTextureUploads;
-// GLOBAL: D3DREN 0x10056688
-extern int g_nWorldPolysProcessed;
-// GLOBAL: D3DREN 0x100566cc
-extern int g_nLightTests;
-// GLOBAL: D3DREN 0x10056214
-extern int g_nLitPolies;
-// GLOBAL: D3DREN 0x10056278
-extern int g_nDynamicLightmapsRefreshed;
-// GLOBAL: D3DREN 0x10055cd8
-extern int g_nParticlesDrawn;
-// GLOBAL: D3DREN 0x10055cf4
-extern int g_nVisibleLeaves;
-// GLOBAL: D3DREN 0x100566b8
-extern int g_nSkyPortals;
-// GLOBAL: D3DREN 0x10056270
-extern int g_nSkyPolyFragments;
-// GLOBAL: D3DREN 0x10056218
-extern uint32 g_nNumObjectDynamicLights;
-// GLOBAL: D3DREN 0x10056690
-extern int g_nRejectedPolyLightTests;
-// GLOBAL: D3DREN 0x10055cdc
-extern int g_nTextureUploadSaves;
 // GLOBAL: D3DREN 0x100584e4
 extern int g_bWarbleTableInitialized;
 // GLOBAL: D3DREN 0x10053278
@@ -2081,12 +2025,8 @@ int d3d_RenderScene(SceneDesc *pDesc)
 void d3d_InitLitPolyPools();	// unit sys/d3d/common_stuff: inits the three struct banks at 0x10056220/0x10056240/0x10057778
 void d3d_TermLitPolyPools();	// ... and tears them down
 
-// GLOBAL: D3DREN 0x10058648
-extern StructBank g_PolyDrawBlockBank;		// guess: the 0x100-byte-element pool
-// GLOBAL: D3DREN 0x10058800
-extern uint32 g_PolyDrawPoolResetValue;
-// GLOBAL: D3DREN 0x1005a330
-extern int g_nLastColorTableVertexTint;
+StructBank g_PolyDrawBlockBank;		// guess: the 0x100-byte-element pool
+uint32 g_PolyDrawPoolResetValue;
 
 // guess: initialises the pools the poly drawing code allocates its queue nodes and buckets from.
 // FUNCTION: D3DREN 0x100184f0

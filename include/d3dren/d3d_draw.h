@@ -7,11 +7,13 @@
 #include "ltbasedefs.h"
 #include "de_objects.h"
 #include "d3dren/d3ddevice.h"
+#include "../../../build/proj/LT2/lithshared/stdlith/struct_bank.h"
 
 // The prototypes below are the ones the other units already declare locally (decorated names must agree); the definitions are in
 // src/d3dren/unk/100132a0.cpp.  Types of the arguments are guesses where the exe has no source evidence (pointers to world polys etc.).
 struct WorldPoly;
 struct UnkType_PoolNode;
+struct UnkType_PoolBucket;
 struct LightAnim;
 class LTRect;
 
@@ -62,5 +64,53 @@ inline void d3d_GetBlendStates(LTObject *pObject, uint32 &srcBlend, uint32 &dest
 		destBlend	= D3DBLEND_INVSRCALPHA;
 	}
 }
+
+// ---- globals of this unit (defined in src/d3dren/sys/d3d/d3d_draw.cpp; every address is in its .bss block) -------------------------
+// Fog: the scales RenderScene sets up each frame for the per-vertex fog hooks.
+// GLOBAL: D3DREN 0x10057990
+extern float g_fFogAlphaScale;		// guess: 255 / (FogFarZ - FogNearZ)
+// GLOBAL: D3DREN 0x10058620
+extern float g_fSkyFogAlphaScale;		// guess: 255 / (SkyFogFarZ - SkyFogNearZ)
+// GLOBAL: D3DREN 0x100584f8
+extern float g_fVFogValueRange;		// guess: VFogMaxYVal - VFogMinYVal (set by RenderScene when VFog is on)
+// GLOBAL: D3DREN 0x10058778
+extern float g_fInvVFogHeightRange;		// guess: 1 / (VFogMaxY - VFogMinY)
+
+// GLOBAL: D3DREN 0x10058c68
+extern UnkType_PoolNode *g_pFlatWorldPolyQueue;	// guess: head of a list of polys (nodes of the pool 0x10058758)
+// GLOBAL: D3DREN 0x10058c90
+extern UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of the buckets (head of a list whose nodes come from the pool at 0x10058c98; polys queued per lightmap page)
+
+// Draw mode of the world polys (d3d_SetWorldPolyDrawMode / d3d_FullDrawScene).
+// GLOBAL: D3DREN 0x1005c7e0
+extern int g_bOnePassLightmappingEnabled;	// guess: one-pass lightmapping enabled (set from the g_Force1Pass console variable unless the device cannot do it)
+// GLOBAL: D3DREN 0x10058730
+extern int g_bPolyDrawModeOne;	// guess: member of the object at 0x1005872c (the fog alpha hook g_pfnCalcFogAlpha is its first member)
+// GLOBAL: D3DREN 0x10058734
+extern int g_bPolyDrawSetupComplete;	// guess: member of the object at 0x1005872c
+// GLOBAL: D3DREN 0x10058d00
+extern int g_bDrawGouraudFullbritePass;	// guess: draw state flag (Gouraud fullbrites in use)
+
+// The poly draw pools (d3d_InitPolyDrawPools / d3d_TermPolyDrawPools).
+// GLOBAL: D3DREN 0x10058648
+extern StructBank g_PolyDrawBlockBank;		// guess: the 0x100-byte-element pool
+// GLOBAL: D3DREN 0x10058800
+extern uint32 g_PolyDrawPoolResetValue;
+
+// The vertex colour tables RenderScene rebuilds when the global light scale or vertex tint changes.
+// GLOBAL: D3DREN 0x1005a330
+extern int g_nLastColorTableVertexTint;
+// GLOBAL: D3DREN 0x10059d04
+extern uint8 g_MultipassVertexTintTableR[256];	// guess: red lighting table (multipass / dynamic light pass); the next two are green and blue
+// GLOBAL: D3DREN 0x10059e04
+extern uint8 g_MultipassVertexTintTableG[256];
+// GLOBAL: D3DREN 0x10059f04
+extern uint8 g_MultipassVertexTintTableB[256];
+// GLOBAL: D3DREN 0x1005a004
+extern uint8 g_VertexTintTableR[256];	// guess: red lighting table
+// GLOBAL: D3DREN 0x1005a104
+extern uint8 g_VertexTintTableG[256];
+// GLOBAL: D3DREN 0x1005a204
+extern uint8 g_VertexTintTableB[256];
 
 #endif
