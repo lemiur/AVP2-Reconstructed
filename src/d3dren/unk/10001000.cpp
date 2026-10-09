@@ -1180,14 +1180,14 @@ void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVer
 // guess: per piece of the model: picks the LOD(s), skins/lights/projects the piece into m_Unk82c and, when clipping is on,
 // tests the 8 corners of the projected bounding box against the clip planes: m_Unk2c4[i] = completely outside (skip the piece),
 // m_Unk3c4[i] = crosses a plane (needs the clipping callback).  The mean vertex light is stored in the instance (m_ModelLighting).
-// STUB: D3DREN 0x10005700
+// FUNCTION: D3DREN 0x10005700
 void ModelDraw::PrepareModelPieceVertices()
 {
 	LTMatrix *pTransforms;
-	if (g_ClipFlags == 0)
-		pTransforms = m_Unk840;
-	else
+	if (g_ClipFlags)
 		pTransforms = m_pModel->m_Transforms.GetArray();
+	else
+		pTransforms = m_Unk840;
 	PieceLOD *pLODB = 0;
 	int iVertBase = 0;
 	uint32 nTotalVerts = 0;
@@ -1198,17 +1198,8 @@ void ModelDraw::PrepareModelPieceVertices()
 		if (pLOD)
 		{
 			if (m_bLODBlend)
-			{
-				pLODB = pPiece;
-				if (m_nLOD != 0xffffffff)
-				{
-					if (m_nLOD < pPiece->m_LODs.GetSize())
-						pLODB = &pPiece->m_LODs[m_nLOD];
-					else
-						pLODB = 0;
-				}
-			}
-			if (!(m_pInstance->m_HiddenPieces & (1 << (i & 31))))
+				pLODB = pPiece->GetLOD(m_nLOD + 1);
+			if (!(m_pInstance->m_HiddenPieces & (1 << i)))
 			{
 				m_Unk62c = pPiece->m_SpecularPower;
 				m_Unk630 = pPiece->m_SpecularScale;
@@ -1225,28 +1216,42 @@ void ModelDraw::PrepareModelPieceVertices()
 				SkinAndLightPieceVertices(pLOD, pLODB, m_Unk82c + iVertBase, m_Unk5ec, pTransforms, &m_pInstance->m_ModelLighting.x, bBounds, vMin, vMax);
 				if (bBounds)
 				{
-					// the 8 corners of the projected bounding box against the six clip planes
-					int nNear = 0, nFar = 0, nLeft = 0, nRight = 0, nTop = 0, nBottom = 0;
-					for (int c = 0; c < 8; c++)
-					{
-						float x = (c & 1) ? vMax[0] : vMin[0];
-						float y = (c & 2) ? vMax[1] : vMin[1];
-						float z = (c & 4) ? vMax[2] : vMin[2];
-						nNear += g_ViewParams.m_NearZ <= z;
-						nFar += z <= g_ViewParams.m_ClipFarZ;
-						nLeft += -z < x;
-						nRight += x < z;
-						nTop += y < z;
-						nBottom += -z < y;
-					}
-					int aCount[6] = { nNear, nFar, nLeft, nRight, nTop, nBottom };
-					for (int k = 0; k < 6; k++)
-					{
-						if (aCount[k] == 0)
-							m_Unk2c4[i] = 1;
-						else if (aCount[k] < 8)
-							m_Unk3c4[i] = 1;
-					}
+					// the 8 corners of the bounding box (bit 2: x, bit 1: y, bit 0: z from vMax) against the six clip planes
+					LTVector pts[8];
+					pts[0].Init(vMin[0], vMin[1], vMin[2]);
+					pts[1].Init(vMin[0], vMin[1], vMax[2]);
+					pts[2].Init(vMin[0], vMax[1], vMin[2]);
+					pts[3].Init(vMin[0], vMax[1], vMax[2]);
+					pts[4].Init(vMax[0], vMin[1], vMin[2]);
+					pts[5].Init(vMax[0], vMin[1], vMax[2]);
+					pts[6].Init(vMax[0], vMax[1], vMin[2]);
+					pts[7].Init(vMax[0], vMax[1], vMax[2]);
+					int nIn;
+#define BOX_CLIP_TEST(T) \
+					nIn = T(0) + T(1) + T(2) + T(3) + T(4) + T(5) + T(6) + T(7); \
+					if (nIn == 0) \
+						m_Unk2c4[i] = 1; \
+					else if (nIn < 8) \
+						m_Unk3c4[i] = 1;
+#define IN_NEAR(k)		(pts[k].z >= g_ViewParams.m_NearZ)
+#define IN_FAR(k)		(pts[k].z <= g_ViewParams.m_ClipFarZ)
+#define IN_LEFT(k)		(pts[k].x > -pts[k].z)
+#define IN_RIGHT(k)		(pts[k].x < pts[k].z)
+#define IN_TOP(k)		(pts[k].y < pts[k].z)
+#define IN_BOTTOM(k)	(pts[k].y > -pts[k].z)
+					BOX_CLIP_TEST(IN_NEAR)
+					BOX_CLIP_TEST(IN_FAR)
+					BOX_CLIP_TEST(IN_LEFT)
+					BOX_CLIP_TEST(IN_RIGHT)
+					BOX_CLIP_TEST(IN_TOP)
+					BOX_CLIP_TEST(IN_BOTTOM)
+#undef IN_BOTTOM
+#undef IN_TOP
+#undef IN_RIGHT
+#undef IN_LEFT
+#undef IN_FAR
+#undef IN_NEAR
+#undef BOX_CLIP_TEST
 				}
 				if (m_Unk2c4[i] == 0)
 				{
@@ -1256,12 +1261,11 @@ void ModelDraw::PrepareModelPieceVertices()
 			}
 		}
 	}
-	if (nTotalVerts != 0)
+	if (nTotalVerts > 0)
 	{
-		float fCount = (float)nTotalVerts;
-		m_pInstance->m_ModelLighting.x = m_pInstance->m_ModelLighting.x / fCount;
-		m_pInstance->m_ModelLighting.y = m_pInstance->m_ModelLighting.y / fCount;
-		m_pInstance->m_ModelLighting.z = m_pInstance->m_ModelLighting.z / fCount;
+		m_pInstance->m_ModelLighting.x /= (float)nTotalVerts;
+		m_pInstance->m_ModelLighting.y /= (float)nTotalVerts;
+		m_pInstance->m_ModelLighting.z /= (float)nTotalVerts;
 	}
 }
 
