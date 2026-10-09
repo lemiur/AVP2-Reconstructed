@@ -533,7 +533,8 @@ CMovingCylinder::EHeightSection CMovingCylinder::GetHeightSection(float fYValue)
 // Wave 9: the XZ offsets (vTo, vToProj) as y-zeroed vectors measured by Mag(), the vertex array indexed from pPoly at each use (no hoisted
 // pVert; the exe's `[pPoly + n*0x18 + 0x40]` is Jupiter's trailing WorldPoly::m_Vertices member), and the XZ edge as an
 // LTVector of its own (`vEdgeXZ(vEdge.x, 0, vEdge.z)`, length by Mag(): the exe recomputes the squares in Norm, so
-// they are not the same expression as the XZ length): 166 -> 58 aligned ignoring stack offsets. Left: the exe keeps
+// they are not the same expression as the XZ length), and the inside test through Jupiter's edge plane (g_InsideConvex's
+// edgePlane: m_Dist = Normal.Dot(vertex), then DistTo(point)): 166 -> 51 aligned ignoring stack offsets. Left: the exe keeps
 // vEdgeXZ.z in memory (fst, frame 16 bytes larger) and reads it again for VEC_ADDSCALED; its vCur fallback copies use
 // fld/fstp and share the final vPt.z store with VEC_ADDSCALED (ours: mov copies). Tried without gain: x/z orders of the
 // length and t, float locals for the XZ components, an inline XZ-length helper, the edge-point block as an inline
@@ -544,7 +545,7 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 {
 	LTPlane *pPlane;
 	LTVector *pCur;
-	LTVector vPrev, vPt, vBest, vEdgeNormal, vDiff, vToProj, vTo;
+	LTVector vPrev, vPt, vBest, vDiff, vToProj, vTo;
 	float fPolyRadius, fAbsY, fHeightDiff, fBest, fLen, fInv, t, fSlopeX, fSlopeZ, fDist;
 	int iPrevSection, iCurSection;
 	uint32 i, nVerts;
@@ -654,9 +655,11 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 		// Is the projected point inside this edge?
 		if (bInside)
 		{
-			vEdgeNormal = vEdge.Cross(pPlane->m_Normal);
-			vEdgeNormal.Norm();
-			if (vEdgeNormal.Dot(vProj) - vEdgeNormal.Dot(*pCur) < -0.01f)
+			LTPlane edgePlane;
+			edgePlane.m_Normal = vEdge.Cross(pPlane->m_Normal);
+			edgePlane.m_Normal.Norm();
+			edgePlane.m_Dist = edgePlane.m_Normal.Dot(*pCur);
+			if (edgePlane.DistTo(vProj) < -0.01f)
 				bInside = LTFALSE;
 		}
 
