@@ -232,10 +232,12 @@ static inline void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex 
 // NAME: d3d_ClipSprite: Jupiter drawsprite.cpp template d3d_ClipSprite<T>(pInstance, hPoly, ppPoints, pnPoints, pOut), here the TLVertex
 // instance (names_proposal.csv, high): the viewer must be in front of the clipper poly (hPoly); the sprite polygon is clipped on every
 // edge plane of that poly (Jupiter polyclip.h expanded once per edge: CLIPTEST = DistTo(point) > 0, DOCLIP = plane intersection)
-// STUB diagnosis: 1120 bytes like the exe, 412 vs 413 instructions.  The poly lookup is an inline helper returning NULL (the
-// renderer's form of the engine's cm_GetPolyFromHPoly, clientde_impl.cpp): both failures then share the `!pPoly` return and the exe's
-// separate return epilogues after each guard come out.  The clip loop counters are signed (jle/jl).  Left: register and frame-slot
-// allocation (the exe keeps pPoly in esi with its home at [ebp-0x24], ours edi / [ebp-0x68]) and the schedule of the edge-plane code.
+// STUB diagnosis: 1120 bytes like the exe, 413 instructions.  The poly lookup is an inline helper returning NULL (the renderer's
+// form of the engine's cm_GetPolyFromHPoly, clientde_impl.cpp): both failures then share the `!pPoly` return and the exe's separate
+// return epilogues after each guard come out.  The clip loop counters are signed (jle/jl), and the clip test counter is incremented
+// after the plane distance (that fixes the registers and frame slots of the whole function).  Left (12 bytes): the order of the two
+// reloads (pPoly into esi, pCurPoint into eax) at the three exits of the polygon rebuild (0x1002efac/efc9/efd1); declaration order,
+// names, loop forms, the template form and the lifetimes of thePlane/vecTo do not change it.
 // guess: d3d_GetPolyFromHPoly (invented name, after the engine's cm_GetPolyFromHPoly).
 static inline WorldPoly *d3d_GetPolyFromHPoly(MainWorld *pWorld, HPOLY hPoly)
 {
