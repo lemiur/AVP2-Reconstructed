@@ -37,11 +37,11 @@ uint32 g_LightmapPoolTextureSizes[5] = { 4, 8, 0x10, 0x20, 0x40 };
 uint32 g_LightmapPoolTextureCounts[5] = { 0x7d, 0x48, 0x18, 10, 10 };
 // GLOBAL: D3DREN 0x1007abd0
 RTexture *g_pLightmapStagingTextures[5];
-// Not matching (133 vs 138 instructions, 24 aligned mismatches): the size-class search.  The exe keeps both the running pointer into the
-// size table (compared with the end address 0x1004bf50: `jl`, as `(int)pSize < (int)&g_LightmapPoolTextureSizes[5]` gives in ResetTexturePoolLists) and a separate
-// index in the parameter slots [ebp+0x10]/[ebp+8]; our compiler always strength-reduces both into one byte offset counter
-// (`cmp [ebp+0x10], 0x14`).  Also the RECT of the BltFast path is stored in a different order and the exe computes `width + left`
-// with width as the destination operand.
+// Not matching: 7 of 396 bytes, 2 aligned instruction mismatches.  The only difference is the store order of the BltFast source
+// rectangle: the exe stores rc.bottom, loads pSurface's vtable, then stores rc.right; ours stores both before the vtable load.
+// Tried: every statement order of the four RECT stores, width/height vs m_Unk44/m_Unk48 operands, an aggregate-initialised RECT,
+// a block-scope RECT, a named source surface, and a 3000-candidate permuter run (no candidate better than 2).
+// PARKED: complete body; the remaining 2-instruction store/vtable-load schedule residue survived every source lever and the permuter
 // STUB: D3DREN 0x10034af0
 int UnkType_LMLock::LockStagingLightmap(WorldPoly *pPoly, int bClear, uint32 width, uint32 height)
 {
