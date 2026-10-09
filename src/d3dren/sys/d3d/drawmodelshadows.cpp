@@ -85,19 +85,17 @@ int g_ShadowClipNearInsideFlags[56];
 // normal, clips it against the six shadow frustum planes (pInfo->m_FrustumPlanes), gives every vertex the ModelShadowAlpha colour and
 // the texture coordinates of the 4x4 at pInfo+0x60 (rows 0, 1, 3 = tu, tv, q), then transforms/projects it (TransformClipAndProjectShadowPolygon) and draws it
 // as a TRIANGLEFAN of 0x20-byte TL vertices with tu/q, tv/q.  `this` is not used.
-// Not matching (27 aligned instruction mismatches, 22 ignoring stack offsets; the algorithm and every call/global agree; the
-// specular store comes after q, as in the exe).  The vertex
-// copy loop and the six-plane clip loop are now written like the sibling 0x10026d6a (cached source plane and vertex cursor; the clip
-// loop counts down from 6 with the delayed clipper store), which gives the exe's loop guard order and the in-memory plane counter.
-// Remaining:
-//  (1) the x87 term/operand order of the three matrix expressions: the exe has tu = z(V,M) x(V,M) y(M,V) and tv = q = x(V,M) z(M,V) y(M,V)
-//      (V = vertex field as `fld`, M = matrix element as `fmul`), we produce the default z,y,x / y,x,z with M first.  Source operand order
-//      and statement order of the three expressions do not change it, named float/LTVector/LTMatrix locals, pointers and references
-//      to the matrix change it only to other wrong orders; toy tests (800 reference prefixes) show it depends on the first-reference
-//      order of values in the whole function, which I could not recover.
+// The vertex copy loop reads the source vertices by index (`pSrc[iVert]`, strength-reduced by VC6 into the cursor that is spilled to
+// [ebp-4] after the `nVerts > 0` guard) and the poly plane inside the loop (`pPoly->m_pPlane`, hoisted after the guard): that gives
+// the exe's guard/spill order (a cached plane pointer or a pCur cursor puts the spill before the guard).
+// Not matching (46 bytes; the call set, the CFG and the copy loop agree).  Remaining:
+//  (1) the x87 operand order of the three matrix expressions: the exe has tu = z(V,M) x(V,M) y(M,V) and tv = q = x(V,M) z(M,V) y(M,V)
+//      (V = vertex field as `fld`, M = matrix element as `fmul`); ours has tu = z(M,V) x(M,V) y and tv = q = z(V,M) x(M,V) y.  Source
+//      operand and statement order do not change it (VC6 canonicalises the commutative terms); it follows the value numbering of the
+//      whole function (it moved with the copy-loop change above).
 //  (2) the clip stage's slots: the exe keeps pClipVerts in the dead pInfo parameter slot [ebp+8] and the plane counter at [ebp-8]
 //      (the vertex loop counter's slot); we swap the two.  Declaration order of the clip block's locals and reusing i/iVert/iDraw as the
-//      plane counter do not change it.
+//      plane counter do not change it; an up-counting plane loop loses the exe's down-count.
 // STUB: D3DREN 0x10025078
 void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 {
@@ -125,13 +123,10 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 		return;
 	}
 
-	LTPlane *pSourcePlane = pPoly->m_pPlane;
-	SPolyVertex *pCur = pSrc;
 	for (iVert = 0; iVert < nVerts; iVert++)
 	{
-		aVerts[iVert].m_Vec = *pCur->m_Vec;
-		aVerts[iVert].m_Vec += pSourcePlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
-		pCur++;
+		aVerts[iVert].m_Vec = *pSrc[iVert].m_Vec;
+		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
 	}
 
 	pVerts = aVerts;
