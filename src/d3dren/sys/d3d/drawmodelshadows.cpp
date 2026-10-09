@@ -121,7 +121,7 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 	}
 	else
 	{
-		pSrc = (SPolyVertex *)((uint8 *)pPoly + 0x58);
+		pSrc = pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 
@@ -863,7 +863,7 @@ void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly
 	}
 	else
 	{
-		pSrc = (SPolyVertex *)((uint8 *)pPoly + 0x58);
+		pSrc = pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 

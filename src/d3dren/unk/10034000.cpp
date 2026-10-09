@@ -279,7 +279,7 @@ int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 		WORLDPOLY_UNK4E(pPoly) = (uint8)x;
 		WORLDPOLY_UNK4F(pPoly) = (uint8)y;
 		g_LightmapBytesAssigned += pPoly->m_LMHeight * pPoly->m_LMWidth * 2;
-		WORLDPOLY_LMPAGE(pPoly) = pPage;
+		pPoly->m_Unk48 = pPage;
 	}
 
 	return 1;
@@ -435,7 +435,7 @@ int PageInLightmaps(RenderContext *pContext)
 			WorldPoly *pPoly = pBsp->m_Polies[iPoly];
 			if (!(pPoly->m_Flags & 0x3f))
 			{
-				WORLDPOLY_LMPAGE(pPoly) = 0;
+				pPoly->m_Unk48 = 0;
 			}
 			else if (!UpdatePolyAnimatedLightmap(pWorld, pPoly, 1))
 			{
@@ -460,7 +460,7 @@ void ClearPolyLightmapPages(WorldBsp *pBsp)
 	uint32 i;
 
 	for (i = 0; i < pBsp->m_nPolies; i++)
-		WORLDPOLY_LMPAGE(pBsp->m_Polies[i]) = 0;
+		pBsp->m_Polies[i]->m_Unk48 = 0;
 }
 
 // guess: frees the pages of a context (surfaces, bitmaps, page objects) and forgets them in the world's polygons.
