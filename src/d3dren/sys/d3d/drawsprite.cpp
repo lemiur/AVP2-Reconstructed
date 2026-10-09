@@ -26,6 +26,7 @@
 #include "d3dren/tlvertex.h"
 #include "ltmatrix.h"
 #include "d3dren/3d_ops.h"
+#include "d3dren/d3d_texture.h"
 
 // A class with an empty constructor: a file-scope object of it gets an empty static initialiser (a lone `ret`, as at the start of
 // each of the three objects below).  Same idea as setupmodel.h's UnkType_EmptyCtor of package W4.
@@ -429,58 +430,6 @@ void d3d_CalcLightAdd(LTObject *pObject, LTVector *pLightAdd);		// 0x1000f270 (u
 #define SPRITE_MINFACTOR		0.1f
 #define SPRITE_MAXFACTOR		2.0f
 
-// guess: the d3d_SetTexture sequence the exe has expanded in the sprite and world poly draw functions (W2's d3d_SetTexture, 0x100079e4:
-// finds or creates the RTexture of pTexture for the stage, binds it, resets its LOD); false when there is no texture or no RTexture
-// could be made
-static inline int SpriteSetTexture(SharedTexture *pTexture, uint32 nStage)
-{
-	RTexture *pRTexture;
-	RTexture *pFirst;
-
-	if (!pTexture)
-		return 0;
-
-	pFirst = (RTexture *)pTexture->m_pRenderData;
-	pTexture->m_Unknown30 = g_CurTextureFrameCode;
-	for (pRTexture = pFirst; pRTexture; pRTexture = pRTexture->m_Unk30)
-	{
-		if (pRTexture->m_Unk42 == (uint8)nStage)
-			break;
-	}
-
-	if (pRTexture && pRTexture == (RTexture *)g_pBoundTextures[nStage])
-	{
-	}
-	else
-	{
-		if (!pRTexture)
-		{
-			if (!pFirst)
-			{
-				pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 0);
-				if (!pRTexture)
-					return 0;
-			}
-			else
-			{
-				pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 1);
-				if (!pRTexture)
-					return 0;
-				pRTexture->m_Unk30 = pFirst->m_Unk30;
-				pFirst->m_Unk30 = pRTexture;
-			}
-		}
-		d3d_BindRTexture(pRTexture);
-	}
-
-	if (pRTexture->m_Unk44 != 0)
-	{
-		pRTexture->m_Data.m_pSurface->SetLOD(0);
-		pRTexture->m_Unk44 = 0;
-	}
-	return 1;
-}
-
 // guess: the colour of a sprite: its colour bytes times the ambient world colour, plus (unless FLAG_NOLIGHT) the light grid sample at
 // its position and the dynamic lights (d3d_CalcLightAdd), clamped to 0..255; Jupiter drawsprite.cpp d3d_GetSpriteColor.  An inline
 // function of the original (expanded in both sprite draw functions).
@@ -581,7 +530,7 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 		vDelta.Mag();
 	}
 
-	if (!SpriteSetTexture(pTexture, g_NormalTextureStage))
+	if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
 		return;
 
 	pBound = (RTexture *)g_pBoundTextures[g_NormalTextureStage];
@@ -764,7 +713,7 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 		vDelta.Mag();
 	}
 
-	if (!SpriteSetTexture(pTexture, g_NormalTextureStage))
+	if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
 		return;
 
 	g_TextureStateRestorer.RestoreAllStates();
