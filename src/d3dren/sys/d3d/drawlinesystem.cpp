@@ -67,9 +67,6 @@ void d3d_QueueLineSystemDraw(ViewParams *pParams, LTObject *pObject)
 }
 
 
-// GLOBAL: D3DREN 0x1005849c
-extern int g_FogEnable;		// guess: g_CV_FogEnable mirror (names_proposal medium)
-
 // 0x100161e0 (unit unk/100132a0): clips the 3D line pVerts[2] against the planes of the mask (0x3f = all); 0 when nothing is left.
 int d3d_ClipTLVertexLine(float *pVerts, int nMask);
 

@@ -40,10 +40,10 @@ ConVar g_CV_PSDestBlend("PSDestBlend", -1.0f);
 
 // guess: the particle systems' shared index buffer: the quad list 0,1,2, 0,2,3 / 4,5,6, ... for 128 quads (0x300 indices), filled once
 // (the g_ObjectHandlers[OT_PARTICLESYSTEM] pre-frame function; the drawing code is in unit unk/10008cd0).
-// GLOBAL: D3DREN 0x1006d1b8
-extern uint16 g_ParticleQuadIndices[0x300];
 // GLOBAL: D3DREN 0x1006e7b8
 int g_bParticleQuadIndicesInitialized;
+// GLOBAL: D3DREN 0x1006d1b8
+uint16 g_ParticleQuadIndices[0x300];
 
 // FUNCTION: D3DREN 0x100296a6
 void d3d_InitParticleQuadIndices()

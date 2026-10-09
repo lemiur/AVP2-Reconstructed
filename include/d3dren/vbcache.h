@@ -75,4 +75,7 @@ public:
 	static UnkType_VertexBufferCache s_ModelVertexBufferCache;
 };
 
+// GLOBAL: D3DREN 0x10054888
+extern uint16 g_ModelVBCacheLastAgeFrameCode;		// guess: the frame code (g_CurFrameCode) at which the vertex buffer cache was last aged
+
 #endif

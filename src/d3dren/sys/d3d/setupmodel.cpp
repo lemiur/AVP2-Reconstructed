@@ -15,18 +15,6 @@
 #include <math.h>
 
 // ---- data and functions of other units that the code below uses ----
-// GLOBAL: D3DREN 0x10054888
-extern uint16 g_ModelVBCacheLastAgeFrameCode;		// guess: the frame code (g_CurFrameCode) at which the vertex buffer cache was last aged
-// GLOBAL: D3DREN 0x100587e0
-extern int g_nClippedModelsDrawn;		// guess: models drawn with clipping this frame ("ModelProfile: %d clipped, %d unclipped")
-// GLOBAL: D3DREN 0x10058cdc
-extern int g_nUnclippedModelsDrawn;		// guess: models drawn without clipping this frame
-// GLOBAL: D3DREN 0x10056218
-extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (declared by unit unk/1000f160)
-// GLOBAL: D3DREN 0x100566d0
-extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (same)
-// GLOBAL: D3DREN 0x10055ce8
-extern LTVector g_GlobalVertexTint;	// guess: colour scale of the model lighting
 void d3d_InitModelVertexBufferPools();	// unit unk/10001000: sets up the model vertex buffer pools from the console variables
 void d3d_TermModelVertexBufferPools();	// unit unk/10001000: releases them
 LTBOOL i_IntersectSegment(IntersectQuery *pQuery, IntersectInfo *pInfo, WorldTree *pWorldTree, LTBOOL bServer);	// 0x10030bdd
@@ -39,6 +27,8 @@ float g_ModelWarbleScales[32];		// guess: warble table (d3d_BuildModelWarbleTabl
 float g_ModelWarbleDeltas[32];		// guess: the differences of consecutive warble table entries
 // GLOBAL: D3DREN 0x10054870
 float g_fModelWarbleFraction;			// guess: warble fraction (set per frame, 0 after the module init)
+// GLOBAL: D3DREN 0x10054888
+uint16 g_ModelVBCacheLastAgeFrameCode;		// guess: the frame code (g_CurFrameCode) at which the vertex buffer cache was last aged
 // GLOBAL: D3DREN 0x10053278
 float g_fModelWarblePhase;			// guess: warble phase (advanced per frame by another unit)
 // GLOBAL: D3DREN 0x1005328c

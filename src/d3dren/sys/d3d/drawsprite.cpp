@@ -73,8 +73,6 @@ void d3d_QueueSprite(ViewParams *pParams, LTObject *pObject)
 	g_pTranslucentObjectDrawList->Add(pObject, d3d_DrawSprite);
 }
 
-// GLOBAL: D3DREN 0x1005c9a0
-extern uint32 g_DefaultZEnableState;		// guess: the device's normal D3DRENDERSTATE_ZENABLE value (the no-z sprites restore it)
 
 // NAME: d3d_DrawNoZSprites: Jupiter drawsprite.cpp (names_proposal.csv, high)
 // FUNCTION: D3DREN 0x1002ea90
@@ -207,8 +205,6 @@ void TransformVertexPositionsHomogeneous(TLVertex *pVerts, int nVerts, LTMatrix 
 
 // ---- d3d_DrawSolidWorldModel ----------------------------------------------------------------------------------------------------------
 
-// GLOBAL: D3DREN 0x10055ce8
-extern LTVector g_GlobalVertexTint;	// guess: the global light colour (unit unk/10019350 declares it the same way)
 
 // ---- d3d_DrawTranslucentWorldPoly ----------------------------------------------------------------------------------------------------
 

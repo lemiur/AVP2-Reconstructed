@@ -152,20 +152,6 @@ void d3d_DrawAdditiveWorldModel(ViewParams *pParams, LTObject *pObject)
 // guess: the poly's frame tag (the tagging code sets it to the frame code of the frame the poly was seen in)
 #define WORLDPOLY_FRAMECODE(p)	(*(uint16 *)((uint8 *)(p) + 0x46))
 
-// guess: the poly draw callbacks, selected per frame by d3d_SetWorldPolyDrawMode (unit unk/100132a0): no texture, lightmapped, panning sky, plain
-typedef void (*UnkType_PolyDrawFn)(WorldPoly *pPoly);
-// GLOBAL: D3DREN 0x10058cd8
-extern UnkType_PolyDrawFn g_pfnDrawUntexturedWorldPoly;
-// GLOBAL: D3DREN 0x10058c24
-extern UnkType_PolyDrawFn g_pfnDrawLightmappedWorldPoly;
-// GLOBAL: D3DREN 0x100587e8
-extern UnkType_PolyDrawFn g_pfnDrawTexturedWorldPoly;
-// GLOBAL: D3DREN 0x1005a304
-extern UnkType_PolyDrawFn g_pfnDrawPanningSkyWorldPoly;
-// GLOBAL: D3DREN 0x1005ce18
-extern int g_bPortalsEnabled;		// guess: world models are drawn through the sorted poly list (translucent/portal pass)
-// GLOBAL: D3DREN 0x10056688
-extern int g_nWorldPolysProcessed;		// guess: g_nWorldPoliesProcessed (names_proposal low)
 
 // guess: applies the light animation pAnim to the vertex colours of one poly (see RelightWorldPolyVertices, which has the same code written out); defined
 // in unit unk/100132a0 (0x100185a0, package W2)
@@ -432,8 +418,6 @@ void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly)
 
 // ---- d3d_DrawSolidWorldModel ----------------------------------------------------------------------------------------------------------
 
-// GLOBAL: D3DREN 0x10055ce8
-extern LTVector g_GlobalVertexTint;	// guess: the global light colour (unit unk/10019350 declares it the same way)
 // GLOBAL: D3DREN 0x10057774
 extern uint8 g_nPolyVertexAlpha;		// guess: the alpha byte of the vertex colours
 

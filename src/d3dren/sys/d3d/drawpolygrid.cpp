@@ -17,6 +17,7 @@
 #include "d3dren/common_stuff.h"
 #include "d3dren/d3d_draw.h"
 #include "d3dren/d3d_texture.h"
+#include "d3dren/polydraw.h"
 #include "ltmatrix.h"
 #include "ltquatbase.h"
 #include "d3dren/3d_ops.h"
@@ -60,13 +61,6 @@ static float g_PolyGridAlphaScale;
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 // Per-stage texture coordinate scale pair (u, v), indexed by the device stage (set by the texture binding code).
-struct UnkType_StageUV
-{
-	float	m_Unk00;
-	float	m_Unk04;
-};
-// GLOBAL: D3DREN 0x10061810
-extern UnkType_StageUV g_TextureStageTexelSizes[8];
 
 // The gamma / colour correction tables the vertex colours are looked up in (one byte per input level).
 // GLOBAL: D3DREN 0x1005a004

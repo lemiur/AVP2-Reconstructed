@@ -42,6 +42,7 @@
 #include "d3dren/d3d_draw.h"
 #include "d3dren/tlvertex.h"
 #include "d3dren/vertfill.h"
+#include "d3dren/polydraw.h"
 
 // FUNCTION: D3DREN 0x100241e0 _$E3
 // FUNCTION: D3DREN 0x100241e5 _$E2
@@ -77,17 +78,6 @@ float g_ModelBumpEnvMat10;				// guess: bump environment matrix _21
 // GLOBAL: D3DREN 0x1004b9a0
 float g_fModelBumpEnvMatrix11 = 0.5f;		// guess: bump environment matrix _22
 
-// Static data of other units.
-extern float g_ModelHalfTexelScale;		// guess: texel scale applied to the stage UV scale pair
-struct UnkType_StageUV
-{
-	float	m_Unk00;
-	float	m_Unk04;
-};
-extern UnkType_StageUV g_TextureStageTexelSizes[8];	// per stage UV scale (unit unk/10007930)
-extern IDirectDrawSurface7 *g_pSpecularTexture;	// guess: the specular lookup table texture (d3d_BuildSpecularLookupTexture)
-extern float g_ViewForwardX;		// guess: ViewParams (+0x4a8) component the bump matrix angle is built from
-extern float g_ViewForwardZ;		// guess: ViewParams (+0x4b0)
 
 // Vertex fillers stored in the drawer (unit unk/10001000, W1); declared exactly as that unit defines them, passed through the
 // PFN_ casts of the ModelDraw members.
@@ -331,7 +321,7 @@ void ModelDraw::DrawModelRenderPasses()
 			StageStateSet ss1(1, D3DTSS_COLOROP, D3DTOP_BUMPENVMAP);
 			StageStateSet ss2(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 			StageStateSet ss3(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
-			double dAngle = atan2((double)g_ViewForwardX, (double)g_ViewForwardZ);
+			double dAngle = atan2((double)g_ViewParams.m_Forward.x, (double)g_ViewParams.m_Forward.z);
 			g_fModelBumpEnvMatrix00 = (float)cos(dAngle);
 			g_ModelBumpEnvMat01 = (float)-sin(dAngle);
 			g_ModelBumpEnvMat10 = (float)sin(dAngle);

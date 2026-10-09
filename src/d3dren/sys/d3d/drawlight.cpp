@@ -25,6 +25,7 @@
 #include "d3dren/tlvertex.h"
 #include "d3dren/pool.h"			// ProjectVertexToScreen (projects a TL vertex)
 #include "d3dren/fixedpoint.h"		// RoundFloatToInt
+#include "d3dren/polydraw.h"
 
 // NAME: d3d_ProcessLight: Jupiter drawlight.cpp d3d_ProcessLight (g_ObjectHandlers[OT_LIGHT].m_ProcessObjectFn; Ghidra name).
 // Talon's version queues the light into the VS_LIGHTS set (Jupiter's version fills the g_ObjectDynamicLights arrays instead).
@@ -55,14 +56,6 @@ struct UnkType_LitPoly
 #define WORLDPOLY_LIGHTS(p)	(*(UnkType_PolyLight**)((uint8*)(p) + 0x30))
 #define WORLDPOLY_FRAMECODE(p)	(*(uint16*)((uint8*)(p) + 0x46))
 
-// GLOBAL: D3DREN 0x10056220
-extern StructBank g_PolyLightBank;		// guess: UnkType_PolyLight records
-// GLOBAL: D3DREN 0x10056240
-extern StructBank g_LitPolyBank;		// guess: UnkType_LitPoly records
-// GLOBAL: D3DREN 0x100577b4
-extern UnkType_LitPoly *g_pDynamicallyLitPolys;	// guess: head of the list of polys touched by a dynamic light this frame
-// GLOBAL: D3DREN 0x10056690
-extern int g_nRejectedPolyLightTests;		// guess: g_nRejectedLights (names_proposal low): "Visible Leaves: %d" neighbour in the scene stats
 
 
 
@@ -166,12 +159,6 @@ void DynamicLightWorldModelQueryCB(WorldTreeObj *pObj, void *pUser)
 		AttachDynamicLightToWorldModelPolys((LTObject*)pUser, (WorldModelInstance*)pObj);
 	}
 }
-// GLOBAL: D3DREN 0x10056218
-extern uint32 g_nNumObjectDynamicLights;		// guess: g_nNumObjectDynamicLights (names_proposal low)
-// GLOBAL: D3DREN 0x100566d0
-extern DynamicLight *g_ObjectDynamicLights[];	// guess: g_ObjectDynamicLights (names_proposal low)
-// GLOBAL: D3DREN 0x10056770
-extern MainWorld *g_pFrameMainWorld;	// guess: g_pMainWorld (names_proposal low)
 
 
 

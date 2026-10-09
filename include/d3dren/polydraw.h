@@ -175,4 +175,28 @@ extern PFN_DrawWorldPoly g_pfnDrawPanningSkyWorldPoly;
 // GLOBAL: D3DREN 0x10058c24
 extern PFN_DrawWorldPoly g_pfnDrawLightmappedWorldPoly;
 
+// ---- frame state of the dynamic light drawing (sys/d3d/drawlight; definitions in sys/d3d/common_draw) ----
+struct UnkType_LitPoly;
+// GLOBAL: D3DREN 0x10056220
+extern StructBank g_PolyLightBank;		// guess: UnkType_PolyLight records
+// GLOBAL: D3DREN 0x10056240
+extern StructBank g_LitPolyBank;		// guess: UnkType_LitPoly records
+// GLOBAL: D3DREN 0x100577b4
+extern UnkType_LitPoly *g_pDynamicallyLitPolys;	// guess: head of the list of polys touched by a dynamic light this frame
+
+// ---- device state read by the drawing units (set by unit sys/d3d/d3d_init; d3ddevice.h would be their home, but any new
+// declaration there flips the register-fragile shadow clippers of sys/d3d/drawmodelshadows) ----
+// GLOBAL: D3DREN 0x1005c9a0
+extern uint32 g_DefaultZEnableState;		// guess: the device's normal D3DRENDERSTATE_ZENABLE value (the no-z sprites restore it)
+// GLOBAL: D3DREN 0x1005de1c
+extern float g_ModelHalfTexelScale;		// guess: 0.5f set when the device is up (texel scale of the stage UV scale pair)
+// ---- model drawing statistics (setupmodel.h would be their home; same drawmodelshadows constraint) ----
+// GLOBAL: D3DREN 0x100587e0
+extern int g_nClippedModelsDrawn;		// guess: models drawn with clipping this frame ("ModelProfile: %d clipped, %d unclipped")
+// GLOBAL: D3DREN 0x10058cdc
+extern int g_nUnclippedModelsDrawn;		// guess: models drawn without clipping this frame
+// ---- particle drawing (units sys/d3d/drawparticles, sys/d3d/drawparticles_a) ----
+// GLOBAL: D3DREN 0x1006d1b8
+extern uint16 g_ParticleQuadIndices[0x300];	// the index list of the particle quads (0 1 2 0 2 3 ...), built by d3d_InitParticleQuadIndices
+
 #endif
