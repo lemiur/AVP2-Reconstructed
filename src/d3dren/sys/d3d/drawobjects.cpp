@@ -140,19 +140,16 @@ static inline uint32 GetDrawerObjectFlags(const ObjectDrawer &d)
 {
 	return d.m_pObject->m_Flags;
 }
-// STUB: D3DREN 0x10028660
-// STUB diagnosis: 768/768 bytes, 53 strict differences. Caching the full object flags restores
-// the native DWORD flag load, byte tests and immediate constants, including the profiling calls
-// and static-list initialization. The loop's portal guard/load schedule, index registers and final
-// counter epilogue still differ. The callback-local drawer reference preserves both field reads
-// before the call. ALIGNED 22/22; the independently reviewed sort remains exact.
 // The exe's loop is the portal guard (reading s_TransObjList[i].m_pObject->m_Flags2), then a fresh read of the object pointer
 // whose flags DWORD serves both tests and which is passed to the callback (`LTObject *pObject = s_TransObjList[i].m_pObject;
-// uint32 flags = pObject->m_Flags;` inside the guard): that reproduces the loop's registers exactly, but VC6 then keeps the
-// constant 0 in ebx for the whole function (push ebx, cmp/push/mov with ebx: 355 differing bytes), which the exe does not.
-// (w4-ren-draw2) Rechecked: with the in-guard object read the loop is the exe's instruction for instruction except the cached
-// zero; local copies / references of m_bPortalView, int/LTBOOL flags, `!` spellings and nested ifs do not release ebx.  A
-// 10-minute permuter run removed it only with dead stores and reordered calls (not source).
+// uint32 flags = pObject->m_Flags;` inside the guard).  That spelling reproduces the loop instruction for instruction, but VC6 then
+// keeps the constant 0 in ebx for the whole function (355 differing bytes), which the exe does not; the source below (flags read
+// before the guard) avoids the cached zero and differs only in the loop (ALIGNED 22/22).  Checked without effect: local copies
+// and references of m_bPortalView, int/LTBOOL flags, `!` spellings, nested ifs, `continue`, a drawer reference, declaration
+// placement at loop or function scope, an inline ObjectDrawList draw helper (864 bytes), ftype probes (one int-0 store), and
+// two permuter runs (the cached zero only goes with dead stores or reordered calls).
+// PARKED: register wall: the exe's in-guard object read makes VC6 cache 0 in ebx for the whole function; no source spelling found
+// STUB: D3DREN 0x10028660
 void d3d_FlushObjectQueues()
 {
 	g_pStruct->Unknown24();
