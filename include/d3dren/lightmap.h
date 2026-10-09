@@ -190,10 +190,4 @@ int PageInLightmaps(RenderContext *pContext);					// 0x10034597
 // guess: frees the pages of the context and forgets them in the world's polygons (DeleteContext, RebindLightmaps).
 void FreeLightmapPages(RenderContext *pContext);					// 0x100347ac
 
-// guess: counters of the dynamic lightmap refresh (d3d_RefreshWorldPolyLightmap): staging lightmaps locked, and lightmaps where no light changed a texel
-// GLOBAL: D3DREN 0x10056278
-extern int g_nDynamicLightmapsRefreshed;
-// GLOBAL: D3DREN 0x10055cdc
-extern int g_nTextureUploadSaves;
-
 #endif
