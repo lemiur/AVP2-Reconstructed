@@ -162,10 +162,13 @@ float g_fVFogDensityScale;				// guess: 255 / VFogDensity (set by RenderScene wh
 // integrates a fog density that is VFogMinYVal below VFogMinY, VFogMaxYVal above VFogMaxY and linear in between along the ray from the viewer to the vertex
 // (the viewer's own density and zone are cached in g_ViewParams.m_fVFogViewDensity / m_nVFogViewZone by ViewParams::SetupFogViewPosition), clamps it to VFogMax and
 // stores 255 - fog in the specular alpha.  Same fastcall contract as the other fog hooks (position in ecx, specular in edx).
-// STUB diagnosis (W2): 944 of 976 bytes (746 differ): same statements and constants, but the exe never expands the SDK inlines here: `Mag()` is called out of line
-//   (0x1000e011) at all seven sites, the 3-float LTVector constructor out of line (0x1000dfb6, the temporary of an inlined operator- is
-//   built at the slot of a dead local) and the last operator- out of line (0x1000e06c); ours inlines all of them (fsqrt expanded).  inline_scan
-//   (ballast 8/16/32, 1-2 pending sites after each statement) got at best 462 bytes (ballast 8 before `nZone = 1`); no single insertion matches.
+// STUB diagnosis: 260 aligned mismatches, 91 ignoring stack offsets (was 403 / 307).  The distances are the SDK's Dist (its out-of-line
+//   copy 0x1000dfcf is in the DLL), the same-zone branch computes one distance and doubles it (the exe has 6 Mag sites, `fadd st(0),st(0)`),
+//   the zone and the clamped density are the inline helpers d3d_GetVFogZone / d3d_GetVFogDensity (ViewParams::SetupFogViewPosition uses
+//   both and still matches), and one float (fFog) carries the density, the first leg and the result as in the exe's [ebp-4].
+//   Remaining: the call set.  The exe calls Mag out of line at all 6 Dist sites, the 3-float ctor at 5 and the whole operator- at the
+//   last; ours keeps Mag out of line only at the first 3 (nested shares: the original has less budget or more pending sites after
+//   each Dist), and the frame differs accordingly.
 // STUB: D3DREN 0x100135c0
 void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 {
@@ -178,24 +181,22 @@ void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 
 	if (g_ViewParams.m_nVFogViewZone == nZone)
 	{
-		float fDensity;
-
 		if (g_ViewParams.m_nVFogViewZone == 2)
 		{
-			fDensity = (vPos.y - g_CV_VFogMinY.m_FloatVal) * g_fInvVFogHeightRange * g_fVFogValueRange + g_ViewParams.m_fVFogViewDensity + g_CV_VFogMinYVal.m_FloatVal;
-			fFog = vEye.Dist(*pPos) * fDensity * g_fVFogDensityScale;
+			fFog = (vPos.y - g_CV_VFogMinY.m_FloatVal) * g_fVFogValueRange * g_fInvVFogHeightRange + g_ViewParams.m_fVFogViewDensity + g_CV_VFogMinYVal.m_FloatVal;
+			fFog = vEye.Dist(*pPos) * fFog * g_fVFogDensityScale;
 		}
 		else
 		{
-			fDensity = g_ViewParams.m_fVFogViewDensity;
-			fFog = vEye.Dist(*pPos) * fDensity * 2.0f * g_fVFogDensityScale;
+			fFog = g_ViewParams.m_fVFogViewDensity;
+			fFog = vEye.Dist(*pPos) * fFog * 2.0f * g_fVFogDensityScale;
 		}
 	}
 	else
 	{
 		float fT = (g_CV_VFogMaxY.m_FloatVal - vEye.y) / (vPos.y - vEye.y);
 		LTVector vCross;
-		float fFogA, fFogB;
+		float fFogB;
 
 		vCross.x = (vPos.x - vEye.x) * fT + vEye.x;
 		vCross.y = g_CV_VFogMaxY.m_FloatVal;
@@ -204,19 +205,18 @@ void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 		if (g_ViewParams.m_nVFogViewZone == 1)
 		{
 			// viewer above VFogMaxY, vertex below: the first part of the ray is at VFogMaxYVal
-			fFogA = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
-			fFogA = vEye.Dist(vCross) * fFogA * g_fVFogDensityScale;
+			fFog = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
+			fFog = vEye.Dist(vCross) * fFog * g_fVFogDensityScale;
 			fFogB = d3d_GetVFogDensity(vPos.y) + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = vCross.Dist(vPos) * fFogB;
+			fFog = vCross.Dist(vPos) * fFogB * g_fVFogDensityScale + fFog;
 		}
 		else
 		{
 			fFogB = d3d_GetVFogDensity(vEye.y) + g_CV_VFogMaxYVal.m_FloatVal;
-			fFogA = vEye.Dist(vCross) * fFogB * g_fVFogDensityScale;
+			fFog = vEye.Dist(vCross) * fFogB * g_fVFogDensityScale;
 			fFogB = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = vCross.Dist(vPos) * fFogB;
+			fFog = vCross.Dist(vPos) * fFogB * g_fVFogDensityScale + fFog;
 		}
-		fFog = fFog * g_fVFogDensityScale + fFogA;
 	}
 
 	if (fFog > g_CV_VFogMax.m_FloatVal)
