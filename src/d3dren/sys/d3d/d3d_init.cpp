@@ -593,7 +593,7 @@ int d3d_CreateDevice(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 	D3DDEVICEDESC7 desc;
 	DDSURFACEDESC2 ddsd;
 	D3DVIEWPORT7 vp;
-	uint32 aState[4];
+	DDSCAPS2 caps;
 	GUID guid;
 	DWORD dwCoop;
 	HLTPARAM hParam;
@@ -767,7 +767,6 @@ SurfaceCreationSucceeded:
 	g_pD3DDevice->GetCaps(&desc);
 
 	{
-		DDSCAPS2 caps;
 		DWORD dwTotalTex, dwFreeTex, dwTotalVid, dwFreeVid;
 
 		memset(&caps, 0, sizeof(caps));
@@ -832,6 +831,7 @@ SurfaceCreationSucceeded:
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 	{
+		uint32 aState[4];
 		DWORD dwPasses;
 
 		SaveAndSetStageOneAdditiveStates((UnkType_SavedStage1 *)aState);
