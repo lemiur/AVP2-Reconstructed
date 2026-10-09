@@ -654,19 +654,6 @@ extern TLRGB g_GlobalModelDirAdd2Color;		// guess: the ambient world colour adde
 extern int g_nLightTests;		// guess: the number of light tests this frame ("Num Light Tests")
 // GLOBAL: D3DREN 0x100577b8
 extern uint16 g_CurTextureFrameCode;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
-struct UnkType_RTexW6
-{
-	void				*m_pVtbl;		// 0x00
-	float				m_Unk04;
-	float				m_Unk08;
-	IDirectDrawSurface7	*m_pSurface;	// 0x0c the texture surface
-	uint8				m_Pad10[0x30 - 0x10];
-	UnkType_RTexW6		*m_pNext;		// 0x30 next RTexture of the same SharedTexture (one per stage)
-	uint8				m_Pad34[0x42 - 0x34];
-	uint16				m_nStage;		// 0x42 device stage
-	uint16				m_nLOD;			// 0x44 current LOD
-};
-
 // NAME: SetUV: the shape of the vertex fillers of unit unk/10001000 (arguments evaluated right to left stay on the x87 stack)
 static inline void SetUV(TLVertex *pVertex, float u, float v)
 {
@@ -676,7 +663,6 @@ static inline void SetUV(TLVertex *pVertex, float u, float v)
 
 void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x1000c860 (W4, unit unk/1000c860: the light grid lookup)
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
-void *d3d_FindRTextureForStage(void *pFirst, uint8 nStage);							// 0x10009350: the RTexture of the stage in the chain of pFirst, or 0
 int d3d_DrawFlatWorldPoly(WorldPoly *pPoly);											// 0x10014100 (W2, unit unk/100132a0): draws a poly flat
 
 // guess: draws one translucent world poly: relights it (WPF_RELIGHT), colours the vertices with the light grid sample at the poly
@@ -894,48 +880,11 @@ void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
 
 		if (pTexture)
 		{
-			UnkType_RTexW6 *pRTexture;
-			UnkType_RTexW6 *pFirst = (UnkType_RTexW6 *)pTexture->m_pRenderData;
-			uint32 nStage = g_NormalTextureStage;
-
-			pTexture->m_Unknown30 = g_CurTextureFrameCode;
-			if (pFirst && (pRTexture = (UnkType_RTexW6 *)d3d_FindRTextureForStage(pFirst, (uint8)nStage)) != 0)
+			if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
 			{
-				if (pRTexture != (UnkType_RTexW6 *)g_pBoundTextures[nStage])
-					d3d_BindRTexture((RTexture *)pRTexture);
-			}
-			else
-			{
-				pFirst = (UnkType_RTexW6 *)pTexture->m_pRenderData;
-				if (pFirst)
-				{
-					pRTexture = (UnkType_RTexW6 *)d3d_CreateAndLoadTexture(pTexture, nStage, 1);
-					if (!pRTexture)
-					{
-						d3d_UnsetDetailTexture();
-						d3d_DrawFlatWorldPoly(pPoly);
-						return;
-					}
-					pRTexture->m_pNext = pFirst->m_pNext;
-					pFirst->m_pNext = pRTexture;
-				}
-				else
-				{
-					pRTexture = (UnkType_RTexW6 *)d3d_CreateAndLoadTexture(pTexture, nStage, 0);
-					if (!pRTexture)
-					{
-						d3d_UnsetDetailTexture();
-						d3d_DrawFlatWorldPoly(pPoly);
-						return;
-					}
-				}
-				d3d_BindRTexture((RTexture *)pRTexture);
-			}
-
-			if (pRTexture->m_nLOD != 0)
-			{
-				pRTexture->m_pSurface->SetLOD(0);
-				pRTexture->m_nLOD = 0;
+				d3d_UnsetDetailTexture();
+				d3d_DrawFlatWorldPoly(pPoly);
+				return;
 			}
 
 			g_TextureStateRestorer.RestoreAllStates();
