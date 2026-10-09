@@ -576,11 +576,8 @@ int BuildColorLightAnimTexels(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRe
 }
 
 // guess: adds the light of the context to every 32 bit texel of the rectangle (the two extra arguments are unused)
-// Not matching (size 496 vs 512, 417 bytes differ): the exe evaluates the texel distance with the light position copied to a stack temporary
-// per texel (`fsub [ebp-0x40]`: operator- taking its vector by value, inlined) and walks the position in stack slots
-// [ebp-0x28..-0x20] with `fld step; fadd pos; fstp` updates; our operator+/- walk keeps registers.  The MulHigh helper again differs in
-// slot placement (see AddLightmapLightToRGB555Texel).
-// STUB: D3DREN 0x10033e00
+// The channels live in a local array, as in AddLightmapLightToRGB555Texel.
+// FUNCTION: D3DREN 0x10033e00
 void AddLightmapLightToRGB32Rect(UnkType_LightCtx *pCtx, int, int)
 {
 	uint32 *pRow = (uint32 *)pCtx->m_Unk3c;
@@ -589,8 +586,8 @@ void AddLightmapLightToRGB32Rect(UnkType_LightCtx *pCtx, int, int)
 
 	for (y = pCtx->m_Unk44; y != 0; y--)
 	{
-		uint32 *pTexel = pRow;
 		LTVector vCol = vRow;
+		uint32 *pTexel = pRow;
 
 		for (x = pCtx->m_Unk40; x != 0; x--)
 		{
@@ -599,9 +596,16 @@ void AddLightmapLightToRGB32Rect(UnkType_LightCtx *pCtx, int, int)
 			{
 				int a = g_LightmapLightFalloffTable[-(int)((1.0f - pCtx->m_Unk38 * pCtx->m_Unk30) * -63.0f)];
 
-				*pTexel = ((g_LightmapColorClampTable[255 + ((uint8 *)pTexel)[2] + MulHigh(a, pCtx->m_Unk4c)] << 8) |
-					g_LightmapColorClampTable[255 + ((uint8 *)pTexel)[1] + MulHigh(a, pCtx->m_Unk50)]) << 8 |
-					g_LightmapColorClampTable[255 + (*pTexel & 0xff) + MulHigh(a, pCtx->m_Unk54)];
+				int rgb[3];
+
+				rgb[0] = ((uint8 *)pTexel)[2];
+				rgb[0] += MulHigh(a, pCtx->m_Unk4c);
+				rgb[1] = ((uint8 *)pTexel)[1];
+				rgb[1] += MulHigh(a, pCtx->m_Unk50);
+				rgb[2] = *pTexel & 0xff;
+				rgb[2] += MulHigh(a, pCtx->m_Unk54);
+				*pTexel = ((g_LightmapColorClampTable[255 + rgb[0]] << 8) | g_LightmapColorClampTable[255 + rgb[1]]) << 8 |
+					g_LightmapColorClampTable[255 + rgb[2]];
 				pCtx->m_Unk58 = 1;
 			}
 			pTexel++;
