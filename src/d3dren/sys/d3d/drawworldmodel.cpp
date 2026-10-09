@@ -673,7 +673,12 @@ int d3d_DrawFlatWorldPoly(WorldPoly *pPoly);											// 0x10014100 (W2, unit u
 // colour loop, dynamic light loop, transform, clip, project, texture bind with its three outcomes, detail texture, scale loop,
 // DrawPrimitive); differences: pPoly lives in esi (the exe: ebx), the u/v copy of the vertex loop is integer moves where the exe uses
 // x87 loads, the exe calls _CVector<float>::Dot (by value, 0x100187c0) in the dynamic light loop where ours inlines it, and its
-// d3d_SetTexture expansion for the detail texture is a call.  Not iterated further.
+// d3d_SetTexture expansion for the detail texture is a call.  inline_budget.py: Dot, d3d_FindRTextureForStage and the second
+// d3d_SetTexture go out of line only with ~2900u less budget left, so the original charges far more inline cost before the light
+// loop than this source.  The relight block here (and loop 2 of DrawWorldModelPolyList) is RelightWorldPolyVertices' body with the
+// light-anim helper refused; declaring RelightWorldPolyVertices `inline` and calling it here reproduces this block, but then
+// DrawWorldModelPolyList's out-of-line call inlines too (and the nested helper must be d3d_draw's shared inline to keep the
+// referent), so that change waits for the light-anim helper to move into a header.
 // STUB: D3DREN 0x10030370
 void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
 {
