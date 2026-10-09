@@ -432,6 +432,8 @@ void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 // declaration order 0, 2, 1 gives the registers but loads 0, 2, 1) and the x87 term order of the expanded projections (x/y swapped).
 // Open: the exe expands ProjectPositionWithDepthBias at the unclipped vertices but calls it for the clipped polygon; an inline
 // definition visible here inlines all four sites (no budget reaches the fourth), so the expanded copies are a separate helper here.
+// Term orders of the helper's x/y rows (6 permutations) and the SDK w-row order move it by at most 4; same residue as DrawPieceClipped.
+// PARKED: register/x87 order residue (vertex load order vs ebx/ebp choice, x/y term order of the depth-bias projection), as DrawPieceClipped
 // STUB: D3DREN 0x10002050
 int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -582,8 +584,12 @@ Skip:
 // is built in a local vertex array and clipped by m_Unk600 against that plane and the ones not yet tested; the clipped polygon is
 // back face tested, projected in place and drawn as a fan.  A triangle inside every plane is back face tested and projected
 // straight into the pool.
-// Not matching (same size): the vertex index load order (see DrawPieceClippedReallyClose), the x87 term order of ProjectVertex (as in
-// DrawPieceProjected) and the store order of the first clip vertex copy.
+// Not matching (same size, 31 aligned ignoring stack offsets): the vertex index load order (see DrawPieceClippedReallyClose) and the
+// x87 term order of the MatVMul_H expansions and of IsFrontFacing (x/y swapped).  Loading 0, 1, 2 swaps ebx/ebp for pV1/pV2 (186);
+// a vertex pointer array, the inline vInvZ back face test of DrawPieceProjected, MatVMul_InPlace_H for the clipped polygon and
+// declarations at the top (C style, for(;;) loop) do not move it.  The permuter reaches 14 only with parameter copies, a reference to
+// pV2->m_Vec in some of the plane tests and a float temporary (not source).
+// PARKED: register/x87 order residue (vertex load order vs ebx/ebp choice, MatVMul_H term order); authentic levers exhausted, permuter states fake
 // STUB: D3DREN 0x10002bc0
 int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 {
