@@ -85,12 +85,38 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 // guess: draws a particle system: binds its texture (the inlined texture binding with the per-stage record search d3d_FindRTextureForStage), builds
 // the object to view matrix, and draws the particles in batches of 128 with d3d_DrawParticleBatch.  Its typed locals match the SDK
 // IntersectQuery (52 bytes) and IntersectInfo (40 bytes); the renderer's constructor copies are at 0x1000bdeb and 0x1000be28.
-// The surrounding function body remains a STUB.
-// Inline call set (tools/inline_budget.py, nested shares): the exe expands the first LTVector::Init of each constructor and calls the
-// rest (3 calls; ours 1: first out, later in).  Measured with probes: one or two more free inline sites after `info` give the exe's
-// three Init calls, frame 0xf0 and size, but then d3d_FindRTextureForStage inlines; an extra ~9-store (~65u) inline charge before
-// d3d_SetTexture (or a correspondingly heavier d3d_SetTexture) plus one free site gives the exe's whole call set.  Which original
-// statements carry that charge is open (B is at the 1000u floor, so moving open-coded statements into inline helpers is the lever).
+// Inline call set (tools/inline_budget.py): the exe expands the first LTVector::Init of each constructor and calls the rest (3 calls),
+// keeps d3d_FindRTextureForStage and d3d_SetupTransformation out of line and expands d3d_SetTexture.  That takes two more pending
+// sites after `info` and a charged inline (> 40u) between d3d_SetTexture and d3d_SetupTransformation: the texture-extent helper below
+// and the batch loop as Jupiter's static d3d_DrawParticles give exactly the exe's call set, frame 0xf0 and size.
+// STUB residue: the exe keeps the constant 0 in ebx and pSystem in ebp (ours: the reverse), plus the operand registers of the
+// failure path's d3d_DisableTexture.
+// NAME: d3d_SetParticleTextureExtents: invented (no out-of-line copy in d3d.ren): the UV extents of the bound particle texture.
+inline void d3d_SetParticleTextureExtents()
+{
+	RTextureBase *pBase;
+
+	g_fParticleTextureUMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
+	pBase = (RTextureBase *)g_pBoundTextures[g_NormalTextureStage];
+	g_fParticleTextureUMax = ((float)(uint32)pBase->GetBaseWidth() - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
+	g_fParticleTextureVMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
+	g_fParticleTextureVMax = ((float)(uint32)pBase->GetBaseHeight() - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
+}
+
+// NAME: d3d_DrawParticles: Jupiter drawparticles.cpp (static; the batch loop of the particle system draw, expanded in d3d.ren)
+static void d3d_DrawParticles(LTParticleSystem *pSystem, LTMatrix *pMat)
+{
+	int nBatches = pSystem->m_nParticles / 128;
+	int nRest = pSystem->m_nParticles - nBatches * 128;
+	PSParticle *pParticle = pSystem->m_ParticleHead.m_pNext;
+	int i;
+
+	for (i = nBatches; i > 0; i--)
+		pParticle = d3d_DrawParticleBatch(pSystem, pParticle, 128, pMat, 1, 0.0f);
+	if (nRest)
+		d3d_DrawParticleBatch(pSystem, pParticle, nRest, pMat, 1, 0.0f);
+}
+
 // FUNCTION: D3DREN 0x10009020 ?MatMul@@YAXPAVLTMatrix@@00@Z
 // STUB: D3DREN 0x10008ce0
 void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
@@ -100,17 +126,19 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 	LTMatrix mObject;
 	LTMatrix mFull;
 	SharedTexture *pTexture;
-	int nBatches, nRest;
-	PSParticle *pParticle;
-	LTMatrix *pView;
-	int i;
-
 
 	{
 		CountAdder cTimer(g_pSceneDesc->m_pTicks_Render_ParticleSystems);
 
 		pTexture = pSystem->m_pCurTexture;
-		if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
+		if (d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
+		{
+			d3d_SetParticleTextureExtents();
+			g_TextureStateRestorer.RestoreAllStates();
+			if (pTexture->m_pStateChange)
+				g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
+		}
+		else
 		{
 			g_fParticleTextureVMax = 0.0f;
 			g_fParticleTextureUMax = 0.0f;
@@ -118,38 +146,18 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 			g_fParticleTextureUMin = 0.0f;
 			d3d_DisableTexture(g_NormalTextureStage);
 		}
-		else
-		{
-			RTextureBase *pBase;
-
-			g_fParticleTextureUMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
-			pBase = (RTextureBase *)g_pBoundTextures[g_NormalTextureStage];
-			g_fParticleTextureUMax = ((float)(uint32)pBase->GetBaseWidth() - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
-			g_fParticleTextureVMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
-			g_fParticleTextureVMax = ((float)(uint32)pBase->GetBaseHeight() - 2.0f) * g_TextureStageTexelSizes[0].m_Unk04;
-			g_TextureStateRestorer.RestoreAllStates();
-			if (pTexture->m_pStateChange)
-				g_TextureStateRestorer.ApplyStateChange(pTexture->m_pStateChange, g_NormalTextureStage);
-		}
 
 		d3d_SetupTransformation(&pSystem->m_Pos, (float *)&pSystem->m_Rotation, &pSystem->m_Scale, &mObject);
 		if (pSystem->m_Flags & 0x40)
-			pView = &g_ViewParams.m_mReallyCloseClipTransform;
+			MatMul(&mFull, &g_ViewParams.m_mReallyCloseClipTransform, &mObject);
 		else
-			pView = &g_ViewParams.m_mClipTransform;
-		MatMul(&mFull, pView, &mObject);
+			MatMul(&mFull, &g_ViewParams.m_mClipTransform, &mObject);
 		g_pfnCalcFogAlpha(&pSystem->m_Pos, &g_dwParticleFogSpecular);
 		g_fParticleRedScale = 1.0f / 255.0f;
 		g_fParticleGreenScale = 1.0f / 255.0f;
 		g_fParticleBlueScale = 1.0f / 255.0f;
 
-		nBatches = pSystem->m_nParticles / 128;
-		nRest = pSystem->m_nParticles - nBatches * 128;
-		pParticle = pSystem->m_ParticleHead.m_pNext;
-		for (i = nBatches; i > 0; i--)
-			pParticle = d3d_DrawParticleBatch(pSystem, pParticle, 128, &mFull, 1, 0.0f);
-		if (nRest)
-			d3d_DrawParticleBatch(pSystem, pParticle, nRest, &mFull, 1, 0.0f);
+		d3d_DrawParticles(pSystem, &mFull);
 	}
 }
 
