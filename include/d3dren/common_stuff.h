@@ -33,6 +33,11 @@ struct RenderContext
 // GLOBAL: D3DREN 0x10058470
 extern RenderStruct *g_pStruct;
 
+// Frame counter: zeroed by d3d_Init, incremented by d3d_InitFrame.  Its address lies inside this unit's ConVar .bss block (between
+// g_CV_EnvMapEnable and g_CV_Wireframe), so common_stuff defines it.
+// GLOBAL: D3DREN 0x10057b58
+extern int g_nRenderFrameCount;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
+
 // Allocation through the engine (RenderStruct::Alloc / ::Free, else the CRT).
 void *dalloc(size_t size);		// 0x10012ce5: g_pStruct->Alloc, else malloc
 void *dalloc_z(size_t size);	// 0x10012cfe: dalloc + zero fill; "d3drender.dll: out of memory" on failure

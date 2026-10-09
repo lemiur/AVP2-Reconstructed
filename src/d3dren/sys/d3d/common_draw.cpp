@@ -22,6 +22,7 @@
 #include "de_world.h"
 #include "de_mainworld.h"
 #include "d3dren/common_stuff.h"
+#include "d3dren/common_draw.h"
 #include "d3dren/rendererconsolevars.h"
 #include "d3dren/viewparams.h"
 #include "d3dren/scenedesc.h"
@@ -34,30 +35,25 @@
 // common_draw (Jupiter render_a/src/sys/d3d/common_draw.cpp)
 // ------------------------------------------------------------------ //
 
-// Five global objects with empty inline constructors come first in this object: they leave five empty (1-byte) static
-// initialiser functions at 0x1000f3a0-0x1000f3a4.  Their identity is unknown (the objects hold no data nothing could name);
-// these placeholders keep the _$E numbering of everything after them the exe's.
-class UnkType_EmptyCtor { public: UnkType_EmptyCtor() {} };
+// The five LTVector globals of this object come first: the SDK's empty inline constructor (`_CVector() {}`) leaves five empty (1-byte)
+// static initialiser functions at 0x1000f3a0-0x1000f3a4.  Which five of the object's seven 12-byte vectors they are is not provable from
+// the bytes (an empty initialiser names nothing); these are the five d3d_InitFrame copies whole out of the SceneDesc (see common_draw.h).
 // FUNCTION: D3DREN 0x1000f3a0 _$E2
-UnkType_EmptyCtor s_Unk1000f3a0;
+LTVector g_vSceneClientVectorPrimary;
 // FUNCTION: D3DREN 0x1000f3a1 _$E5
-UnkType_EmptyCtor s_Unk1000f3a1;
+LTVector g_vSceneClientVectorSecondary;
 // FUNCTION: D3DREN 0x1000f3a2 _$E8
-UnkType_EmptyCtor s_Unk1000f3a2;
+LTVector g_GlobalLightScale;
 // FUNCTION: D3DREN 0x1000f3a3 _$E11
-UnkType_EmptyCtor s_Unk1000f3a3;
+LTVector g_GlobalVertexTint;
 // FUNCTION: D3DREN 0x1000f3a4 _$E14
-UnkType_EmptyCtor s_Unk1000f3a4;
+LTVector g_vGlobalModelDirAdd2;
 
 // The renderer's view state (the LTRect member's inline constructor zeroes m_Rect: the whole static initialiser).
 // FUNCTION: D3DREN 0x1000f3a5 _$E17
 ViewParams g_ViewParams;
 
 // FUNCTION: D3DREN 0x1000f3af ??0ViewParams@@QAE@XZ
-
-// Globals of other units that this part reads.
-// GLOBAL: D3DREN 0x10056770
-extern MainWorld *g_pFrameMainWorld;			// guess: the engine's main world (names_proposal guess_g_pMainWorld, low)
 
 void d3d_ClearWorldBspFrameCodes(WorldBsp *pBsp);
 
@@ -490,76 +486,36 @@ void d3d_SetupSkyStuff()
 
 // Globals written by d3d_InitFrame (Jupiter common_draw.cpp has the first three; the others are renderer statistics and
 // per-frame state of the draw code, names unknown: Ghidra names, roles in the guess comments).
-// NAME: g_CurFrameCode, g_CurObjectFrameCode: Jupiter common_draw.cpp / names_proposal high
-// GLOBAL: D3DREN 0x100577a0
+// NAME: g_CurFrameCode, g_CurObjectFrameCode: Jupiter common_draw.cpp / names_proposal high.  Declarations, GLOBAL annotations and
+// roles: d3dren/common_draw.h (g_vSceneClientVector*, g_GlobalLightScale, g_GlobalVertexTint and g_vGlobalModelDirAdd2 are defined at the top).
 uint16 g_CurFrameCode;
-// GLOBAL: D3DREN 0x100561f0
 uint32 g_CurObjectFrameCode;
-// GLOBAL: D3DREN 0x10057b58
-extern int g_nRenderFrameCount;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
-// GLOBAL: D3DREN 0x1005625c
-extern int g_nInitFrameArgument;				// guess: the third argument of d3d_InitFrame
-// GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *g_pGlobalPanInfo;	// &g_pStruct->m_GlobalPans (NAMING.md: "g_pGlobalPanInfo = &it")
-// GLOBAL: D3DREN 0x10056284
-extern RenderContext *g_pFrameRenderContext;	// guess: the render context of the frame (CreateContext's object)
-// GLOBAL: D3DREN 0x100577b8
-extern uint16 g_CurTextureFrameCode;			// guess: current texture frame code (RenderStruct::IncCurTextureFrameCode)
-// GLOBAL: D3DREN 0x100577a8
-extern LTVector g_vSceneClientVectorPrimary;			// guess: a vector the engine hands over (SceneDesc +0x38)
-// GLOBAL: D3DREN 0x100566a0
-extern LTVector g_vSceneClientVectorSecondary;			// guess: SceneDesc +0x44
-// GLOBAL: D3DREN 0x100561f8
-extern LTVector g_GlobalLightScale;			// guess: the global light scale (SceneDesc +0x50, "GlobalLightScale")
-// GLOBAL: D3DREN 0x10056208
-extern LTVector g_GlobalLightScale255;			// guess: g_GlobalLightScale * 255
-// GLOBAL: D3DREN 0x100566c0
-extern LTVector g_vGlobalLightScalePerByte;			// g_GlobalLightScale / 255 (original loads at 0x100104cb/0x100104d2/0x100104dd)
-// GLOBAL: D3DREN 0x10056698
-extern TLRGB g_GlobalLightScaleColor;				// guess: the light scale as a packed colour
-// GLOBAL: D3DREN 0x10057774
-extern uint8 g_nPolyVertexAlpha;				// guess: 0xff, set with the colours (an alpha byte)
-// GLOBAL: D3DREN 0x10055ce8
-extern LTVector g_GlobalVertexTint;			// guess: the global vertex tint (SceneDesc +0x5c)
-// GLOBAL: D3DREN 0x100566bc
-extern RGBColor g_GlobalVertexTintColor;				// guess: the tint as a packed colour
-// GLOBAL: D3DREN 0x10056260
-extern LTVector g_vGlobalModelDirAdd2;			// guess: SceneDesc +0x68
-// GLOBAL: D3DREN 0x10057798
-extern TLRGB g_GlobalModelDirAdd2Color;				// guess: that vector as a packed colour (not scaled)
-// GLOBAL: D3DREN 0x10056694
-extern float g_fScreenTriangleArea;				// guess: area drawn this frame ("Tri area drawn")
-// Per-frame counters of the draw code (zeroed here; printed by RenderScene).
-// GLOBAL: D3DREN 0x10056688
-extern int g_nWorldPolysProcessed;
-// GLOBAL: D3DREN 0x100566ac
-extern int g_nWorldPolysDrawn;
-// GLOBAL: D3DREN 0x10055cd8
-extern int g_nParticlesDrawn;
-// GLOBAL: D3DREN 0x1005779c
-extern int g_nReservedFrameStatistic;
-// GLOBAL: D3DREN 0x100566cc
-extern int g_nLightTests;
-// GLOBAL: D3DREN 0x10056690
-extern int g_nRejectedPolyLightTests;
-// GLOBAL: D3DREN 0x100566b8
-extern int g_nSkyPortals;
-// GLOBAL: D3DREN 0x10056270
-extern int g_nSkyPolyFragments;
-// GLOBAL: D3DREN 0x10056218
-extern uint32 g_nNumObjectDynamicLights;	// unsigned: the exe compares it with jb/jbe
-// GLOBAL: D3DREN 0x100566b0
-extern int g_nPolygonTriangles;
-// GLOBAL: D3DREN 0x10055cf4
-extern int g_nVisibleLeaves;
-// GLOBAL: D3DREN 0x10056280
-extern int g_nTextureUploads;
-// GLOBAL: D3DREN 0x10057794
-extern int g_nTextureChanges;
-// GLOBAL: D3DREN 0x10056278
-extern int g_nDynamicLightmapsRefreshed;
-// GLOBAL: D3DREN 0x10055cdc
-extern int g_nTextureUploadSaves;
+DynamicLight *g_ObjectDynamicLights[MAX_VISIBLE_LIGHTS];
+uint32 g_nNumObjectDynamicLights;
+MainWorld *g_pFrameMainWorld;
+int g_nInitFrameArgument;
+GlobalPanInfo *g_pGlobalPanInfo;
+RenderContext *g_pFrameRenderContext;
+uint16 g_CurTextureFrameCode;
+TLRGB g_GlobalLightScaleColor;
+uint8 g_nPolyVertexAlpha;
+RGBColor g_GlobalVertexTintColor;
+TLRGB g_GlobalModelDirAdd2Color;
+float g_fScreenTriangleArea;
+int g_nWorldPolysProcessed;
+int g_nWorldPolysDrawn;
+int g_nParticlesDrawn;
+int g_nReservedFrameStatistic;
+int g_nLightTests;
+int g_nRejectedPolyLightTests;
+int g_nSkyPortals;
+int g_nSkyPolyFragments;
+int g_nPolygonTriangles;
+int g_nVisibleLeaves;
+int g_nTextureUploads;
+int g_nTextureChanges;
+int g_nDynamicLightmapsRefreshed;
+int g_nTextureUploadSaves;
 // g_nModelTrianglesDrawn, g_nPlaneClipTests, g_ClipFlags, g_pClipScratchVerts: include/d3dren/viewparams.h
 
 // NAME: d3d_InitFrustum: Jupiter common_draw.cpp, expanded in d3d_InitFrame in Talon.
@@ -804,8 +760,6 @@ void d3d_CalcWorldReflectionUVs(LTVector *pPos1, LTVector *pPos2, LTVector *pNor
 #define RS_SET(member, fn)	(*(void **)&pStruct->member = (void *)(fn))
 #define RS_SET_PAD(offset, fn)	(*(void **)((uint8 *)pStruct + (offset)) = (void *)(fn))
 
-// NAME: g_pStruct: Jupiter common_stuff.cpp `RenderStruct *g_pStruct`; GLOBAL annotation is in common_stuff.h
-RenderStruct *g_pStruct;
 
 #define QUOTE_CHAR		'\"'
 #define SPECIAL_CHAR	'%'

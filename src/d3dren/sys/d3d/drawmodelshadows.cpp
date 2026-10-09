@@ -23,6 +23,8 @@
 #include "d3dren/d3ddevice.h"
 #include "d3dren/d3d_surface.h"
 #include "d3dren/common_stuff.h"
+#include "d3dren/common_draw.h"
+#include "d3dren/d3dtexture.h"
 #include "d3dren/rendererconsolevars.h"
 #include "d3dren/viewparams.h"
 #include "d3dren/visibleset.h"
@@ -33,8 +35,6 @@
 
 // ---- declarations of other units (the lead unifies them with the real headers) ------------------------------------------------
 
-// 0x10056770: guess g_pMainWorld (polydraw.h declares it too; no GLOBAL annotation here)
-extern MainWorld *g_pFrameMainWorld;
 // guess: collects the world polygons along a segment (callback of FindObjectsOnPoint, 0x10035917)
 struct UnkType_SegRequest;
 void __cdecl CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest *pUser);
@@ -70,23 +70,14 @@ ConVar g_CV_ModelShadowProj("ModelShadowProj", 0.0f);
 // Same epsilon as Jupiter 3d_ops.h CLIP_EPSILON.
 #define CLIP_EPSILON	0.00001f
 
-// bInside[] of the polygon clipper (a static of the expanded Jupiter polyclip.h).
-// GLOBAL: D3DREN 0x10094440
-extern int g_ShadowClipPlaneInsideFlags[56];
-
-// bInside[] statics of the six expanded polygon clippers below (one per function, 0xe0 bytes apart like g_ShadowClipPlaneInsideFlags).
-// GLOBAL: D3DREN 0x10093f00
-extern int g_ShadowClipFarInsideFlags[56];
-// GLOBAL: D3DREN 0x10093fe0
-extern int g_ShadowClipBottomInsideFlags[56];
-// GLOBAL: D3DREN 0x100940c0
-extern int g_ShadowClipRightInsideFlags[56];
-// GLOBAL: D3DREN 0x100941a0
-extern int g_ShadowClipTopInsideFlags[56];
-// GLOBAL: D3DREN 0x10094280
-extern int g_ShadowClipLeftInsideFlags[56];
-// GLOBAL: D3DREN 0x10094360
-extern int g_ShadowClipNearInsideFlags[56];
+// bInside[] arrays of the polygon clippers below (declarations and GLOBAL annotations: d3dren/modelshadow.h).
+int g_ShadowClipPlaneInsideFlags[56];
+int g_ShadowClipFarInsideFlags[56];
+int g_ShadowClipBottomInsideFlags[56];
+int g_ShadowClipRightInsideFlags[56];
+int g_ShadowClipTopInsideFlags[56];
+int g_ShadowClipLeftInsideFlags[56];
+int g_ShadowClipNearInsideFlags[56];
 
 // Edge/plane intersection helpers of other units (pool.h / seed polyclip): return t in st(0).
 float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
@@ -201,9 +192,6 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, aOut, nVerts, 0);
 	}
 }
-
-// 0x1006287c: data of another unit
-extern IDirectDrawSurface7 *g_pShadowBlobTexture;
 
 // Named query/light-origin aliases, separate traversal/drawing counters, and the guarded drawing scope reproduce the x87 Dot order.
 // The call sequence equals the exe's only with the inline helper d3d_SetTextureDirect() for the final SetTexture (it is the one

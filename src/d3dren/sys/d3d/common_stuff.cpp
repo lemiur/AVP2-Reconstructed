@@ -46,7 +46,13 @@ void UppercaseStringInPlace(char *pStr);
 // define them take Jupiter-style arguments, so the store goes through void *.
 #define RS_SET(member, fn)	(*(void **)&pStruct->member = (void *)(fn))
 #define RS_SET_PAD(offset, fn)	(*(void **)((uint8 *)pStruct + (offset)) = (void *)(fn))
-extern RenderStruct *g_pStruct;
+
+// NAME: g_pStruct: Jupiter common_stuff.cpp `RenderStruct *g_pStruct=NULL;` (declared in d3dren/common_stuff.h, GLOBAL annotation there;
+// the explicit zero initialiser puts it after this object's hash-ordered .bss block, at 0x10058470 right after the ConVars).
+RenderStruct *g_pStruct = NULL;
+
+// d3dren/common_stuff.h
+int g_nRenderFrameCount;
 
 // FUNCTION: D3DREN 0x1001116b _$E2
 // FUNCTION: D3DREN 0x10011170 _$E1

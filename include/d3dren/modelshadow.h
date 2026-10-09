@@ -156,4 +156,21 @@ struct UnkType_ShadowPolyQuery
 	uint32				m_Unk38;	// 0x38 not touched by DrawModelShadows
 };
 
+// bInside[] arrays of the seven expanded polygon clippers of drawmodelshadows.cpp (one per clip function, 0xe0 bytes apart): the
+// polygon clipper of Jupiter's polyclip.h keeps it as a static of the expanded clipper.  Defined in drawmodelshadows.cpp.
+// GLOBAL: D3DREN 0x10094440
+extern int g_ShadowClipPlaneInsideFlags[56];
+// GLOBAL: D3DREN 0x10093f00
+extern int g_ShadowClipFarInsideFlags[56];
+// GLOBAL: D3DREN 0x10093fe0
+extern int g_ShadowClipBottomInsideFlags[56];
+// GLOBAL: D3DREN 0x100940c0
+extern int g_ShadowClipRightInsideFlags[56];
+// GLOBAL: D3DREN 0x100941a0
+extern int g_ShadowClipTopInsideFlags[56];
+// GLOBAL: D3DREN 0x10094280
+extern int g_ShadowClipLeftInsideFlags[56];
+// GLOBAL: D3DREN 0x10094360
+extern int g_ShadowClipNearInsideFlags[56];
+
 #endif
