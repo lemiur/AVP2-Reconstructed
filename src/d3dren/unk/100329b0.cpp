@@ -481,7 +481,7 @@ int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightA
 	int nBlend;
 	LAPolyFrame *pFrame0, *pFrame1;
 	uint32 i, nTexels;
-	uint8 *pMask;
+	uint8 *pMask, *pA, *pB;
 	uint32 *pRow, *pTexel;
 	LTVector vRow, vCol;
 	uint32 x, y;
@@ -490,7 +490,9 @@ int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightA
 	iFrame1 = pAnim->m_iFrames[1];
 	nBlend = pAnim->m_PercentBetween;
 
-	if (iFrame0 == iFrame1 || nBlend <= 0)
+	if (iFrame0 == iFrame1)
+		pFrame0 = LAFRAME(pAnim, iFrame0, pRef);
+	else if (nBlend <= 0)
 		pFrame0 = LAFRAME(pAnim, iFrame0, pRef);
 	else if (nBlend >= 0xff)
 		pFrame0 = LAFRAME(pAnim, iFrame1, pRef);
@@ -499,20 +501,30 @@ int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightA
 		pFrame0 = LAFRAME(pAnim, iFrame0, pRef);
 		pFrame1 = LAFRAME(pAnim, iFrame1, pRef);
 		if (!pFrame0->m_LightmapSize && !pFrame1->m_LightmapSize)
-			return 0;
+			goto Fail;
 		if (!DecompressLightmapMaskRuns(pFrame0->m_pLightmap, pFrame0->m_LightmapSize, maskA))
-			return 0;
+			goto Fail;
 		if (!DecompressLightmapMaskRuns(pFrame1->m_pLightmap, pFrame1->m_LightmapSize, maskB))
-			return 0;
+			goto Fail;
 
-		nTexels = pPoly->m_LMHeight * pPoly->m_LMWidth;
-		for (i = 0; i < nTexels; i++)
-			mask[i] = (uint8)(((int)(maskB[i] - maskA[i]) * nBlend >> 8) + maskA[i]);
+		pA = maskA; pB = maskB; pMask = mask;
+		for (i = pPoly->m_LMHeight * pPoly->m_LMWidth; i; i--)
+		{
+			*pMask = (uint8)(((int)(*pB - *pA) * nBlend >> 8) + *pA);
+			pA++;
+			pB++;
+			pMask++;
+		}
 		goto Lit;
 	}
 
-	if (!pFrame0->m_LightmapSize || !DecompressLightmapMaskRuns(pFrame0->m_pLightmap, pFrame0->m_LightmapSize, mask))
-		return 0;
+	if (pFrame0->m_LightmapSize)
+	{
+		if (DecompressLightmapMaskRuns(pFrame0->m_pLightmap, pFrame0->m_LightmapSize, mask))
+			goto Lit;
+	}
+Fail:
+	return 0;
 
 Lit:
 	SetupLightmapLightContext(pWorld, pPoly, &pAnim->m_vLightPos, (uint8 *)pOut, pPoly->m_LMWidth * 4, pPoly->m_LMWidth, pPoly->m_LMHeight,
@@ -540,10 +552,10 @@ Lit:
 				*pTexel = 0;
 			pMask++;
 			pTexel++;
-			vCol = vCol + ctx.m_Unk0c;
+			vCol += ctx.m_Unk0c;
 		}
 		pRow = (uint32 *)((uint8 *)pRow + ctx.m_Unk48);
-		vRow = vRow + ctx.m_Unk18;
+		vRow += ctx.m_Unk18;
 	}
 
 	return 1;
