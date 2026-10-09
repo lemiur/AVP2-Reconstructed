@@ -534,7 +534,7 @@ CMovingCylinder::EHeightSection CMovingCylinder::GetHeightSection(float fYValue)
 // pVert; the exe's `[pPoly + n*0x18 + 0x40]` is Jupiter's trailing WorldPoly::m_Vertices member), and the XZ edge as an
 // LTVector of its own (`vEdgeXZ(vEdge.x, 0, vEdge.z)`, length by Mag(): the exe recomputes the squares in Norm, so
 // they are not the same expression as the XZ length), and the inside test through Jupiter's edge plane (g_InsideConvex's
-// edgePlane: m_Dist = Normal.Dot(vertex), then DistTo(point)) and the plane branch's stores in member order: 166 -> 47 aligned ignoring stack offsets. Left: the exe keeps
+// edgePlane: m_Dist = Normal.Dot(vertex), then DistTo(point)) the plane branch's stores in member order, and bInside set first: 166 -> 44 aligned ignoring stack offsets. Left: the exe keeps
 // vEdgeXZ.z in memory (fst, frame 16 bytes larger) and reads it again for VEC_ADDSCALED; its vCur fallback copies use
 // fld/fstp and share the final vPt.z store with VEC_ADDSCALED (ours: mov copies). Tried without gain: x/z orders of the
 // length and t, float locals for the XZ components, an inline XZ-length helper, the edge-point block as an inline
@@ -581,8 +581,8 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 			vProj.y = pPoly->m_Center.y;
 	}
 
-	bHoriz = LTFALSE;
 	bInside = LTTRUE;
+	bHoriz = LTFALSE;
 	bStep = LTFALSE;
 	if (fAbsY >= 0.9f)
 	{
