@@ -454,6 +454,9 @@ ConVar g_CV_TestLightmap("TestLightmap", 1.0f);
 // iNextPass as an if/else (the ?: form compiles branch-free and takes ebx from pPass), one iStage counter for both stage loops, and
 // the pass list held in pList with the empty-list test on pList->m_Unk188 before pHead is taken.  Remaining: the exe keeps pNode in
 // ecx at the node loop's join points (the Free(pNode) push goes through ecx), ours in eax/memory.
+/// Tried: next-link/node load order (24/22), a break + iStage test or flag instead of the goto (35/30 or same), pPoly before
+// iNextPass, the first-poly link reused; two 3000-candidate permuter runs found nothing better.
+// PARKED: register residue: the exe keeps pNode in ecx at the node loop's joins (Free's push via ecx), no source lever found
 // STUB: D3DREN 0x1002a0c2
 void DrawPolyMgr::FlushQueuedPolys()
 {

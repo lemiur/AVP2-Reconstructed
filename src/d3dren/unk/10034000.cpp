@@ -205,6 +205,8 @@ int LightmapPage::GetBaseHeight()
 // Not matching (3 aligned instruction mismatches; 189 vs 190 instructions, both frames 0x9c).  The page rectangle (rc) gives the
 // exe's extent checks (both sums computed before either compare).  Remaining: the exe keeps the intermediate store of the u
 // coordinate (`fst [m_Unk0c]` before the + x, * scale) that our build drops as dead, and loads m_pWorld one fmul earlier.
+/// Tried for the dead store: chained/compound/temporary/Dot spellings and an intervening v store (keeps it but reloads u, 12 mismatches).
+// PARKED: 3-instruction residue: the exe keeps the dead intermediate u store that VC6's dead-store elimination removes in every spelling tried; a 2688-candidate permuter run found nothing
 // STUB: D3DREN 0x1003429b
 int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 {
