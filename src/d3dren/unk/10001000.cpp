@@ -901,16 +901,16 @@ struct UnkType_TnLVertex
 // STUB: D3DREN 0x10003e00
 int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
-	UnkType_TnLVertex *pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
+	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
 	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
 	if (m_Unk8b4)
 	{
-		for (; nTris != 0; nTris--)
+		while (nTris)
 		{
-			TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
 			TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
+			TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
 			TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
 			float fCross = (pV1->m_Vec.x - pV0->m_Vec.x) * (pV2->m_Vec.y - pV0->m_Vec.y)
 				- (pV2->m_Vec.x - pV0->m_Vec.x) * (pV1->m_Vec.y - pV0->m_Vec.y);
@@ -918,54 +918,79 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 				fCross = -fCross;
 			if (fCross > g_CV_ModelMinTri.m_FloatVal)
 			{
-				TLVertex *apV[3] = { pV0, pV1, pV2 };
-				for (int k = 0; k < 3; k++)
-				{
-					pOut->m_Vec = apV[k]->m_Vec;
-					pOut->color = apV[k]->color;
-					pOut->specular = m_Unk640;
-					m_Unk5f4((char *)pOut - 4, apV[k], &pTri->m_UVs[k].tu);
-					pOut = (UnkType_TnLVertex *)((char *)pOut - 4 + m_Unk5f8);
-				}
+				pOut->m_Vec = pV0->m_Vec;
+				pOut = (TLVertex *)((char *)pOut - 4);
+				pOut->color = pV0->color;
+				pOut->specular = m_Unk640;
+				m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+				pOut->m_Vec = pV1->m_Vec;
+				pOut = (TLVertex *)((char *)pOut - 4);
+				pOut->color = pV1->color;
+				pOut->specular = m_Unk640;
+				m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+				pOut->m_Vec = pV2->m_Vec;
+				pOut = (TLVertex *)((char *)pOut - 4);
+				pOut->color = pV2->color;
+				pOut->specular = m_Unk640;
+				m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 				if ((char *)pOut > pEnd && nTris > 1)
 				{
 					g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
-					pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
+					pOut = (TLVertex *)m_Unk608->Lock();
 					pEnd = PoolLastVertex(m_Unk608);
 				}
 			}
 			pTri++;
+			nTris--;
 		}
 	}
 	else
 	{
-		for (; nTris != 0; nTris--)
+		while (nTris)
 		{
-			TLVertex *apV[3] = { &pVerts[pTri->m_Indices[0]], &pVerts[pTri->m_Indices[1]], &pVerts[pTri->m_Indices[2]] };
-			for (int k = 0; k < 3; k++)
-			{
-				pOut->m_Vec = apV[k]->m_Vec;
-				pOut->color = apV[k]->color;
-				pOut->specular = m_Unk640;
-				m_Unk5f4((char *)pOut - 4, apV[k], &pTri->m_UVs[k].tu);
-				pOut = (UnkType_TnLVertex *)((char *)pOut - 4 + m_Unk5f8);
-			}
+			TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
+			TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
+			TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
+			pOut->m_Vec = pV0->m_Vec;
+			pOut = (TLVertex *)((char *)pOut - 4);
+			pOut->color = pV0->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			pOut->m_Vec = pV1->m_Vec;
+			pOut = (TLVertex *)((char *)pOut - 4);
+			pOut->color = pV1->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			pOut->m_Vec = pV2->m_Vec;
+			pOut = (TLVertex *)((char *)pOut - 4);
+			pOut->color = pV2->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 			if ((char *)pOut > pEnd && nTris > 1)
 			{
 				g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 				((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
-				pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
+				pOut = (TLVertex *)m_Unk608->Lock();
 				pEnd = PoolLastVertex(m_Unk608);
 			}
 			pTri++;
+			nTris--;
 		}
 	}
-	UnkType_VertexBufferPool *p = m_Unk608;
-	uint32 nBytes = (char *)pOut - (char *)p->Lock();
-	uint32 nVerts = nBytes / p->GetVertexSize();
-	g_nModelTrianglesDrawn += nVerts / 3;
-	((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
+	{
+		UnkType_VertexBufferPool *p = m_Unk608;
+		uint32 nBytes = (char *)pOut - (char *)p->Lock();
+		uint32 nVerts = nBytes / p->GetVertexSize();
+		g_nModelTrianglesDrawn += nVerts / 3;
+		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
+	}
 	return 1;
 }
 
