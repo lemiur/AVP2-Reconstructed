@@ -377,24 +377,26 @@ void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly);
 // guess: relights the polygon pPoly: its vertex colours are cleared and every light animation that touches it adds its frame colours
 // (WPF_RELIGHT polys; the lightmap-less vertex colour path).  Name from names_proposal.csv (guess_d3d_RelightWorldPoly, low); loop 2 of
 // DrawWorldModelPolyList has the same code written out.
-// STUB diagnosis: 720/720 bytes, 423 strict differences. A separate clamped count and per-branch green-origin
-// cursor restore the native branch-local polygon loads and colour offsets. Frame size (0x24 versus native 0x1c),
-// register allocation, nested-min scheduling and table-lookup scheduling still differ.
+// The light-anim helper is d3d_draw's d3d_AddLightAnimVertexColors body (SPolyVertex colours, a separate clamped count) with the
+// inverse weight computed inside the blend loop; the exe's out-of-line copy (0x100185a0) has the same code, so the original is
+// probably one inline function in a header that this object expands and d3d_draw / DrawTranslucentWorldModelPoly call.
+// STUB diagnosis: 720/720 bytes, 34 strict differences: base/index order of three byte-table loads and the schedule of the blend
+// loop's preheader (the exe loads pVerts before forming the inverse weight).
 // STUB: D3DREN 0x1002f780
 void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly)
 {
-	UnkType_PolyVertex *pVerts;
+	SPolyVertex *pVerts;
 	uint32 nVerts;
 	uint32 i;
 
 	if (g_FixTJunc)
 	{
-		pVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
+		pVerts = pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
 	}
 	else
 	{
-		pVerts = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+		pVerts = pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 
@@ -404,9 +406,10 @@ void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly)
 	for (i = 0; i < pPoly->m_nLMAnimRefs; i++)
 	{
 		uint16 *pRef = (uint16 *)&pPoly->m_pLMAnimRefs[i];
-		if (pRef[0] < pWorld->m_LightAnims.GetSize())
+		CMoArray<LightAnim,DefaultCache> &lightAnims = pWorld->m_LightAnims;
+		if (pRef[0] < lightAnims.GetSize())
 		{
-			LightAnim *pAnim = &pWorld->m_LightAnims[pRef[0]];
+			LightAnim *pAnim = &lightAnims[pRef[0]];
 			if (pAnim->m_iFrames[0] != 0xffffffff && pAnim->m_fBlendPercent >= 0.02f)
 				AddLightAnimVertexColorsInline(pVerts, nVerts, pAnim, (uint32 *)pRef);
 		}
