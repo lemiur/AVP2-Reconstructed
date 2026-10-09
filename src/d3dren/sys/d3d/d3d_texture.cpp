@@ -790,18 +790,16 @@ char *d3d_AddToString(char *pStr, const char *pToAdd)
 	return pStr + strlen(pStr);
 }
 
-// Creates the RTexture of a SharedTexture for the device stage nStageFlags (stage in the low byte, 0x100 = bump map stage): picks the
-// format from the DTX flags, the first mipmap and the number of mipmaps from the header, builds the surface (d3d_CreateMipmapTextureSurface) and the
-// RTexture, links it into g_Textures and uploads the mipmaps (r_TransferTexture).  Returns 0 on failure.  The older of the two
-// creation functions of the object (10021290 does the same with everything expanded in place).
+// Creates the RTexture of a SharedTexture for the device stage nStageFlags (stage in the low byte, 0x100 = bump map stage) from the
+// engine's TextureData (CTextureManager_CreateRTexture) and uploads the mipmaps (r_TransferTexture).  Returns 0 on failure.  Jupiter's
+// d3d_CreateAndLoadTexture shape.  168u: under the 174u auto-inline cap, so d3d_EnsureTextureAndGetFlags / ...UVScale / d3d_BindTexture
+// expand it, and the CTextureManager_CreateRTexture (906u) nested there is refused (their copy of the call goes to 0x10021290).
+// Here CTextureManager_CreateRTexture is expanded with a share of ~94u: its own inline calls (d3d_GetFirstUsableMipmap,
+// d3d_CreateMipmapTextureSurface, ObjectBank::Allocate (folded with AllocVoid, 0x10021c80), the UnkType_RTextureData assignment,
+// CheapLTLink::AddAfter) stay calls.
 // NAME: names_proposal.csv d3d_CreateAndLoadTexture (medium, Jupiter d3d_texture.cpp)
-// NOT MATCHING: the statements are the exe's, but the exe calls every inline function that is not free out of line here
-// (d3d_GetFirstUsableMipmap, d3d_CreateMipmapTextureSurface, ObjectBank::Allocate (folded with AllocVoid, 0x10021c80), the implicit
-// UnkType_RTextureData assignment and destructor, CheapLTLink::AddAfter), while CTextureManager_CreateRTexture, the same code
-// otherwise, expands them.  The free accessors and the data constructor are expanded, so the budget is spent before the first exit;
-// what spends it is not found (tried: 24..300 units of code-free ballast at the top, #pragma inline_depth(0) (calls the accessors too),
-// #pragma optimize("s") (ebp frame)).  The copies (0x10020330, 0x10020350, 0x10020fb0, 0x10020ab0, 0x10020f20) are emitted and
-// verified through the STANDIN below.
+// NOT MATCHING: the exe also calls the implicit UnkType_RTextureData destructor at each exit of the expanded body (ours: 17u, free,
+// expanded), and `not al; movsx` in the format choice.
 // STUB: D3DREN 0x1001fff0
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 bAdditional)
 {
@@ -810,138 +808,40 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 	Counter cCount2(0);
 	uint32 dwDummy;
 	TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummy);
-	if (!pTextureData)
-		return 0;
-
-	UnkType_RTextureBuild build;
-	UnkType_RTextureData data;
-	int iFormat;
-	int iStartMipmap, nMipmaps, nAvailable, i;
-
-	build.m_pSharedTexture = pSharedTexture;
-	build.m_pTextureData = pTextureData;
-	build.m_nFlags = nStageFlags;
-
-	if (nStageFlags & 0x100)
+	if (pTextureData)
 	{
-		if (!g_TextureFormats[FORMAT_BUMPMAP])
-			goto done;
-		iFormat = FORMAT_BUMPMAP;
-	}
-	else
-	{
-		uint32 dtxFlags = pTextureData->m_Flags;
-		if (!(dtxFlags & DTX_PREFER16BIT) && g_32BitTextures && g_TextureFormats[FORMAT_32BIT])
-			iFormat = FORMAT_32BIT;
-		else if (dtxFlags & DTX_PREFER5551)
-			iFormat = FORMAT_FULLBRITE;
-		else if (dtxFlags & DTX_PREFER4444)
-			iFormat = FORMAT_4444;
-		else
-			iFormat = ((~dtxFlags & DTX_FULLBRITE) << 1) | 1;
-	}
+		UnkType_RTextureBuild build;
 
-	memset(&data, 0, sizeof(data));
-
-	{
-		int iGroup = pTextureData->m_Header.GetTextureGroup();
-		if (iGroup > 9)
-			iGroup = 9;
-		iStartMipmap = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.GetUIMipmapOffset() + g_MipmapOffset;
-		if (g_CV_S3TCEnable.m_IntVal == 0)
-			iStartMipmap += pTextureData->m_Header.GetNonS3TCMipmapOffset();
-		if (iStartMipmap < 0)
-			iStartMipmap = 0;
-		else if (iStartMipmap > 3)
-			iStartMipmap = 3;
+		build.m_pSharedTexture = pSharedTexture;
+		build.m_pTextureData = pTextureData;
+		build.m_nFlags = nStageFlags;
+		pRTexture = CTextureManager_CreateRTexture(&build, bAdditional);
+		if (pRTexture)
+		{
+			if (!r_TransferTexture(pRTexture, pTextureData))
+			{
+				AddDebugMessage(4, "Unable to transfer texture data to video memory.");
+				CTextureManager_FreeTexture(pRTexture, 0);
+				pRTexture = 0;
+			}
+		}
+		g_pStruct->FreeTexture(pSharedTexture);
 	}
-	if (iStartMipmap > (int)pTextureData->m_Header.m_nMipmaps - 1)
-		iStartMipmap = pTextureData->m_Header.m_nMipmaps - 1;
-
-	{
-		int iFirstUsable = d3d_GetFirstUsableMipmap(pTextureData);
-		if (iFirstUsable == -1)
-			goto done;
-		if (iStartMipmap <= iFirstUsable)
-			iStartMipmap = iFirstUsable;
-	}
-
-	nMipmaps = pTextureData->m_Header.GetNumMipmaps();
-	if (nMipmaps == 0)
-		nMipmaps = 4;
-	nAvailable = pTextureData->m_Header.m_nMipmaps - iStartMipmap;
-	if (nAvailable == 0)
-		goto done;
-	if (nMipmaps < 1)
-		nMipmaps = 1;
-	else if (nMipmaps > nAvailable)
-		nMipmaps = nAvailable;
-
-	if (!d3d_CreateMipmapTextureSurface(&build, &data, iStartMipmap, nMipmaps, iFormat))
-		goto done;
-
-	pRTexture = (RTexture *)g_RTextureBank.AllocVoid();
-	if (!pRTexture)
-	{
-		data.m_pSurface->Release();
-		goto done;
-	}
-
-	pRTexture->m_Unk30 = 0;
-	pRTexture->m_Unk49 = bAdditional;
-	pRTexture->m_Unk42 = (uint8)build.m_nFlags;
-	pRTexture->m_Data = data;
-	pRTexture->m_Data.m_pOwner = pRTexture;
-	pRTexture->m_iStartMipmap = iStartMipmap;
-	pRTexture->m_Unk47 = nMipmaps;
-	pRTexture->m_Unk48 = iFormat;
-	pRTexture->m_DetailTextureScale = pTextureData->m_Header.GetDetailTextureScale();
-	{
-		float fAngle = (float)pTextureData->m_Header.GetDetailTextureAngle() * 0.017453292f;
-		pRTexture->m_DetailTextureAngleC = (float)cos(fAngle);
-		pRTexture->m_DetailTextureAngleS = (float)sin(fAngle);
-	}
-	pRTexture->m_Data.m_nMemory = 0;
-	for (i = iStartMipmap; i < iStartMipmap + nMipmaps; i++)
-		pRTexture->m_Data.m_nMemory += (pTextureData->m_Mips[i].m_Width * pTextureData->m_Mips[i].m_Height) << g_TextureFormats[iFormat]->m_BytesPPShift;
-	pRTexture->m_pSharedTexture = build.m_pSharedTexture;
-	if (!(bAdditional & 1))
-		build.m_pSharedTexture->m_pRenderData = pRTexture;
-	pRTexture->m_Flags = pTextureData->m_Header.m_IFlags & DTX_FULLBRITE;
-	pRTexture->m_BaseWidth = pTextureData->m_Mips[0].m_Width;
-	pRTexture->m_BaseHeight = pTextureData->m_Mips[0].m_Height;
-	pRTexture->m_Link.m_pData = pRTexture;
-	g_Textures.AddAfter(&pRTexture->m_Link);
-	RENDERSTRUCT_TEXMEM(g_pStruct) += pRTexture->m_Data.m_nMemory;
-	data.~UnkType_RTextureData();
-	if (!r_TransferTexture(pRTexture, pTextureData))
-	{
-		AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-		CTextureManager_FreeTexture(pRTexture, 0);
-		pRTexture = 0;
-	}
-done:
-	g_pStruct->FreeTexture(pSharedTexture);
 	return pRTexture;
 }
 
 
-// STANDIN: forces the out-of-line copies of the inline functions that d3d_CreateAndLoadTexture calls out of line in the exe and expands
-// in our build (CheapLTLink::AddAfter on g_Textures, the implicit UnkType_RTextureData destructor and its implicit assignment, the
-// latter called with the stack temporary, d3d_GetFirstUsableMipmap, d3d_CreateMipmapTextureSurface).  With inline_depth(0) the copies
-// come out byte-identical to the exe's.  (not in d3d.ren)
 // FUNCTION: D3DREN 0x10020330 ?AddAfter@CheapLTLink@@QAEXPAV1@@Z
 // FUNCTION: D3DREN 0x10020350 ??1UnkType_RTextureData@@UAE@XZ
 // FUNCTION: D3DREN 0x10020fb0 ??4UnkType_RTextureData@@QAEAAV0@ABV0@@Z
+// STANDIN: forces the out-of-line copy of the implicit UnkType_RTextureData destructor, which d3d_CreateAndLoadTexture calls out of
+// line in the exe (at every exit of the expanded CTextureManager_CreateRTexture) and expands in our build; with inline_depth(0) the
+// copy comes out byte-identical to the exe's.  It also emits the constructor copy 0x1001e900 (d3d_CreateLightmapRTexture's call).
+// (not in d3d.ren)
 #pragma inline_depth(0)
-void StandIn_RTextureInlines(LTLink *pLink, LTLink *pAfter, UnkType_RTextureData *pDst, UnkType_RTextureData *pSrc,
-	UnkType_RTextureBuild *pBuild, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
+void StandIn_RTextureInlines()
 {
 	UnkType_RTextureData local;
-	pLink->AddAfter(pAfter);
-	*pDst = *pSrc;
-	d3d_GetFirstUsableMipmap(pBuild->m_pTextureData);
-	d3d_CreateMipmapTextureSurface(pBuild, pDst, iStartMipmap, nMipmaps, iFormat);
 }
 #pragma inline_depth()
 
@@ -1369,30 +1269,9 @@ int d3d_EnsureTextureAndGetFlags(SharedTexture *pSharedTexture, uint32 nStageFla
 {
 	if (!pSharedTexture->m_pRenderData)
 	{
-		Counter cCount1(0);
-		Counter cCount2(0);
-		uint32 dwDummy;
-		TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummy);
-		if (pTextureData)
-		{
-			UnkType_RTextureBuild build;
-			build.m_pSharedTexture = pSharedTexture;
-			build.m_pTextureData = pTextureData;
-			build.m_nFlags = nStageFlags;
-			RTexture *pRTexture = CTextureManager_CreateRTexture(&build, 0);
-			if (pRTexture && !r_TransferTexture(pRTexture, pTextureData))
-			{
-				AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-				CTextureManager_FreeTexture(pRTexture, 0);
-				pRTexture = 0;
-			}
-			g_pStruct->FreeTexture(pSharedTexture);
-			if (pRTexture)
-				goto done;
-		}
-		return 0;
+		if (!d3d_CreateAndLoadTexture(pSharedTexture, nStageFlags, 0))
+			return 0;
 	}
-done:
 	return ((RTexture *)pSharedTexture->m_pRenderData)->m_Flags;
 }
 
@@ -1404,8 +1283,8 @@ done:
 // RTexture constructor inside ObjectBank::Allocate: the call set and the size (1744) are the exe's.
 // NOT MATCHING: register and stack-slot choice (frame 0x1608 vs 0x1604: the exe shares the stage-flags temporary with pSurface; the
 // exe keeps the AlphaRef in di and bpp on the stack), and `not al; movsx` in the format choice (ours `not eax`).
-// STUB: D3DREN 0x10021290
-RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdditional)
+// STUB: D3DREN 0x10021290 ?CTextureManager_CreateRTexture@@YAPAVRTexture@@PAUUnkType_RTextureBuild@@E@Z
+inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, uint8 bAdditional)
 {
 	TextureData *pTextureData = pBuild->m_pTextureData;
 	uint32 nStageFlags = pBuild->m_nFlags;
@@ -1575,30 +1454,9 @@ int d3d_EnsureTextureAndGetUVScale(SharedTexture *pSharedTexture, uint32 nStageF
 {
 	if (!pSharedTexture->m_pRenderData)
 	{
-		Counter cCount1(0);
-		Counter cCount2(0);
-		uint32 dwDummy;
-		TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummy);
-		if (pTextureData)
-		{
-			UnkType_RTextureBuild build;
-			build.m_pSharedTexture = pSharedTexture;
-			build.m_pTextureData = pTextureData;
-			build.m_nFlags = nStageFlags;
-			RTexture *pRTexture = CTextureManager_CreateRTexture(&build, 0);
-			if (pRTexture && !r_TransferTexture(pRTexture, pTextureData))
-			{
-				AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-				CTextureManager_FreeTexture(pRTexture, 0);
-				pRTexture = 0;
-			}
-			g_pStruct->FreeTexture(pSharedTexture);
-			if (pRTexture)
-				goto done;
-		}
-		return 0;
+		if (!d3d_CreateAndLoadTexture(pSharedTexture, nStageFlags, 0))
+			return 0;
 	}
-done:
 	RTexture *pRTexture = (RTexture *)pSharedTexture->m_pRenderData;
 	*pU = pRTexture->m_Data.m_Unk04;
 	*pV = pRTexture->m_Data.m_Unk08;
@@ -1638,24 +1496,7 @@ void d3d_BindTexture(SharedTexture *pSharedTexture, LTBOOL bTextureChanged)
 	}
 	else
 	{
-		uint32 nStage = g_NormalTextureStage;
-		Counter cCount1(0);
-		Counter cCount2(0);
-		TextureData *pTextureData = GetEngineTextureDataWithOutputArg(pSharedTexture, &dwDummySecond);
-		if (pTextureData)
-		{
-			UnkType_RTextureBuild build;
-			build.m_pSharedTexture = pSharedTexture;
-			build.m_pTextureData = pTextureData;
-			build.m_nFlags = nStage;
-			RTexture *pNew = CTextureManager_CreateRTexture(&build, 0);
-			if (pNew && !r_TransferTexture(pNew, pTextureData))
-			{
-				AddDebugMessage(4, "Unable to transfer texture data to video memory.");
-				CTextureManager_FreeTexture(pNew, 0);
-			}
-			g_pStruct->FreeTexture(pSharedTexture);
-		}
+		d3d_CreateAndLoadTexture(pSharedTexture, g_NormalTextureStage, 0);
 	}
 }
 

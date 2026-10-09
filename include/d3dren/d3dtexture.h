@@ -173,7 +173,7 @@ struct UnkType_RTextureBuild
 	uint32			m_nFlags;			// 0x08 stage in the low byte, 0x100 = bump map stage
 };
 int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData);	// 0x10020360 copies the mipmaps of pTextureData into the surface chain of pTexture; 0 on failure
-RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdditional);	// 0x10021290 CreateRTexture
+inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, uint8 bAdditional);	// 0x10021290 CreateRTexture (an inline function of d3d_texture.cpp)
 void CTextureManager_FreeTextureList(LTLink *pList);							// 0x1001f920 FreeTexture on every RTexture of an LTLink list, then tie the head off
 void d3d_FreeAllTextures();
 void DetectDXTTextureFormatSupport();										// 0x1001f600 sets the DXT support flags from the enumerated formats
