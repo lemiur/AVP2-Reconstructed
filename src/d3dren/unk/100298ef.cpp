@@ -450,13 +450,15 @@ ConVar g_CV_TestLightmap("TestLightmap", 1.0f);
 
 
 // guess: Flush
-// STUB diagnosis (W6): 867 vs 845 bytes: the frame is 0x34 bytes against the exe's 0x30 (one extra 4-byte local slot) and the shared zero
-// constant of the member initialisation is kept in ebx where the exe uses edx (the whole instruction sequence of the first 0x140
-// bytes is otherwise the same); permuter best 65 mismatches (7 minutes).  Likely a different local/temporary count in the source.
+// Not matching: 22 aligned mismatches (18 ignoring stack offsets; was 228).  What made the frame and the register use the exe's:
+// iNextPass as an if/else (the ?: form compiles branch-free and takes ebx from pPass), one iStage counter for both stage loops, and
+// the pass list held in pList with the empty-list test on pList->m_Unk188 before pHead is taken.  Remaining: the exe keeps pNode in
+// ecx at the node loop's join points (the Free(pNode) push goes through ecx), ours in eax/memory.
 // STUB: D3DREN 0x1002a0c2
 void DrawPolyMgr::FlushQueuedPolys()
 {
 	uint32 oldAlphaBlend, oldSrcBlend, oldDestBlend;
+	uint32 iStage;
 
 	m_Unk768 = g_pFrameRenderContext->m_CurFrameCode;
 	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, (unsigned long *)&oldAlphaBlend);
@@ -531,9 +533,9 @@ void DrawPolyMgr::FlushQueuedPolys()
 		{
 			UnkType_DPMPass *pPass = &pMaterial->m_Passes[iPass];
 			UnkType_DPMPassList *pList = &pInstance->m_Lists[iPass];
-			LTLink *pHead = &pList->m_Unk188;
-			if (pHead->m_pNext == pHead)
+			if (pList->m_Unk188.m_pNext == &pList->m_Unk188)
 				break;
+			LTLink *pHead = &pList->m_Unk188;
 
 			SetPassRenderStates(pPass, pList);
 
@@ -543,20 +545,19 @@ void DrawPolyMgr::FlushQueuedPolys()
 			}
 			else
 			{
-				for (uint32 iStage = 0; iStage < pPass->m_nStages; iStage++)
+				for (iStage = 0; iStage < pPass->m_nStages; iStage++)
 					(&m_Unk7ac)[iStage] = s_UVFns[pPass->m_Stages[iStage].m_Unk18];
 				m_Unk7b8 = s_UVFnsByStages[pPass->m_nStages];
 			}
 
 			for (LTLink *pLink = pHead->m_pNext; pLink != pHead; )
 			{
-				LTLink *pNextLink = pLink->m_pNext;
 				UnkType_DPMNode *pNode = (UnkType_DPMNode *)pLink->m_pData;
+				LTLink *pNextLink = pLink->m_pNext;
 				LTLink *pPolyLink = pNode->m_Unk00.m_pNext;
 				if (pPolyLink != (LTLink *)pNode)
 				{
 					{
-						uint32 iStage;
 						for (iStage = 0; iStage < pPass->m_nStages; iStage++)
 						{
 							if (!(this->*s_TextureSrcInitFns[pPass->m_Stages[iStage].m_Unk1c])((WorldPoly *)pPolyLink, iStage))
@@ -569,7 +570,11 @@ void DrawPolyMgr::FlushQueuedPolys()
 						}
 					}
 
-					int iNextPass = (iPass == pMaterial->m_nPasses - 1) ? 0 : iPass + 1;
+					int iNextPass;
+					if (iPass == pMaterial->m_nPasses - 1)
+						iNextPass = 0;
+					else
+						iNextPass = iPass + 1;
 					LTLink *pPoly = pNode->m_Unk00.m_pNext;
 					if (iPass == 0)
 					{
