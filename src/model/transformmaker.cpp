@@ -126,6 +126,9 @@ void TransformMaker::InitTransform(uint32 iAnim, uint32 iNode, LTRotation &outQu
 // final `outVec - pBase->m_vTranslation` temporaries get the low slots in the exe). Tried with no gain: pKey2 before
 // pBase (89), pBase after pTimeRef (59), `pBase + frame`, GetArray()[i], &m_KeyFrames[0], `outVec -= ` (SIZE),
 // the outVec statement first (109), a split lerp (SIZE).
+// Wave 9: AnimNode/ModelAnim locals, GetArray()+offset forms, references for the key-frame vectors, a named percent, a
+// split lerp, quat_Slerp/VEC_LERP, pTimeRef last: none below 49/16; permuter 15k candidates (all mutation kinds): no gain.
+// PARKED: register/schedule only (16 aligned ignoring stack: the exe resolves pKey2 first and spills it into the dead iAnim home); behaviour identical
 // STUB: LITHTECH 0x0049c920
 void TransformMaker::InitTransformAdditive(uint32 iAnim, uint32 iNode, LTRotation &outQuat, LTVector &outVec)
 {
