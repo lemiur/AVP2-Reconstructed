@@ -1112,6 +1112,15 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 // are expanded here; the colour key is PValue_Set(0, r, g, b) (its arguments are evaluated b first).  An inline function: its copy
 // here is the one d3d_CreateAndLoadTexture calls; CTextureManager_CreateRTexture expands it.
 // NAME: names_proposal.csv guess_CreateRTextureSurface (low, invented): not used
+// Whether a texture of this format is created as a DXT surface (Jupiter d3d_texture.cpp d3d_ShouldUseS3TC).  Expanded at both
+// d3d_CreateMipmapTextureSurface tests; its nested CTextureManager_IsS3TCFormatSupported share is what keeps that call out of
+// line in CTextureManager_CreateRTexture's expansion.
+// NAME: d3d_ShouldUseS3TC: Jupiter d3d_texture.cpp (no out-of-line copy in d3d.ren)
+inline bool d3d_ShouldUseS3TC(BPPIdent bpp)
+{
+	return (g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported(bpp));
+}
+
 // FUNCTION: D3DREN 0x10020ab0 ?d3d_CreateMipmapTextureSurface@@YAHPAUUnkType_RTextureBuild@@PAVUnkType_RTextureData@@KKK@Z
 inline int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
 {
@@ -1135,7 +1144,7 @@ inline int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType
 	ddsd.dwTextureStage = pBuild->m_nFlags;
 
 	bpp = pTextureData->m_Header.GetBPPIdent();
-	if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
+	if (bpp != BPP_32 && d3d_ShouldUseS3TC((BPPIdent)bpp))
 	{
 		memset(&ddsd.ddpfPixelFormat, 0, sizeof(ddsd.ddpfPixelFormat));
 		ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -1153,7 +1162,7 @@ inline int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType
 	if (cParse.ParseFind("ColorKey", 0, 3) && !g_CV_AlphaTest.m_IntVal)
 	{
 		colorValue = PValue_Set(0, atoi(cParse.m_Args[1]), atoi(cParse.m_Args[2]), atoi(cParse.m_Args[3]));
-		if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
+		if (bpp != BPP_32 && d3d_ShouldUseS3TC((BPPIdent)bpp))
 			cFormat.InitPValueFormat();
 		else
 			DDPFToPFormat(&ddsd.ddpfPixelFormat, &cFormat);
@@ -1290,10 +1299,15 @@ int d3d_EnsureTextureAndGetFlags(SharedTexture *pSharedTexture, uint32 nStageFla
 // bAdditional bit 0: an additional-stage texture that is not stored in the SharedTexture): d3d_CreateAndLoadTexture without the upload,
 // the RTexture taken from the bank and linked into g_Textures.  Returns the RTexture or 0.
 // The exe expands the inline d3d_GetFirstUsableMipmap and d3d_CreateMipmapTextureSurface here; inside the latter's expansion the
-// helpers IsS3TCFormatSupported / S3TCFormatConv / AdjustAspectRatio get only a small budget share (R8) and stay calls, as does the
-// RTexture constructor inside ObjectBank::Allocate: the call set and the size (1744) are the exe's.
-// NOT MATCHING: register and stack-slot choice (frame 0x1608 vs 0x1604: the exe shares the stage-flags temporary with pSurface; the
-// exe keeps the AlphaRef in di and bpp on the stack), and `not al; movsx` in the format choice (ours `not eax`).
+// helpers IsS3TCFormatSupported (both, under d3d_ShouldUseS3TC), S3TCFormatConv and AdjustAspectRatio stay calls, as does the
+// RTexture constructor inside ObjectBank::Allocate (sb_Allocate is expanded).
+// NOT MATCHING (1760 vs 1744): S3TCFormatConv (79u) is expanded at a share of ~90u; the exe's share is below 79u while
+// ObjectBank::Allocate still gets >= 80u for sb_Allocate.  inline_budget.py --solve: either this function is 53-60u smaller
+// (LTCLAMP/LTMAX spellings of the mipmap clamps give 13u each without changing code), or two more free inline sites sit between
+// d3d_CreateMipmapTextureSurface and Allocate; the size must stay <= ~946u or d3d_CreateAndLoadTexture refuses the
+// UnkType_RTextureData constructor.  With the exe's call set (diagnostic probes) 37 instructions differ (ignoring stack
+// offsets): frame 0x1608 vs 0x1604 (the exe shares the stage-flags temporary with pSurface, keeps AlphaRef in di and bpp on the
+// stack) and the U/V reciprocal float schedule of the expanded surface creation.
 // STUB: D3DREN 0x10021290 ?CTextureManager_CreateRTexture@@YAPAVRTexture@@PAUUnkType_RTextureBuild@@E@Z
 inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, uint8 bAdditional)
 {
