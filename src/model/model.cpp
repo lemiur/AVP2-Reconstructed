@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "bdefs.h"
 #include "model.h"
+#include "model_filename.h"
 #include "transformmaker.h"
 #include "ltanimtracker.h"
 #include "../../build/proj/LT2/lithshared/stdlith/l_allocator.h"
