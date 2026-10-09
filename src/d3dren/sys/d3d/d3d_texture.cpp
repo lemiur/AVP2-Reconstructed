@@ -1196,38 +1196,23 @@ Fail:
 	return 0;
 }
 
-static inline int InlineIsS3TCSupported(uint32 bpp)
-{
-	if (bpp == 4)
-		return g_bDXT1Supported;
-	if (bpp == 5)
-		return g_bDXT3Supported;
-	return bpp == 6 ? g_bDXT5Supported : 0;
-}
-
 // Creates the DirectDraw texture surface of an RTexture (iStartMipmap, nMipmaps and the format iFormat chosen by the caller) and fills
 // in the UnkType_RTextureData pData with it (surface, 1/width and 1/height scaled by the texture's U/V shift, the AlphaRef of the DTX
 // command string).  Handles the "ColorKey r g b" and "AlphaRef n" tokens of the command string, DXT formats and the aspect ratio
-// limit.  The older generation of the code: the DXT / aspect ratio helpers are written out here, the newer CTextureManager_CreateRTexture calls
-// CTextureManager_S3TCFormatConv / FUN_100219b0 / CTextureManager_IsS3TCFormatSupported instead.
+// limit.  The DXT / aspect ratio helpers (CTextureManager_IsS3TCFormatSupported, CTextureManager_S3TCFormatConv, AdjustAspectRatio)
+// are expanded here; the colour key is PValue_Set(0, r, g, b) (its arguments are evaluated b first).
 // NAME: names_proposal.csv guess_CreateRTextureSurface (low, invented): not used
-// NOT MATCHING (1072 vs 1136 bytes): the statements, their order and the stores are the exe's (flags 0x121007, caps 0x401008 /
-// 0x40090, the DXT FOURCC branch, the ColorKey / AlphaRef parsing with the command string initialised again before each ParseFind,
-// CreateSurface, SetPriority, 1/w and 1/h scaled by 1 << Extra[4]); what differs is the layout of the first branch and the register
-// that follows from it: the exe falls through from `if (bpp == 0)` into the shared (non-DXT) path and keeps the DXT path behind a
-// jne, with ebp = bpp; ours emits the DXT path first and jumps to the shared one.  Tried: `if (bpp == 0) bpp = 3; else if (...)`
-// against two separate ifs, nesting the DXT test inside `if (bpp != 0)`.
-// STUB: D3DREN 0x10020ab0
+// FUNCTION: D3DREN 0x10020ab0
 int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
 {
 	TextureData *pTextureData = pBuild->m_pTextureData;
 	DDSURFACEDESC2 ddsd;
-	PFormat cFormat;
 	ConParse cParse;
-	uint32 bpp, width, height, uOutWidth, uOutHeight, colorValue;
+	PFormat cFormat;
+	IDirectDrawSurface7 *pSurface;
+	uint32 bpp, uOutWidth, uOutHeight, colorValue;
 	GenericColor colorOut;
 	float fU, fV;
-	int bSupported;
 
 	memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd);
@@ -1240,50 +1225,25 @@ int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextu
 	ddsd.dwTextureStage = pBuild->m_nFlags;
 
 	bpp = pTextureData->m_Header.GetBPPIdent();
-	if (bpp != 3 && g_CV_S3TCEnable.m_IntVal && InlineIsS3TCSupported(bpp))
+	if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
 	{
-		bSupported = 1;
 		memset(&ddsd.ddpfPixelFormat, 0, sizeof(ddsd.ddpfPixelFormat));
 		ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ddsd.ddpfPixelFormat.dwFlags |= DDPF_FOURCC;
-		if (bpp == 4)
-			ddsd.ddpfPixelFormat.dwFourCC = 0x31545844;
-		else if (bpp == 5)
-			ddsd.ddpfPixelFormat.dwFourCC = 0x33545844;
-		else if (bpp == 6)
-			ddsd.ddpfPixelFormat.dwFourCC = 0x35545844;
-		else
+		if (!CTextureManager_S3TCFormatConv((BPPIdent)bpp, &ddsd.ddpfPixelFormat.dwFourCC))
 			return 0;
-		goto ParseColorKey;
+	}
+	else
+	{
+		ddsd.ddpfPixelFormat = g_TextureFormats[iFormat]->m_PF;
+		AdjustAspectRatio(ddsd.dwWidth, ddsd.dwHeight, &ddsd.dwWidth, &ddsd.dwHeight);
 	}
 
-	bSupported = 0;
-	ddsd.ddpfPixelFormat = g_TextureFormats[iFormat]->m_PF;
-	width = ddsd.dwWidth;
-	height = ddsd.dwHeight;
-	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
-	{
-		width = height = LTMAX(width, height);
-	}
-	else if (g_MaxTexAspectRatio > 0)
-	{
-		uint32 *pMin = width > height ? &height : &width;
-		uint32 *pMax = width > height ? &width : &height;
-		if ((int)(*pMax / *pMin) > g_MaxTexAspectRatio)
-			*pMin = *pMax / (uint32)g_MaxTexAspectRatio;
-	}
-	ddsd.dwWidth = width;
-	ddsd.dwHeight = height;
-
-ParseColorKey:
 	cParse.Init(pTextureData->m_Header.m_CommandString);
 	if (cParse.ParseFind("ColorKey", 0, 3) && !g_CV_AlphaTest.m_IntVal)
 	{
-		uint32 r = atoi(cParse.m_Args[1]);
-		uint32 g = atoi(cParse.m_Args[2]);
-		uint32 b = atoi(cParse.m_Args[3]);
-		colorValue = (((b << 8) | g) << 8) | r;
-		if (bSupported)
+		colorValue = PValue_Set(0, atoi(cParse.m_Args[1]), atoi(cParse.m_Args[2]), atoi(cParse.m_Args[3]));
+		if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
 			cFormat.InitPValueFormat();
 		else
 			DDPFToPFormat(&ddsd.ddpfPixelFormat, &cFormat);
@@ -1301,39 +1261,23 @@ ParseColorKey:
 	else
 		pData->m_AlphaRef = 0;
 
-	if (g_pDD->CreateSurface(&ddsd, &pData->m_pSurface, 0) != 0)
+	if (g_pDD->CreateSurface(&ddsd, &pSurface, 0) != 0)
 	{
 		AddDebugMessage(4, "Unable to create (%dx%d) texture surface.", ddsd.dwWidth, ddsd.dwHeight);
 		return 0;
 	}
-	pData->m_pSurface->SetPriority(pTextureData->m_Header.GetTexturePriority());
+	pSurface->SetPriority(pTextureData->m_Header.GetTexturePriority());
 
-	width = pTextureData->m_Mips[iStartMipmap].m_Width;
-	height = pTextureData->m_Mips[iStartMipmap].m_Height;
-	uOutWidth = width;
-	uOutHeight = height;
-	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
-	{
-		uOutWidth = uOutHeight = LTMAX(width, height);
-	}
-	else if (g_MaxTexAspectRatio > 0)
-	{
-		uint32 *pMin = width > height ? &height : &width;
-		uint32 *pMax = width > height ? &width : &height;
-		if ((int)(*pMax / *pMin) > g_MaxTexAspectRatio)
-			*pMin = *pMax / (uint32)g_MaxTexAspectRatio;
-		uOutWidth = width;
-		uOutHeight = height;
-	}
+	AdjustAspectRatio(pTextureData->m_Mips[0].m_Width, pTextureData->m_Mips[0].m_Height, &uOutWidth, &uOutHeight);
 	fU = 1.0f / (float)uOutWidth;
 	pData->m_Unk04 = fU;
 	fV = 1.0f / (float)uOutHeight;
 	pData->m_Unk08 = fV;
 	pData->m_Unk04 = pTextureData->m_Header.GetUIMipmapScale() * fU;
 	pData->m_Unk08 = pTextureData->m_Header.GetUIMipmapScale() * fV;
+	pData->m_pSurface = pSurface;
 	return 1;
 }
-
 
 // NAME: d3d_GetFirstUsableMipmap: names_proposal.csv (high; Jupiter d3d_texture.cpp d3d_GetFirstUsableMipmap): the first mipmap that fits
 // the largest texture the device and the MaxTextureSize variable allow (clamped to the screen unless larger surfaces are
@@ -1681,9 +1625,12 @@ int CTextureManager_IsS3TCFormatSupported(BPPIdent bpp)
 {
 	if (bpp == BPP_S3TC_DXT1)
 		return g_bDXT1Supported;
-	if (bpp == BPP_S3TC_DXT3)
+	else if (bpp == BPP_S3TC_DXT3)
 		return g_bDXT3Supported;
-	return bpp == BPP_S3TC_DXT5 ? g_bDXT5Supported : 0;
+	else if (bpp == BPP_S3TC_DXT5)
+		return g_bDXT5Supported;
+	else
+		return 0;
 }
 
 // NAME: names_proposal.csv guess_d3d_GetTextureUVScale (low, invented): not used
