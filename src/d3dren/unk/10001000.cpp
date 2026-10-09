@@ -781,13 +781,20 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 		TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
 		if (m_Unk8b4)
 		{
-			float fX0 = (1.0f / pV0->m_Vec.z) * pV0->m_Vec.x;
-			float fY0 = (1.0f / pV0->m_Vec.z) * pV0->m_Vec.y;
-			float fCross = ((1.0f / pV2->m_Vec.z) * pV2->m_Vec.x - fX0) * ((1.0f / pV1->m_Vec.z) * pV1->m_Vec.y - fY0)
-				- ((1.0f / pV2->m_Vec.z) * pV2->m_Vec.y - fY0) * ((1.0f / pV1->m_Vec.z) * pV1->m_Vec.x - fX0);
+			float r0 = 1.0f / pV0->m_Vec.z;
+			float r1 = 1.0f / pV1->m_Vec.z;
+			float r2 = 1.0f / pV2->m_Vec.z;
+			LTVector p0, d1, d2;
+			p0.x = r0 * pV0->m_Vec.x;
+			p0.y = r0 * pV0->m_Vec.y;
+			d1.x = r1 * pV1->m_Vec.x - p0.x;
+			d1.y = r1 * pV1->m_Vec.y - p0.y;
+			d2.x = r2 * pV2->m_Vec.x - p0.x;
+			d2.y = r2 * pV2->m_Vec.y - p0.y;
+			float fCross = d2.x * d1.y - d2.y * d1.x;
 			if (g_ViewParams.m_bCullFlip)
 				fCross = -fCross;
-			if (!(0.0f < fCross))
+			if (!(fCross > 0.0f))
 				goto Skip;
 		}
 		ProjectVertex(pOut, pV0);
