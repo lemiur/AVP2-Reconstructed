@@ -323,7 +323,7 @@ int d3d_SetLightmapTexture(WorldPoly *pPoly, int nStage)
 		if (pPage->m_Unk18 != g_CurFrameCode)
 		{
 			// RenderStruct bytes 0x48-0x6f are unnamed in include/renderstruct.h: +0x4c is a per-frame texture byte counter.
-			*(int *)((uint8 *)g_pStruct + 0x4c) += pPage->m_nMemoryUse;
+			g_pStruct->m_Unk4c += pPage->m_nMemoryUse;
 			pPage->m_Unk18 = g_CurFrameCode;
 		}
 		g_pD3DDevice->SetTexture(nStage, pPage->m_pSurface);

@@ -157,7 +157,7 @@ LightmapPage *CreateLightmapPage(RenderContext *pContext)
 	pContext->m_nLightmapPages++;
 	pContext->m_pLightmapPages = pPage;
 	g_LightmapPageBytesAllocated += 0x2000;
-	*(int *)((uint8 *)g_pStruct + 0x50) += pPage->m_nMemoryUse;
+	g_pStruct->m_SystemTextureMemory += pPage->m_nMemoryUse;
 	return pPage;
 }
 
@@ -486,7 +486,7 @@ void FreeLightmapPages(RenderContext *pContext)
 		if (pSurface)
 		{
 			pSurface->Release();
-			*(int *)((uint8 *)g_pStruct + 0x50) -= pPage->m_nMemoryUse;
+			g_pStruct->m_SystemTextureMemory -= pPage->m_nMemoryUse;
 		}
 		delete pPage;
 	}

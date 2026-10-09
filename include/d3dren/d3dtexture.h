@@ -129,9 +129,9 @@ extern TextureFormat *g_TextureFormats[NUM_TEXTUREFORMATS];		// the format table
 // GLOBAL: D3DREN 0x10062868
 extern LTLink g_Textures;		// LRU list of the RTextures (RTexture::m_Link, m_pData = the RTexture); 10007930.cpp declares it too
 
-// RenderStruct bytes 0x4c/0x50 live in padding of the engine's renderstruct.h (m_Pad48): 0x50 = bytes of texture memory in use
-// (Jupiter m_SystemTextureMemory), 0x4c = the per-frame texture byte counter.
-#define RENDERSTRUCT_TEXMEM(p)			(*(int *)((uint8 *)(p) + 0x50))
+// RenderStruct::m_SystemTextureMemory (0x50): bytes of texture memory in use
+// (Jupiter renderstruct.h; the lightmap pages count here too).  m_Unk48 / m_Unk4c are the per-frame texture / lightmap byte counters.
+#define RENDERSTRUCT_TEXMEM(p)			((p)->m_SystemTextureMemory)
 
 // GLOBAL: D3DREN 0x1005c984
 extern uint32 g_DeviceTriangleTextureCaps;			// D3DPRIMCAPS.dwTextureCaps copy of the device caps (0x20 = D3DPTEXTURECAPS_SQUAREONLY); W7's optsurface.cpp declares it too

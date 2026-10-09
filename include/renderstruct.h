@@ -77,7 +77,7 @@ struct RenderStruct
 	// Renderer memory statistics (written by d3d.ren only; the engine never reads them).
 	uint32			m_Unk48;		// 0x48 renderer: texture bytes bound this frame (reset per frame)
 	uint32			m_Unk4c;		// 0x4c renderer: lightmap page bytes bound this frame (reset per frame)
-	uint32			m_Unk50;		// 0x50 renderer: texture and lightmap page memory in use
+	uint32			m_SystemTextureMemory;	// 0x50 texture and lightmap page memory in use (NAME: Jupiter renderstruct.h RenderStruct::m_SystemTextureMemory, after m_Width/m_Height/m_bInitted)
 	uint8			m_Pad54[0x58 - 0x54];
 
 	// Renderer profile counters (the demo manager's PDCounters: draw counts while "ShowPerformance" is on).
