@@ -418,12 +418,7 @@ int d3d_LoadGamma(const char *pFilename)
 // guess: finds a Z buffer format the device accepts (preferring one with a stencil mask), creates the Z buffer surface, attaches
 // it to the render target (g_pOffscreen) and creates the Direct3D device (g_pD3DDevice) of the given type; the format that
 // does not work is marked and the next one is tried.  Jupiter's counterpart is CD3D_Device::CreateDevice's Z buffer code.
-// STUB diagnosis (608 vs 592 bytes, same flow and calls): register allocation of the format search loop.  The exe keeps the
-// loop index in eax, a pointer to bTried[i] in edx and a pointer to formats[i].dwStencilBitMask in esi (cmp dword ptr [esi], 0),
-// the best index in ebx and pFormat in ebp, and re-loads formats[best] with `mov edi,ebx; shl edi,5`; ours strength-reduces
-// formats[i] to an offset register (mov ebx,[esp+ecx+0x1a8]) and keeps best*32 in edi.  Tried: condition order and nesting,
-// int/uint32 best and bTried, a pointer to the current format, a pointer to the best one.
-// STUB: D3DREN 0x1001aa70
+// FUNCTION: D3DREN 0x1001aa70
 int d3d_CreateDeviceWithZBuffer(RenderStructInit *pInit, GUID guid)
 {
 	uint32 nFormats;
@@ -433,8 +428,8 @@ int d3d_CreateDeviceWithZBuffer(RenderStructInit *pInit, GUID guid)
 	DDPIXELFORMAT *pFormat;
 	uint32 i, iBest;
 
-	nFormats = 0;
 	memset(bTried, 0, sizeof(bTried));
+	nFormats = 0;
 	g_pEnumeratedZBufferFormats = formats;
 	g_pZBufferFormatCount = &nFormats;
 	if (g_pD3D->EnumZBufferFormats(guid, d3d_EnumZBufferFormatsCallback, 0) != 0 || nFormats == 0)
@@ -448,7 +443,14 @@ int d3d_CreateDeviceWithZBuffer(RenderStructInit *pInit, GUID guid)
 		iBest = 0xFFFFFFFF;
 		for (i = 0; i < nFormats; i++)
 		{
-			if (bTried[i] == 0 && (iBest == 0xFFFFFFFF || (formats[iBest].dwStencilBitMask == 0 && formats[i].dwStencilBitMask != 0)))
+			if (bTried[i])
+				continue;
+			if (iBest == 0xFFFFFFFF)
+			{
+				iBest = i;
+				continue;
+			}
+			if (formats[iBest].dwStencilBitMask == 0 && formats[i].dwStencilBitMask != 0)
 				iBest = i;
 		}
 		if (iBest >= 0x40)
@@ -458,8 +460,8 @@ int d3d_CreateDeviceWithZBuffer(RenderStructInit *pInit, GUID guid)
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = sizeof(ddsd);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
-		ddsd.dwHeight = pInit->m_Mode.m_Height;
 		ddsd.dwWidth = pInit->m_Mode.m_Width;
+		ddsd.dwHeight = pInit->m_Mode.m_Height;
 		ddsd.ddsCaps.dwCaps = g_RenderSurfaceMemoryCaps | DDSCAPS_ZBUFFER;
 		ddsd.ddpfPixelFormat = *pFormat;
 		if (g_pDD->CreateSurface(&ddsd, &g_pZBuffer, 0) != 0)
