@@ -850,7 +850,7 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 	memset(&data, 0, sizeof(data));
 
 	{
-		int iGroup = pTextureData->m_Header.m_Extra[0];
+		int iGroup = pTextureData->m_Header.GetTextureGroup();
 		if (iGroup > 9)
 			iGroup = 9;
 		iStartMipmap = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.m_Extra[4] + g_MipmapOffset;
@@ -872,7 +872,7 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 			iStartMipmap = iFirstUsable;
 	}
 
-	nMipmaps = pTextureData->m_Header.m_Extra[1];
+	nMipmaps = pTextureData->m_Header.GetNumMipmaps();
 	if (nMipmaps == 0)
 		nMipmaps = 4;
 	nAvailable = pTextureData->m_Header.m_nMipmaps - iStartMipmap;
@@ -966,15 +966,13 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 	TextureMipData *pMip;
 	uint32 bpp, i, surfWidth, surfHeight;
 
-	if ((uint32)pTexture->m_Unk47 + pTexture->m_iStartMipmap > pTextureData->m_Header.m_nMipmaps)
+	if (pTexture->m_Unk47 + pTexture->m_iStartMipmap > pTextureData->m_Header.m_nMipmaps)
 	{
 		AddDebugMessage(1, "r_TransferTexture: mipmap count doesn't match!");
 		return 0;
 	}
 
-	bpp = pTextureData->m_Header.m_Extra[2];
-	if (bpp == 0)
-		bpp = BPP_32;
+	bpp = pTextureData->m_Header.GetBPPIdent();
 
 	pSurface = pTexture->m_Data.m_pSurface;
 	pFormat = g_TextureFormats[pTexture->m_Unk48];
@@ -1241,12 +1239,8 @@ int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextu
 	ddsd.dwMipMapCount = nMipmaps;
 	ddsd.dwTextureStage = pBuild->m_nFlags;
 
-	bpp = pTextureData->m_Header.m_Extra[2];
-	if (bpp == 0)
-	{
-		bpp = 3;
-	}
-	else if (bpp != 3 && g_CV_S3TCEnable.m_IntVal && InlineIsS3TCSupported(bpp))
+	bpp = pTextureData->m_Header.GetBPPIdent();
+	if (bpp != 3 && g_CV_S3TCEnable.m_IntVal && InlineIsS3TCSupported(bpp))
 	{
 		bSupported = 1;
 		memset(&ddsd.ddpfPixelFormat, 0, sizeof(ddsd.ddpfPixelFormat));
@@ -1502,7 +1496,7 @@ RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdd
 	}
 
 	{
-		int iGroup = pTextureData->m_Header.m_Extra[0];
+		int iGroup = pTextureData->m_Header.GetTextureGroup();
 		int iStart;
 
 		if (iGroup > 9)
@@ -1525,7 +1519,7 @@ RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdd
 	if ((int)iStartMipmap <= iFirstUsable)
 		iStartMipmap = iFirstUsable;
 
-	nMipmaps = pTextureData->m_Header.m_Extra[1];
+	nMipmaps = pTextureData->m_Header.GetNumMipmaps();
 	if (nMipmaps == 0)
 		nMipmaps = 4;
 	nAvailable = pTextureData->m_Header.m_nMipmaps - iStartMipmap;
@@ -1546,12 +1540,8 @@ RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdd
 	ddsd.dwMipMapCount = nMipmaps;
 	ddsd.dwTextureStage = nStageFlags;
 
-	bpp = pTextureData->m_Header.m_Extra[2];
-	if (bpp == 0)
-	{
-		bpp = BPP_32;
-	}
-	else if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
+	bpp = pTextureData->m_Header.GetBPPIdent();
+	if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
 	{
 		memset(&ddsd.ddpfPixelFormat, 0, sizeof(ddsd.ddpfPixelFormat));
 		ddsd.ddpfPixelFormat.dwFlags |= DDPF_FOURCC;
