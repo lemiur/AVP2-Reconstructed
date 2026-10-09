@@ -774,87 +774,60 @@ void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB)
 
 void d3d_DrawDevicePrimitive(D3DPRIMITIVETYPE type, DWORD dwVertexTypeDesc, LPVOID lpvVertices, DWORD dwVertexCount, DWORD dwFlags);	// 0x1000d340 below
 
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];	// guess: gamma table of the red channel (255 = full light)
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];	// guess: gamma table of the green channel
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];	// guess: gamma table of the blue channel
-
 // guess: draws the fade sprite of a model that is far away (Model::m_pFadeSpriteTex, size m_FadeSpriteSizeX/Y) as a lit camera
 // facing quad around the instance position; nAlpha is the vertex alpha.
-// Not matching (best effort, 843 vs 1639 bytes; same calls (FUN_100079e4 texture bind, Cross 0x1000e70c, Norm 0x1000e6d9, w_GetLightVal,
-// d3d_ClipAndProjectTLVertices, d3d_DrawDevicePrimitive), same four corners P-R+U, P+R+U, P+R-U, P-R-U in the same order).  Where it differs: in the exe the
-// SDK operators of LTVector are expanded inline but the LTVector(x, y, z) constructor inside every operator+ / operator- after the
-// first one stays an out-of-line call (0x1000dfb6: `mov eax,ecx; mov [eax],arg1..3; ret 0xc`, called with the three x87 results
-// pushed right to left, its result copied with movsd into the vertex), and the inline temporaries live in 0x104 bytes of frame
-// (vUp at [ebp-0xc], the Cross result and vRight at [ebp-0x28], sizes through spilled temporaries such as [ebp-0x44]); ours inlines
-// every constructor, so the corner code is half the size.  That is the inline-budget outcome of the original statement structure
-// (nested sites get a shrinking share, tools/inline_budget.py R8): the number of inline-candidate calls the original made after each
-// operator is not known; tools/inline_budget.py does not run on this unit here (its callee-cost probes all report 9000u).  Explicit
-// LTVector(x, y, z) corners (753 bytes) and by-value operators were tried and are further away.  0x1000dfb6 (25 bytes) is not
-// emitted for the same reason: only a function that leaves the constructor out of line produces it.
-// STUB: D3DREN 0x1000ccd9
+// Each corner is one SDK-operator expression (P -/+ vRight * sizeX * scale.x +/- vUp * sizeY * scale.y, vUp still (0,1,0)); the
+// out-of-line LTVector(x,y,z) calls (0x1000dfb6) after the first corner and the out-of-line last operator- are the inline-budget
+// outcome of exactly this source: the field-wise vUp setup (not the constructor), the locals declared at function level and the
+// four TLVertex::SetTCoords sites (Jupiter 3d_ops.h) after the corners are all needed for it.
+// FUNCTION: D3DREN 0x1000ccd9
 void ModelDraw::DrawFadeSprite(ModelInstance *pInstance, uint8 nAlpha)
 {
 	Model *pModel = pInstance->GetModelDB();
-	LTVector vUp(0.0f, 1.0f, 0.0f);
+	LTVector vUp;
+	TLVertex aVerts[4];
+	TLVertex *pVerts;
+	int nVerts;
+	LTVector vRight;
+	LTRGB rgb;
+
+	vUp.x = 0.0f;
+	vUp.y = 1.0f;
+	vUp.z = 0.0f;
 
 	if (pModel->m_pFadeSpriteTex)
 	{
-		TLVertex aVerts[4];
-		TLVertex *pVerts;
-		int nVerts;
-		LTVector vRight, vSizeUp, vSizeRight;
-		LTRGB rgb;
-		uint8 r, g, b;
-
 		d3d_SetTexture(pModel->m_pFadeSpriteTex, g_NormalTextureStage, 0);
 
 		vRight = (m_Unk5d0 - g_ViewParams.m_Pos).Cross(vUp);
 		vRight.y = 0.0f;
 		vRight.Norm();
 
-		vUp = LTVector(0.0f, pModel->m_FadeSpriteSizeY, 0.0f);
-		vSizeUp = vUp * pInstance->m_Scale.y;
-		vSizeRight = vRight * pModel->m_FadeSpriteSizeX * pInstance->m_Scale.x;
+		aVerts[0].m_Vec = m_Unk5d0 - vRight * pModel->m_FadeSpriteSizeX * pInstance->m_Scale.x + vUp * pModel->m_FadeSpriteSizeY * pInstance->m_Scale.y;
+		aVerts[1].m_Vec = m_Unk5d0 + vRight * pModel->m_FadeSpriteSizeX * pInstance->m_Scale.x + vUp * pModel->m_FadeSpriteSizeY * pInstance->m_Scale.y;
+		aVerts[2].m_Vec = m_Unk5d0 + vRight * pModel->m_FadeSpriteSizeX * pInstance->m_Scale.x - vUp * pModel->m_FadeSpriteSizeY * pInstance->m_Scale.y;
+		aVerts[3].m_Vec = m_Unk5d0 - vRight * pModel->m_FadeSpriteSizeX * pInstance->m_Scale.x - vUp * pModel->m_FadeSpriteSizeY * pInstance->m_Scale.y;
 
-		aVerts[0].m_Vec = (m_Unk5d0 - vSizeRight) + vSizeUp;
-		aVerts[1].m_Vec = (m_Unk5d0 + vSizeRight) + vSizeUp;
-		aVerts[2].m_Vec = (m_Unk5d0 + vSizeRight) - vSizeUp;
-		aVerts[3].m_Vec = (m_Unk5d0 - vSizeRight) - vSizeUp;
-
-		aVerts[0].tu = g_TextureStageTexelSizes[0].m_Unk00;
-		aVerts[0].tv = g_TextureStageTexelSizes[0].m_Unk04;
-		aVerts[1].tu = 1.0f - g_TextureStageTexelSizes[0].m_Unk00;
-		aVerts[1].tv = g_TextureStageTexelSizes[0].m_Unk04;
-		aVerts[2].tu = 1.0f - g_TextureStageTexelSizes[0].m_Unk00;
-		aVerts[2].tv = 1.0f - g_TextureStageTexelSizes[0].m_Unk04;
-		aVerts[3].tu = g_TextureStageTexelSizes[0].m_Unk00;
-		aVerts[3].tv = 1.0f - g_TextureStageTexelSizes[0].m_Unk04;
+		aVerts[0].SetTCoords(g_TextureStageTexelSizes[0].m_Unk00, g_TextureStageTexelSizes[0].m_Unk04);
+		aVerts[1].SetTCoords(1.0f - g_TextureStageTexelSizes[0].m_Unk00, g_TextureStageTexelSizes[0].m_Unk04);
+		aVerts[2].SetTCoords(1.0f - g_TextureStageTexelSizes[0].m_Unk00, 1.0f - g_TextureStageTexelSizes[0].m_Unk04);
+		aVerts[3].SetTCoords(g_TextureStageTexelSizes[0].m_Unk00, 1.0f - g_TextureStageTexelSizes[0].m_Unk04);
 
 		if (g_CV_LightModelSprites.m_IntVal && g_pFrameMainWorld)
 		{
 			w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &m_Unk5d0, &rgb);
-			r = g_VertexTintTableR[rgb.r];
-			g = g_VertexTintTableG[rgb.g];
-			b = g_VertexTintTableB[rgb.b];
+			aVerts[0].rgb.r = aVerts[1].rgb.r = aVerts[2].rgb.r = aVerts[3].rgb.r = g_VertexTintTableR[rgb.r];
+			aVerts[0].rgb.g = aVerts[1].rgb.g = aVerts[2].rgb.g = aVerts[3].rgb.g = g_VertexTintTableG[rgb.g];
+			aVerts[0].rgb.b = aVerts[1].rgb.b = aVerts[2].rgb.b = aVerts[3].rgb.b = g_VertexTintTableB[rgb.b];
 		}
 		else
 		{
-			r = g_VertexTintTableR[255];
-			g = g_VertexTintTableG[255];
-			b = g_VertexTintTableB[255];
+			aVerts[0].rgb.r = aVerts[1].rgb.r = aVerts[2].rgb.r = aVerts[3].rgb.r = g_VertexTintTableR[255];
+			aVerts[0].rgb.g = aVerts[1].rgb.g = aVerts[2].rgb.g = aVerts[3].rgb.g = g_VertexTintTableG[255];
+			aVerts[0].rgb.b = aVerts[1].rgb.b = aVerts[2].rgb.b = aVerts[3].rgb.b = g_VertexTintTableB[255];
 		}
-
-		for (int i = 0; i < 4; i++)
-		{
-			aVerts[i].rgb.b = b;
-			aVerts[i].rgb.g = g;
-			aVerts[i].rgb.r = r;
-			aVerts[i].rgb.a = nAlpha;
-			aVerts[i].specular = m_Unk640;
-		}
+		aVerts[0].rgb.a = aVerts[1].rgb.a = aVerts[2].rgb.a = aVerts[3].rgb.a = nAlpha;
+		aVerts[0].specular = aVerts[1].specular = aVerts[2].specular = aVerts[3].specular = m_Unk640;
 
 		pVerts = aVerts;
 		nVerts = 4;

@@ -31,6 +31,12 @@ struct RGBColor
 // SPECULAR|TEX1): `specular` is named after it.  TLVertex_ClipExtra reads/writes exactly these members.
 struct TLVertex
 {
+	void SetTCoords(float inTU, float inTV)
+	{
+		tu = inTU;
+		tv = inTV;
+	}
+
 	LTVector	m_Vec;				// 0x00 sx, sy, sz (screen or camera space)
 	float		rhw;				// 0x0c
 	union
@@ -65,5 +71,15 @@ struct UnkType_TLVertex40
 	float		tu, tv;				// 0x18, 0x1c
 	float		tu2, tv2;			// 0x20, 0x24
 };
+
+// The out-of-line polygon clippers of the 0x28-byte vertex (unit unk/10007930; pUnused is the unused first argument of the
+// clip-plane callback signature) and their interpolation helper.
+int ClipPolyNear40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyLeft40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
+void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t);
 
 #endif
