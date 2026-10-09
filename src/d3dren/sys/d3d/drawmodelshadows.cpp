@@ -36,8 +36,7 @@
 // ---- declarations of other units (the lead unifies them with the real headers) ------------------------------------------------
 
 // guess: collects the world polygons along a segment (callback of FindObjectsOnPoint, 0x10035917)
-struct UnkType_SegRequest;
-void __cdecl CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest *pUser);
+void __cdecl CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_ShadowPolyQuery *pUser);
 
 // guess: 0x100323ff / 0x1003244f: the two cached scratch shadow textures (the factory's AllocShadowTexture/FreeShadowTexture
 // behind a size cache); `A` receives the silhouette, `B` keeps the pixels of the backbuffer corner it is drawn over.

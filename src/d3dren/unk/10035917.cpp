@@ -25,27 +25,14 @@
 #include "ltquatbase.h"
 #include <math.h>
 #include "world_tree.h"
+#include "d3dren/modelshadow.h"
 
 // ---- queued world polygon drawing (the polygons of lightmapped surfaces are queued per texture by QueueLightmappedPoly) --------------
 // The queued polys' texture: node -> poly -> surface -> SharedTexture.
 #define BUCKET_TEXTURE(pBucket)	(((Surface *)((WorldPoly *)(pBucket)->m_Unk04->m_Unk00)->m_pSurface)->m_pTexture)
 
 // ---- a segment walk through the BSP of a world model that collects the polygons near the segment ------------------------------
-// guess: the polygons found (unique, at most 0x100; the callers pass one of these)
-struct UnkType_SegPolyList
-{
-	WorldPoly	*m_Unk00[0x100];	// 0x000
-	uint32		m_Unk400;			// 0x400 number of polys
-};
-
-// guess: the segment p1 - p2 and a radius around it, and where the polys go
-struct UnkType_SegRequest
-{
-	UnkType_SegPolyList	*m_Unk00;	// 0x00
-	LTVector			m_Unk04;	// 0x04 start
-	LTVector			m_Unk10;	// 0x10 end
-	float				m_Unk1c;	// 0x1c radius
-};
+// The user record and the polygon list are drawmodelshadows' UnkType_ShadowPolyQuery / UnkType_ShadowPolys (d3dren/modelshadow.h).
 
 // guess: one entry of the walk's explicit stack: the node still to visit and the part of the segment that goes into it
 // (plain floats: a member with a constructor would give the static a constructor call, which the exe does not have)
@@ -69,11 +56,14 @@ struct UnkType_SegStack
 
 // guess: collects the polygons of the world model pObj (not a server object, OT_WORLDMODEL) that lie along the segment of pReq
 // within its radius and that faced the camera this frame (the poly's frame tag at +0x46 equals the current frame code).
-// Not matching (346 vs 346 instructions, 180 aligned mismatches ignoring stack offsets): same code size; differences are the frame layout
-// (the exe: 0x8c bytes, locals p1/p2 at [ebp-0x30]/[ebp-0x14], the stack pointer in a parameter slot [ebp+8]) and the order of the x87
-// plane-distance evaluation (the exe evaluates both distances with the plane pointer reloaded per use).
+// Not matching (221 aligned mismatches, 148 ignoring stack offsets; 353 vs 360 instructions).  The user record is drawmodelshadows'
+// UnkType_ShadowPolyQuery, and the split point is p1 + (p2 - p1) * t of the current sub-segment (the exe recomputes p2 - p1 every
+// iteration; the old form used the first segment's delta).  Remaining: the frame layout (exe 0x8c, the stack pointer in the dead pObj
+// slot [ebp+8], pNode in ebx), and block placement: the exe puts the two one-sided `pNode = m_Sides[n]` blocks and the push block after
+// the pop code; our compiler keeps them in line for the continue form, the if/else-if form and the inverted-condition form alike.  The exe
+// also stores pStack->m_Unk00 twice on the non-splitting path (once in that branch, once in the common tail).
 // STUB: D3DREN 0x10035917
-void CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest *pReq)
+void CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_ShadowPolyQuery *pReq)
 {
 	static UnkType_SegStack s_Stack;
 	UnkType_SegStackEntry *pStack;
@@ -88,9 +78,9 @@ void CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest 
 	if (*(uint32 *)((uint8 *)pObj + 0x54) != 0 || pObj->m_ObjectType != OT_WORLDMODEL)
 		return;
 
-	p1 = pReq->m_Unk04;
-	p2 = pReq->m_Unk10;
-	vDelta = p2 - pReq->m_Unk04;
+	p1 = pReq->m_vStart;
+	p2 = pReq->m_vEnd;
+	vDelta = p2 - pReq->m_vStart;
 	vDir = vDelta;
 	vDir.Norm(1.0f);
 
@@ -104,13 +94,13 @@ void CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest 
 			d1 = pNode->GetPlane()->DistTo(p1);
 			d2 = pNode->GetPlane()->DistTo(p2);
 
-			if (d1 > pReq->m_Unk1c && d2 > pReq->m_Unk1c)
+			if (d1 > pReq->m_fRadius && d2 > pReq->m_fRadius)
 			{
 				pNode = pNode->m_Sides[1];
 				continue;
 			}
 
-			if (d1 < -pReq->m_Unk1c && d2 < -pReq->m_Unk1c)
+			if (d1 < -pReq->m_fRadius && d2 < -pReq->m_fRadius)
 			{
 				pNode = pNode->m_Sides[0];
 				continue;
@@ -122,10 +112,10 @@ void CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest 
 			else
 				t = 0.0f;
 
-			vMid = p1 + vDelta * t;
+			vMid = p1 + (p2 - p1) * t;
 
 			pPoly = pNode->m_pPoly;
-			if (*(uint16 *)((uint8 *)pPoly + 0x46) == g_CurFrameCode && pReq->m_Unk00->m_Unk400 < 0x100)
+			if (pPoly->m_Unk46 == g_CurFrameCode && pReq->m_pPolys->m_nPolys < 0x100)
 			{
 				pPlane = pNode->GetPlane();
 				if (pPlane->DistTo(g_ViewParams.m_Pos) > 1.0f)
@@ -133,17 +123,17 @@ void CollectWorldModelSegmentPolys(WorldModelInstance *pObj, UnkType_SegRequest 
 					pPlane = pNode->GetPlane();
 					if (vDir.Dot(pPlane->m_Normal) < 0.7f)
 					{
-						if ((vMid - pPoly->m_Center).Mag() < pPoly->m_Radius + pReq->m_Unk1c)
+						if ((vMid - pPoly->m_Center).Mag() < pPoly->m_Radius + pReq->m_fRadius)
 						{
-							for (i = 0; i < pReq->m_Unk00->m_Unk400; i++)
+							for (i = 0; i < pReq->m_pPolys->m_nPolys; i++)
 							{
-								if (pReq->m_Unk00->m_Unk00[i] == pPoly)
+								if (pReq->m_pPolys->m_Polys[i] == pPoly)
 									break;
 							}
-							if (i >= pReq->m_Unk00->m_Unk400)
+							if (i >= pReq->m_pPolys->m_nPolys)
 							{
-								pReq->m_Unk00->m_Unk00[i] = pPoly;
-								pReq->m_Unk00->m_Unk400++;
+								pReq->m_pPolys->m_Polys[i] = pPoly;
+								pReq->m_pPolys->m_nPolys++;
 							}
 						}
 					}
