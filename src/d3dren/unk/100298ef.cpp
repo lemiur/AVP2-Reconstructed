@@ -733,7 +733,8 @@ void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, in
 
 // guess: draws pPoly in a later pass: the vertices are rebuilt from the QVerts the first pass kept (the polygon was already
 // projected there), the colour, fog and texture coordinates of this pass are computed again, the textures bound and the fan drawn
-// STUB diagnosis: 578 vs 553 bytes, 112 aligned mismatches ignoring stack offsets (128 with).  The queued-vertex range is read with
+/// STUB diagnosis: 550 vs 553 bytes, 85 aligned mismatches ignoring stack offsets (104 with); the vertex source is walked
+// with pSrc++ in both loops (the exe's `add ebx, 0x18` / `add [ebp-0xc], 0x18`).  The queued-vertex range is read with
 // LOWORD/HIWORD (the exe's `movzx` of the count and separate dword load of the start; the masked form loads once); with it pPass is in
 // edi as in the exe.  The vertex buffer is 0x80 vertices of 0x28 bytes
 // (0x1400): that gives the exe's frame 0x1424.  The exe copies `this` (`mov edx,ecx`) and indexes the three callback tables with absolute displacements in a
@@ -769,10 +770,11 @@ void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPas
 	{
 		for (i = 0; i < nVertices; i++)
 		{
-			*(LTVector *)pVerts = *pSrc[i].m_Vec;
-			(this->*pfnColor)(&pSrc[i], pVerts);
+			*(LTVector *)pVerts = *pSrc->m_Vec;
+			(this->*pfnColor)(pSrc, pVerts);
 			pfnFog((LTVector *)pVerts, &pVerts->specular);
-			(this->*m_Unk7b8)(&pSrc[i], &pVerts->tu, 0);
+			(this->*m_Unk7b8)(pSrc, &pVerts->tu, 0);
+			pSrc++;
 			pVerts = (TLVertex *)((uint8 *)pVerts + iStride);
 		}
 
@@ -799,10 +801,11 @@ void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPas
 		for (i = 0; i < nVertices; i++)
 		{
 			*(QVert *)pVerts = *pQ;
-			(this->*pfnColor)(&pSrc[i], pVerts);
-			pfnFog(pSrc[i].m_Vec, &pVerts->specular);
-			(this->*m_Unk7b8)(&pSrc[i], &pVerts->tu, 0);
+			(this->*pfnColor)(pSrc, pVerts);
+			pfnFog(pSrc->m_Vec, &pVerts->specular);
+			(this->*m_Unk7b8)(pSrc, &pVerts->tu, 0);
 			pQ++;
+			pSrc++;
 			pVerts = (TLVertex *)((uint8 *)pVerts + iStride);
 		}
 		pVerts = (TLVertex *)aVerts;
