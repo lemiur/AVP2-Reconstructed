@@ -118,8 +118,6 @@ struct UnkType_PolyVertex
 extern int g_ClipNearInsideFlagsTLVertex[56];	// guess: inside flags of the near plane clip
 // GLOBAL: D3DREN 0x10094ec0
 extern int g_ClipLeftInsideFlagsTLVertex[56];	// guess: inside flags of the left plane clip
-float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
-float IntersectLeftClipPlane(float *p1, float *p2, float *pOut);
 void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 // Plane clippers for the flag bits 8, 0x10, 0x20, 2 (unit unk/10001000); the first argument is unused.
 int ClipPolyTop(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);

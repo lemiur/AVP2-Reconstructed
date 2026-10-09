@@ -1074,7 +1074,7 @@ int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 				*pOut++ = *pPrev;
 			if (g_ClipNearInsideFlagsTLVertex[iPrev] != g_ClipNearInsideFlagsTLVertex[iCur])
 			{
-				t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+				t = IntersectNearClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
 				TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 				++pOut;
 			}
@@ -1126,7 +1126,7 @@ int ClipPolyLeft(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 				*pOut++ = *pPrev;
 			if (g_ClipLeftInsideFlagsTLVertex[iPrev] != g_ClipLeftInsideFlagsTLVertex[iCur])
 			{
-				t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+				t = IntersectLeftClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
 				TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 				++pOut;
 			}

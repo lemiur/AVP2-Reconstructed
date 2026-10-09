@@ -69,8 +69,6 @@ int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, Unk
 int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
-float IntersectLeftClipPlane(float *p1, float *p2, float *pOut);
 void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t);
 
 // FUNCTION: D3DREN 0x10007930
@@ -590,7 +588,7 @@ int ClipPolyNear40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, Un
 				*(*ppOut)++ = *pPrev;
 			if (g_ClipNearInsideFlagsVertex40[iPrev] != g_ClipNearInsideFlagsVertex40[iCur])
 			{
-				t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectNearClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				TLVertex40_ClipExtra(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
@@ -640,7 +638,7 @@ int ClipPolyLeft40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, Un
 				*(*ppOut)++ = *pPrev;
 			if (g_ClipLeftInsideFlagsVertex40[iPrev] != g_ClipLeftInsideFlagsVertex40[iCur])
 			{
-				t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectLeftClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				TLVertex40_ClipExtra(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
@@ -661,7 +659,7 @@ int ClipPolyLeft40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, Un
 // parameter along p1->p2, left on the x87 stack for the caller (hence `float`).
 // guess: plane y == z (the top plane)
 // FUNCTION: D3DREN 0x10008b58
-float IntersectTopClipPlane(float *p1, float *p2, float *pOut)
+float IntersectTopClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut)
 {
 	float t;
 	float d = ((p2[1] - p1[1]) - p2[2]) + p1[2];
@@ -678,7 +676,7 @@ float IntersectTopClipPlane(float *p1, float *p2, float *pOut)
 
 // guess: plane x == z
 // FUNCTION: D3DREN 0x10008bb4
-float IntersectRightClipPlane(float *p1, float *p2, float *pOut)
+float IntersectRightClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut)
 {
 	float t;
 	float d = ((p2[0] - p1[0]) - p2[2]) + p1[2];
@@ -695,7 +693,7 @@ float IntersectRightClipPlane(float *p1, float *p2, float *pOut)
 
 // guess: plane y == -z
 // FUNCTION: D3DREN 0x10008c10
-float IntersectBottomClipPlane(float *p1, float *p2, float *pOut)
+float IntersectBottomClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut)
 {
 	float t;
 	float d = ((p2[1] - p1[1]) + p2[2]) - p1[2];
@@ -712,7 +710,7 @@ float IntersectBottomClipPlane(float *p1, float *p2, float *pOut)
 
 // guess: intersection with the plane z == g_ViewParams.m_ClipFarZ
 // FUNCTION: D3DREN 0x10008c6e
-float IntersectFarClipPlane(float *p1, float *p2, float *pOut)
+float IntersectFarClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut)
 {
 	float t;
 	float dz = p2[2] - p1[2];

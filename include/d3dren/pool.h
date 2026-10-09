@@ -97,10 +97,13 @@ int ClipPolyNear40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, Un
 int ClipPolyLeft40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 
 // The four line/plane intersection helpers (callers: the line system draw code): intersection of the edge p1-p2 with a clip plane.
-float IntersectTopClipPlane(float *p1, float *p2, float *pOut);	// plane y == z
-float IntersectRightClipPlane(float *p1, float *p2, float *pOut);	// plane x == z
-float IntersectBottomClipPlane(float *p1, float *p2, float *pOut);	// plane y == -z
-float IntersectFarClipPlane(float *p1, float *p2, float *pOut);	// plane z == far
+// The near and left plane ones (unit unk/10001000) read the coordinates through LTVector::operator[] (see there).
+float IntersectNearClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);	// plane z == near
+float IntersectLeftClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);	// plane x == -z
+float IntersectTopClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);	// plane y == z
+float IntersectRightClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);	// plane x == z
+float IntersectBottomClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);	// plane y == -z
+float IntersectFarClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);	// plane z == far
 
 // A vertex of a world poly as DrawWorldTexturePoly reads it (SPolyVertex of de_objects.h, 0x18 bytes, with the padding named).
 struct UnkType_PolyVert

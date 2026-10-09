@@ -78,13 +78,7 @@ int g_ShadowClipTopInsideFlags[56];
 int g_ShadowClipLeftInsideFlags[56];
 int g_ShadowClipNearInsideFlags[56];
 
-// Edge/plane intersection helpers of other units (pool.h / seed polyclip): return t in st(0).
-float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
-float IntersectLeftClipPlane(float *p1, float *p2, float *pOut);
-float IntersectTopClipPlane(float *p1, float *p2, float *pOut);
-float IntersectRightClipPlane(float *p1, float *p2, float *pOut);
-float IntersectBottomClipPlane(float *p1, float *p2, float *pOut);
-float IntersectFarClipPlane(float *p1, float *p2, float *pOut);
+// The edge/plane intersection helpers (IntersectNear/Left/Top/Right/Bottom/FarClipPlane, return t in st(0)) are declared in pool.h.
 
 // Draws the model shadow onto one world polygon (non-projected path of ModelDraw::DrawModelShadows 0x100252c6, which calls it per
 // poly): copies the polygon (<= 0x80 vertices, else "Error: vertex buffer overflow"), lifts it by ModelShadowOffset along the poly
@@ -556,7 +550,7 @@ int ClipShadowPolygonToNearPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int 
 				*(*ppOut)++ = *pPrev;
 			if (g_ShadowClipNearInsideFlags[iPrev] != g_ShadowClipNearInsideFlags[iCur])
 			{
-				t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectNearClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
@@ -606,7 +600,7 @@ int ClipShadowPolygonToLeftPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int 
 				*(*ppOut)++ = *pPrev;
 			if (g_ShadowClipLeftInsideFlags[iPrev] != g_ShadowClipLeftInsideFlags[iCur])
 			{
-				t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectLeftClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
@@ -656,7 +650,7 @@ int ClipShadowPolygonToTopPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *
 				*(*ppOut)++ = *pPrev;
 			if (g_ShadowClipTopInsideFlags[iPrev] != g_ShadowClipTopInsideFlags[iCur])
 			{
-				t = IntersectTopClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectTopClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
@@ -706,7 +700,7 @@ int ClipShadowPolygonToRightPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int
 				*(*ppOut)++ = *pPrev;
 			if (g_ShadowClipRightInsideFlags[iPrev] != g_ShadowClipRightInsideFlags[iCur])
 			{
-				t = IntersectRightClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectRightClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
@@ -756,7 +750,7 @@ int ClipShadowPolygonToBottomPlane(char *pUnused, UnkType_Vertex36 **ppVerts, in
 				*(*ppOut)++ = *pPrev;
 			if (g_ShadowClipBottomInsideFlags[iPrev] != g_ShadowClipBottomInsideFlags[iCur])
 			{
-				t = IntersectBottomClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectBottomClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
@@ -806,7 +800,7 @@ int ClipShadowPolygonToFarPlane(char *pUnused, UnkType_Vertex36 **ppVerts, int *
 				*(*ppOut)++ = *pPrev;
 			if (g_ShadowClipFarInsideFlags[iPrev] != g_ShadowClipFarInsideFlags[iCur])
 			{
-				t = IntersectFarClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &(*ppOut)->m_Vec.x);
+				t = IntersectFarClipPlane(pPrev->m_Vec, pCur->m_Vec, (*ppOut)->m_Vec);
 				InterpolateShadowVertexAttributes(pPrev, pCur, *ppOut, t);
 				++*ppOut;
 			}
