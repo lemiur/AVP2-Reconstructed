@@ -545,9 +545,9 @@ Lit:
 
 // guess: builds the light animation lightmap of a polygon (plain light animation, 32 bit colour texels): decompresses the frame(s)
 // of the polygon for the animation's current frame pair into pOut (w * h texels) and blends them by m_PercentBetween (0-255).
-// Not matching (512 of 512 bytes, 445 differ): same size; the exe lays out the single-frame (m_iFrames[0] == m_iFrames[1]) decode inline
-// right after the first compare (`cmp esi,edi; jne`) and tests the blend (`jle`, `cmp 0xff`/`jl`) after it, ours tests all three up
-// front; everything else (frame pair, lerp of the three colour channels with the clamp at 0xff) is the exe's.
+// Not matching (512 of 512 bytes): each single-frame case returns on its own (the exe cross-jumps the identical decodes), the
+// channels come from the SDK GETRGB and are clamped one by one.  Residue in the blend loop: the exe merges the output pointer into
+// the source pointer's induction variable (`[ecx+edi-4]`, edi = &buf0[i]); ours walks the sources as a frame offset and pOut apart.
 // STUB: D3DREN 0x10033c00
 int BuildColorLightAnimTexels(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
 {
@@ -564,50 +564,64 @@ int BuildColorLightAnimTexels(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRe
 		iFrame1 = pAnim->m_iFrames[1];
 		nBlend = pAnim->m_PercentBetween;
 
-		if (iFrame0 == iFrame1 || nBlend <= 0)
+		if (iFrame0 == iFrame1)
 		{
 			pFrame0 = LAFRAME(pAnim, iFrame0, pRef);
-		}
-		else if (nBlend >= 0xff)
-		{
-			pFrame0 = LAFRAME(pAnim, iFrame1, pRef);
-		}
-		else
-		{
-			pFrame0 = LAFRAME(pAnim, iFrame0, pRef);
-			pFrame1 = LAFRAME(pAnim, iFrame1, pRef);
-			if (pFrame0->m_LightmapSize || pFrame1->m_LightmapSize)
-			{
-				if (DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, buf0))
-				{
-					if (DecompressLightmapTexelRuns((uint32 *)pFrame1->m_pLightmap, pFrame1->m_LightmapSize, buf1))
-					{
-						nTexels = pPoly->m_LMHeight * pPoly->m_LMWidth;
-						for (i = 0; i < nTexels; i++)
-						{
-							uint32 c0 = buf0[i];
-							uint32 c1 = buf1[i];
-							int r = ((int)(((c1 >> 16 & 0xff) - (c0 >> 16 & 0xff)) * nBlend) >> 8) + (c0 >> 16 & 0xff);
-							int g = ((int)(((c1 >> 8 & 0xff) - (c0 >> 8 & 0xff)) * nBlend) >> 8) + (c0 >> 8 & 0xff);
-							int b = ((int)(((c1 & 0xff) - (c0 & 0xff)) * nBlend) >> 8) + (c0 & 0xff);
-
-							if (r > 0xff)
-								r = 0xff;
-							if (g > 0xff)
-								g = 0xff;
-							if (b > 0xff)
-								b = 0xff;
-							pOut[i] = (r << 8 | g) << 8 | b;
-						}
-						return 1;
-					}
-				}
-			}
+			if (pFrame0->m_LightmapSize)
+				return DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, pOut);
 			return 0;
 		}
 
-		if (pFrame0->m_LightmapSize)
-			return DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, pOut);
+		if (nBlend <= 0)
+		{
+			pFrame0 = LAFRAME(pAnim, iFrame0, pRef);
+			if (pFrame0->m_LightmapSize)
+				return DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, pOut);
+			return 0;
+		}
+
+		if (nBlend >= 0xff)
+		{
+			pFrame0 = LAFRAME(pAnim, iFrame1, pRef);
+			if (pFrame0->m_LightmapSize)
+				return DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, pOut);
+			return 0;
+		}
+
+		pFrame0 = LAFRAME(pAnim, iFrame0, pRef);
+		pFrame1 = LAFRAME(pAnim, iFrame1, pRef);
+		if (pFrame0->m_LightmapSize || pFrame1->m_LightmapSize)
+		{
+			if (DecompressLightmapTexelRuns((uint32 *)pFrame0->m_pLightmap, pFrame0->m_LightmapSize, buf0))
+			{
+				if (DecompressLightmapTexelRuns((uint32 *)pFrame1->m_pLightmap, pFrame1->m_LightmapSize, buf1))
+				{
+					nTexels = pPoly->m_LMHeight * pPoly->m_LMWidth;
+					uint32 *pIn0 = buf0;
+					uint32 *pIn1 = buf1;
+					for (i = 0; i != nTexels; i++)
+					{
+						int r0, g0, b0, r1, g1, b1;
+
+						GETRGB(*pIn0, r0, g0, b0);
+						GETRGB(*pIn1, r1, g1, b1);
+						int r = (((r1 - r0) * nBlend) >> 8) + r0;
+						if (r > 0xff)
+							r = 0xff;
+						int g = (((g1 - g0) * nBlend) >> 8) + g0;
+						if (g > 0xff)
+							g = 0xff;
+						int b = (((b1 - b0) * nBlend) >> 8) + b0;
+						if (b > 0xff)
+							b = 0xff;
+						pOut[i] = (r << 8 | g) << 8 | b;
+						pIn0++;
+						pIn1++;
+					}
+					return 1;
+				}
+			}
+		}
 	}
 
 	return 0;
