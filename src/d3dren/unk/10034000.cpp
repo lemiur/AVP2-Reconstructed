@@ -373,9 +373,8 @@ void ClearBspLightmapPageFlags(WorldBsp *pBsp)
 // guess: builds the lightmap pages of a context: assigns every polygon of the world a page position (the polygons of the
 // "LightAnim_BASE" light animation first when the world has one, in leaf order for a VisBSP), then relights them
 // (UpdatePolyAnimatedLightmap).  Returns 0 (and frees the pages again) when a page could not be made.
-// Not matching (10 of 492 bytes differ; 14 aligned instruction mismatches, 0 ignoring stack offsets; 148 vs 148 instructions). The remaining
-// byte differences come from the query/list phase counters occupying opposite stack slots; the instruction sequence otherwise aligns.
-// STUB: D3DREN 0x10034597
+// The model loop counter is one variable for both passes (the list phase reuses it): that puts it in the exe's stack slot.
+// FUNCTION: D3DREN 0x10034597
 int PageInLightmaps(RenderContext *pContext)
 {
 	MainWorld *pWorld = pContext->m_pWorld;
@@ -430,12 +429,10 @@ int PageInLightmaps(RenderContext *pContext)
 
 	FreeLightmapPageBitmaps(pContext);
 
-	{
-		uint32 iModel2 = 0;
-		for (; iModel2 < pWorld->m_WorldModels.GetSize(); iModel2++)
+	for (j = 0; j < pWorld->m_WorldModels.GetSize(); j++)
 	{
 		uint32 iPoly = 0;
-		pBsp = pWorld->m_WorldModels[iModel2]->m_pOriginalBsp;
+		pBsp = pWorld->m_WorldModels[j]->m_pOriginalBsp;
 		for (; iPoly < pBsp->m_nPolies; iPoly++)
 		{
 			WorldPoly *pPoly = pBsp->m_Polies[iPoly];
@@ -448,7 +445,6 @@ int PageInLightmaps(RenderContext *pContext)
 				goto Failed;
 			}
 		}
-	}
 	}
 
 	tElapsed = timeGetTime() - tStart;
