@@ -798,8 +798,10 @@ char *d3d_AddToString(char *pStr, const char *pToAdd)
 // d3d_CreateMipmapTextureSurface, ObjectBank::Allocate (folded with AllocVoid, 0x10021c80), the UnkType_RTextureData assignment,
 // CheapLTLink::AddAfter) stay calls.
 // NAME: names_proposal.csv d3d_CreateAndLoadTexture (medium, Jupiter d3d_texture.cpp)
-// NOT MATCHING: the exe also calls the implicit UnkType_RTextureData destructor at each exit of the expanded body (ours: 17u, free,
-// expanded), and `not al; movsx` in the format choice.
+// NOT MATCHING: the exe also calls the UnkType_RTextureData destructor at each exit of the expanded body (the implicit one is 17u,
+// free, expanded).  An explicit `virtual ~UnkType_RTextureData() {}` (43u) gives this function the exe's size and call set (52
+// mismatches, registers) but then CTextureManager_CreateRTexture's copy refuses sb_Allocate and one more IsS3TCFormatSupported (its
+// dtor sites take budget); not adopted.  Also `not al; movsx` in the format choice.
 // STUB: D3DREN 0x1001fff0
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 bAdditional)
 {
