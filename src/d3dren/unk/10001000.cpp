@@ -531,17 +531,6 @@ void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, U
 }
 
 // ---- model draw callbacks (merged from the W1 scratch unit) ----
-// guess: projects the camera-space vertex pSrc with the 4x4 matrix at g_ViewParams.m_DeviceTimesProjection.m[0][0] (perspective divide by the w row).
-// helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
-static inline void ProjectVertex(TLVertex *pDest, TLVertex *pSrc)
-{
-	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
-	pDest->m_Vec.x = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
-	pDest->m_Vec.y = (g_ViewParams.m_DeviceTimesProjection.m[1][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[1][3]) * w;
-	pDest->m_Vec.z = (g_ViewParams.m_DeviceTimesProjection.m[2][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[2][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[2][3]) * w;
-	pDest->rhw = w;
-}
-
 // ---- the clipping callbacks (DrawPieceClipped and its "really close" twin DrawPieceClippedReallyClose) -----------------------------------------
 
 // guess: the position-only projection of ProjectPositionWithDepthBias without the bias: the result goes through a vector, so
@@ -847,17 +836,17 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 		{
 			if (!IsFrontFacing(pV0, pV1, pV2))
 				goto Skip;
-			ProjectVertex(pOut, pV0);
+			pOut->rhw = MatVMul_H(&pOut->m_Vec, &g_ViewParams.m_DeviceTimesProjection, &pV0->m_Vec);
 			pOut->color = pV0->color;
 			pOut->specular = m_Unk640;
 			m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
 			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-			ProjectVertex(pOut, pV1);
+			pOut->rhw = MatVMul_H(&pOut->m_Vec, &g_ViewParams.m_DeviceTimesProjection, &pV1->m_Vec);
 			pOut->color = pV1->color;
 			pOut->specular = m_Unk640;
 			m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
 			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-			ProjectVertex(pOut, pV2);
+			pOut->rhw = MatVMul_H(&pOut->m_Vec, &g_ViewParams.m_DeviceTimesProjection, &pV2->m_Vec);
 			pOut->color = pV2->color;
 			pOut->specular = m_Unk640;
 			m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
@@ -923,9 +912,9 @@ Skip:
 }
 
 // guess: the callback for pieces that need no clipping: projects the vertices in software (matrix g_ViewParams.m_DeviceTimesProjection.m[0][0]) and draws.
-// Not matching (same size): frame one slot smaller than the exe's and the projection term order (exe z-y-x for the
-// w/x/y rows, x-z-y for z; ours and the SDK MatVMul_H give z-x-y; source term order does not move VC6's choice).
-// STUB: D3DREN 0x100036d0
+// The projection is the SDK's MatVMul_H (its one_over_w * (...) rows give the exe's x87 term order); the back face test keeps the
+// three reciprocal depths in an LTVector (vInvZ.x in a register, its slot reserved: the exe's frame).
+// FUNCTION: D3DREN 0x100036d0
 int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
@@ -944,33 +933,33 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 		TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
 		if (m_Unk8b4)
 		{
-			float r0 = 1.0f / pV0->m_Vec.z;
-			float r1 = 1.0f / pV1->m_Vec.z;
-			float r2 = 1.0f / pV2->m_Vec.z;
-			LTVector p0, d1, d2;
-			p0.x = r0 * pV0->m_Vec.x;
-			p0.y = r0 * pV0->m_Vec.y;
-			d1.x = r1 * pV1->m_Vec.x - p0.x;
-			d1.y = r1 * pV1->m_Vec.y - p0.y;
-			d2.x = r2 * pV2->m_Vec.x - p0.x;
-			d2.y = r2 * pV2->m_Vec.y - p0.y;
+			LTVector vInvZ, p0, d1, d2;
+			vInvZ.x = 1.0f / pV0->m_Vec.z;
+			vInvZ.y = 1.0f / pV1->m_Vec.z;
+			vInvZ.z = 1.0f / pV2->m_Vec.z;
+			p0.x = vInvZ.x * pV0->m_Vec.x;
+			p0.y = vInvZ.x * pV0->m_Vec.y;
+			d1.x = vInvZ.y * pV1->m_Vec.x - p0.x;
+			d1.y = vInvZ.y * pV1->m_Vec.y - p0.y;
+			d2.x = vInvZ.z * pV2->m_Vec.x - p0.x;
+			d2.y = vInvZ.z * pV2->m_Vec.y - p0.y;
 			float fCross = d2.x * d1.y - d2.y * d1.x;
 			if (g_ViewParams.m_bCullFlip)
 				fCross = -fCross;
 			if (!(fCross > 0.0f))
 				goto Skip;
 		}
-		ProjectVertex(pOut, pV0);
+		pOut->rhw = MatVMul_H(&pOut->m_Vec, &g_ViewParams.m_DeviceTimesProjection, &pV0->m_Vec);
 		pOut->color = pV0->color;
 		pOut->specular = m_Unk640;
 		m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-		ProjectVertex(pOut, pV1);
+		pOut->rhw = MatVMul_H(&pOut->m_Vec, &g_ViewParams.m_DeviceTimesProjection, &pV1->m_Vec);
 		pOut->color = pV1->color;
 		pOut->specular = m_Unk640;
 		m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-		ProjectVertex(pOut, pV2);
+		pOut->rhw = MatVMul_H(&pOut->m_Vec, &g_ViewParams.m_DeviceTimesProjection, &pV2->m_Vec);
 		pOut->color = pV2->color;
 		pOut->specular = m_Unk640;
 		m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
