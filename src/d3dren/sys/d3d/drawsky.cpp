@@ -144,8 +144,8 @@ static inline float ProjectSkyPortalPosition(LTVector *pDest, const LTMatrix *pM
 	fW += pMat->m[3][3];
 	fW = 1.0f / fW;
 	float fX = pMat->m[0][2] * pSrc->z;
-	fX += pMat->m[0][0] * pSrc->x;
 	fX += pMat->m[0][1] * pSrc->y;
+	fX += pMat->m[0][0] * pSrc->x;
 	fX += pMat->m[0][3];
 	pDest->x = fW * fX;
 	float fY = pMat->m[1][2] * pSrc->z;
@@ -163,13 +163,8 @@ static inline float ProjectSkyPortalPosition(LTVector *pDest, const LTMatrix *pM
 // guess: the screen extents of the sky: every visible sky portal polygon (the polygons the tagging code collected, or the world's
 // sky polygons when AllSkyPortals is set) is transformed to camera space, clipped and projected, and its extents are accumulated in
 // g_SkyMinX/Y, g_SkyMaxX/Y; true when both extents are more than 0.9 (Jupiter's ExtendSkyBounds + the "> 0.9f" test).
-// STUB diagnosis (2026-10-07, tenth pass): 639/1008 bytes differ at the same 1008-byte extent. The first camera-space
-// transform follows the target's z,y,x order for W/X and x,z,y for Y/Z; the projected-vertex transform uses z,x,y per row.
-// Fetching each polygon count before its array pointer and snapshotting/incrementing the source and destination cursors before
-// each transform reduce strict differences from 680 to 639 bytes. The advisory ALIGNED score worsens from 76/71 to 123/117
-// (including/ignoring stack offsets). Remaining differences are in list-selection and clipping control flow, register allocation,
-// and projection/extent scheduling; no unsafe access or changed vertex bounds is involved.
-// STUB: D3DREN 0x1002d0d0
+// The polygon loop counts up (unsigned) over the array; the projected vertices are walked with an end pointer.
+// FUNCTION: D3DREN 0x1002d0d0
 int CalcVisibleSkyPortalExtents()
 {
 	VisibleSet *pVisibleSet = d3d_GetVisibleSet();
@@ -185,44 +180,39 @@ int CalcVisibleSkyPortalExtents()
 
 	if (g_CV_AllSkyPortals.m_IntVal && g_pFrameMainWorld)
 	{
-		nPolys = g_pFrameMainWorld->m_SkyPolies.GetSize();
 		ppPolys = g_pFrameMainWorld->m_SkyPolies.GetArray();
+		nPolys = g_pFrameMainWorld->m_SkyPolies.GetSize();
 		nClipFlags = 0x3d;
 	}
 	else
 	{
-		nPolys = pVisibleSet->m_nUnk3c;
 		ppPolys = pVisibleSet->m_Unk28.GetArray();
+		nPolys = pVisibleSet->m_nUnk3c;
 		nClipFlags = 0x3f;
 	}
 
-	for (; nPolys != 0; nPolys--)
+	uint32 iPoly;
+	for (iPoly = 0; iPoly < nPolys; iPoly++)
 	{
-		WorldPoly *pPoly = *ppPolys;
-		UnkType_PolyVertex *pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
-		TLVertex *pDest = aVerts;
+		WorldPoly *pPoly = ppPolys[iPoly];
 		int i;
-		LTMatrix *pMat = (LTMatrix *)&g_ViewParams.m_mClipTransform;
 		for (i = 0; i < pPoly->m_nVertices; i++)
-		{
-			UnkType_PolyVertex *pCurSrc = pSrc++;
-			TLVertex *pCurDest = pDest++;
-			TransformSkyPortalPosition(&pCurDest->m_Vec, pMat, pCurSrc->m_Vec);
-		}
+			TransformSkyPortalPosition(&aVerts[i].m_Vec, &g_ViewParams.m_mClipTransform, pPoly->m_Vertices[i].m_Vec);
 
 		TLVertex *pVerts = aVerts;
 		int nVerts = pPoly->m_nVertices;
 		if (ClipPoly_Inline(nClipFlags, &pVerts, &nVerts))
 		{
-			for (i = 0; i < nVerts; i++)
+			TLVertex *pEnd = &pVerts[nVerts];
+			for (TLVertex *pVert = pVerts; pVert != pEnd; pVert++)
 			{
 				LTVector v;
-				float fW = ProjectSkyPortalPosition(&v, (LTMatrix *)&g_ViewParams.m_DeviceTimesProjection, &pVerts[i].m_Vec);
+				ProjectSkyPortalPosition(&v, &g_ViewParams.m_DeviceTimesProjection, &pVert->m_Vec);
 				float fX = v.x;
 				float fY = v.y;
-				if (fX <= g_SkyMinX)
+				if (g_SkyMinX >= fX)
 					g_SkyMinX = fX;
-				if (fY <= g_SkyMinY)
+				if (g_SkyMinY >= fY)
 					g_SkyMinY = fY;
 				if (g_SkyMaxX <= fX)
 					g_SkyMaxX = fX;
@@ -231,7 +221,6 @@ int CalcVisibleSkyPortalExtents()
 			}
 			g_nSkyPortals++;
 		}
-		ppPolys++;
 	}
 
 	return (g_SkyMaxX - g_SkyMinX > 0.9f) && (g_SkyMaxY - g_SkyMinY > 0.9f);
