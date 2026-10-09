@@ -148,8 +148,8 @@ IShadowTexture *GetCachedSilhouetteShadowTexture(uint32 nWidth, uint32 nHeight)
 // FUNCTION: D3DREN 0x1003249f
 int DecompressLightmapTexelRuns(uint32 *pIn, int nBytes, uint32 *pOut)
 {
-	uint32 *pCur;
-	uint32 *pEnd;
+	uint8 *pCur;
+	uint8 *pEnd;
 	uint32 dwTexel;
 	uint8 nCount;
 	int nLeft;
@@ -158,16 +158,17 @@ int DecompressLightmapTexelRuns(uint32 *pIn, int nBytes, uint32 *pOut)
 		return 0;
 
 	nLeft = 0x400;
-	pCur = pIn;
-	pEnd = (uint32 *)((uint8 *)pIn + nBytes);
+	pCur = (uint8 *)pIn;
+	pEnd = pCur + nBytes;
 	while (pCur < pEnd)
 	{
-		dwTexel = *pCur++;
+		dwTexel = *(uint32 *)pCur;
+		pCur += sizeof(uint32);
 		if (dwTexel & 0x80000000)
 		{
-			nCount = *(uint8 *)pCur;
+			nCount = *pCur;
 			dwTexel &= 0x7fffffff;
-			pCur = (uint32 *)((uint8 *)pCur + 1);
+			pCur++;
 		}
 		else
 		{
