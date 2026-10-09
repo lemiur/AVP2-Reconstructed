@@ -507,9 +507,9 @@ void CheckSpecialCards()
 	if (!g_pDD || !g_pStruct)
 		return;
 
-	memset(&id, 0, sizeof(id));
 	g_bModelShadowsSupported = 1;
 	g_bPowerVRWorkaround = 0;
+	memset(&id, 0, sizeof(id));
 	if (g_pDD->GetDeviceIdentifier(&id, 0) != 0)
 		return;
 
@@ -523,35 +523,35 @@ void CheckSpecialCards()
 
 	hParam = g_pStruct->GetParameter("ForceMode");
 	if (hParam && _strcmpi(g_pStruct->GetParameterValueString(hParam), "Rage128") == 0)
-	{
-		g_bLoadWholeLightmapSurface = 1;
-		return;
-	}
+		goto Rage128;
 
-	if (id.dwVendorId == 0x104c)
-		goto Permedia2;
-
-	if (id.dwVendorId == 0x1033)
+	if (id.dwVendorId != 0x104c)
 	{
-		if (id.dwDeviceId != 0x46 && id.dwDeviceId != 0x2a)
-			return;
+		if (id.dwVendorId == 0x1033)
+		{
+			if (id.dwDeviceId != 0x46 && id.dwDeviceId != 0x2a)
+				return;
 PowerVR:
-		g_pStruct->ConsolePrint("POWERVR DETECTED: disabling shadows and fullbrites");
-		g_bModelShadowsSupported = 0;
-		g_bPowerVRWorkaround = 1;
+			g_pStruct->ConsolePrint("POWERVR DETECTED: disabling shadows and fullbrites");
+			g_bModelShadowsSupported = 0;
+			g_bPowerVRWorkaround = 1;
+			return;
+		}
+		else if (id.dwVendorId == 0x1002)
+		{
+			if (id.dwDeviceId == 0x5246)
+			{
+Rage128:
+				g_bLoadWholeLightmapSurface = 1;
+			}
+		}
+		else if (id.dwVendorId == 0x121a)
+		{
+			if (id.dwDeviceId == 5)
+				g_bTwoTextureStageBlendValidated = 0;
+		}
 		return;
 	}
-	if (id.dwVendorId == 0x1002)
-	{
-		if (id.dwDeviceId == 0x5246)
-			g_bLoadWholeLightmapSurface = 1;
-		return;
-	}
-	if (id.dwVendorId != 0x121a)
-		return;
-	if (id.dwDeviceId == 5)
-		g_bTwoTextureStageBlendValidated = 0;
-	return;
 
 Permedia2:
 	g_pStruct->ConsolePrint("PERMEDIA 2 DETECTED: disabling lightmapping and shadows");
