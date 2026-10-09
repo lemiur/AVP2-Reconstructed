@@ -723,11 +723,11 @@ void d3d_DrawSingleTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a
 // vertex branches, the sphere map branch, the epilogue block) has the same instructions as the exe; the difference is the frame
 // layout of the prologue.  The exe has 7 scalar slots ([ebp-4]..[ebp-0x1c], aTexMat at [ebp-0x2c]..[ebp-0x1d], the 0x28-byte
 // vertex array below) and keeps the x87 temporaries of the matrix setup as `fld S; fld st(0); fmul K0; fld K1; fmul st(2);
-// fstp [ebp-0x18]` (S is loaded once, K1*S is spilled to a slot that the loop later reuses for pNext); we load K0 and multiply by
-// the stack copy of S, the K1*S spill gets its own slot and the frame is 4 bytes smaller (sub esp,0xcac vs 0xcb0), which shifts every
+// fstp [ebp-0x18]` (reproduced by `K0 * S`); K1*S is spilled to a slot that the loop later reuses for pNext, ours to the slot
+// bSaturate reuses, and the frame is 4 bytes smaller (sub esp,0xcac vs 0xcb0: the exe has one more scalar slot), which shifts every
 // local after it.  Tried: S in a local, no local, fU/fV as locals / scoped / inlined into the four stores, 6 orders of the stores,
-// the statement permuter (3000 candidates, best 80 aligned mismatches).  Source-shape problem of the 2x2 matrix setup (the original
-// probably builds the matrix through a helper or a differently typed expression).
+// bAlphaBlend/bSaturate/pNode before the matrix (28 aligned ignoring stack, 56 exact), pPoly at function scope (no change), the
+// statement permuter (3000 candidates, best 80 aligned mismatches).
 // STUB: D3DREN 0x1000a8c0
 void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 {
