@@ -384,9 +384,9 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 
 				for (i = nTexels; i; i--)
 				{
-					uint32 r = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(*pTemp >> 16 & 0xff) * 0x100 + scale] + (*pAccum >> 16 & 0xff)];
-					uint32 g = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(*pTemp >> 8 & 0xff) * 0x100 + scale] + (*pAccum >> 8 & 0xff)];
-					uint32 b = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(*pTemp & 0xff) * 0x100 + scale] + (*pAccum & 0xff)];
+					uint32 r = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 16) * 0x100 + scale] + (uint8)(*pAccum >> 16)];
+					uint32 g = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 8) * 0x100 + scale] + (uint8)(*pAccum >> 8)];
+					uint32 b = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)*pTemp * 0x100 + scale] + (uint8)*pAccum];
 
 					*pAccum = (r << 8 | g) << 8 | b;
 					pAccum++;
