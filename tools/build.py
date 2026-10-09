@@ -12,6 +12,9 @@ r"""decomp build driver for lithtech.exe (default) and d3d.ren (`--module d3dren
                                         -m audits the matching functions instead (self-test: expect none)
   python tools/build.py parked [-a]     write PARKED.md: every parked STUB (-a: every STUB) with its scores, audit and notes
   python tools/build.py relink         layout gate: mixed relink of every fully matched unit (tools/relink_gate.py)
+  python tools/build.py gate [...]     byte gate: the whole relinked exe must have the original's SHA1 (config/check.sha1),
+                                        with every bankable fully matched unit from source; prints GATE GREEN/RED and
+                                        the banked counts (tools/byte_gate.py; --allow-dirty, --clean, --no-build)
   python tools/build.py base <obj>      rebuild one base object (objdiff's "custom make" entry point)
   python tools/build.py report          progress/<module version>/report.json from the last full build (decomp.dev)
   python tools/build.py target <F>      rewrite the target object(s) of the unit(s) matching F from the last full build's
@@ -1584,7 +1587,7 @@ def full_build_refused():
     return main_checkout and bool(os.environ.get('CLAUDECODE')) and not os.environ.get('DECOMP_LEAD')
 
 
-COMMANDS = ('all', 'check', 'diff', 'todo', 'audit', 'parked', 'target', 'relink', 'base', 'report')
+COMMANDS = ('all', 'check', 'diff', 'todo', 'audit', 'parked', 'target', 'relink', 'base', 'report', 'gate')
 HELP_FLAGS = ('-h', '--help', '-?', '/?', 'help')
 
 
@@ -1620,6 +1623,10 @@ def main(argv):
             return 2
         import relink_gate
         return relink_gate.main()
+    if cmd == 'gate':           # byte gate: whole-image SHA1 with every bankable unit from source (tools/byte_gate.py)
+        import byte_gate
+        sys.argv = [os.path.join(TOOLS, 'byte_gate.py')] + list(argv[1:])
+        return byte_gate.main()
     if cmd == 'report':         # progress/<version>/report.json for decomp.dev, from the last full build
         return publish_report()
     if cmd == 'base':           # objdiff passes the base object path

@@ -64,6 +64,7 @@ BSS_SIZE = 0x19198 - 0x10000
 
 EXTRA_LINK_FLAGS = []
 USE_ORDER = False
+RICH = False            # --rich: merge/pad the objects so LINK writes the original's Rich header (tools/richpack.py)
 INV_RESULTS = []        # inventory()'s check results (relink_data uses the MATCH functions of partly matched units)
 
 
@@ -1119,6 +1120,9 @@ def do_link(prep, standin, idata, mode, pieces=None):
         # data pieces sort by (unit link position, 0 piece / 3 gap after the unit, address), code objects by (address, 2)
         code = [((va, 2, va), prep.paths[n]) for va, n in prep.order]
         objs = [idata, make_rsrc_obj(prep.orig)] + [p for _, p in sorted(pieces + code, key=lambda x: x[0])]
+    if RICH:
+        import richpack
+        objs = richpack.pack(objs, richpack.rich_entries(EXE), os.path.join(OUT, 'rich'))
     entry = prep.text_name[prep.orig.entry]
     entry = entry[1:] if entry.startswith('_') else entry       # LINK adds the decoration itself
     rsp = ['/NOLOGO', '/NODEFAULTLIB', '/OUT:' + os.path.join(OUT, 'lithtech.exe'),
@@ -1152,6 +1156,8 @@ def main():
     ap.add_argument('--split-standin', action='store_true', help='mixed mode: one stand-in piece per unit and output group, placed in link order (OUT/standin/)')
     ap.add_argument('--own-data', nargs='?', const='', default=None, help='mixed mode: fully matched units whose .rdata/.data match supply their own sections (all of them, or the comma-separated list); implies --split-standin')
     ap.add_argument('--own-data-force', action='store_true', help='with --own-data: also units whose data status is not "match" (to see the byte differences)')
+    ap.add_argument('--exclude', help='mixed mode: comma-separated fully matched units to keep as target objects (unlike --only, the default path with source EH helpers and native library data stays enabled; the byte gate uses this)')
+    ap.add_argument('--rich', action='store_true', help='merge/pad the objects so that LINK writes the original' + chr(39) + 's Rich header, and set the original' + chr(39) + 's TimeDateStamp after the link (the byte gate uses both; tools/richpack.py)')
     ap.add_argument('--standin-data', action='store_true', help='mixed mode: take every unit' + chr(39) + 's .rdata/.data from the exe (one stand-in object) instead of the default --own-data')
     a = ap.parse_args()
     if a.mode == 'mixed' and a.own_data is None and not a.standin_data:
@@ -1159,8 +1165,9 @@ def main():
     if a.standin_data:
         a.own_data = None
     EXTRA_LINK_FLAGS.extend(a.link_flag)
-    global USE_ORDER
+    global USE_ORDER, RICH
     USE_ORDER = a.order
+    RICH = a.rich
     os.makedirs(OUT, exist_ok=True)
     orig = Orig()
     library_data = None
@@ -1181,9 +1188,20 @@ def main():
     eh_plan = None
     if a.mode == 'mixed':
         units, full, standin = inventory()
+        if a.exclude:
+            ex = set(a.exclude.split(','))
+            full = [u for u in full if u not in ex]
+            print('excluded from base objects: %d: %s' % (len(ex), ', '.join(sorted(ex))))
         print('fully matched units: %d (stand-in units kept as targets: %s)' % (len(full), sorted(standin)))
         import source_eh_relink as SER
-        if SER.enabled(a.mode, a.own_data, a.standin_data, a.only):
+        eh_ok = SER.enabled(a.mode, a.own_data, a.standin_data, a.only)
+        if eh_ok and a.exclude and set(a.exclude.split(',')) & set(SER.UNIT_ORDER):
+            # the source EH plan is a fixed, fail-closed manifest of its units: with one of them excluded, every EH
+            # helper comes from the target bytes instead
+            print('source EH helpers from the target bytes (excluded EH unit: %s)' % ', '.join(
+                sorted(set(a.exclude.split(',')) & set(SER.UNIT_ORDER))))
+            eh_ok = False
+        if eh_ok:
             eh_plan = SER.build_plan(prep, units, full)
             prep.source_eh_plan = eh_plan
             eh_plan.remove_target_tail(prep, subset_sections)
@@ -1261,11 +1279,20 @@ def main():
     for va, nm in bad[:20]:
         print('  data symbol outside stand-in sections: %08x %s' % (va, nm))
     idata = make_idata_obj(orig)
+    with open(os.path.join(OUT, 'gate_units.json'), 'w') as f:      # read by tools/byte_gate.py
+        json.dump({'mode': a.mode, 'base': sorted(getattr(prep, 'base', {})), 'own_data': sorted(own),
+                   'out_of_order': sorted(n for n, r in getattr(prep, 'order_report', {}).items() if r[1]),
+                   'base_failed': sorted(getattr(prep, 'base_failed', {}) or [])}, f, indent=1)
     if a.stage == 'prep':
         return
     rc, out = do_link(prep, standin, idata, a.mode, pieces)
     print(out[-6000:])
     print('link rc', rc)
+    if rc == 0 and RICH:
+        import richpack
+        stamp = orig.img.pe.FILE_HEADER.TimeDateStamp
+        old = richpack.set_timestamp(os.path.join(OUT, 'lithtech.exe'), stamp)
+        print('TimeDateStamp %08x -> %08x (the only post-link edit)' % (old, stamp))
     if rc == 0 and eh_plan is not None:
         eh_plan.verify_linked_output(os.path.join(OUT, 'lithtech.exe'),
                                      os.path.join(OUT, 'lithtech.map'), prep)

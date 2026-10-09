@@ -11,6 +11,7 @@ function.
 | Inventoried function code (objdiff) | 92.19% | 4,558 of 4,774 |
 | Engine code | 90.5% | |
 | Inventoried lithshared, WONAPI, VC6 CRT functions | 100% | |
+| **Byte-gated**: linked from source, whole exe SHA1-identical | 44.5% of function code | 2,427 functions in 117 units |
 
 Most of the unmatched functions in that count are not engine functions: 173 of them, 1,869 bytes in all, are the
 compiler-generated exception funclets and destructor thunks at the end of `.text`. No unit owns them, so objdiff
@@ -31,6 +32,13 @@ the 41 stubs and two inline copies.
 - The default mixed relink uses 1,304 payload bytes from 38 verified native library sections, including their
   13 relocations and 4 alignment bytes. DirectX contributions match the engine's DX8.1 provenance; the exact
   original UUID archive is unknown, although the installed VC6 UUID objects reproduce the selected data.
+
+The byte gate (`python tools/build.py gate`) is the strict measure. It relinks the whole executable, with every
+fully matched unit it can bank taken from our compiled objects and everything else from the original's bytes, and
+the result must have the original's SHA1 (`config/check.sha1`). Its count comes from the link itself: which objects
+LINK received, and where it placed each of their functions. Two fully matched units, ftserv and l_allocator, emit
+functions in a different order and are left out. Two functions with inline-assembly bodies are counted as verbatim,
+not as source. The latest result is committed in `progress/lithtech_1.0.9.6/byte_gate.json`.
 
 These are function-code metrics, not whole-executable completion. The source exception helper ranges occupy
 54 existing report entries: 573 payload bytes and 168 padding bytes. Metadata and library-data totals are tracked separately
@@ -146,6 +154,7 @@ python tools/build.py              # compile, check, write target objects, objdi
 python tools/build.py check <unit> # compile and check one unit
 python tools/build.py diff <func>  # side-by-side disassembly against the original
 python tools/build.py report       # refresh progress/lithtech_1.0.9.6/report.json (--module d3dren: d3dren_1.0.9.6)
+python tools/build.py gate         # byte gate: whole-exe SHA1 with every bankable unit from source (needs a clean tree)
 python tools/source_eh.py          # verify source EH helpers against the original; writes build/source_eh.json
 python tools/library_data.py       # verify native library data separately from function-code coverage
 python -m unittest discover -s tools/tests -v # run verifier regression tests
