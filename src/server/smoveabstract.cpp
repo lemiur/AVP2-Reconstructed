@@ -7,15 +7,10 @@
 #include "s_object.h"
 #include "interlink.h"
 #include "counter.h"
+#include "engine_vars.h"
+#include "moveobject.h"
 
-// GLOBAL: LITHTECH 0x004e3798
-extern float g_DebugMaxPos;
 
-// FullMoveObject profiling.
-// GLOBAL: LITHTECH 0x004e4558
-extern uint32 g_Ticks_MoveObject;
-// GLOBAL: LITHTECH 0x004e455c
-extern uint32 g_nMoveObjectCalls;
 
 
 // FUNCTION: LITHTECH 0x0048ec10

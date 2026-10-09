@@ -7,9 +7,8 @@
 #include "videomgr.h"
 #include "binkvideomgrimpl.h"
 #include "smackvideomgrimpl.h"
+#include "engine_vars.h"
 
-// GLOBAL: LITHTECH 0x004e36d4
-extern int32 g_CV_VideoDebug;
 
 
 // FUNCTION: LITHTECH 0x0049d030

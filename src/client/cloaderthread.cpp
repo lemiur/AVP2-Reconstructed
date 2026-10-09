@@ -7,13 +7,12 @@
 #include "clientmgr.h"
 #include "client_filemgr.h"
 #include "stringmgr.h"
+#include "engine_vars.h"
 
 #define INVALID_OBJECTID	0xFFFF
 
 class Model;
 
-// GLOBAL: LITHTECH 0x004e36d8
-extern int32 g_CV_DebugLoaders;
 
 // 0x00489ca0 (Ghidra: CClientMgr::LoadModelData).
 LTRESULT cm_LoadModelData(CClientMgr *pClientMgr, char *pFilename, FileIdentifier *pIdent, Model *&pModel);

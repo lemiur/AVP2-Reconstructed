@@ -22,9 +22,6 @@
 
 #define ToModel(pObj)	((ModelInstance*)(pObj))
 
-// The client's leech on server models (clientmgr.cpp).
-// GLOBAL: LITHTECH 0x004d03f8
-extern LeechDef g_ClientModelLeechDef;
 #define TYPECODE_SPRITE		2
 
 

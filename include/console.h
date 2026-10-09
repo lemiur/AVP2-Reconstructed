@@ -335,4 +335,7 @@ void con_PrintString(CONCOLOR theColor, int filterLevel, const char *pMsg);
 void con_Printf(CONCOLOR theColor, int filterLevel, const char *pMsg, ...);
 void con_WhitePrintf(const char *pMsg, ...);
 
+// Default empty iterator (console.cpp)
+extern CConIterator g_ConEmptyIterator;
+
 #endif // __CONSOLE_H__

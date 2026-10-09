@@ -22,4 +22,7 @@ void* dalloc_z(size_t size);	// Allocate and zero-init.
 
 void dfree(void *ptr);			// 0x0042ffb0
 
+extern uint32 g_PD_Malloc;
+extern uint32 g_PD_Free;
+
 #endif  // __DE_MEMORY_H__

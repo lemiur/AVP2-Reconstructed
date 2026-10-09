@@ -46,4 +46,7 @@ int			df_GetRawInfo(HLTFileTree *hTree, const char *pName, char *sFileName,
 // impl_common.
 FileEntry*	ic_GetFileList(HLTFileTree **trees, int nTrees, const char *pDirName);
 
+// PlayDemo profile counters.
+extern uint32 g_PD_FOpen;
+
 #endif  // __DE_FILE_H__

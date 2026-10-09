@@ -27,6 +27,8 @@
 #include "de_memory.h"
 #include "iltclient.h"
 #include "predict.h"
+#include "engine_vars.h"
+#include "s_client.h"
 
 #define CMSG_COMMANDSTRING	10
 #define OBJID_CLIENTCREATED	0xFFFF
@@ -36,13 +38,6 @@
 #define TYPECODE_WORLD		0
 #define TYPECODE_MODEL		1
 
-// GLOBAL: LITHTECH 0x004d2174
-extern LTBOOL g_bUpdateServer;
-// GLOBAL: LITHTECH 0x004e372c
-extern int32 g_bForceRemote;
-// The local server's world (the client inherits its data in a local game).
-// GLOBAL: LITHTECH 0x004deff4
-extern MainWorld *g_pServerWorld;
 
 // GLOBAL: LITHTECH 0x004deff8
 CClientShell *g_pClientShell;
@@ -56,13 +51,6 @@ uint32 g_Ticks_ServerUpdate = 0;
 uint32 g_Ticks_ProcessPackets = 0;
 // GLOBAL: LITHTECH 0x004df00c
 uint32 g_Ticks_GameClientShell = 0;
-// Other frame profile counters (names unknown).
-// GLOBAL: LITHTECH 0x004decf4
-extern uint32 g_Ticks_FrameServer;
-// GLOBAL: LITHTECH 0x004debf4
-extern uint32 g_Ticks_FrameNet;
-// GLOBAL: LITHTECH 0x004ded50
-extern uint32 g_Ticks_FrameClientShell;
 
 // clientmgr.cpp
 void cm_OnExitServer(CClientMgr *pClientMgr, CClientShell *pShell);						// 0x004120d0
@@ -81,9 +69,6 @@ LTRESULT LoadSprite(CClientMgr *pClientMgr, FileRef *pRef, Sprite **ppSprite);		
 // nexus.cpp
 Leech* nexus_CreateLeech(LeechDef *pDef, void *pUserData);								// 0x004448f0
 LTRESULT nexus_AddLeech(Nexus *pNexus, Leech *pLeech);									// 0x00444970
-// The client's leech on server models (clientmgr.cpp).
-// GLOBAL: LITHTECH 0x004d03f8
-extern LeechDef g_ClientModelLeechDef;
 
 void DetachObjectStanding(LTObject *pObj);			// 0x0045d110
 void DetachObjectsStandingOn(LTObject *pObj);		// 0x0045d150

@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include "bdefs.h"
 #include "netmgr.h"
+#include "engine_vars.h"
 
 void DebugOut(const char *pStr, ...);
 float time_GetTime();
@@ -14,26 +15,6 @@ float time_GetTime();
 CBaseDriver* ld_CreateDriver();
 CBaseDriver* udp_CreateDriver();
 
-// GLOBAL: LITHTECH 0x004e3714
-extern int32 g_CV_ShowConnStats;
-// GLOBAL: LITHTECH 0x004e3744
-extern int32 g_CV_ShowThruput;
-// GLOBAL: LITHTECH 0x004e3748
-extern int32 g_bLocalDebug;
-// GLOBAL: LITHTECH 0x004e3754
-extern int32 g_TransportDebug;
-// GLOBAL: LITHTECH 0x004e3720
-extern float g_CV_LatencySim;
-// GLOBAL: LITHTECH 0x004e3724
-extern float g_CV_DropRate;
-// GLOBAL: LITHTECH 0x004d2140
-extern float g_CV_AckTimeout;
-// GLOBAL: LITHTECH 0x004d2150
-extern int32 g_CV_ConnTroubleCount2;
-// GLOBAL: LITHTECH 0x004d2158
-extern int32 g_CV_AllowTimeout;
-// GLOBAL: LITHTECH 0x004d216c
-extern int32 g_CV_NetMaxQueue;
 
 // How long a connection waits before piggybacking an ack on an outgoing packet.
 // GLOBAL: LITHTECH 0x004d4dd8 ?g_PiggybackAckTime@@3MA

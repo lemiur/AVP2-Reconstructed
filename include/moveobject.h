@@ -133,4 +133,7 @@ LTBOOL ChangeObjectDimensions(MoveState *pState, LTVector *pNewDims, uint32 bPus
 // Rotates the world model and moves objects out of the way (0x004619f0).
 void RotateWorldModel(MoveState *pState, LTRotation *pNewRot, LTBOOL bForce);
 
+extern uint32 g_Ticks_MoveObject;
+extern uint32 g_nMoveObjectCalls;
+
 #endif  // __MOVEOBJECT_H__

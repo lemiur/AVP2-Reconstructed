@@ -10,4 +10,10 @@ void c_InitConsoleCommands();
 void c_TermConsoleCommands();
 void c_CommandHandler(const char *pCommand);
 
+// The console tables are defined below the command handlers.
+// GLOBAL: LITHTECH 0x004d09b8
+extern LTSaveFn g_SaveFns[2];
+// GLOBAL: LITHTECH 0x004d09c0
+extern LTCommandStruct g_LTCommandStructs[36];
+
 #endif

@@ -20,6 +20,8 @@
 #include "world_tree.h"
 #include <math.h>
 #include "ltengineobjects.h"
+#include "engine_vars.h"
+#include "visquery.h"
 
 // Talon server-to-client packet IDs.
 #define SMSG_UPDATE				8
@@ -115,21 +117,9 @@ SentList *g_pCurSentList;
 
 
 
-// Console variables (ConnTroubleCount, SendBandwidth, FlashClients).
-// GLOBAL: LITHTECH 0x004d214c
-extern int32 g_CV_ConnTroubleCount;
-// GLOBAL: LITHTECH 0x004e36ec
-extern int32 g_CV_SendBandwidth;
-// GLOBAL: LITHTECH 0x004e36c4
-extern int32 g_CV_FlashClients;
 
 void		sm_SendSoundTracks(UpdateInfo *pInfo, CPacket *pPacket);	// 0x00472db0
 
-// Console variables (STracePackets, DelimitPackets).
-// GLOBAL: LITHTECH 0x004e36dc
-extern int32 g_CV_STracePackets;
-// GLOBAL: LITHTECH 0x004d213c
-extern int32 g_CV_DelimitPackets;
 static LTRESULT	sm_SendCacheListSection(CServerMgr *pServerMgr, Client *pClient, uint32 nStartIndex,
 	CPacketRef &cPacket, uint8 nPacketID, uint16 nFileType);
 
@@ -1407,16 +1397,6 @@ void sm_ActivateObjectCB(LTObject *pObject, UpdateInfo *pInfo)
 	}
 }
 
-
-// The current visibility query's internal state (vis query code at 0x0049e330).
-struct VisQueryInfo
-{
-	uint8		m_Pad00[0x18];
-	void		*m_pUserData;		// 0x18 VisQueryRequest::m_pUserData
-};
-
-// GLOBAL: LITHTECH 0x004e6270
-extern VisQueryInfo *g_pCurVisQuery;
 
 // Collects the objects in a visible node the client should be sent (a vis query callback).
 // FUNCTION: LITHTECH 0x00472d10

@@ -6,14 +6,11 @@
 #include "concommand.h"
 #include "consolecommands.h"
 #include "console.h"
+#include "engine_vars.h"
 
 // GLOBAL: LITHTECH 0x004e37ac
 static FILE *g_ErrorLogFP;
 
-// GLOBAL: LITHTECH 0x004e377c
-extern int32	g_bErrorLog;
-// GLOBAL: LITHTECH 0x004e3780
-extern int32	g_bAlwaysFlushLog;
 
 
 // FUNCTION: LITHTECH 0x004361b0

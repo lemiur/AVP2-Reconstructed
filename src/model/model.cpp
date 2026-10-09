@@ -73,8 +73,6 @@ template<> inline BOOL CMoArray<NodeRelation, DefaultCache>::Insert2(DWORD index
 	return TRUE;
 }
 
-// GLOBAL: LITHTECH 0x004d483c
-extern char *g_pNoModelFilename;
 
 #define DEFAULT_MODEL_VIS_RADIUS	50.0f
 

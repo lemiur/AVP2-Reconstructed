@@ -23,6 +23,7 @@
 #include "dtxmgr.h"
 #include "lthread.h"
 #include "client_filemgr.h"
+#include "engine_vars.h"
 
 
 // cutil.cpp
@@ -33,8 +34,6 @@ void		cm_RotateObject(CClientMgr *pClientMgr, LTObject *pObject, LTRotation *pRo
 LTBOOL		cis_RendererIsHere(RenderStruct *pStruct);	// 0x0040f160
 LTBOOL		cis_RendererGoingAway();					// 0x0040f320
 
-// GLOBAL: LITHTECH 0x004d2134
-extern int32 g_CV_CursorCenter;
 
 void r_RunConsoleString(char *pStr);
 

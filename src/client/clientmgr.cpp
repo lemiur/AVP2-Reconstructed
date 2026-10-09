@@ -49,18 +49,6 @@ using namespace WONAPI;
 // Externs.
 // ------------------------------------------------------------------ //
 
-// GLOBAL: LITHTECH 0x004d2180
-extern int32 g_ScreenWidth;
-// GLOBAL: LITHTECH 0x004d2184
-extern int32 g_ScreenHeight;
-// GLOBAL: LITHTECH 0x004d217c
-extern int32 g_CV_BitDepth;
-// GLOBAL: LITHTECH 0x004e3734
-extern LTBOOL g_bNullRender;
-// GLOBAL: LITHTECH 0x004d21f4
-extern LTBOOL g_bMusicEnable;
-// GLOBAL: LITHTECH 0x004e3790
-extern int32 g_CV_ForceSoundDisable;
 
 #define MAX_RESTREES	20
 #define MAX_CLIENT_COMMANDS	255
@@ -68,16 +56,6 @@ extern int32 g_CV_ForceSoundDisable;
 #define PACKETFLAG_MESSAGE	(1<<0)	// CPacket::m_ErrorFlags: allocated for a game message
 #define TYPECODE_SOUND		4
 
-// GLOBAL: LITHTECH 0x004e3718
-extern int32 g_CV_FullLightScale;
-// GLOBAL: LITHTECH 0x004e375c
-extern int32 g_ClientSleepMS;
-// GLOBAL: LITHTECH 0x004d21f8
-extern LTBOOL g_bSoundEnable;
-// GLOBAL: LITHTECH 0x004e3774
-extern LTBOOL g_bSoundShowCounts;
-// GLOBAL: LITHTECH 0x004deca0
-extern uint32 g_Ticks_SoundUpdate;
 
 void cm_FreeUnusedModelTextures(CClientMgr *pClientMgr, LTObject *pObject);		// 0x004263f0
 void cm_MoveAndRotateObject(CClientMgr *pClientMgr, LTObject *pObject, LTVector *pNewPos, LTRotation *pNewRot);	// 0x00426a40
@@ -154,6 +132,7 @@ uint32 g_Ticks_Render;
 // CLithChunkAllocator members each use up a static-initializer number, so the original included it
 // after the globals above (their _$E29.._$E42 numbers leave no room before them).
 #include "ltdirectmusic_impl.h"
+#include "engine_vars.h"
 
 // The WONAPI headers (via <string>) use up 28 static initializer numbers first.
 // FUNCTION: LITHTECH 0x0040fa60 _$E32
@@ -1659,30 +1638,6 @@ struct SceneDesc
 
 #define MAX_SKYOBJECTS		30
 
-// GLOBAL: LITHTECH 0x004d2178
-extern float g_CV_FarZ;
-// GLOBAL: LITHTECH 0x004d2128
-extern int32 g_CV_RenderEnable;
-// GLOBAL: LITHTECH 0x004e36b4
-extern LTVector g_ConsoleModelAdd;
-// GLOBAL: LITHTECH 0x004e369c
-extern LTVector g_ConsoleModelDirAdd;
-// GLOBAL: LITHTECH 0x004e36a8
-extern LTVector g_ConsoleModelDirAdd2;
-// GLOBAL: LITHTECH 0x004ded54
-extern uint32 g_Ticks_Render_Objects;
-// GLOBAL: LITHTECH 0x004dec3c
-extern uint32 g_Ticks_Render_Models;
-// GLOBAL: LITHTECH 0x004ded00
-extern uint32 g_Ticks_Render_Sprites;
-// GLOBAL: LITHTECH 0x004debf8
-extern uint32 g_Ticks_Render_WorldModels;
-// GLOBAL: LITHTECH 0x004decf8
-extern uint32 g_Ticks_Render_ParticleSystems;
-// GLOBAL: LITHTECH 0x004decb0
-extern uint32 g_Ticks_Render_PolyGrids;
-// GLOBAL: LITHTECH 0x004ded10
-extern uint32 g_Ticks_RenderScene;
 
 LTObject* cm_FindObject(CClientMgr *pClientMgr, uint16 id);	// 0x004265e0 (cutil.cpp)
 

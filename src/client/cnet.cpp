@@ -7,6 +7,7 @@
 #include "clientmgr.h"
 #include "packet.h"
 #include "soundmgr.h"
+#include "engine_vars.h"
 
 #define CMSG_UPDATE			7
 #define CMSG_SOUNDUPDATE	8
@@ -17,8 +18,6 @@
 
 #define SOUNDPACKET (m_SoundMgr.GetSoundUpdatePacket())
 
-// GLOBAL: LITHTECH 0x004d2148
-extern int32 g_CV_UpdateRate;
 
 CPacketRef packet_Get(uint16 maxSize, uint16 cacheSize);	// 0x00469120
 

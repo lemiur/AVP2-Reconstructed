@@ -24,25 +24,9 @@
 // The console reaches the client manager through g_ClientGlob.m_pClientMgr (0x004de30c,
 // set by RunClientApp from cm_Init()).
 #include "dsys_interface.h"
+#include "engine_vars.h"
 
-// GLOBAL: LITHTECH 0x004e370c
-extern int32 g_CV_TraceConsole;
 
-// Console Variables
-// GLOBAL: LITHTECH 0x004d220c
-extern int32 g_CV_ConsoleHistoryLen;
-// GLOBAL: LITHTECH 0x004d2210
-extern int32 g_CV_ConsoleBufferLen;
-// GLOBAL: LITHTECH 0x004d2214
-extern float g_CV_ConsoleAlpha;
-// GLOBAL: LITHTECH 0x004d2218
-extern int32 g_CV_ConsoleLeft;
-// GLOBAL: LITHTECH 0x004d221c
-extern int32 g_CV_ConsoleTop;
-// GLOBAL: LITHTECH 0x004d2220
-extern int32 g_CV_ConsoleRight;
-// GLOBAL: LITHTECH 0x004d2224
-extern int32 g_CV_ConsoleBottom;
 
 // 0x00435240
 void* dsi_GetMainWindow();
@@ -65,9 +49,6 @@ public:
 LTBOOL pcx_Create2(ILTStream *pStream, LoadedBitmap *pBitmap);	// 0x004461d0
 HSURFACE cis_CreateSurfaceFromPcx(LoadedBitmap *pLoadedBitmap);	// 0x0040c650
 
-// Default empty iterator (console.cpp)
-// GLOBAL: LITHTECH 0x004e2f80
-extern CConIterator g_ConEmptyIterator;
 
 // Convenience functions...
 // (Ignores vkKey and always tests VK_CONTROL, as in Jupiter.)

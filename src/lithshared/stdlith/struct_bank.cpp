@@ -6,6 +6,7 @@
 
 #include "stdlith.h"
 #include "struct_bank.h"
+#include "struct_bank_debug.h"
 
 
 int g_bDebugStructBanks = 0;

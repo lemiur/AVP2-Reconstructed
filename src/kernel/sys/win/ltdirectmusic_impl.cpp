@@ -12,23 +12,10 @@
 #include "ltdirectmusic_impl.h"
 #include "ltdirectmusiccontrolfile.h"
 #include "dmksctrl.h"
+#include "engine_vars.h"
 
 
-// console output level for LTDirectMusic
-// 0 - no output
-// 1 - only display errors
-// 2 - only display errors and warnings (default)
-// 3 - also display objects that are loaded like segments styles as well as init and term calls with their parameters
-// 4 - also display calls and parameters to all main interface functions like Play, Stop, ChangeIntensity, etc...
-// 5 - also display file open information from loader
-// 6 - also display file read and write information (this is a ton of output and should rarely be used)
-// GLOBAL: LITHTECH 0x004d2228
-extern int32 g_CV_LTDMConsoleOutput;
 
-// L"" lies in the zero-filled (virtual-only) tail of .data, which the checker cannot read as a
-// literal, so it is named here like g_EmptyString.
-// GLOBAL: LITHTECH 0x004e4470
-extern WCHAR g_wszEmptyString[];
 
 // the manager the notification thread works on
 // GLOBAL: LITHTECH 0x004e446c

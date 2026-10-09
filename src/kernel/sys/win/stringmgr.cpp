@@ -9,6 +9,7 @@
 void* dalloc(unsigned int size);
 void dfree(void *ptr);
 #include "bdefs.h"
+#include "engine_vars.h"
 
 typedef struct
 {
@@ -38,7 +39,6 @@ static StringWrapper g_ZeroLengthStringWrapper =
 	0, 0, 0, 0
 };
 
-extern int32 g_bDebugStrings;
 
 inline StringWrapper* AllocateStringWrapper(int nStringBytes)
 {

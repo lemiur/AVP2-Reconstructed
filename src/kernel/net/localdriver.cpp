@@ -4,12 +4,11 @@
 #include <string.h>
 #include "localdriver.h"
 #include "packet.h"
+#include "engine_vars.h"
 
 void DebugOut(const char *pStr, ...);
 
 
-// GLOBAL: LITHTECH 0x004e372c
-extern int32 g_bForceRemote;
 
 
 // FUNCTION: LITHTECH 0x004465d0

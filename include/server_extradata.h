@@ -36,4 +36,8 @@ public:
 LTRESULT	BackupExtraData(LTObject *pObject, ExtraDataBackup *pBackup);	// 0x00478fc0
 LTRESULT	RestoreExtraData(LTObject *pObject, ExtraDataBackup *pBackup);	// 0x00479040
 
+// The leech the server puts on the models it loads: sm_OnModelUnload drops them from the cache.
+// GLOBAL: LITHTECH 0x004d5a30
+extern LeechDef g_ServerModelLeechDef;
+
 #endif  // __SERVER_EXTRADATA_H__

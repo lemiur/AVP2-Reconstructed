@@ -6,21 +6,12 @@
 #include "de_objects.h"
 #include "de_world.h"
 #include "counter.h"
+#include "boxfind.h"
 
 #define MAX_CLIP_VERTS		256
 #define MAX_CLIP_NEWVERTS	264
 
-// collision.cpp: the box being tested (see SetupBox).
-// GLOBAL: LITHTECH 0x004e245c
-extern float g_BoxFindRadius;
-// GLOBAL: LITHTECH 0x004e2460
-extern LTVector g_BoxFindCenter;
-// GLOBAL: LITHTECH 0x004e2f10
-extern LTPlane g_BoxFindPlanes[6];
 
-// Profiling.
-// GLOBAL: LITHTECH 0x004e24a8
-extern uint32 g_nPolyTouchesBoxCalls;
 // GLOBAL: LITHTECH 0x004e0490
 static uint32 g_Ticks_PolyTouchesBox;
 

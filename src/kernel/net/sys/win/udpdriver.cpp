@@ -8,20 +8,11 @@
 #include "bdefs.h"
 #include "udpdriver.h"
 #include <mmsystem.h>
+#include "engine_vars.h"
 
 void DebugOut(const char *pStr, ...);
 float time_GetTime();
 
-// GLOBAL: LITHTECH 0x004e36e4
-extern char *g_CV_BindIP;
-// GLOBAL: LITHTECH 0x004e36e8
-extern char *g_CV_IP;
-// GLOBAL: LITHTECH 0x004e36f0
-extern int32 g_CV_IPClientPort;
-// GLOBAL: LITHTECH 0x004e36fc
-extern int32 g_CV_IPDebug;
-// GLOBAL: LITHTECH 0x004d2144
-extern float g_CV_IPQueryTimeout;
 
 
 struct SUDPError

@@ -26,6 +26,7 @@
 #include "soundinstance.h"
 #include "s_client.h"
 #include "predict.h"
+#include "engine_vars.h"
 
 #define SMSG_NETPROTOCOLVERSION		4
 #define SMSG_UNLOADWORLD			5
@@ -61,8 +62,6 @@ void r_UnbindTexture(SharedTexture *pTexture);		// 0x0046f660
 #define TYPECODE_MODEL		1
 
 
-// GLOBAL: LITHTECH 0x004e376c
-extern int32 g_bDebugPackets;
 
 // Object change flags (CF_).
 #define CF_NEWOBJECT		(1<<0)

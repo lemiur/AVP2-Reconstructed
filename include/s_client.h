@@ -38,10 +38,6 @@ typedef LTRESULT (*ServerPacketHandlerFn)(CServerMgr *pServerMgr, CPacket *pPack
 // GLOBAL: LITHTECH 0x004e49f8
 extern ServerPacketHandlerFn g_ServerHandlers[256];
 
-// The ForceRemote console variable (the engine forces local clients to be remote).
-// GLOBAL: LITHTECH 0x004e372c
-extern int32 g_bForceRemote;
-
 // The local server's world (the client inherits its data in a local game; set in sm_ConnectClientToWorld).
 // GLOBAL: LITHTECH 0x004deff4
 extern MainWorld *g_pServerWorld;

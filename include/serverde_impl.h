@@ -302,4 +302,7 @@ int			ic_Parse(char *pCommand, char **pNewCommandPos, char *argBuffer, char **ar
 LTBOOL		si_GetPointShade(LTVector *pPoint, LTVector *pColor);	// 0x004795f0
 void		DebugOut(const char *pMsg, ...);			// 0x00430710
 
+// GLOBAL: LITHTECH 0x004e4df8
+extern Node *g_NodeStack[];
+
 #endif  // __SERVERDE_IMPL_H__

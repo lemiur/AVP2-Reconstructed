@@ -17,44 +17,17 @@
 #include "input.h"
 #include "demomgr.h"
 #include "render.h"		// g_Render (the renderer profile counters)
+#include "clientshell.h"
+#include "de_file.h"
+#include "de_memory.h"
+#include "engine_vars.h"
 
 // 0x0049c130 (timemgr.cpp)
 float time_GetTime();
 // 0x00430710 (de_objects.cpp)
 void DebugOut(const char *pMsg, ...);
 
-// GLOBAL: LITHTECH 0x004e36c8
-extern int32 g_CV_PlayDemoReps;
-// GLOBAL: LITHTECH 0x004e36cc
-extern int32 g_CV_PlayDemoProfile;
-// GLOBAL: LITHTECH 0x004debe0
-extern uint32 g_CurRunIteration;
 
-// PlayDemo profile counters.
-// GLOBAL: LITHTECH 0x004e3450
-extern uint32 g_PD_FOpen;
-// GLOBAL: LITHTECH 0x004e3480
-extern uint32 g_PD_Malloc;
-// GLOBAL: LITHTECH 0x004e3484
-extern uint32 g_PD_Free;
-// GLOBAL: LITHTECH 0x004def98
-extern uint32 g_Ticks_Music;
-// GLOBAL: LITHTECH 0x004def9c
-extern uint32 g_Ticks_Sound;
-// GLOBAL: LITHTECH 0x004defa0
-extern uint32 g_Ticks_Input;
-// GLOBAL: LITHTECH 0x004defa4
-extern uint32 g_Ticks_ClientShell;
-// GLOBAL: LITHTECH 0x004df000
-extern uint32 g_Ticks_NetUpdate;
-// GLOBAL: LITHTECH 0x004df004
-extern uint32 g_Ticks_ServerUpdate;
-// GLOBAL: LITHTECH 0x004df008
-extern uint32 g_Ticks_ProcessPackets;
-// GLOBAL: LITHTECH 0x004df00c
-extern uint32 g_Ticks_GameClientShell;
-// GLOBAL: LITHTECH 0x004defa8
-extern uint32 g_Ticks_Render;
 // The renderer profile counters (0x004e48e0-0x004e48f0) are RenderStruct members: g_Render.m_Ticks_TagVisibleLeaves..m_Ticks_Translucent.
 
 // Name the emitted literal at its first byte so its relocation is symbol+0, not DAT_004d1afb+1.

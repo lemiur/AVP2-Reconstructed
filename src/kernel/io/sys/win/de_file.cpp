@@ -15,15 +15,9 @@
 #include "lthread.h"
 #include "../../build/proj/LT2/lithshared/stdlith/object_bank.h"
 #include "../../build/proj/LT2/lithshared/rezmgr/rezmgr.h"
+#include "engine_vars.h"
 
 
-// console output of file access
-// 0 - no output (default)
-// 1 - display file open calls
-// 2 - display file open and close calls
-// 4 - display file open and close and read calls
-// GLOBAL: LITHTECH 0x004e3710
-extern int32 g_CV_ShowFileAccess;
 
 
 // PlayDemo profile info.

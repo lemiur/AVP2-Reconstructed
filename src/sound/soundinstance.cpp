@@ -13,11 +13,9 @@
 #include "soundmgr.h"
 #include "soundinstance.h"
 #include "soundbuffer.h"
+#include "engine_vars.h"
 
 
-// When cleared, filtered samples are muted and left looping on their tail instead of being stopped.
-// An engine variable: defined in engine_vars.cpp (its .data block, listed in g_LTEngineVars).
-extern LTBOOL g_bStopFilteredSamples;
 
 
 // Inline in the header in Talon; never inlined by the original.

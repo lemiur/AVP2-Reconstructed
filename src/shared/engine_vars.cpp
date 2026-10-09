@@ -4,6 +4,7 @@
 // compile with engine_vars.cpp so they 'own' the variable.
 #include "bdefs.h"
 #include "concommand.h"
+#include "engine_vars.h"
 
 #define DEFAULT_CLIENT_UPDATE_RATE	10	// Jupiter shared/src/packetdefs.h
 

@@ -631,4 +631,9 @@ public:
 	DMUS_WAVES_REVERB_PARAMS m_ReverbParameters;	// 0x100
 };
 
+// L"" lies in the zero-filled (virtual-only) tail of .data, which the checker cannot read as a
+// literal, so it is named here like g_EmptyString.
+// GLOBAL: LITHTECH 0x004e4470
+extern WCHAR g_wszEmptyString[];
+
 #endif // __LTDIRECTMUSIC_IMPL_H__

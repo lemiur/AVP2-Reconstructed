@@ -38,17 +38,6 @@ ILTStream*	streamsim_Open(const char *pFilename, const char *pAccess);
 LTRESULT	sm_SetPortalFlags(CServerMgr *pServerMgr, const char *pPortalName, uint32 flags);
 LTBOOL		ServerIntersectSegment(IntersectQuery *pQuery, IntersectInfo *pInfo);
 
-// The box FindPoliesTouchingBox tests polies against (PolyTouchesBox reads these).
-// GLOBAL: LITHTECH 0x004e245c
-extern float g_BoxFindRadius;
-// GLOBAL: LITHTECH 0x004e2460
-extern LTVector g_BoxFindCenter;
-// GLOBAL: LITHTECH 0x004e2f10
-extern LTPlane g_BoxFindPlanes[6];
-// GLOBAL: LITHTECH 0x004e4df8
-extern Node *g_NodeStack[];
-// GLOBAL: LITHTECH 0x004e5db4
-extern uint32 g_PolyFindCount;
 
 LTBOOL PolyTouchesBox(WorldPoly *pPoly, void *pUnknown1, void *pUnknown2);	// 0x00416f10
 
@@ -56,8 +45,6 @@ LTBOOL PolyTouchesBox(WorldPoly *pPoly, void *pUnknown1, void *pUnknown2);	// 0x
 #define NETDRIVER_TCPIP	(1<<0)
 #endif
 
-// GLOBAL: LITHTECH 0x004e5db0
-extern uint32 g_SphereFindCount;
 
 
 ObjectList*	si_FindObjectsTouchingSphere(LTVector *pPosition, float radius);
@@ -72,6 +59,7 @@ void		si_RelinquishList(ObjectList *pList);
 #include <string.h>
 #include "bdefs.h"
 #include "servermgr.h"
+#include "boxfind.h"
 #include "s_object.h"
 #include "serverde_impl.h"
 #include "shared_iltcommon.h"
@@ -87,10 +75,8 @@ void		si_RelinquishList(ObjectList *pList);
 #include "s_client.h"
 #include "server_extradata.h"
 #include "model.h"
-
-// Console variable "DebugMaxDims" (3000).
-// GLOBAL: LITHTECH 0x004d2208
 extern float g_CV_DebugMaxDims;
+
 
 void sm_SetLightAnimChanged(CServerMgr *pServerMgr, uint32 iLightAnim, uint32 flags);	// s_client, 0x00473550
 

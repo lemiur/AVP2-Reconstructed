@@ -12,17 +12,14 @@
 #include "motion.h"
 #include "iltphysics.h"
 #include "iltclient.h"
+#include "engine_vars.h"
 
-// GLOBAL: LITHTECH 0x004e374c
-extern int32 g_bPrediction;
 
 // Scale the server periods by this amount.. 1.1 looks good.
 // GLOBAL: LITHTECH 0x004d55f8
 static float g_fServerPeriodMultiplier
 	= 1.1f;
 
-// GLOBAL: LITHTECH 0x004d2170
-extern float g_CV_MaxExtrapolateTime;
 
 // 0x00426860
 void cm_MoveObject(CClientMgr *pClientMgr, LTObject *pObject, LTVector *pNewPos, LTBOOL bForce);

@@ -266,4 +266,30 @@ void cm_AddToObjectMap(CClientMgr *pClientMgr, uint16 id);
 // 0x004265b0 (Ghidra: so_ExtraTerm). Clears an m_ObjectMap entry.
 void cm_ClearObjectMapEntry(CClientMgr *pClientMgr, uint16 id);
 
+// GLOBAL: LITHTECH 0x004deca0
+extern uint32 g_Ticks_SoundUpdate;
+// GLOBAL: LITHTECH 0x004ded54
+extern uint32 g_Ticks_Render_Objects;
+// GLOBAL: LITHTECH 0x004dec3c
+extern uint32 g_Ticks_Render_Models;
+// GLOBAL: LITHTECH 0x004ded00
+extern uint32 g_Ticks_Render_Sprites;
+// GLOBAL: LITHTECH 0x004debf8
+extern uint32 g_Ticks_Render_WorldModels;
+// GLOBAL: LITHTECH 0x004decf8
+extern uint32 g_Ticks_Render_ParticleSystems;
+// GLOBAL: LITHTECH 0x004decb0
+extern uint32 g_Ticks_Render_PolyGrids;
+// GLOBAL: LITHTECH 0x004ded10
+extern uint32 g_Ticks_RenderScene;
+// The client's leech on server models (clientmgr.cpp).
+// GLOBAL: LITHTECH 0x004d03f8
+extern LeechDef g_ClientModelLeechDef;
+extern uint32 g_CurRunIteration;
+extern uint32 g_Ticks_Music;
+extern uint32 g_Ticks_Sound;
+extern uint32 g_Ticks_Input;
+extern uint32 g_Ticks_ClientShell;
+extern uint32 g_Ticks_Render;
+
 #endif  // __CLIENTMGR_H__

@@ -20,37 +20,12 @@
 #undef feof		// the original calls the CRT function
 
 #include "de_memory.h"
+#include "engine_vars.h"
 
 // From engine_vars.cpp.
 extern LTEngineVar* GetEngineVars();
 extern int GetNumEngineVars();
 
-// Console variables the commands set (declared per unit in this tree).
-// GLOBAL: LITHTECH 0x004e36b4
-extern LTVector g_ConsoleModelAdd;
-// GLOBAL: LITHTECH 0x004e369c
-extern LTVector g_ConsoleModelDirAdd;
-// GLOBAL: LITHTECH 0x004e36a8
-extern LTVector g_ConsoleModelDirAdd2;
-// GLOBAL: LITHTECH 0x004d2190
-extern char g_SSFile[];
-// GLOBAL: LITHTECH 0x004d2174
-extern LTBOOL g_bUpdateServer;
-// GLOBAL: LITHTECH 0x004d2180
-extern int32 g_ScreenWidth;
-// GLOBAL: LITHTECH 0x004d2184
-extern int32 g_ScreenHeight;
-// GLOBAL: LITHTECH 0x004d2218
-extern int32 g_CV_ConsoleLeft;
-// GLOBAL: LITHTECH 0x004d221c
-extern int32 g_CV_ConsoleTop;
-// GLOBAL: LITHTECH 0x004d2220
-extern int32 g_CV_ConsoleRight;
-// GLOBAL: LITHTECH 0x004d2224
-extern int32 g_CV_ConsoleBottom;
-// ShowTicks flags.
-// GLOBAL: LITHTECH 0x004e3760
-extern int32 g_ShowTickCounts;
 #define CLIENT_TICKS_SUMMARY	(1<<0)
 #define CLIENT_TICKS_RENDER		(1<<1)
 #define CLIENT_TICKS_GAME		(1<<2)
@@ -64,13 +39,8 @@ extern int32 g_ShowTickCounts;
 void dm_HeapCompact();
 void con_DoWorldCommand(char *pWorldName, char *pRecordFilename);
 
-// The console tables are defined below the command handlers.
-// GLOBAL: LITHTECH 0x004d09b8
-extern LTSaveFn g_SaveFns[2];
 #define NUM_SAVEFNS (sizeof(g_SaveFns) / sizeof(g_SaveFns[0]))
 
-// GLOBAL: LITHTECH 0x004d09c0
-extern LTCommandStruct g_LTCommandStructs[36];
 #define NUM_COMMANDSTRUCTS (sizeof(g_LTCommandStructs) / sizeof(g_LTCommandStructs[0]))
 
 

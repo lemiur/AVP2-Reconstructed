@@ -355,4 +355,9 @@ extern CServerMgr *g_pServerMgr;
 // GLOBAL: LITHTECH 0x004def70
 extern ObjectBank<LTLink> g_DLinkBank;
 
+extern uint32 g_PolyFindCount;
+extern uint32 g_SphereFindCount;
+// GLOBAL: LITHTECH 0x004e5dcc
+extern CClassMgr *g_pClassMgr;
+
 #endif  // __SERVERMGR_H__

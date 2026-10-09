@@ -18,6 +18,8 @@
 #include "exceptionhandler.h"
 #include "../../build/proj/LT2/lithshared/stdlith/helpers.h"
 #include "../../build/proj/LT2/lithshared/stdlith/struct_bank.h"
+#include "engine_vars.h"
+#include "struct_bank_debug.h"
 
 #define MAX_NUM_ARGS	150
 #define MAX_ARG_LENGTH	200
@@ -32,23 +34,7 @@ typedef int (*GetLithtechCommandLineFn)(int32 argc, char **argv,
 // GLOBAL: LITHTECH 0x004cf52c
 int g_iStopAllocCount = -1;
 
-// stdlith struct_bank.cpp
-// GLOBAL: LITHTECH 0x004e6908
-extern int g_bDebugStructBanks;
 
-// Console variables (engine_vars.cpp: g_LTEngineVars points at all of them).
-// GLOBAL: LITHTECH 0x004e3734
-extern LTBOOL g_bNullRender;
-// GLOBAL: LITHTECH 0x004d2134
-extern int32 g_CV_CursorCenter;
-// GLOBAL: LITHTECH 0x004e3730
-extern int32 g_bShowRunningTime;
-// GLOBAL: LITHTECH 0x004e3738
-extern LTBOOL g_CV_HighPriority;
-// GLOBAL: LITHTECH 0x004e36c8
-extern int32 g_CV_PlayDemoReps;
-// GLOBAL: LITHTECH 0x004d2190
-extern char g_SSFile[];
 
 #define MUSIC_IMMEDIATE		0
 

@@ -115,4 +115,16 @@ struct SurfaceSprite
 	SpriteTracker		m_SpriteTracker;	// 0x0c
 };
 
+// Other frame profile counters (names unknown).
+// GLOBAL: LITHTECH 0x004decf4
+extern uint32 g_Ticks_FrameServer;
+// GLOBAL: LITHTECH 0x004debf4
+extern uint32 g_Ticks_FrameNet;
+// GLOBAL: LITHTECH 0x004ded50
+extern uint32 g_Ticks_FrameClientShell;
+extern uint32 g_Ticks_NetUpdate;
+extern uint32 g_Ticks_ServerUpdate;
+extern uint32 g_Ticks_ProcessPackets;
+extern uint32 g_Ticks_GameClientShell;
+
 #endif  // __CLIENTSHELL_H__

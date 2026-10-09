@@ -537,4 +537,7 @@ public:
 	ModelNode	*m_pRootNode;		// 0x2c4
 };
 
+// GLOBAL: LITHTECH 0x004d483c
+extern char *g_pNoModelFilename;
+
 #endif

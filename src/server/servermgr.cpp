@@ -33,12 +33,13 @@
 #include "fullintersectline.h"
 #include "WONAuth/AuthContext.h"
 #include "WONAuth/PeerAuthServer.h"
+#include "engine_vars.h"
+#include "moveobject.h"
+#include "serverde_impl.h"
 
 #define SMSG_PEERAUTH		27
 
 
-// GLOBAL: LITHTECH 0x004e5dcc
-extern CClassMgr *g_pClassMgr;
 
 LTRESULT sm_CreateNewID(CServerMgr *pServerMgr, LTLink **ppID);
 LTRESULT sm_RemoveObjectFromWorld(CServerMgr *pServerMgr, LPBASECLASS pObject);
@@ -74,11 +75,6 @@ void sm_TermDebug();
 // GLOBAL: LITHTECH 0x004e5d9c
 uint32 g_ObjectMemory;
 
-// Profiling counters, cleared every update.
-// GLOBAL: LITHTECH 0x004e4558
-extern uint32 g_Ticks_MoveObject;
-// GLOBAL: LITHTECH 0x004e455c
-extern uint32 g_nMoveObjectCalls;
 // GLOBAL: LITHTECH 0x004e5da0
 uint32 g_SphereFindTicks;
 // GLOBAL: LITHTECH 0x004e5db0
@@ -88,21 +84,7 @@ uint32 g_PolyFindCount;
 // GLOBAL: LITHTECH 0x004e5dc4
 uint32 g_PolyFindTicks;
 
-// Console variables.
-// GLOBAL: LITHTECH 0x004e379c
-extern LTBOOL g_CV_ShowGameTime;
-// GLOBAL: LITHTECH 0x004e37a0
-extern LTBOOL g_CV_ShowClassTicks;
-// GLOBAL: LITHTECH 0x004e37a4
-extern LTBOOL g_CV_ShowSphereFindTicks;
-// GLOBAL: LITHTECH 0x004e37a8
-extern LTBOOL g_CV_ShowPolyFindTicks;
-// GLOBAL: LITHTECH 0x004d2204
-extern float g_CV_TimeScale;
 
-// The server's update rate.
-// GLOBAL: LITHTECH 0x004d2200
-extern float g_ServerFPS;
 
 #define MIN_FRAMETIME		0.01f
 #define MAX_FRAMETIME		0.2f
@@ -142,8 +124,6 @@ void sm_RemoveAllUnusedSoundTracks(CServerMgr *pServerMgr);
 void sm_UncacheModels(CServerMgr *pServerMgr);
 void sm_UpdateObject(CServerMgr *pServerMgr, LTObject *pObj);		// s_object, 0x00477120
 
-// GLOBAL: LITHTECH 0x004e36c0
-extern uint32 g_Ticks_ClassUpdate;		// engine_vars
 
 #define IFLAG_INACTIVE_MASK		0x38
 #define IFLAG_DEACTIVATENOW		(1<<9)
@@ -163,8 +143,6 @@ void* dsi_GetLoadUser();							// 0x00416740
 void dsi_LoadProgress(uint32 percent);				// 0x00416800
 void sm_CacheSingleFile(CServerMgr *pServerMgr, uint16 fileType, uint16 fileID);
 
-// GLOBAL: LITHTECH 0x004d2138
-extern LTBOOL g_CV_CacheFiles;
 
 #define FT_SOUND			3
 #define SMSG_PORTALFLAGS	0x13
@@ -185,8 +163,6 @@ extern LTBOOL g_CV_CacheFiles;
 #define IFLAG_INACTIVE_TICK_MASK	0x18
 #define IFLAG_AUTODEACTIVATED		(1<<5)	// serverde_impl.h; bit 3 is IFLAG_INACTIVE
 
-// GLOBAL: LITHTECH 0x004e3794
-extern LTBOOL g_bAutoDeactivate;
 
 
 // ----------------------------------------------------------------------- //

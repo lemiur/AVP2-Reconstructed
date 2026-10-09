@@ -14,18 +14,13 @@
 #include "soundmgr.h"
 #include "soundinstance.h"
 #include "soundbuffer.h"
+#include "engine_vars.h"
 
 #ifndef TYPECODE_SOUND
 #define TYPECODE_SOUND		4
 #endif
 
-// For NT debugging (console variable).
-// GLOBAL: LITHTECH 0x004e36d0 ?g_CV_ForceNoSound@@3JA
-extern int32 g_CV_ForceNoSound;
 
-// When a buffer has more instances than this, the one closest to finishing is removed (engine_vars).
-// GLOBAL: LITHTECH 0x004d2130 ?g_dwMaxInstancesPerBuffer@@3KA
-extern uint32 g_dwMaxInstancesPerBuffer;
 
 
 // The original calls the out-of-line CMoArray<uint8> constructor (0x004961c0, Clear() only) for

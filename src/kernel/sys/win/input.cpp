@@ -16,6 +16,7 @@
 #include "input.h"
 #include "../../build/proj/LT2/lithshared/stdlith/goodlinklist.h"
 #include "../../build/proj/LT2/lithshared/stdlith/helpers.h"
+#include "engine_vars.h"
 
 /*
 
@@ -28,12 +29,6 @@
 		Now, an actioncode of -10000 or less uses a console variable with the trigger name!
 */
 
-// GLOBAL: LITHTECH 0x004e3728
-extern int32 g_CV_InputRate;
-// GLOBAL: LITHTECH 0x004e3708
-extern int32 g_CV_JoystickDisable;
-// GLOBAL: LITHTECH 0x004e3704
-extern int32 g_CV_InputDebug;
 
 
 class CJoystickEffect

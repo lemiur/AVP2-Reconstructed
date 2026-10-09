@@ -44,6 +44,7 @@
 #include "servermgr.h"
 #include "sprite.h"
 #include "input.h"
+#include "engine_vars.h"
 
 // Used by the ci_ functions (other units).
 class CameraInstance;
@@ -83,9 +84,6 @@ void		linesystem_SetLineInfo(HLTLINE hLine, LTLine *pLine);		// 0x00445170
 HLTLINE		linesystem_AddLine(HLOCALOBJ hObj, LTLine *pLine);			// 0x00445490
 void		linesystem_RemoveLine(HLOCALOBJ hObj, HLTLINE hLine);		// 0x004457f0
 
-// Forces the screen clear flag on in ClearScreen (a console variable).
-// GLOBAL: LITHTECH 0x004e371c
-extern int32 g_CV_ForceClear;
 
 // The global pan textures (sky shadow, fog) and the global light are RenderStruct members (g_Render.m_GlobalPans at
 // 0x004e4998, m_GlobalLightDir 0x004e49c0, m_GlobalLightColor 0x004e49cc, m_AmbientLight 0x004e49d8): the renderer
@@ -96,10 +94,6 @@ extern int32 g_CV_ForceClear;
 // Externals.
 // ------------------------------------------------------------------------ //
 
-// GLOBAL: LITHTECH 0x004e4558
-extern uint32 g_Ticks_MoveObject;
-// GLOBAL: LITHTECH 0x004e455c
-extern uint32 g_nMoveObjectCalls;
 
 
 // world/fullintersectline (0x00437c3d).

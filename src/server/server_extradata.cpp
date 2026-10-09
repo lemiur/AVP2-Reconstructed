@@ -49,9 +49,6 @@ LTRESULT nexus_AddLeech(Nexus *pNexus, Leech *pLeech);		// 0x00444970
 void clienthack_ModelLoaded(Model *pModel);					// 0x00416750
 LTRESULT sm_OnModelUnload(void *pUser, struct ModelUnloadMsg *pMsg, LTRESULT status);	// 0x00478150
 
-// The leech the server puts on the models it loads: sm_OnModelUnload drops them from the cache.
-// GLOBAL: LITHTECH 0x004d5a30
-extern LeechDef g_ServerModelLeechDef;
 
 // Loads a child model (the model's path is the parent's directory).
 // Remaining diff (15 aligned): the success path returns the eax of the se_LoadChildModels test (no xor eax,eax), and
