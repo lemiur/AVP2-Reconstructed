@@ -229,10 +229,10 @@ void CModelRayIntersect::SetupTris(PieceLOD *pLOD)
 
 inline LTBOOL RayIntersectTri(RayTri *pTri, ILTModel::LTRayResult *pRay, float &t)
 {
-	LTVector vP, vT;
+	LTVector vT;
 	float fInvDet, u, v;
 
-	vP = pTri->m_vEdge2.Cross(pRay->m_vDir);
+	const LTVector &vP = pTri->m_vEdge2.Cross(pRay->m_vDir);
 	fInvDet = 1.0f / pTri->m_vEdge1.Dot(vP);
 
 	vT = pRay->m_vOrigin - pTri->m_vPt;
@@ -276,10 +276,12 @@ inline LTVector GetTriNormal(RayTri *pTri)
 // share slots like the original's), `1.0f / Dot` as fdivr where the exe does fld 1.0; fdiv st(1), and 64 bytes of
 // size. Direct-initialised vP/vT/vQ in the helper (constructed in place, as the exe reads the Cross result
 // buffer directly) score 125 but inline Cross and Dot (the build disagrees with the model there).
-// vQ bound as a const reference to the Cross result keeps the call set and reads the result buffer in place, as the
-// exe does (ALIGNED 144/37 -> 132/21); direct initialisation of vQ instead inlines Cross (no budget reproduces it).
-// Left: the frame (ours 0x74, exe 0x64), the by-value copy of vP before `1.0f / Dot` (the exe keeps the dot on the
-// x87 stack: fld 1.0; fdiv st(1)), and 48 bytes of size. VEC_DOT for the inline Dots shifts the inline decisions.
+// vP and vQ bound as const references to the Cross results keep the call set and read the result buffers in place, as
+// the exe does (ALIGNED 144/37 -> 14/8, same size); direct initialisation instead inlines Cross (no budget reproduces it).
+// Left: `1.0f / Dot` is fdivr in ours; the exe keeps the dot on the x87 stack (fld 1.0; fdiv st(1); fstp; fstp st(0)),
+// VC6's reciprocal form for several divides by one value (LTMatrix::Normalize's VEC_DIVSCALAR in GetNodeTransform).
+// Tried: a named fDet (with and without dividing u/v/t by it, every subset), the divide after vT, an inline reciprocal
+// helper, VEC_DOT for the inline Dots (shifts the inline decisions).
 // STUB: LITHTECH 0x0045b640
 void CModelRayIntersect::IntersectRay(ILTModel::LTRayResult *pRay)
 {
