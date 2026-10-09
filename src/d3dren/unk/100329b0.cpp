@@ -317,146 +317,151 @@ void AddLightmapLightToRGB555Texel(uint16 *pTexel, UnkType_LightCtx *pCtx)
 // page's surface directly (through the scratch surface g_pLightmapScratchSurface); otherwise it is only built when more than one layer
 // contributed (and then converted into a staging texture that the poly's lightmap is drawn from, UnkType_LMLock): a poly
 // with a single plain layer keeps the page as it is.
-// Not matching (size 1536 vs 1728): first pass (semantics from the disassembly; not yet diffed in detail).  The exe builds the
-// FMConvertRequest through its constructor (0x10036761) and copies the source PFormat with member-wise stores (unrolled for the first,
-// 3 x 4-dword loops for the second request); both conversion paths and the layer accumulation follow the exe.
+// Not matching (1728 of 1728 bytes): the function is one `if (pPage && scratch surface)` block with a single `return 0` after it
+// (the exe's failure paths share one epilogue); bPageIn itself takes the LMAnimStatic flag; the blend loop walks two pointers with
+// a down counter (the exe's byte-offset induction variable); the source format reaches the request through a PFormat copy (the
+// exe copy-constructs a temporary, then assigns it member by member, unrolled); ddsd and rc live at function scope (the exe does
+// not overlap ddsd with the lock).  Open: the exe extracts the blend channels with shr/and on registers, ours spills the texel
+// and reads bytes (`mov cl,ah`, byte loads from the spill), so the frame is 4 bytes short and the slots after it shift.
 // STUB: D3DREN 0x10033210
 int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 {
 	FMConvertRequest request;
+	DDSURFACEDESC2 ddsd;
+	RECT rc;
 	uint32 accum[0x400];
 	uint32 temp[0x400];
 	LightmapPage *pPage;
-	int bStatic;
 	int bMulti;
 	int nLayers;
 	uint32 nTexels, nBytes;
 	uint32 iRef, i;
 
 	pPage = WORLDPOLY_LMPAGE(pPoly);
-	if (!pPage)
-		return 0;
-	if (!g_pLightmapScratchSurface)
-		return 0;
-
-	pPage->m_Unk20 = 1;
-	if (!pPoly->m_nLMAnimRefs)
-		return 1;
-
-	bStatic = bPageIn | (g_CV_LMAnimStatic.m_IntVal != 0);
-	bMulti = 0;
-	nLayers = 0;
-	nTexels = pPoly->m_LMHeight * pPoly->m_LMWidth;
-	nBytes = nTexels * 4;
-
-	for (iRef = 0; iRef < pPoly->m_nLMAnimRefs; iRef++)
+	if (pPage && g_pLightmapScratchSurface)
 	{
-		LAPolyRef *pRef = (LAPolyRef *)&pPoly->m_pLMAnimRefs[iRef];
-		LightAnim *pAnim;
-		int bOk;
+		pPage->m_Unk20 = 1;
+		if (!pPoly->m_nLMAnimRefs)
+			return 1;
 
-		if (pRef->m_iWorld >= pWorld->m_LightAnims.GetSize())
-			continue;
+		bPageIn |= (g_CV_LMAnimStatic.m_IntVal != 0);
+		bMulti = 0;
+		nLayers = 0;
+		nTexels = pPoly->m_LMHeight * pPoly->m_LMWidth;
+		nBytes = nTexels * 4;
 
-		pAnim = &pWorld->m_LightAnims[pRef->m_iWorld];
-		if (pAnim->m_iFrames[0] == 0xffffffff || pAnim->m_fBlendPercent < 0.02f)
-			continue;
-
-		if (pAnim->m_bShadowMap)
-			bOk = BuildShadowMappedLightAnimTexels(pWorld, pPoly, pAnim, pRef, temp);
-		else
-			bOk = BuildColorLightAnimTexels(pPoly, pAnim, pRef, temp);
-		if (!bOk)
-			continue;
-
-		bMulti = iRef != 0;
-		if (nLayers == 0)
+		for (iRef = 0; iRef < pPoly->m_nLMAnimRefs; iRef++)
 		{
-			memcpy(accum, temp, nBytes);
-		}
-		else
-		{
-			uint8 scale = (uint8)(int)(pAnim->m_fBlendPercent * 255.0f);
+			LAPolyRef *pRef = (LAPolyRef *)&pPoly->m_pLMAnimRefs[iRef];
+			LightAnim *pAnim;
+			int bOk;
 
-			for (i = 0; i < nTexels; i++)
+			if (pRef->m_iWorld >= pWorld->m_LightAnims.GetSize())
+				continue;
+
+			pAnim = &pWorld->m_LightAnims[pRef->m_iWorld];
+			if (pAnim->m_iFrames[0] == 0xffffffff || pAnim->m_fBlendPercent < 0.02f)
+				continue;
+
+			if (pAnim->m_bShadowMap)
+				bOk = BuildShadowMappedLightAnimTexels(pWorld, pPoly, pAnim, pRef, temp);
+			else
+				bOk = BuildColorLightAnimTexels(pPoly, pAnim, pRef, temp);
+			if (!bOk)
+				continue;
+
+			bMulti = iRef > 0;
+			if (nLayers == 0)
 			{
-				uint32 a = accum[i];
-				uint32 t = temp[i];
-				uint8 r = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(t >> 16 & 0xff) * 0x100 + scale] + (a >> 16 & 0xff)];
-				uint8 g = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(t >> 8 & 0xff) * 0x100 + scale] + (a >> 8 & 0xff)];
-				uint8 b = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(t & 0xff) * 0x100 + scale] + (a & 0xff)];
+				memcpy(accum, temp, nBytes);
+			}
+			else
+			{
+				uint8 scale = (uint8)(int)(pAnim->m_fBlendPercent * 255.0f);
 
-				accum[i] = (r << 8 | g) << 8 | b;
+				uint32 *pAccum = accum;
+				uint32 *pTemp = temp;
+
+				for (i = nTexels; i; i--)
+				{
+					uint32 r = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(*pTemp >> 16 & 0xff) * 0x100 + scale] + (*pAccum >> 16 & 0xff)];
+					uint32 g = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(*pTemp >> 8 & 0xff) * 0x100 + scale] + (*pAccum >> 8 & 0xff)];
+					uint32 b = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(*pTemp & 0xff) * 0x100 + scale] + (*pAccum & 0xff)];
+
+					*pAccum = (r << 8 | g) << 8 | b;
+					pAccum++;
+					pTemp++;
+				}
+			}
+			nLayers++;
+		}
+
+		if (nLayers == 0)
+			memset(accum, 0, nBytes);
+
+		if (!bPageIn)
+		{
+			if (bMulti)
+			{
+				UnkType_LMLock lock;
+
+				if (lock.LockStagingLightmap(pPoly, 0))
+				{
+					PFormat srcFormat;
+
+					srcFormat.InitPValueFormat();
+					PFormat tmp(srcFormat);
+					*request.m_pSrcFormat = tmp;
+					request.m_pSrc = (uint8 *)accum;
+					request.m_SrcPitch = pPoly->m_LMWidth * 4;
+					*request.m_pDestFormat = lock.m_Unk0c;
+					request.m_pDest = lock.m_Unk00;
+					request.m_DestPitch = lock.m_Unk04;
+					request.m_Width = pPoly->m_LMWidth;
+					request.m_Height = pPoly->m_LMHeight;
+					g_FormatMgr.ConvertPixels(&request);
+
+					pPage->m_Unk20 = 0;
+					pPoly->m_Flags |= 0x8000;
+					return lock.UnlockStagingLightmap(1);
+				}
+			}
+			else
+			{
+				pPage->m_Unk20 = 1;
+				return 1;
 			}
 		}
-		nLayers++;
-	}
-
-	if (nLayers == 0)
-		memset(accum, 0, nBytes);
-
-	if (!bStatic)
-	{
-		UnkType_LMLock lock;
-		PFormat srcFormat;
-
-		if (!bMulti)
+		else
 		{
-			pPage->m_Unk20 = 1;
-			return 1;
+			memset(&ddsd, 0, sizeof(ddsd));
+			ddsd.dwSize = sizeof(ddsd);
+			if (g_pLightmapScratchSurface->Lock(NULL, &ddsd, 0, NULL) == DD_OK)
+			{
+				PFormat srcFormat;
+
+				srcFormat.InitPValueFormat();
+				PFormat tmp(srcFormat);
+				*request.m_pSrcFormat = tmp;
+				request.m_pSrc = (uint8 *)accum;
+				request.m_SrcPitch = pPoly->m_LMWidth * 4;
+				DDPFToPFormat(&ddsd.ddpfPixelFormat, request.m_pDestFormat);
+				request.m_pDest = (uint8 *)ddsd.lpSurface;
+				request.m_DestPitch = ddsd.lPitch;
+				request.m_Width = pPoly->m_LMWidth;
+				request.m_Height = pPoly->m_LMHeight;
+				g_FormatMgr.ConvertPixels(&request);
+				g_pLightmapScratchSurface->Unlock(NULL);
+
+				rc.left = 0;
+				rc.top = 0;
+				rc.right = pPoly->m_LMWidth;
+				rc.bottom = pPoly->m_LMHeight;
+				return pPage->m_pSurface->BltFast(WORLDPOLY_UNK4E(pPoly), WORLDPOLY_UNK4F(pPoly), g_pLightmapScratchSurface, &rc, DDBLTFAST_WAIT) == DD_OK;
+			}
 		}
-
-		if (!lock.LockStagingLightmap(pPoly, 0))
-			return 0;
-
-		srcFormat.InitPValueFormat();
-		*request.m_pSrcFormat = srcFormat;
-		request.m_pSrc = (uint8 *)accum;
-		request.m_SrcPitch = pPoly->m_LMWidth * 4;
-		*request.m_pDestFormat = lock.m_Unk0c;
-		request.m_pDest = lock.m_Unk00;
-		request.m_DestPitch = lock.m_Unk04;
-		request.m_Width = pPoly->m_LMWidth;
-		request.m_Height = pPoly->m_LMHeight;
-		g_FormatMgr.ConvertPixels(&request);
-
-		pPage->m_Unk20 = 0;
-		pPoly->m_Flags |= 0x8000;
-		return lock.UnlockStagingLightmap(1);
 	}
-	else
-	{
-		DDSURFACEDESC2 ddsd;
-		PFormat srcFormat;
-		PFormat destFormat;
-		RECT rc;
-		HRESULT hr;
-
-		memset(&ddsd, 0, sizeof(ddsd));
-		ddsd.dwSize = sizeof(ddsd);
-		if (g_pLightmapScratchSurface->Lock(NULL, &ddsd, 0, NULL) != DD_OK)
-			return 0;
-
-		srcFormat.InitPValueFormat();
-		*request.m_pSrcFormat = srcFormat;
-		request.m_pSrc = (uint8 *)accum;
-		request.m_SrcPitch = pPoly->m_LMWidth * 4;
-		DDPFToPFormat(&ddsd.ddpfPixelFormat, &destFormat);
-		*request.m_pDestFormat = destFormat;
-		request.m_pDest = (uint8 *)ddsd.lpSurface;
-		request.m_DestPitch = ddsd.lPitch;
-		request.m_Width = pPoly->m_LMWidth;
-		request.m_Height = pPoly->m_LMHeight;
-		g_FormatMgr.ConvertPixels(&request);
-		g_pLightmapScratchSurface->Unlock(NULL);
-
-		rc.left = 0;
-		rc.top = 0;
-		rc.right = pPoly->m_LMWidth;
-		rc.bottom = pPoly->m_LMHeight;
-		hr = pPage->m_pSurface->BltFast(WORLDPOLY_UNK4E(pPoly), WORLDPOLY_UNK4F(pPoly), g_pLightmapScratchSurface, &rc, DDBLTFAST_WAIT);
-		return hr == DD_OK;
-	}
+	return 0;
 }
 
 // guess: builds the light animation lightmap of a polygon for a shadow map light animation (the frames are 8 bit coverage masks of
