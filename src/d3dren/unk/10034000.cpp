@@ -202,7 +202,7 @@ int LightmapPage::GetBaseHeight()
 // guess: gives the polygon a place in a lightmap page (marks the cells of the page's bitmap, sets the polygon's
 // lightmap texture coordinates in the page and its page pointer); polygons of unlit surfaces and polygons that are
 // already assigned (or flagged by a light animation, WorldPoly::m_Flags & 0x3f) are left alone.
-// Not matching (527 vs 533 bytes; 15 aligned instruction mismatches, 15 ignoring stack offsets; 188 vs 190 instructions, both frames 0x9c).
+// Not matching (13 aligned instruction mismatches, 13 ignoring stack offsets; 189 vs 190 instructions, both frames 0x9c).
 // The behavior audit reports no difference. Remaining codegen differences include the extent checks, occupancy-map pointer access, and
 // one retained x87 intermediate store in the exe.
 // STUB: D3DREN 0x1003429b
@@ -213,7 +213,6 @@ int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 	uint32 i, j, iCell;
 	LTVector P, Q;
 	DDSURFACEDESC2 ddsd;
-	uint8 *pCell;
 
 	if (((Surface *)pPoly->m_pSurface)->m_Flags & SURF_LIGHTMAP)
 	{
@@ -248,9 +247,7 @@ int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 			for (i = 0; i < pPoly->m_LMWidth; i++)
 			{
 				iCell = ((j + y) >> 2) * 0x40 + ((x + i) >> 2);
-				uint8 *pBits = pPage->m_pOccupancyMap;
-				pCell = &pBits[iCell >> 3];
-				*pCell |= 1 << (iCell & 7);
+				pPage->m_pOccupancyMap[iCell >> 3] |= 1 << (iCell & 7);
 				pPage->m_nUsedTexels++;
 			}
 		}
