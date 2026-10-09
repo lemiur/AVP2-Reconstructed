@@ -262,6 +262,8 @@ END_MAINLOOP:;
 }
 
 
+// RULE-EXCEPTION: R18, the FPU precision setup is an inline fstcw/and/fldcw; VC6 has no intrinsic for it and
+// _controlfp would be a CRT call, so retail's bytes are only reached by the inline asm.
 // FUNCTION: LITHTECH 0x00403350
 static LTBOOL StartClient(ClientGlob *pGlob, CmdLineArgs *pArgs)
 {

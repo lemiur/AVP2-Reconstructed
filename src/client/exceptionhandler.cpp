@@ -245,6 +245,8 @@ static char* GetFilePart(char *source)
 // Entry point into the main exception handling routine. This routine is put
 // into an __except() statement at the beginning of a thread and is called
 // whenever a crash occurs.
+// RULE-EXCEPTION: R18, the stack top is read with `mov eax, fs:[4]` (TIB.StackBase); VC6 has no intrinsic for it, and
+// NtCurrentTeb()->StackBase would load fs:[0x18] first, so retail's bytes are only reached by this one inline asm.
 // FUNCTION: LITHTECH 0x00436270
 int __cdecl RecordExceptionInfo(PEXCEPTION_POINTERS data, const char *Message)
 {
