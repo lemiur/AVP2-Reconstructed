@@ -466,9 +466,12 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 // guess: builds the light animation lightmap of a polygon for a shadow map light animation (the frames are 8 bit coverage masks of
 // a point light): blends the two decompressed masks by m_PercentBetween, then lights every texel of the polygon with the light of
 // the animation (position, colour, radius) scaled by the mask: pOut gets the colour as 32 bit texels (0 where unlit).
-// Not matching (864 vs 816 bytes): the frame selection follows the exe (single-frame arms first, each failing on its own).  Open:
-// the exe merges the failure returns into one block, counts the mask blend down, and calls operator- of the texel walk out of
-// line while MagSqr and both operator+ stay inline (tools/inline_budget.py: ours inlines all; no top-level budget gives that mix).
+// Not matching (800 vs 816 bytes, 84 aligned mismatches ignoring stack offsets): frame selection, the single failure exit, the
+// pointer mask blend and the texel walk follow the exe.  Open: the exe calls the walk's `vCol - ctx.m_Unk24` out of line while
+// MagSqr and both `+=` stay inline (inline-budget wall: tools/inline_budget.py --solve finds no budget/pending combination for
+// the walk written in place; as an inline helper with DistSqr its share must be 336..408u, ours is 720u, and a helper copies
+// MulHigh's operand to a slot where the exe reads the ctx member directly); the 12 missing frame bytes and the param-slot reuse
+// follow from that call.
 // STUB: D3DREN 0x100338d0
 int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
 {
@@ -479,7 +482,7 @@ int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightA
 	uint32 iFrame0, iFrame1;
 	int nBlend;
 	LAPolyFrame *pFrame0, *pFrame1;
-	uint32 i, nTexels;
+	uint32 i;
 	uint8 *pMask, *pA, *pB;
 	uint32 *pRow, *pTexel;
 	LTVector vRow, vCol;
