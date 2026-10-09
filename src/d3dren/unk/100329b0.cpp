@@ -80,9 +80,7 @@ void SetupLightmapLightContext(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pL
 int DecompressLightmapMaskRuns(uint8 *pData, int nSize, uint8 *pOut);
 int DecompressLightmapTexelRuns(uint32 *pData, int nSize, uint32 *pOut);
 
-// The lightmap format conversion (FormatMgr::ConvertPixels, g_FormatMgr 0x10060710, d3d_texture.cpp).
-// GLOBAL: D3DREN 0x10060710
-extern FormatMgr g_FormatMgr;
+// The lightmap format conversion (FormatMgr::ConvertPixels, g_FormatMgr: d3dtexture.h).
 
 // guess: the frame of the light animation that is shown right now for a polygon: with m_iFrames[0] == m_iFrames[1], or a blend
 // of at most 0 the first frame, with a blend of at least 255 the second one, else a lerp of both

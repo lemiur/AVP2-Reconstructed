@@ -17,6 +17,7 @@
 #include "d3dren/d3d_texture.h"
 #include "d3dren/tlvertex.h"
 #include "ltdynarray.h"
+#include "d3dren/common_init.h"
 
 // ---- globals defined by this object ------------------------------------------------------------------------------------
 
@@ -37,8 +38,6 @@ static float fSub = 0.51f;
 static LTSurfaceBlend g_Optimized2DBlend;
 
 // ---- externs of other units (no GLOBAL annotation) -----------------------------------------------------------------------
-extern FormatMgr g_FormatMgr;					// 0x10060710 (constructed by the static initialiser 0x1001e660)
-extern uint32 g_DeviceTriangleTextureCaps;						// 0x1005c984 D3DPRIMCAPS.dwTextureCaps copy (0x20 = D3DPTEXTURECAPS_SQUAREONLY)
 void DDPFToPFormat(DDPIXELFORMAT *pDDPF, PFormat *pFormat);	// 0x100109fd (the engine's cutil.cpp copy)
 void d3d_GetScreenFormat(PFormat *pFormat);		// 0x1001dec3 (d3d_surface unit)
 void d3d_SetModulateAlphaTextureStates();							// 0x100139f0 guess: sets the stage 0 texture blend to modulate
@@ -734,7 +733,5 @@ void d3d_WarpToScreen3D(BlitRequest *pRequest);								// 0x1001cc80
 // dirtyrect (0x10022151)
 void InvalidateRect(LTRect *pRect);
 
-extern PFormat g_ScreenPixelFormat;	// 0x100577c8 the screen format (defined by the device bring-up object, sys/d3d/common_init)
-extern FormatMgr g_FormatMgr;	// 0x10060710
 // (defined in sys/d3d/d3d_surface)
 void d3d_GetScreenFormat(PFormat *pFormat);

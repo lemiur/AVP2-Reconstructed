@@ -8,5 +8,9 @@
 // The screen pixel format (filled by the device bring-up; its inline constructor stores the PFormat vtable: _$E5 0x1001095c).
 // GLOBAL: D3DREN 0x100577c8
 extern PFormat g_ScreenPixelFormat;
+// GLOBAL: D3DREN 0x10057e24
+extern int g_nWindowBlitScaleX;				// guess: horizontal divisor of the RenderStruct width / stretch of the window blit (1)
+// GLOBAL: D3DREN 0x10057e28
+extern int g_nWindowBlitScaleY;				// guess: vertical divisor (1)
 
 #endif

@@ -22,6 +22,7 @@
 #include "d3dren/tlvertex.h"
 #include "d3dren/d3ddevice.h"
 #include "pixelformat.h"
+#include "d3dren/common_init.h"
 // GLOBAL: D3DREN 0x10057b58
 extern int g_nRenderFrameCount;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
 
@@ -189,10 +190,8 @@ void d3d_Term()
 // Globals of d3d_Init.
 // GLOBAL: D3DREN 0x10057e30
 extern int g_nSysMemParameter;				// guess: the "SysMem" console parameter as an int
-// GLOBAL: D3DREN 0x10057e28
-extern int g_nWindowBlitScaleY;				// guess: vertical divisor of the RenderStruct height (1)
-// GLOBAL: D3DREN 0x10057e24
-extern int g_nWindowBlitScaleX;				// guess: horizontal divisor of the RenderStruct width (1)
+int g_nWindowBlitScaleY;				// guess: vertical divisor of the RenderStruct height (1); GLOBAL in common_init.h
+int g_nWindowBlitScaleX;				// guess: horizontal divisor of the RenderStruct width (1)
 // GLOBAL: D3DREN 0x100584e4
 extern int g_bWarbleTableInitialized;
 // GLOBAL: D3DREN 0x100584e8
@@ -560,7 +559,6 @@ extern "C" void RenderDLLSetup(RenderStruct *pStruct)
 HWND g_hWnd;
 int g_bRunWindowed;
 uint32 g_ScreenWidth, g_ScreenHeight;
-extern RenderStruct *g_pStruct;
 // (defined in sys/d3d/common_stuff)
 void UppercaseStringInPlace(char *pStr);
 

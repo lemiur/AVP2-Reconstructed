@@ -10,9 +10,6 @@
 #include "ltrect.h"
 #include "ltlink.h"
 
-// the main window (RenderStructInit::m_hWnd); Jupiter common_stuff.h / Ghidra name.  (Unit sys/d3d/d3d_surface declares it the same way, without the annotation.)
-// GLOBAL: D3DREN 0x10057998
-extern HWND g_hWnd;
 
 // Two objects with an out-of-line constructor taking a byte and tying a list head off at +0xc (nothing else in the DLL touches
 // them; role unknown).  They precede the dirty rects in the exe's data and static initialisers.

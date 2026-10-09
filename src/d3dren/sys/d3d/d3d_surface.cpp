@@ -10,11 +10,11 @@
 #include "d3dren/d3dtexture.h"
 #include "d3dren/tlvertex.h"
 #include "ltdynarray.h"
+#include "d3dren/common_init.h"
 // GLOBAL: D3DREN 0x1004b4c0
 extern uint32 g_ValidTileSizes[];
 
 // ---- externs of other units (no GLOBAL annotation) -----------------------------------------------------------------------
-extern FormatMgr g_FormatMgr;					// 0x10060710 (constructed by the static initialiser 0x1001e660)
 void d3d_GetScreenFormat(PFormat *pFormat);		// 0x1001dec3 (d3d_surface unit)
 
 // ---- d3d_optimizedsurface ---------------------------------------------------------------------------------------------
@@ -327,8 +327,6 @@ LTBOOL d3d_WarpToScreen(BlitRequest *pRequest)
 	return LTFALSE;
 }
 
-extern PFormat g_ScreenPixelFormat;	// 0x100577c8 the screen format (defined by the device bring-up object, sys/d3d/common_init)
-extern FormatMgr g_FormatMgr;	// 0x10060710
 
 // The implicit PFormat::operator= (the exe has the out-of-line copy here; the vptr is not copied).
 // FUNCTION: D3DREN 0x1001ded2 ??4PFormat@@QAEAAV0@ABV0@@Z
@@ -433,8 +431,6 @@ void d3d_MakeScreenShot(const char *pFilename)
 
 // ---- d3d_SwapBuffers -----------------------------------------------------------------------------------------------------
 
-extern int g_nWindowBlitScaleX;		// 0x10057e24 guess: horizontal stretch factor of the window blit
-extern int g_nWindowBlitScaleY;		// 0x10057e28 guess: vertical stretch factor
 void DirtyRectSwap();			// 0x100223c8 (dirtyrect, another unit)
 void ClearDirtyRects();			// 0x1002241c
 

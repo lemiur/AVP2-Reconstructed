@@ -9,6 +9,7 @@
 #include "d3dren/d3ddevice.h"
 #include "d3dren/lightmap.h"		// RenderContext
 #include "pixelformat.h"			// PFormat
+#include "d3dren/common_init.h"		// g_ScreenPixelFormat
 
 // ---- callees in other units (prototypes until their owners publish headers) -------------------------------------------------
 int PageInLightmaps(RenderContext *pContext);		// W9 (lightmap): page the lightmaps in, 0 = failed
@@ -893,9 +894,7 @@ SurfaceCreationSucceeded:
 }
 
 // ---- RenderCommand --------------------------------------------------------------------------------------------------------
-// the screen format (filled by the device bring-up, defined in sys/d3d/common_init)
-// GLOBAL: D3DREN 0x100577c8
-extern PFormat g_ScreenPixelFormat;
+// the screen format g_ScreenPixelFormat: common_init.h (filled by the device bring-up, defined in sys/d3d/common_init)
 
 int d3d_PortalFileCommand(char *pFileName);						// unk/1002d000 stub (returns 0)
 
