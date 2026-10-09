@@ -1049,7 +1049,8 @@ Skip:
 
 // guess: the untransformed variant of DrawPieceTransformed: writes XYZ + diffuse + specular vertices (stride m_Unk5f8 - 4) so that
 // Direct3D transforms them; the back face test (m_Unk8b4) is done on the model-space x/y of the vertices.
-// Not matching (1056 vs 1072 bytes): the stack-frame residue of DrawPieceTransformed.
+// Not matching (1056 vs 1072 bytes): the stack-frame/loop-exit residue of DrawPieceTransformed (decrementing the count before the
+// cursor step, as there, does not help here).
 // STUB: D3DREN 0x10003e00
 int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -1095,8 +1096,8 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 					pEnd = PoolLastVertex(m_Unk608);
 				}
 			}
-			nTris--;
 			pTri++;
+			nTris--;
 		}
 	}
 	else
@@ -1130,8 +1131,8 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 				pOut = (TLVertex *)m_Unk608->Lock();
 				pEnd = PoolLastVertex(m_Unk608);
 			}
-			nTris--;
 			pTri++;
+			nTris--;
 		}
 	}
 	FlushModelPool(this, pOut);
