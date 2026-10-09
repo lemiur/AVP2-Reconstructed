@@ -700,11 +700,12 @@ int d3d_CreateDevice(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 			goto PrimarySurfaceFailure;
 
 		memset(&ddsd, 0, sizeof(ddsd));
-		ddsd.dwHeight = pInit->m_Mode.m_Height;
-		ddsd.dwWidth = pInit->m_Mode.m_Width;
+		ddsd.dwBackBufferCount = 0;
+		ddsd.dwSize = sizeof(ddsd);
 		ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
 		ddsd.ddsCaps.dwCaps = g_RenderSurfaceMemoryCaps | DDSCAPS_3DDEVICE;
-		ddsd.dwSize = sizeof(ddsd);
+		ddsd.dwWidth = pInit->m_Mode.m_Width;
+		ddsd.dwHeight = pInit->m_Mode.m_Height;
 		if (g_pDD->CreateSurface(&ddsd, &g_pBackBuffer, 0) != 0)
 		{
 			AddDebugMessage(1, "Failed to make rendering surface.");
@@ -800,7 +801,7 @@ SurfaceCreationSucceeded:
 		g_bSrcBlendSrcColorSupported = (desc.dpcTriCaps.dwSrcBlendCaps >> 2) & 1;
 		g_bDestBlendSrcAlphaSupported = (desc.dpcTriCaps.dwDestBlendCaps >> 4) & 1;
 		g_bTextureBlendModulateSupported = (desc.dpcTriCaps.dwTextureBlendCaps >> 1) & 1;
-		g_DeviceFreeVideoMemory = dwFreeVid;
+		g_DeviceFreeVideoMemory = dwTotalVid;
 		g_bTextureBlendAddSupported = (desc.dpcTriCaps.dwTextureBlendCaps >> 7) & 1;
 		g_DeviceTotalTextureMemory = dwTotalTex;
 		g_DefaultZEnableState = 1;
