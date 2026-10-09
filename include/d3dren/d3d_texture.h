@@ -42,6 +42,8 @@ void d3d_BindRTexture(RTexture *pRTexture);
 
 // Finds or creates the RTexture of pTexture for the stage, binds it and sets its LOD; returns 0 when there is no texture.
 // dwMaxLOD: the argument of IDirectDrawSurface7::SetLOD, which is the only thing the third argument is used for.
+// The stage search runs only on a non-empty chain, and the create path reads m_pRenderData again: drawparticles' expansion (search
+// called out of line at 0x10008daa) tests the chain head before the call and re-reads it after a failed search.
 //
 // A unit whose currently matching functions change when the plain inline is expanded (unk/100098d0: ClipPolyNear, ClipPolyLeft; d3d_draw:
 // the STLport node allocator copies) defines D3DREN_SETTEXTURE_EXTERN before including this header and keeps calling the out-of-line copy.
@@ -71,16 +73,16 @@ inline int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLO
 	if (!pTexture)
 		return 0;
 
-	pFirst = (UnkType_RTexView *)pTexture->m_pRenderData;
+	pRTexture = (UnkType_RTexView *)pTexture->m_pRenderData;
 	pTexture->m_Unknown30 = g_CurTextureFrameCode;
-	pRTexture = (UnkType_RTexView *)d3d_FindRTextureForStage(pFirst, (uint8)nStage);
-	if (pRTexture)
+	if (pRTexture && (pRTexture = (UnkType_RTexView *)d3d_FindRTextureForStage(pRTexture, (uint8)nStage)) != 0)
 	{
 		if (pRTexture != (UnkType_RTexView *)g_pBoundTextures[nStage])
 			goto Bind;
 	}
 	else
 	{
+		pFirst = (UnkType_RTexView *)pTexture->m_pRenderData;
 		if (pFirst)
 		{
 			UnkType_RTexView *pNew = (UnkType_RTexView *)d3d_CreateAndLoadTexture(pTexture, nStage, 1);
