@@ -24,7 +24,7 @@
 #include "counter.h"
 #include "../../build/proj/LT2/lithshared/stdlith/object_bank.h"
 
-int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat);
+inline int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat);
 void InitLightColorClampTable();	// 0x10032a30 (lightmap unit unk/100329b0)
 int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit);	// 0x10032c40 (unit unk/100329b0)
 
@@ -797,17 +797,13 @@ char *d3d_AddToString(char *pStr, const char *pToAdd)
 // RTexture, links it into g_Textures and uploads the mipmaps (r_TransferTexture).  Returns 0 on failure.  The older of the two
 // creation functions of the object (10021290 does the same with everything expanded in place).
 // NAME: names_proposal.csv d3d_CreateAndLoadTexture (medium, Jupiter d3d_texture.cpp)
-// NOT MATCHING (944 vs 832 bytes): the function is the same code as the exe's (the format choice, the mipmap range, the detail
-// scale/angle, the memory count, the FreeTexture exit all line up) but the exe calls four tiny functions out of line that we
-// expand: RTexture's bank allocation (ObjectBank<RTexture>::AllocVoid, 0x10021c80, called through `mov ecx,&bank`), the implicit
-// UnkType_RTextureData assignment (0x10020fb0, called with the temporary), CheapLTLink::AddAfter (0x10020330, called on g_Textures)
-// and the implicit UnkType_RTextureData destructor (0x10020350, called on every exit path: the stack object is a block-scope
-// local).  With `#pragma inline_depth(0)` around the function the dtor and AddAfter copies come out byte-identical (0x10020330 and
-// 0x10020350 MATCH) but then the RTextureData constructor is called too, which the exe inlines (a vptr store), so no single pragma
-// reproduces the exe; the later creation function (10021290) expands AddAfter and the bank allocation in place.  The out-of-line
-// copies are therefore a budget effect of this function that has not been found (tried: 24..300 units of code-free ballast
-// at the top; they change the size non-monotonically).  The three copies (0x10020330, 0x10020350, 0x10020fb0) are emitted and
-// verified through the STANDIN below, which calls them with inline_depth(0).
+// NOT MATCHING: the statements are the exe's, but the exe calls every inline function that is not free out of line here
+// (d3d_GetFirstUsableMipmap, d3d_CreateMipmapTextureSurface, ObjectBank::Allocate (folded with AllocVoid, 0x10021c80), the implicit
+// UnkType_RTextureData assignment and destructor, CheapLTLink::AddAfter), while CTextureManager_CreateRTexture, the same code
+// otherwise, expands them.  The free accessors and the data constructor are expanded, so the budget is spent before the first exit;
+// what spends it is not found (tried: 24..300 units of code-free ballast at the top, #pragma inline_depth(0) (calls the accessors too),
+// #pragma optimize("s") (ebp frame)).  The copies (0x10020330, 0x10020350, 0x10020fb0, 0x10020ab0, 0x10020f20) are emitted and
+// verified through the STANDIN below.
 // STUB: D3DREN 0x1001fff0
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 bAdditional)
 {
@@ -932,18 +928,22 @@ done:
 }
 
 
-// STANDIN: forces the out-of-line copies of three tiny functions that d3d_CreateAndLoadTexture calls out of line in the exe and expands in
-// our build (CheapLTLink::AddAfter on g_Textures, the implicit UnkType_RTextureData destructor and its implicit assignment, the
-// latter called with the stack temporary).  With inline_depth(0) the copies come out byte-identical to the exe's.  (not in d3d.ren)
+// STANDIN: forces the out-of-line copies of the inline functions that d3d_CreateAndLoadTexture calls out of line in the exe and expands
+// in our build (CheapLTLink::AddAfter on g_Textures, the implicit UnkType_RTextureData destructor and its implicit assignment, the
+// latter called with the stack temporary, d3d_GetFirstUsableMipmap, d3d_CreateMipmapTextureSurface).  With inline_depth(0) the copies
+// come out byte-identical to the exe's.  (not in d3d.ren)
 // FUNCTION: D3DREN 0x10020330 ?AddAfter@CheapLTLink@@QAEXPAV1@@Z
 // FUNCTION: D3DREN 0x10020350 ??1UnkType_RTextureData@@UAE@XZ
 // FUNCTION: D3DREN 0x10020fb0 ??4UnkType_RTextureData@@QAEAAV0@ABV0@@Z
 #pragma inline_depth(0)
-void StandIn_RTextureInlines(LTLink *pLink, LTLink *pAfter, UnkType_RTextureData *pDst, UnkType_RTextureData *pSrc)
+void StandIn_RTextureInlines(LTLink *pLink, LTLink *pAfter, UnkType_RTextureData *pDst, UnkType_RTextureData *pSrc,
+	UnkType_RTextureBuild *pBuild, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
 {
 	UnkType_RTextureData local;
 	pLink->AddAfter(pAfter);
 	*pDst = *pSrc;
+	d3d_GetFirstUsableMipmap(pBuild->m_pTextureData);
+	d3d_CreateMipmapTextureSurface(pBuild, pDst, iStartMipmap, nMipmaps, iFormat);
 }
 #pragma inline_depth()
 
@@ -1200,10 +1200,11 @@ Fail:
 // in the UnkType_RTextureData pData with it (surface, 1/width and 1/height scaled by the texture's U/V shift, the AlphaRef of the DTX
 // command string).  Handles the "ColorKey r g b" and "AlphaRef n" tokens of the command string, DXT formats and the aspect ratio
 // limit.  The DXT / aspect ratio helpers (CTextureManager_IsS3TCFormatSupported, CTextureManager_S3TCFormatConv, AdjustAspectRatio)
-// are expanded here; the colour key is PValue_Set(0, r, g, b) (its arguments are evaluated b first).
+// are expanded here; the colour key is PValue_Set(0, r, g, b) (its arguments are evaluated b first).  An inline function: its copy
+// here is the one d3d_CreateAndLoadTexture calls; CTextureManager_CreateRTexture expands it.
 // NAME: names_proposal.csv guess_CreateRTextureSurface (low, invented): not used
-// FUNCTION: D3DREN 0x10020ab0
-int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
+// FUNCTION: D3DREN 0x10020ab0 ?d3d_CreateMipmapTextureSurface@@YAHPAUUnkType_RTextureBuild@@PAVUnkType_RTextureData@@KKK@Z
+inline int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextureData *pData, uint32 iStartMipmap, uint32 nMipmaps, uint32 iFormat)
 {
 	TextureData *pTextureData = pBuild->m_pTextureData;
 	DDSURFACEDESC2 ddsd;
@@ -1281,9 +1282,11 @@ int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType_RTextu
 
 // NAME: d3d_GetFirstUsableMipmap: names_proposal.csv (high; Jupiter d3d_texture.cpp d3d_GetFirstUsableMipmap): the first mipmap that fits
 // the largest texture the device and the MaxTextureSize variable allow (clamped to the screen unless larger surfaces are
-// allowed), -1 when none does.  The height is clamped with the already clamped width (as the exe does).
-// FUNCTION: D3DREN 0x10020f20
-int d3d_GetFirstUsableMipmap(TextureData *pTexture)
+// allowed), -1 when none does.  The height is clamped with the already clamped width (as the exe does).  An inline function (184u:
+// over the 174u auto-inline cap of an extern one, and CTextureManager_CreateRTexture expands it); this is the copy
+// d3d_CreateAndLoadTexture calls.
+// FUNCTION: D3DREN 0x10020f20 ?d3d_GetFirstUsableMipmap@@YAHPAVTextureData@@@Z
+inline int d3d_GetFirstUsableMipmap(TextureData *pTexture)
 {
 	uint32 maxWidth = LTMIN((uint32)g_MaxTextureSize, g_DeviceMaxTextureWidth);
 	uint32 maxHeight = LTMIN((uint32)g_MaxTextureSize, g_DeviceMaxTextureHeight);
@@ -1396,29 +1399,22 @@ done:
 }
 
 // Creates the RTexture of a SharedTexture's TextureData for a device stage (UnkType_RTextureBuild: SharedTexture, TextureData, stage flags;
-// bAdditional bit 0: an additional-stage texture that is not stored in the SharedTexture): the newer generation of d3d_CreateAndLoadTexture +
-// d3d_CreateMipmapTextureSurface with the surface creation written out in place (DXT / aspect ratio through the helpers 0x10021a50 / 0x10021960 /
-// 0x100219b0), the RTexture taken from the bank and linked into g_Textures.  The mipmaps are not transferred here.  Returns the
-// RTexture or 0.  The 0x1608 byte frame is the ConParse of the command string.
-// NOT MATCHING: first transcription from the disassembly (the check output gives the sizes); the first usable mipmap search and the
-// bank allocation are expanded in place in the exe (our d3d_GetFirstUsableMipmap / ObjectBank::Allocate are calls / an out-of-line
-// AllocVoid in the same inline-budget position as in d3d_CreateAndLoadTexture).
+// bAdditional bit 0: an additional-stage texture that is not stored in the SharedTexture): d3d_CreateAndLoadTexture without the upload,
+// the RTexture taken from the bank and linked into g_Textures.  Returns the RTexture or 0.
+// The exe expands the inline d3d_GetFirstUsableMipmap and d3d_CreateMipmapTextureSurface here; inside the latter's expansion the
+// helpers IsS3TCFormatSupported / S3TCFormatConv / AdjustAspectRatio get only a small budget share (R8) and stay calls, as does the
+// RTexture constructor inside ObjectBank::Allocate: the call set and the size (1744) are the exe's.
+// NOT MATCHING: register and stack-slot choice (frame 0x1608 vs 0x1604: the exe shares the stage-flags temporary with pSurface; the
+// exe keeps the AlphaRef in di and bpp on the stack), and `not al; movsx` in the format choice (ours `not eax`).
 // STUB: D3DREN 0x10021290
 RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdditional)
 {
 	TextureData *pTextureData = pBuild->m_pTextureData;
 	uint32 nStageFlags = pBuild->m_nFlags;
-	DDSURFACEDESC2 ddsd;
-	PFormat cFormat;
-	ConParse cParse;
-	IDirectDrawSurface7 *pSurface;
+	UnkType_RTextureData data;
 	RTexture *pRTexture;
-	uint32 iFormat, iStartMipmap, nMipmaps, nAvailable, bpp, i;
-	int iFirstUsable;
-	uint32 width, height, colorValue;
-	uint16 alphaRef;
-	GenericColor colorOut;
-	float fU, fV;
+	int iFormat;
+	int iStartMipmap, nMipmaps, nAvailable, i;
 
 	if (nStageFlags & 0x100)
 	{
@@ -1439,29 +1435,30 @@ RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdd
 			iFormat = ((~dtxFlags & DTX_FULLBRITE) << 1) | 1;
 	}
 
+	memset(&data, 0, sizeof(data));
+
 	{
 		int iGroup = pTextureData->m_Header.GetTextureGroup();
-		int iStart;
-
 		if (iGroup > 9)
 			iGroup = 9;
-		iStart = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.GetUIMipmapOffset() + g_MipmapOffset;
+		iStartMipmap = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.GetUIMipmapOffset() + g_MipmapOffset;
 		if (g_CV_S3TCEnable.m_IntVal == 0)
-			iStart += pTextureData->m_Header.GetNonS3TCMipmapOffset();
-		if (iStart < 0)
-			iStart = 0;
-		else if (iStart > 3)
-			iStart = 3;
-		iStartMipmap = iStart;
+			iStartMipmap += pTextureData->m_Header.GetNonS3TCMipmapOffset();
+		if (iStartMipmap < 0)
+			iStartMipmap = 0;
+		else if (iStartMipmap > 3)
+			iStartMipmap = 3;
 	}
-	if ((int)iStartMipmap > (int)pTextureData->m_Header.m_nMipmaps - 1)
+	if (iStartMipmap > (int)pTextureData->m_Header.m_nMipmaps - 1)
 		iStartMipmap = pTextureData->m_Header.m_nMipmaps - 1;
 
-	iFirstUsable = d3d_GetFirstUsableMipmap(pTextureData);
-	if (iFirstUsable == -1)
-		return 0;
-	if ((int)iStartMipmap <= iFirstUsable)
-		iStartMipmap = iFirstUsable;
+	{
+		int iFirstUsable = d3d_GetFirstUsableMipmap(pTextureData);
+		if (iFirstUsable == -1)
+			return 0;
+		if (iStartMipmap <= iFirstUsable)
+			iStartMipmap = iFirstUsable;
+	}
 
 	nMipmaps = pTextureData->m_Header.GetNumMipmaps();
 	if (nMipmaps == 0)
@@ -1469,84 +1466,25 @@ RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdd
 	nAvailable = pTextureData->m_Header.m_nMipmaps - iStartMipmap;
 	if (nAvailable == 0)
 		return 0;
-	if ((int)nMipmaps < 1)
+	if (nMipmaps < 1)
 		nMipmaps = 1;
-	else if ((int)nMipmaps > (int)nAvailable)
+	else if (nMipmaps > nAvailable)
 		nMipmaps = nAvailable;
 
-	memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
-	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT | DDSD_TEXTURESTAGE;
-	ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
-	ddsd.ddsCaps.dwCaps2 = 0x40090;
-	ddsd.dwWidth = pTextureData->m_Mips[iStartMipmap].m_Width;
-	ddsd.dwHeight = pTextureData->m_Mips[iStartMipmap].m_Height;
-	ddsd.dwMipMapCount = nMipmaps;
-	ddsd.dwTextureStage = nStageFlags;
-
-	bpp = pTextureData->m_Header.GetBPPIdent();
-	if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
-	{
-		memset(&ddsd.ddpfPixelFormat, 0, sizeof(ddsd.ddpfPixelFormat));
-		ddsd.ddpfPixelFormat.dwFlags |= DDPF_FOURCC;
-		ddsd.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		if (!CTextureManager_S3TCFormatConv((BPPIdent)bpp, &ddsd.ddpfPixelFormat.dwFourCC))
-			return 0;
-		goto ParseColorKey;
-	}
-	ddsd.ddpfPixelFormat = g_TextureFormats[iFormat]->m_PF;
-	AdjustAspectRatio(ddsd.dwWidth, ddsd.dwHeight, &ddsd.dwWidth, &ddsd.dwHeight);
-
-ParseColorKey:
-	cParse.Init(pTextureData->m_Header.m_CommandString);
-	if (cParse.ParseFind("ColorKey", 0, 3) && !g_CV_AlphaTest.m_IntVal)
-	{
-		uint32 r = atoi(cParse.m_Args[1]);
-		uint32 g = atoi(cParse.m_Args[2]);
-		uint32 b = atoi(cParse.m_Args[3]);
-
-		colorValue = (((b << 8) | g) << 8) | r;
-		if (bpp != BPP_32 && g_CV_S3TCEnable.m_IntVal && CTextureManager_IsS3TCFormatSupported((BPPIdent)bpp))
-			cFormat.InitPValueFormat();
-		else
-			DDPFToPFormat(&ddsd.ddpfPixelFormat, &cFormat);
-		if (g_FormatMgr.PValueToFormatColor(&cFormat, colorValue, colorOut) == LT_OK)
-		{
-			ddsd.dwFlags |= DDSD_CKSRCBLT;
-			ddsd.ddckCKSrcBlt.dwColorSpaceLowValue = colorOut.dwVal;
-			ddsd.ddckCKSrcBlt.dwColorSpaceHighValue = colorOut.dwVal;
-		}
-	}
-
-	alphaRef = 0;
-	cParse.Init(pTextureData->m_Header.m_CommandString);
-	if (cParse.ParseFind("AlphaRef", 0, 1))
-		alphaRef = atoi(cParse.m_Args[1]);
-
-	if (g_pDD->CreateSurface(&ddsd, &pSurface, 0) != 0)
-	{
-		AddDebugMessage(4, "Unable to create (%dx%d) texture surface.", ddsd.dwWidth, ddsd.dwHeight);
+	if (!d3d_CreateMipmapTextureSurface(pBuild, &data, iStartMipmap, nMipmaps, iFormat))
 		return 0;
-	}
-	pSurface->SetPriority(pTextureData->m_Header.GetTexturePriority());
-
-	AdjustAspectRatio(pTextureData->m_Mips[0].m_Width, pTextureData->m_Mips[0].m_Height, &width, &height);
-	fU = pTextureData->m_Header.GetUIMipmapScale() * (1.0f / (float)width);
-	fV = pTextureData->m_Header.GetUIMipmapScale() * (1.0f / (float)height);
 
 	pRTexture = g_RTextureBank.Allocate();
 	if (!pRTexture)
 	{
-		pSurface->Release();
+		data.m_pSurface->Release();
 		return 0;
 	}
+
 	pRTexture->m_Unk30 = 0;
 	pRTexture->m_Unk49 = bAdditional;
-	pRTexture->m_Data.m_Unk04 = fU;
-	pRTexture->m_Data.m_Unk08 = fV;
-	pRTexture->m_Unk42 = (uint8)nStageFlags;
-	pRTexture->m_Data.m_pSurface = pSurface;
-	pRTexture->m_Data.m_AlphaRef = alphaRef;
+	pRTexture->m_Unk42 = (uint8)pBuild->m_nFlags;
+	pRTexture->m_Data = data;
 	pRTexture->m_Data.m_pOwner = pRTexture;
 	pRTexture->m_iStartMipmap = iStartMipmap;
 	pRTexture->m_Unk47 = nMipmaps;
@@ -1565,7 +1503,7 @@ ParseColorKey:
 		pBuild->m_pSharedTexture->m_pRenderData = pRTexture;
 	pRTexture->m_Flags = pTextureData->m_Header.m_IFlags & DTX_FULLBRITE;
 	pRTexture->m_BaseWidth = pTextureData->m_Mips[0].m_Width;
-	pRTexture->m_BaseHeight = height;
+	pRTexture->m_BaseHeight = pTextureData->m_Mips[0].m_Height;
 	pRTexture->m_Link.m_pData = pRTexture;
 	g_Textures.AddAfter(&pRTexture->m_Link);
 	RENDERSTRUCT_TEXMEM(g_pStruct) += pRTexture->m_Data.m_nMemory;

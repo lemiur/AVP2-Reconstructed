@@ -160,7 +160,7 @@ extern float g_fSpecularTexturePower;							// the specular power the lookup tex
 // d3d.ren versions work on globals and have no `this`.
 int CTextureManager_S3TCFormatConv(BPPIdent bpp, uint32 *pFourCC);			// 0x10021960 S3TCFormatConv: DXT FOURCC of a compressed BPPIdent
 int CTextureManager_IsS3TCFormatSupported(BPPIdent bpp);								// 0x10021a50 IsS3TCFormatSupported
-int d3d_GetFirstUsableMipmap(TextureData *pTexture);		// 0x10020f20
+inline int d3d_GetFirstUsableMipmap(TextureData *pTexture);	// 0x10020f20 (an inline function of d3d_texture.cpp)
 void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *outHeight);	// 0x100219b0
 TextureFormat *d3d_FindTextureFormatBySpecs(const TextureFormatSpec *pSpecs, uint32 nSpecs);	// 0x1001f590 search the enumerated formats for the first spec that matches
 HRESULT WINAPI d3d_EnumTextureFormatsCallback(LPDDPIXELFORMAT pFormat, LPVOID pContext);	// 0x1001f0d0 d3d_EnumTextureFormatsCallback
