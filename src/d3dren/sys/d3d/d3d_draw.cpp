@@ -276,15 +276,21 @@ StateChange *g_pAlphaObjectStateChange;	// alpha blending: ALPHABLENDENABLE 1, Z
 // GLOBAL: D3DREN 0x1005a36c
 StateChange *g_pAdditiveObjectStateChange;	// additive: ALPHABLENDENABLE 1, ZWRITEENABLE 0, SRCBLEND ONE, DESTBLEND ONE
 
+// guess (invented name): builds one of the two lazily created translucent StateChange objects (alpha blending on, z writes off,
+// the given blend factors); the global is passed by reference, so every use re-reads it as in the exe.
+inline void d3d_CreateTranslucentStateChange(StateChange *&pChange, uint32 srcBlend, uint32 destBlend)
+{
+	pChange = new StateChange(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
+	pChange->Add(RenderState(D3DRENDERSTATE_ZWRITEENABLE, 0));
+	pChange->Add(RenderState(D3DRENDERSTATE_SRCBLEND, srcBlend));
+	pChange->Add(RenderState(D3DRENDERSTATE_DESTBLEND, destBlend));
+}
+
 // guess: switches the device to the render states of translucent objects (bAdditive: additive blending), remembering the old values
 // in the saver g_TranslucentObjectStateRestorer.  The StateChange objects are built on first use.
 // NAME: d3d_SetTranslucentObjectStates: Jupiter d3d_draw.cpp d3d_SetTranslucentObjectStates (names_proposal high); Talon has the StateChange form.
-// STUB diagnosis (W2): d3d_SetTranslucentObjectStates: 608 of 592 bytes, 159 aligned mismatches.  Structure is right (lazily built StateChange objects g_pAdditiveObjectStateChange /
-//   g_pAlphaObjectStateChange, RenderState(type, state) temporaries, Add() = vector::push_back, the global re-read after each call).  Remaining: the STLport inline decisions:
-//   the exe calls the vector(n, value) constructor (0x100187e0) and the FIRST push_back (0x10018940) out of line, expands the second push_back with a call
-//   of _Construct (0x10018db0) and the third fully inline; ours expands the constructor and calls push_back twice.  Same helper set (all 9 STLport
-//   copies below match), different budget share per site.
-// STUB: D3DREN 0x10013ba0
+// Both StateChange objects are built by one inline helper (the two expansions get the same STLport inline split as in the exe).
+// FUNCTION: D3DREN 0x10013ba0
 void d3d_SetTranslucentObjectStates(int bAdditive)
 {
 	g_TranslucentObjectStateRestorer.RestoreAllStates();
@@ -292,10 +298,7 @@ void d3d_SetTranslucentObjectStates(int bAdditive)
 	{
 		if (!g_pAdditiveObjectStateChange)
 		{
-			g_pAdditiveObjectStateChange = new StateChange(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
-			g_pAdditiveObjectStateChange->Add(RenderState(D3DRENDERSTATE_ZWRITEENABLE, 0));
-			g_pAdditiveObjectStateChange->Add(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE));
-			g_pAdditiveObjectStateChange->Add(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE));
+			d3d_CreateTranslucentStateChange(g_pAdditiveObjectStateChange, D3DBLEND_ONE, D3DBLEND_ONE);
 			if (!g_pAdditiveObjectStateChange)
 				return;
 		}
@@ -305,10 +308,7 @@ void d3d_SetTranslucentObjectStates(int bAdditive)
 	{
 		if (!g_pAlphaObjectStateChange)
 		{
-			g_pAlphaObjectStateChange = new StateChange(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
-			g_pAlphaObjectStateChange->Add(RenderState(D3DRENDERSTATE_ZWRITEENABLE, 0));
-			g_pAlphaObjectStateChange->Add(RenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA));
-			g_pAlphaObjectStateChange->Add(RenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA));
+			d3d_CreateTranslucentStateChange(g_pAlphaObjectStateChange, D3DBLEND_SRCALPHA, D3DBLEND_INVSRCALPHA);
 			if (!g_pAlphaObjectStateChange)
 				return;
 		}
