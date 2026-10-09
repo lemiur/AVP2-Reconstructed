@@ -22,21 +22,15 @@
 #include "d3dren/rendererconsolevars.h"
 #include "d3dren/lightmap.h"
 #include "d3dren/d3dtexture.h"
+#include "d3dren/d3d_draw.h"	// the vertex tint tables and draw-mode globals (owner: sys/d3d/d3d_draw)
 
-// ---- globals read by the world polygon code ------------------------------------------------------------------------------
-// GLOBAL: D3DREN 0x10056770
-extern MainWorld *g_pFrameMainWorld;			// guess: g_pMainWorld (m_LMGridSize at +0xf8 is the lightmap grid spacing)
-
+// ---- globals read by the world polygon code (the frame's world, statistics and vertex colours: common_draw.h) -------------
 // GLOBAL: D3DREN 0x1005872c
 extern void (__fastcall *g_pfnCalcFogAlpha)(LTVector *pPos, uint32 *pSpecular);	// guess: per-vertex fog alpha hook (the vertex position and its specular colour)
 // GLOBAL: D3DREN 0x10058c40
 extern void (__fastcall *g_pfnCalcSkyFogAlpha)(LTVector *pPos, uint32 *pSpecular);	// guess: the sky's per-vertex fog hook (same signature; added by W6: d3d_drawsky and drawpolymgr use it)
-// GLOBAL: D3DREN 0x100566bc
-extern RGBColor g_GlobalVertexTintColor;			// guess: the diffuse colour the poly vertices are drawn with
 // guess: sphere map (environment) texture coordinates of a point seen from pViewPos on a surface with normal pNormal: *pU, *pV.
 void d3d_CalcWorldReflectionUVs(LTVector *pViewPos, LTVector *pPos, LTVector *pNormal, float *pU, float *pV);
-// GLOBAL: D3DREN 0x100566ac
-extern int g_nWorldPolysDrawn;				// guess: number of polys drawn (statistics)
 // GLOBAL: D3DREN 0x10058040
 extern uint8 g_u8FogColorR;				// guess: fog colour byte 0 (d3d_PackSqrtRGB / d3d_PackRGB pack three of them)
 // GLOBAL: D3DREN 0x10058041
@@ -155,35 +149,10 @@ int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppO
 int ClipPolyLeft(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 
 // ---- per-frame state and tables of the world polygon draw code (definitions: the owning units, not yet reconstructed) ----------
-// GLOBAL: D3DREN 0x10057774
-extern uint8 g_nPolyVertexAlpha;				// guess: the alpha byte of the poly vertex colours
-// GLOBAL: D3DREN 0x10055ce8
-extern LTVector g_GlobalVertexTint;			// guess: the global light colour (SceneDesc +0x5c): scales the vertex colours
-// GLOBAL: D3DREN 0x100566cc
-extern int g_nLightTests;					// guess: dynamic light tests this frame ("Num Light Tests")
 // GLOBAL: D3DREN 0x1005ce18
 extern int g_bPortalsEnabled;				// guess: world models are drawn through the sorted portal path
-// GLOBAL: D3DREN 0x10058c90
-extern UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of the buckets (polys queued per lightmap page)
-// GLOBAL: D3DREN 0x10058d00
-extern int g_bDrawGouraudFullbritePass;		// guess: draw state flag (Gouraud fullbrites in use)
-// Lighting / gamma byte tables of the vertex colours (256 entries each): the multipass (dynamic light) set and the single pass set.
-// GLOBAL: D3DREN 0x10059d04
-extern uint8 g_MultipassVertexTintTableR[256];
-// GLOBAL: D3DREN 0x10059e04
-extern uint8 g_MultipassVertexTintTableG[256];
-// GLOBAL: D3DREN 0x10059f04
-extern uint8 g_MultipassVertexTintTableB[256];
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];
-// The current global pan texture reference (&RenderStruct::m_GlobalPans[n]) and the world texture coordinate offsets/scales
-// the world poly draw state sets from it (SetupWorldTextureCoordinates).
-// GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *g_pGlobalPanInfo;
+// The world texture coordinate offsets/scales the world poly draw state sets from the current global pan texture
+// (g_pGlobalPanInfo, common_draw.h) in SetupWorldTextureCoordinates.  The vertex tint tables are in d3d_draw.h.
 // GLOBAL: D3DREN 0x1004ffb0
 extern float g_fGlobalPanUOffset;
 // GLOBAL: D3DREN 0x1004ffb4

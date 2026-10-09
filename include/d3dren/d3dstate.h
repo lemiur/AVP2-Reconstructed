@@ -9,6 +9,7 @@
 #define __D3DREN_D3DSTATE_H__
 
 #include "d3dren/d3ddevice.h"	// the DirectDraw/Direct3D 7 globals (g_pD3DDevice = IDirect3DDevice7 *, ...) and the DX headers
+#include "d3dren/common_draw.h"	// the frame codes and per-frame statistics (owner: sys/d3d/common_draw)
 
 // GLOBAL: D3DREN 0x100528d8
 extern int g_bChromaKeyPass;	// guess: set by d3d_SetChromaKeyPass (flag read by the world polygon draw code)
@@ -22,17 +23,6 @@ struct WorldPoly;
 
 // GLOBAL: D3DREN 0x100617d8
 extern RTextureBase *g_pBoundTextures[8];	// the texture (RTexture or lightmap page) currently bound on each device stage
-// GLOBAL: D3DREN 0x100577a0
-// NAME: g_CurFrameCode: Jupiter common_draw.cpp / names_proposal high (defined in sys/d3d/common_draw)
-extern uint16 g_CurFrameCode;	// the current texture frame code (RenderStruct::IncCurTextureFrameCode)
-// GLOBAL: D3DREN 0x100561f0
-// NAME: g_CurObjectFrameCode: Jupiter common_draw.cpp / names_proposal high (defined in sys/d3d/common_draw)
-extern uint32 g_CurObjectFrameCode;
-// Per-frame draw statistics d3d_InitFrame (common_draw) zeroes.
-// GLOBAL: D3DREN 0x10056688
-extern int g_nWorldPolysProcessed;			// guess: g_nWorldPoliesProcessed (names_proposal low)
-// GLOBAL: D3DREN 0x10055cf4
-extern int g_nVisibleLeaves;				// guess: g_nVisibleLeaves (names_proposal low): "Visible Leaves: %d"
 
 // Binds pPoly's lightmap page on device stage nStage unless it is already there; returns 0 when the poly has no page.
 int d3d_SetLightmapTexture(WorldPoly *pPoly, int nStage);

@@ -39,8 +39,6 @@ struct UnkType_RTexView
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);
 // d3d_BindRTexture (unk/10007930): binds the RTexture on its device stage (LRU list, SetTexture, ALPHAREF, per-stage UV scale, change counter).
 void d3d_BindRTexture(RTexture *pRTexture);
-// GLOBAL: D3DREN 0x100577b8
-extern uint16 g_CurTextureFrameCode;		// guess: current texture frame code (stored into SharedTexture::m_Unknown30)
 
 // Finds or creates the RTexture of pTexture for the stage, binds it and sets its LOD; returns 0 when there is no texture.
 // dwMaxLOD: the argument of IDirectDrawSurface7::SetLOD, which is the only thing the third argument is used for.
