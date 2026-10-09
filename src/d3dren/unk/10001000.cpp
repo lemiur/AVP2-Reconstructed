@@ -557,6 +557,22 @@ static inline void ProjectPosition(TLVertex *pDest, TLVertex *pSrc)
 	pDest->rhw = w;
 	pDest->m_Vec = result;
 }
+// guess: ProjectPositionWithDepthBias (unit unk/100062e0) written into the caller: the exe expands the same code at the three
+// vertices of an unclipped triangle of the really close draw and calls the function out of line only for the clipped polygon.
+// helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
+static inline void ProjectVertexWithDepthBias(TLVertex *pDest, TLVertex *pSrc, float fZBias)
+{
+	LTVector result;
+	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.x = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
+	result.y = (g_ViewParams.m_DeviceTimesProjection.m[1][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[1][3]) * w;
+	float z = fZBias + pSrc->m_Vec.z;
+	float w2 = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * z + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.z = (g_ViewParams.m_DeviceTimesProjection.m[2][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[2][2] * z + g_ViewParams.m_DeviceTimesProjection.m[2][3]) * w2;
+	pDest->rhw = w2;
+	pDest->m_Vec = result;
+}
+
 // The address of the last vertex that still fits into the current buffer of the pool: the end mark of the fill loops.
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence).
 static inline char *PoolLastVertex(UnkType_VertexBufferPool *p)
@@ -611,6 +627,143 @@ void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 // STUB: D3DREN 0x10002050
 int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 {
+	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
+	char *pEnd = PoolLastVertex(m_Unk608);
+	ModelTri *pTri = pLOD->m_Tris.GetArray();
+	int nTris = pLOD->m_Tris.GetSize();
+	while (nTris)
+	{
+		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
+		TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
+		TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
+		uint32 clipFlags;
+		int nIn = 3;
+		if (g_ClipFlags & 4)
+		{
+			nIn = (-pV0->m_Vec.z < pV0->m_Vec.x) + (-pV1->m_Vec.z < pV1->m_Vec.x) + (-pV2->m_Vec.z < pV2->m_Vec.x);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x3f;
+		}
+		if (nIn == 3 && (g_ClipFlags & 0x10))
+		{
+			nIn = (pV0->m_Vec.x < pV0->m_Vec.z) + (pV1->m_Vec.x < pV1->m_Vec.z) + (pV2->m_Vec.x < pV2->m_Vec.z);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x3b;
+		}
+		if (nIn == 3 && (g_ClipFlags & 8))
+		{
+			nIn = (pV0->m_Vec.y < pV0->m_Vec.z) + (pV1->m_Vec.y < pV1->m_Vec.z) + (pV2->m_Vec.y < pV2->m_Vec.z);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x2b;
+		}
+		if (nIn == 3 && (g_ClipFlags & 0x20))
+		{
+			nIn = (-pV0->m_Vec.z < pV0->m_Vec.y) + (-pV1->m_Vec.z < pV1->m_Vec.y) + (-pV2->m_Vec.z < pV2->m_Vec.y);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x23;
+		}
+		if (nIn == 3 && (g_ClipFlags & 1))
+		{
+			nIn = (pV0->m_Vec.z >= g_ViewParams.m_NearZ) + (pV1->m_Vec.z >= g_ViewParams.m_NearZ) + (pV2->m_Vec.z >= g_ViewParams.m_NearZ);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 3;
+		}
+		if (nIn == 3 && (g_ClipFlags & 2))
+		{
+			nIn = (pV0->m_Vec.z <= g_ViewParams.m_ClipFarZ) + (pV1->m_Vec.z <= g_ViewParams.m_ClipFarZ) + (pV2->m_Vec.z <= g_ViewParams.m_ClipFarZ);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 2;
+		}
+		if (nIn == 3)
+		{
+			if (!IsFrontFacing(pV0, pV1, pV2))
+				goto Skip;
+			ProjectVertexWithDepthBias(pOut, pV0, g_CV_NearZ.m_FloatVal);
+			pOut->color = pV0->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			ProjectVertexWithDepthBias(pOut, pV1, g_CV_NearZ.m_FloatVal);
+			pOut->color = pV1->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			ProjectVertexWithDepthBias(pOut, pV2, g_CV_NearZ.m_FloatVal);
+			pOut->color = pV2->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			if ((char *)pOut > pEnd && nTris > 1)
+			{
+				DrawFullModelPool(this);
+				pOut = (TLVertex *)m_Unk608->Lock();
+				pEnd = PoolLastVertex(m_Unk608);
+			}
+		}
+		else
+		{
+			char aBuf[0x500];
+			TLVertex *pPoly = (TLVertex *)aBuf;
+			int nPoly = 3;
+			TLVertex *pD = pPoly;
+			pD->m_Vec = pV0->m_Vec;
+			pD->color = pV0->color;
+			pD->specular = m_Unk640;
+			m_Unk5f4(pD, pV0, &pTri->m_UVs[0].tu);
+			pD = (TLVertex *)((char *)pD + m_Unk5f8);
+			pD->m_Vec = pV1->m_Vec;
+			pD->color = pV1->color;
+			pD->specular = m_Unk640;
+			m_Unk5f4(pD, pV1, &pTri->m_UVs[1].tu);
+			pD = (TLVertex *)((char *)pD + m_Unk5f8);
+			pD->m_Vec = pV2->m_Vec;
+			pD->color = pV2->color;
+			pD->specular = m_Unk640;
+			m_Unk5f4(pD, pV2, &pTri->m_UVs[2].tu);
+			if (!m_Unk600(clipFlags, (void **)&pPoly, &nPoly))
+				goto Skip;
+			if (!IsFrontFacing(pPoly, (TLVertex *)((char *)pPoly + m_Unk5f8), (TLVertex *)((char *)pPoly + m_Unk5f8 * 2)))
+				goto Skip;
+			char *pPolyEnd = (char *)pPoly + m_Unk5f8 * nPoly;
+			for (TLVertex *pP = pPoly; (char *)pP < pPolyEnd; pP = (TLVertex *)((char *)pP + m_Unk5f8))
+			{
+				LTVector vPos = pP->m_Vec;
+				ProjectPositionWithDepthBias(&pP->m_Vec.x, &vPos.x, g_CV_NearZ.m_FloatVal);
+			}
+			if ((char *)pOut + (nPoly * 3 - 6) * m_Unk5f8 > pEnd)
+			{
+				FlushModelPool(this, pOut);
+				m_Unk608->RestartInNextBuffer();
+				pOut = (TLVertex *)m_Unk608->Lock();
+				pEnd = PoolLastVertex(m_Unk608);
+			}
+			for (int i = 1; i < nPoly - 1; i++)
+			{
+				m_Unk5fc(pOut, pPoly);
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * i);
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * (i + 1));
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			}
+		}
+Skip:
+		pTri++;
+		nTris--;
+	}
+	FlushModelPool(this, pOut);
 	return 1;
 }
 
