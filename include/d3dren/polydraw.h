@@ -161,10 +161,6 @@ extern uint8 g_nPolyVertexAlpha;				// guess: the alpha byte of the poly vertex 
 extern LTVector g_GlobalVertexTint;			// guess: the global light colour (SceneDesc +0x5c): scales the vertex colours
 // GLOBAL: D3DREN 0x100566cc
 extern int g_nLightTests;					// guess: dynamic light tests this frame ("Num Light Tests")
-// GLOBAL: D3DREN 0x10056688
-extern int g_nWorldPolysProcessed;			// guess: g_nWorldPoliesProcessed (names_proposal low)
-// GLOBAL: D3DREN 0x10055cf4
-extern int g_nVisibleLeaves;				// guess: g_nVisibleLeaves (names_proposal low): "Visible Leaves: %d"
 // GLOBAL: D3DREN 0x1005ce18
 extern int g_bPortalsEnabled;				// guess: world models are drawn through the sorted portal path
 // GLOBAL: D3DREN 0x10058c90
