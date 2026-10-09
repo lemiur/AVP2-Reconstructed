@@ -553,13 +553,20 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 	pDest[2] = fZ * w;
 }
 
+// The address of the last vertex that still fits into the current buffer of the pool: the end mark of the fill loops.
+// helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence).
+static inline char *PoolLastVertex(UnkType_VertexBufferPool *p)
+{
+	uint32 nLast = p->m_Unk20 - p->m_Unk1c - 1;
+	char *pBase = (char *)p->Lock();
+	return pBase + p->GetVertexSize() * nLast;
+}
+
 // The macros below write out code that the original had in macros or inline helpers; their names are mine (no evidence).
 #define POOL_REFILL_END(P, E) \
 	{ \
-		UnkType_VertexBufferPool *pp = m_Unk608; \
-		uint32 nFree2 = pp->m_Unk20 - pp->m_Unk1c; \
-		(P) = (TLVertex *)pp->Lock(); \
-		(E) = (char *)pp->Lock() + pp->GetVertexSize() * (nFree2 - 1); \
+		(P) = (TLVertex *)m_Unk608->Lock(); \
+		(E) = PoolLastVertex(m_Unk608); \
 	}
 
 #define POOL_FLUSH_DRAW() \
@@ -576,13 +583,7 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 // triangle, not all = it has to be clipped), then the triangle is back face tested in 2D and projected.
 #define CLIPPED_CALLBACK(REALLYCLOSE) \
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock(); \
-	char *pEnd; \
-	{ \
-		UnkType_VertexBufferPool *pPool = m_Unk608; \
-		uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c; \
-		char *pBase = (char *)pPool->Lock(); \
-		pEnd = pBase + pPool->GetVertexSize() * (nFree - 1); \
-	} \
+	char *pEnd = PoolLastVertex(m_Unk608); \
 	ModelTri *pTri = pLOD->m_Tris.GetArray(); \
 	int nTris = pLOD->m_Tris.GetSize(); \
 	for (;;) \
@@ -761,10 +762,7 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
-	UnkType_VertexBufferPool *pPool = m_Unk608;
-	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
-	char *pBase = (char *)pPool->Lock();
-	char *pEnd = pBase + pPool->GetVertexSize() * (nFree - 1);
+	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
 	for (;;)
@@ -812,9 +810,7 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 			g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 			pOut = (TLVertex *)m_Unk608->Lock();
-			UnkType_VertexBufferPool *p = m_Unk608;
-			uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-			pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
+			pEnd = PoolLastVertex(m_Unk608);
 		}
 Skip:
 		pTri++;
@@ -827,23 +823,11 @@ Skip:
 int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
-	UnkType_VertexBufferPool *pPool = m_Unk608;
-	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
-	char *pBase = (char *)pPool->Lock();
-	char *pEnd = pBase + pPool->GetVertexSize() * (nFree - 1);
+	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
-	for (;;)
+	while (nTris)
 	{
-		if (nTris == 0)
-		{
-			UnkType_VertexBufferPool *p = m_Unk608;
-			uint32 nBytes = (char *)pOut - (char *)p->Lock();
-			uint32 nVerts = nBytes / p->GetVertexSize();
-			g_nModelTrianglesDrawn += nVerts / 3;
-			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
-			return 1;
-		}
 		TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
 		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
 		TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
@@ -879,14 +863,20 @@ int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 			g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 			pOut = (TLVertex *)m_Unk608->Lock();
-			UnkType_VertexBufferPool *p = m_Unk608;
-			uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-			pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
+			pEnd = PoolLastVertex(m_Unk608);
 		}
 Skip:
 		pTri++;
 		nTris--;
 	}
+	{
+		UnkType_VertexBufferPool *p = m_Unk608;
+		uint32 nBytes = (char *)pOut - (char *)p->Lock();
+		uint32 nVerts = nBytes / p->GetVertexSize();
+		g_nModelTrianglesDrawn += nVerts / 3;
+		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
+	}
+	return 1;
 }
 
 // The TnL vertex of the hardware T&L pool: position, diffuse, specular, one texture coordinate pair (0x1c bytes).  The texture
@@ -905,10 +895,7 @@ struct UnkType_TnLVertex
 int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	UnkType_TnLVertex *pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
-	UnkType_VertexBufferPool *pPool = m_Unk608;
-	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
-	char *pBase = (char *)pPool->Lock();
-	char *pEnd = pBase + pPool->GetVertexSize() * (nFree - 1);
+	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
 	if (m_Unk8b4)
@@ -938,9 +925,7 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 					g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 					pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
-					UnkType_VertexBufferPool *p = m_Unk608;
-					uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-					pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
+					pEnd = PoolLastVertex(m_Unk608);
 				}
 			}
 			pTri++;
@@ -964,9 +949,7 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 				g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
 				((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
 				pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
-				UnkType_VertexBufferPool *p = m_Unk608;
-				uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-				pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
+				pEnd = PoolLastVertex(m_Unk608);
 			}
 			pTri++;
 		}
