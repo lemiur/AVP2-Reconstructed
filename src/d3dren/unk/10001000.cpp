@@ -976,8 +976,8 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 			pEnd = PoolLastVertex(m_Unk608);
 		}
 Skip:
-		pTri++;
 		nTris--;
+		pTri++;
 	}
 }
 
@@ -1030,8 +1030,8 @@ int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 			pEnd = PoolLastVertex(m_Unk608);
 		}
 Skip:
-		pTri++;
 		nTris--;
+		pTri++;
 	}
 	FlushModelPool(this, pOut);
 	return 1;
@@ -1088,8 +1088,8 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 					pEnd = PoolLastVertex(m_Unk608);
 				}
 			}
-			pTri++;
 			nTris--;
+			pTri++;
 		}
 	}
 	else
@@ -1123,8 +1123,8 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 				pOut = (TLVertex *)m_Unk608->Lock();
 				pEnd = PoolLastVertex(m_Unk608);
 			}
-			pTri++;
 			nTris--;
+			pTri++;
 		}
 	}
 	FlushModelPool(this, pOut);
