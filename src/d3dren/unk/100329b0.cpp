@@ -317,13 +317,11 @@ void AddLightmapLightToRGB555Texel(uint16 *pTexel, UnkType_LightCtx *pCtx)
 // page's surface directly (through the scratch surface g_pLightmapScratchSurface); otherwise it is only built when more than one layer
 // contributed (and then converted into a staging texture that the poly's lightmap is drawn from, UnkType_LMLock): a poly
 // with a single plain layer keeps the page as it is.
-// Not matching (1728 of 1728 bytes): the function is one `if (pPage && scratch surface)` block with a single `return 0` after it
-// (the exe's failure paths share one epilogue); bPageIn itself takes the LMAnimStatic flag; the blend loop walks two pointers with
-// a down counter (the exe's byte-offset induction variable); the source format reaches the request through a PFormat copy (the
-// exe copy-constructs a temporary, then assigns it member by member, unrolled); ddsd and rc live at function scope (the exe does
-// not overlap ddsd with the lock).  Open: the exe extracts the blend channels with shr/and on registers, ours spills the texel
-// and reads bytes (`mov cl,ah`, byte loads from the spill), so the frame is 4 bytes short and the slots after it shift.
-// STUB: D3DREN 0x10033210
+// Codegen notes: one `if (pPage && scratch surface)` block with a single `return 0` after it (the exe's failure paths share one
+// epilogue); the blend channels are a local int[3] (its slots frame the spilled green) read through byte casts, and the source
+// pointer advances before the store; the source format reaches the request through a PFormat copy (copy-constructed temporary,
+// then a member-wise assignment) and the staging format through a reference; ddsd and rc live at function scope.
+// FUNCTION: D3DREN 0x10033210
 int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 {
 	FMConvertRequest request;
@@ -337,7 +335,7 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 	uint32 nTexels, nBytes;
 	uint32 iRef, i;
 
-	pPage = WORLDPOLY_LMPAGE(pPoly);
+	pPage = (LightmapPage *)pPoly->m_Unk48;
 	if (pPage && g_pLightmapScratchSurface)
 	{
 		pPage->m_Unk20 = 1;
@@ -384,11 +382,13 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 
 				for (i = nTexels; i; i--)
 				{
-					uint32 r = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 16) * 0x100 + scale] + (uint8)(*pAccum >> 16)];
-					uint32 g = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 8) * 0x100 + scale] + (uint8)(*pAccum >> 8)];
-					uint32 b = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)*pTemp * 0x100 + scale] + (uint8)*pAccum];
+					int rgb[3];
+
+					rgb[0] = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 16) * 0x100 + scale] + (uint8)(*pAccum >> 16)];
+					rgb[1] = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 8) * 0x100 + scale] + (uint8)(*pAccum >> 8)];
+					rgb[2] = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)*pTemp * 0x100 + scale] + (uint8)*pAccum];
 					pTemp++;
-					*pAccum = (r << 8 | g) << 8 | b;
+					*pAccum = (rgb[0] << 8 | rgb[1]) << 8 | rgb[2];
 					pAccum++;
 				}
 			}
@@ -453,11 +453,10 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 				g_FormatMgr.ConvertPixels(&request);
 				g_pLightmapScratchSurface->Unlock(NULL);
 
-				rc.left = 0;
-				rc.top = 0;
+				rc.left = rc.top = 0;
 				rc.right = pPoly->m_LMWidth;
 				rc.bottom = pPoly->m_LMHeight;
-				return pPage->m_pSurface->BltFast(WORLDPOLY_UNK4E(pPoly), WORLDPOLY_UNK4F(pPoly), g_pLightmapScratchSurface, &rc, DDBLTFAST_WAIT) == DD_OK;
+				return pPage->m_pSurface->BltFast(pPoly->m_Unk4e[0], pPoly->m_Unk4e[1], g_pLightmapScratchSurface, &rc, DDBLTFAST_WAIT) == DD_OK;
 			}
 		}
 	}
