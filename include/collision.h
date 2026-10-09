@@ -85,9 +85,6 @@ extern PhysicsSphere g_EndSphere;
 // The radius of the moving box (from its dims).
 // GLOBAL: LITHTECH 0x004e0494
 extern float g_BoxRadius;
-// PolyTouchesBox's tick counter (reset by CollideWithWorld; its call counter is declared with the box-find globals).
-// GLOBAL: LITHTECH 0x004e0490
-extern uint32 g_Ticks_PolyTouchesBox;
 
 // "NewCollision" and "NewStairStep" console variables (the table at 0x004d2424).
 // GLOBAL: LITHTECH 0x004d2164

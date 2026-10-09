@@ -12,9 +12,6 @@
 #define MAX_CLIP_NEWVERTS	264
 
 
-// GLOBAL: LITHTECH 0x004e0490
-static uint32 g_Ticks_PolyTouchesBox;
-
 // Box plane i is the axis i/2 facing this way.
 // GLOBAL: LITHTECH 0x004d0798
 static float g_ClipSigns[6] = { 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f };

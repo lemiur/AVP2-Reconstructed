@@ -9,7 +9,9 @@ extern float g_BoxFindRadius;
 extern LTVector g_BoxFindCenter;
 extern LTPlane g_BoxFindPlanes[6];
 
-// PolyTouchesBox profiling counter.
+// PolyTouchesBox's profiling counters (defined in collision.cpp; CollideWithWorld resets them).
+// GLOBAL: LITHTECH 0x004e0490
+extern uint32 g_Ticks_PolyTouchesBox;
 // GLOBAL: LITHTECH 0x004e24a8
 extern uint32 g_nPolyTouchesBoxCalls;
 
