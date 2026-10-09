@@ -91,7 +91,8 @@ float IntersectFarClipPlane(float *p1, float *p2, float *pOut);
 // normal, clips it against the six shadow frustum planes (pInfo->m_FrustumPlanes), gives every vertex the ModelShadowAlpha colour and
 // the texture coordinates of the 4x4 at pInfo+0x60 (rows 0, 1, 3 = tu, tv, q), then transforms/projects it (TransformClipAndProjectShadowPolygon) and draws it
 // as a TRIANGLEFAN of 0x20-byte TL vertices with tu/q, tv/q.  `this` is not used.
-// Not matching (33 aligned instruction mismatches, 28 ignoring stack offsets; the algorithm and every call/global agree).  The vertex
+// Not matching (27 aligned instruction mismatches, 22 ignoring stack offsets; the algorithm and every call/global agree; the
+// specular store comes after q, as in the exe).  The vertex
 // copy loop and the six-plane clip loop are now written like the sibling 0x10026d6a (cached source plane and vertex cursor; the clip
 // loop counts down from 6 with the delayed clipper store), which gives the exe's loop guard order and the in-memory plane counter.
 // Remaining:
@@ -173,8 +174,8 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 		pVert->rgb.a = (uint8)g_CV_ModelShadowAlpha.m_IntVal;
 		pVert->tu = pInfo->m_Unk60.m[0][0] * pVert->m_Vec.x + pInfo->m_Unk60.m[0][1] * pVert->m_Vec.y + pInfo->m_Unk60.m[0][2] * pVert->m_Vec.z + pInfo->m_Unk60.m[0][3];
 		pVert->tv = pInfo->m_Unk60.m[1][0] * pVert->m_Vec.x + pInfo->m_Unk60.m[1][1] * pVert->m_Vec.y + pInfo->m_Unk60.m[1][2] * pVert->m_Vec.z + pInfo->m_Unk60.m[1][3];
-		pVert->specular = 0xffffffff;
 		pVert->m_Unk20 = pInfo->m_Unk60.m[3][0] * pVert->m_Vec.x + pInfo->m_Unk60.m[3][1] * pVert->m_Vec.y + pInfo->m_Unk60.m[3][2] * pVert->m_Vec.z + pInfo->m_Unk60.m[3][3];
+		pVert->specular = 0xffffffff;
 	}
 
 	g_ClipFlags = 0x3f;
