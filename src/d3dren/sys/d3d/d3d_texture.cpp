@@ -133,10 +133,10 @@ TextureFormat *d3d_GetLightmapTextureFormat()
 // Creates a lightmap page texture surface (the DirectDraw surface in the lightmap format, DDSD_TEXTURESTAGE for one-pass lightmapping)
 // and an RTexture for it: the allocator callback the lightmap texture pools use (UnkType_LMTexturePools::CreateTexturePools).
 // NAME: names_proposal.csv guess_CreateLightmapPageTexture (low, invented): not used
-// NOT MATCHING (400 vs 432 bytes, 306 strict differences): earlier reciprocal stores improve scheduling, but the native width
-// reciprocal remains live across overriding assignments whereas ours is stored sooner. The native out-of-line data constructor,
-// separate failure epilogues, and saved-width register assignment remain unresolved. Nested/goto/else failure shapes and local
-// width/height aliases do not recover those differences. All other owning-unit function bytes and relocations are preserved.
+// NOT MATCHING (416 vs 432 bytes, 286 strict differences): the allocation failure returns early (the exe's Release path is the last
+// block).  The exe calls the UnkType_RTextureData constructor out of line (0x1001e900, its only caller) while inlining the rest of
+// RTexture(); ours inlines it: an inline-budget decision.  The format / surface failure epilogues are separate copies in the exe and
+// one shared block in ours, and the saved-register set differs (the exe saves esi at entry).
 // STUB: D3DREN 0x1001e750
 RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 {
@@ -160,22 +160,23 @@ RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 		return 0;
 
 	pRTexture = g_RTextureBank.Allocate();
-	if (pRTexture)
+	if (!pRTexture)
 	{
-		pRTexture->m_Data.m_Unk04 = 1.0f / (float)width;
-		pRTexture->m_Data.m_Unk08 = 1.0f / (float)height;
-		pRTexture->m_Data.m_pOwner = pRTexture;
-		pRTexture->m_Data.m_pSurface = pSurface;
-		pRTexture->m_BaseHeight = height;
-		pRTexture->m_pSharedTexture = 0;
-		pRTexture->m_Link.m_pData = 0;
-		pRTexture->m_Flags = 0;
-		pRTexture->m_BaseWidth = width;
-		pRTexture->m_Data.m_nTextureFrameCode = 0;
-		return pRTexture;
+		pSurface->Release();
+		return 0;
 	}
-	pSurface->Release();
-	return 0;
+
+	pRTexture->m_Data.m_Unk04 = 1.0f / (float)width;
+	pRTexture->m_Data.m_Unk08 = 1.0f / (float)height;
+	pRTexture->m_Data.m_pOwner = pRTexture;
+	pRTexture->m_Data.m_pSurface = pSurface;
+	pRTexture->m_BaseHeight = height;
+	pRTexture->m_pSharedTexture = 0;
+	pRTexture->m_Link.m_pData = 0;
+	pRTexture->m_Flags = 0;
+	pRTexture->m_BaseWidth = width;
+	pRTexture->m_Data.m_nTextureFrameCode = 0;
+	return pRTexture;
 }
 
 // The UnkType_RTextureData constructor (vptr only), kept out of line in the exe: 0x1001e900.
