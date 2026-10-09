@@ -982,12 +982,7 @@ void d3d_BuildSpecularLookupTexture(float fSpecularPower);	// unit d3d_texture (
 
 // guess: runs the draw callbacks over the pieces of the model: picks the vertex format / pool, binds each piece's skin and
 // calls pfnDrawA for the pieces that need no clipping and pfnDrawB for the others.
-// Not matching: 331/816 bytes, 98 aligned mismatches, same blocks and calls (audit-level equal).  Remaining differences are register
-// allocation and statement scheduling: the exe keeps a zero in no register (our `if (m_Unk8ac)` forms use test), loads
-// m_pModel/m_Unk82c earlier and schedules the `m_Unk4cc = -1` store before the piece loop set-up; the LOD choice
-// (ModelPiece::GetLOD inline) and the loop counter/slot assignment differ.  tools/permute.py cannot run on this unit file
-// (member function in a large file); not yet tried on an extracted copy.
-// STUB: D3DREN 0x10004270
+// FUNCTION: D3DREN 0x10004270
 void ModelDraw::DrawPiecesWithCallbacks(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pfnDrawB, int a3)
 {
 	m_Unk5f0 = a3;
@@ -1025,9 +1020,11 @@ void ModelDraw::DrawPiecesWithCallbacks(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pf
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_CCW);
 	if (m_Unk8ac)
 	{
+		uint32 nFVF = (m_Unk604 & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
+		uint32 nStride = m_Unk5f8 - 4;
 		m_Unk608 = &UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache;
-		UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.m_Unk58 = (m_Unk604 & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
-		UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.m_Unk54 = m_Unk5f8 - 4;
+		UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.m_Unk58 = nFVF;
+		UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache.m_Unk54 = nStride;
 	}
 	int bCull;
 	if (m_Unk8ac == 1 || m_Unk8b0)
@@ -1041,17 +1038,21 @@ void ModelDraw::DrawPiecesWithCallbacks(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pf
 	{
 		ModelPiece *pPiece = m_pModel->m_Pieces[i];
 		PieceLOD *pLOD = pPiece->GetLOD(m_nLOD);
-		if (pLOD && !(m_pInstance->m_HiddenPieces & (1 << (i & 31))) && !m_Unk2c4[i])
+		if (pLOD && !(m_pInstance->m_HiddenPieces & (1 << i)) && !m_Unk2c4[i])
 		{
 			if (pPiece->m_TextureIndex != m_Unk4cc)
 			{
 				BindModelSkinTextures(pPiece->m_TextureIndex);
 				BeginModelRenderPass((uint32 *)&m_Unk5f0);
 				SharedTexture *pSkin = m_pInstance->m_pSkins[pPiece->m_TextureIndex];
-				if (pSkin && pSkin->m_pStateChange)
+				if (pSkin)
 				{
-					g_TextureStateRestorer.RestoreAllStates();
-					g_TextureStateRestorer.ApplyStateChange(pSkin->m_pStateChange, m_Unk34);
+					StateChange *pStateChange = pSkin->m_pStateChange;
+					if (pStateChange)
+					{
+						g_TextureStateRestorer.RestoreAllStates();
+						g_TextureStateRestorer.ApplyStateChange(pStateChange, m_Unk34);
+					}
 				}
 			}
 			m_Unk62c = pPiece->m_SpecularPower;
@@ -1062,10 +1063,10 @@ void ModelDraw::DrawPiecesWithCallbacks(PFN_DrawPiece pfnDrawA, PFN_DrawPiece pf
 				m_Unk630 = g_CV_SpecularScaleTest.m_FloatVal;
 			if (m_Unk630 != 0.0f && m_Unk5ec == (PFN_GenTexCoords)GenerateModelSpecularCoords)
 				d3d_BuildSpecularLookupTexture(m_Unk62c);
-			if (!m_Unk3c4[i])
-				(this->*pfnDrawA)(pLOD, pVerts);
-			else
+			if (m_Unk3c4[i])
 				(this->*pfnDrawB)(pLOD, pVerts);
+			else
+				(this->*pfnDrawA)(pLOD, pVerts);
 			pVerts += pLOD->m_Verts.GetSize();
 		}
 	}
