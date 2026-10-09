@@ -163,7 +163,7 @@ float g_fVFogDensityScale;				// guess: 255 / VFogDensity (set by RenderScene wh
 // integrates a fog density that is VFogMinYVal below VFogMinY, VFogMaxYVal above VFogMaxY and linear in between along the ray from the viewer to the vertex
 // (the viewer's own density and zone are cached in g_ViewParams.m_fVFogViewDensity / m_nVFogViewZone by ViewParams::SetupFogViewPosition), clamps it to VFogMax and
 // stores 255 - fog in the specular alpha.  Same fastcall contract as the other fog hooks (position in ecx, specular in edx).
-// STUB diagnosis: 181 aligned mismatches, 83 ignoring stack offsets (was 403 / 307); the crossing point is built with the 3-float
+// STUB diagnosis: 174 aligned mismatches, 74 ignoring stack offsets (was 181 / 83); the crossing point is built with the 3-float
 //   constructor (its inlined charge gives the exe's 5 out-of-line ctors).  The distances are the SDK's Dist (its out-of-line
 //   copy 0x1000dfcf is in the DLL), the same-zone branch computes one distance and doubles it (the exe has 6 Mag sites, `fadd st(0),st(0)`),
 //   the zone and the clamped density are the inline helpers d3d_GetVFogZone / d3d_GetVFogDensity (ViewParams::SetupFogViewPosition uses
@@ -171,6 +171,9 @@ float g_fVFogDensityScale;				// guess: 255 / VFogDensity (set by RenderScene wh
 //   Remaining: the call set.  The exe calls Mag out of line at all 6 Dist sites, the 3-float ctor at 5 and the whole operator- at the
 //   last; ours inlines Mag at the 4th and 5th site and the last operator- (nested shares: the original has less budget or more pending
 //   sites after each Dist; inline_budget.py --solve finds no pending/budget combination), and the frame differs accordingly.
+//   Each leg is `g_fVFogDensityScale * (distance * density)`: with the plain left-to-right chain VC6 multiplies by the global first,
+//   the exe multiplies by the density first.  Under the inline-budget model the 5th/6th legs (operator- inlined, then refused) need
+//   an inline charge between them, so the leg/helper structure is still open.
 // STUB: D3DREN 0x100135c0
 void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 {
@@ -186,12 +189,12 @@ void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 		if (g_ViewParams.m_nVFogViewZone == 2)
 		{
 			fFog = (vPos.y - g_CV_VFogMinY.m_FloatVal) * g_fVFogValueRange * g_fInvVFogHeightRange + g_ViewParams.m_fVFogViewDensity + g_CV_VFogMinYVal.m_FloatVal;
-			fFog = vEye.Dist(*pPos) * fFog * g_fVFogDensityScale;
+			fFog = g_fVFogDensityScale * (vEye.Dist(*pPos) * fFog);
 		}
 		else
 		{
 			fFog = g_ViewParams.m_fVFogViewDensity;
-			fFog = vEye.Dist(*pPos) * fFog * 2.0f * g_fVFogDensityScale;
+			fFog = g_fVFogDensityScale * (vEye.Dist(*pPos) * fFog * 2.0f);
 		}
 	}
 	else
@@ -204,16 +207,16 @@ void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 		{
 			// viewer above VFogMaxY, vertex below: the first part of the ray is at VFogMaxYVal
 			fFog = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = vEye.Dist(vCross) * fFog * g_fVFogDensityScale;
+			fFog = g_fVFogDensityScale * (vEye.Dist(vCross) * fFog);
 			fFogB = d3d_GetVFogDensity(vPos.y) + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = vCross.Dist(vPos) * fFogB * g_fVFogDensityScale + fFog;
+			fFog = g_fVFogDensityScale * (vCross.Dist(vPos) * fFogB) + fFog;
 		}
 		else
 		{
 			fFogB = d3d_GetVFogDensity(vEye.y) + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = vEye.Dist(vCross) * fFogB * g_fVFogDensityScale;
+			fFog = g_fVFogDensityScale * (vEye.Dist(vCross) * fFogB);
 			fFogB = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = vCross.Dist(vPos) * fFogB * g_fVFogDensityScale + fFog;
+			fFog = g_fVFogDensityScale * (vCross.Dist(vPos) * fFogB) + fFog;
 		}
 	}
 
