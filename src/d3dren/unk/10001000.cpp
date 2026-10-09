@@ -577,6 +577,14 @@ static inline void FlushModelPool(ModelDraw *pDraw, TLVertex *pOut)
 	((UnkType_VBPoolDrawView *)pDraw->m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
 }
 
+// Draws the whole current buffer of the pool (it is full) and counts the triangles.
+// helper written for this decompilation (the exe has it inlined at every restart; the name is mine).
+static inline void DrawFullModelPool(ModelDraw *pDraw)
+{
+	g_nModelTrianglesDrawn += (pDraw->m_Unk608->m_Unk20 - pDraw->m_Unk608->m_Unk1c) / 3;
+	((UnkType_VBPoolDrawView *)pDraw->m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, pDraw->m_Unk608->m_Unk20 - pDraw->m_Unk608->m_Unk1c);
+}
+
 // The macros below write out code that the original had in macros or inline helpers; their names are mine (no evidence).
 #define POOL_REFILL_END(P, E) \
 	{ \
@@ -675,8 +683,7 @@ TestRight: \
 				} \
 				if ((char *)pOut > pEnd && nTris > 1) \
 				{ \
-					g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3; \
-					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c); \
+					DrawFullModelPool(this); \
 					POOL_REFILL_END(pOut, pEnd) \
 				} \
 			} \
@@ -819,8 +826,7 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 		if ((char *)pOut > pEnd && nTris > 1)
 		{
-			g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
-			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
+			DrawFullModelPool(this);
 			pOut = (TLVertex *)m_Unk608->Lock();
 			pEnd = PoolLastVertex(m_Unk608);
 		}
@@ -874,8 +880,7 @@ int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 		if ((char *)pOut > pEnd && nTris > 1)
 		{
-			g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
-			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
+			DrawFullModelPool(this);
 			pOut = (TLVertex *)m_Unk608->Lock();
 			pEnd = PoolLastVertex(m_Unk608);
 		}
@@ -933,8 +938,7 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 				if ((char *)pOut > pEnd && nTris > 1)
 				{
-					g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
-					((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
+					DrawFullModelPool(this);
 					pOut = (TLVertex *)m_Unk608->Lock();
 					pEnd = PoolLastVertex(m_Unk608);
 				}
@@ -970,8 +974,7 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 			if ((char *)pOut > pEnd && nTris > 1)
 			{
-				g_nModelTrianglesDrawn += (m_Unk608->m_Unk20 - m_Unk608->m_Unk1c) / 3;
-				((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, m_Unk608->m_Unk20 - m_Unk608->m_Unk1c);
+				DrawFullModelPool(this);
 				pOut = (TLVertex *)m_Unk608->Lock();
 				pEnd = PoolLastVertex(m_Unk608);
 			}
