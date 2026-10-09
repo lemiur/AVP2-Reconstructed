@@ -60,8 +60,6 @@ ViewParams g_SkyParams;
 // GLOBAL: D3DREN 0x10073990
 ConVar g_CV_AllSkyPortals("AllSkyPortals", 0.0f);
 
-// GLOBAL: D3DREN 0x100566b8
-extern int g_nSkyPortals;
 // ---- drawsky: the sky pass --------------------------------------------------------------------------------------------------------
 
 // GLOBAL: D3DREN 0x10072d08
@@ -72,8 +70,6 @@ float g_SkyMaxX;			// as min Y, min X at 0x100739b0/b4 and max Y, max X at 0x100
 float g_SkyMinY;
 // GLOBAL: D3DREN 0x100739b4
 float g_SkyMinX;
-// GLOBAL: D3DREN 0x10048728
-extern float g_SkyScale;	// guess: the SkyScale console variable's float mirror
 
 void d3d_InitViewBox2(ViewBoxDef *pDef, float nearZ, float farZ, const ViewParams &PrevParams, float screenMinX, float screenMinY,
 	float screenMaxX, float screenMaxY);
@@ -243,15 +239,15 @@ int CalcVisibleSkyPortalExtents()
 
 // NAME: d3d_DrawSky: Jupiter drawsky.cpp d3d_DrawSkyExtents (names_proposal.csv, medium): the same sequence (extents, view box, frustum
 // with the sky camera position and SkyScale, d3d_DrawSkyObjects); the Talon one finds the extents itself and takes no arguments
-// STUB diagnosis (W6): 384 bytes like the exe (two counter epilogues, same calls in the same order); 184 bytes differ: the exe loads the
-// four extents into edx, eax, ecx, edx (g_SkyMaxY first) where ours uses ecx, edx, eax, and the matrix copy is interleaved with other
-// register choices.  Permuter best 47 mismatches.
-// STUB: D3DREN 0x1002d4c0
+// The enable tests and the sky-object count are two separate early returns (one combined condition rotates every register).
+// FUNCTION: D3DREN 0x1002d4c0
 void d3d_DrawSky()
 {
-	CountAdder cntAdd((uint32 *)((uint8 *)g_pStruct + 0x6c));
+	CountAdder cntAdd(&g_pStruct->m_Unk6c);
 
-	if (!g_DrawSky || !g_EnableSky || g_pSceneDesc->m_nSkyObjects <= 0)
+	if (!g_DrawSky || !g_EnableSky)
+		return;
+	if (g_pSceneDesc->m_nSkyObjects <= 0)
 		return;
 	if (!CalcVisibleSkyPortalExtents())
 		return;

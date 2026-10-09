@@ -86,7 +86,7 @@ struct RenderStruct
 	uint32			m_Ticks_Models;				// 0x60
 	uint32			m_Ticks_WorldModels;		// 0x64
 	uint32			m_Ticks_Translucent;		// 0x68
-	uint8			m_Pad6C[0x70 - 0x6c];
+	uint32			m_Unk6c;					// 0x6c renderer: sky pass ticks (d3d_DrawSky)
 
 	int				(*Init)(RenderStructInit *pInit);	// 0x70 Returns RENDER_OK for success, or an error code.
 	void			(*Term)();							// 0x74

@@ -155,7 +155,7 @@ void d3d_FlushObjectQueues()
 	g_pStruct->Unknown24();
 
 	{
-		CountAdder cntAdd((uint32 *)((uint8 *)g_pStruct + 0x64));
+		CountAdder cntAdd(&g_pStruct->m_Ticks_WorldModels);
 		{
 			CountAdder cntAdd2(g_pSceneDesc->m_pTicks_Render_WorldModels);
 			d3d_DrawSolidWorldModels();
@@ -164,7 +164,7 @@ void d3d_FlushObjectQueues()
 	}
 
 	{
-		CountAdder cntAdd((uint32 *)((uint8 *)g_pStruct + 0x60));
+		CountAdder cntAdd(&g_pStruct->m_Ticks_Models);
 		d3d_DrawSolidModels();
 		g_pStruct->Unknown24();
 	}
@@ -180,7 +180,7 @@ void d3d_FlushObjectQueues()
 		g_pfnDrawVisibleReflections();
 
 	{
-		CountAdder cntAdd((uint32 *)((uint8 *)g_pStruct + 0x68));
+		CountAdder cntAdd(&g_pStruct->m_Ticks_Translucent);
 
 		// this is static to prevent having to do allocations per frame
 		static ObjectDrawList s_TransObjList;
