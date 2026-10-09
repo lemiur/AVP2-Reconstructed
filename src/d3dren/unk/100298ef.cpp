@@ -552,8 +552,8 @@ void DrawPolyMgr::FlushQueuedPolys()
 
 			for (LTLink *pLink = pHead->m_pNext; pLink != pHead; )
 			{
-				LTLink *pNextLink = pLink->m_pNext;
 				UnkType_DPMNode *pNode = (UnkType_DPMNode *)pLink->m_pData;
+				LTLink *pNextLink = pLink->m_pNext;
 				LTLink *pPolyLink = pNode->m_Unk00.m_pNext;
 				if (pPolyLink != (LTLink *)pNode)
 				{
