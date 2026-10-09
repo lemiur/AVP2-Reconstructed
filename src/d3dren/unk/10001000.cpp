@@ -192,15 +192,10 @@ void __fastcall CopyTLVertex40(UnkType_TLVertex40 *pDest, UnkType_TLVertex40 *pS
 	*pDest = *pSrc;
 }
 
-// GLOBAL: D3DREN 0x10094de0
-extern int g_ClipNearInsideFlagsTLVertex[56];	// guess: Jupiter polyclip.h bInside[] of the near plane (static here)
-// GLOBAL: D3DREN 0x10094ec0
-extern int g_ClipLeftInsideFlagsTLVertex[56];	// guess: bInside[] of the left plane
 
-float IntersectNearClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);
+#include "d3dren/clippoly.h"
+
 int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts);
-float IntersectLeftClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);
-void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 
 // Plane clippers for the remaining planes (flag bits 8, 0x10, 0x20, 2); the first argument is unused by them.
 int ClipPolyTop(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
@@ -212,21 +207,15 @@ int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, Unk
 int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t);
-// GLOBAL: D3DREN 0x10094c20
-extern int g_ClipNearInsideFlagsVertex40[56];	// guess: bInside[] of the near plane, 0x28-byte vertices
-// GLOBAL: D3DREN 0x10094d00
-extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left plane, 0x28-byte vertices
 
 // guess: clips the polygon *ppVerts (*pnVerts vertices) against the planes selected by flags (1 near, 4 left, 8, 0x10,
 // 0x20, 2); returns 0 when nothing is left.  The result replaces *ppVerts/*pnVerts (in the scratch buffer when clipped).
-// Not matching: 62 of ~350 aligned instructions at best (permuter, 10k candidates).  Semantically complete (Jupiter
-// polyclip.h expanded twice for the near and left plane, ClipLineZ/ClipExtra called out of line, then ClipPolyTop/10006670/
-// 10006900/10006ba0 for flags 8/0x10/0x20/2).  The exe keeps flags and ppVerts in spill slots [esp+0x24]/[esp+0x34], pInside/
-// nInside at [esp+0x28]/[esp+0x20] and the loop end pointer in esi; `mov eax,[g_CV]` is hoisted above the pushes.
-// Inline/call set: the exe calls IntersectNearClipPlane/IntersectLeftClipPlane out of line (here and in ClipModelPolygon40).  They are
-// extern, so /Ob2 auto-inlines them only up to the 174u cap: the LTVector & parameters indexed through LTVector::operator[] (the
-// p[i] spelling of the bodies) weigh 197u/226u on the front end and keep both out of line with unchanged code (float * indexing: 137u/151u).
+// One plane clipper per flag, as the twins in unk/100098d0 and unk/10007930: the near and left ones (clippoly.h, inline) are expanded
+// here, which is what sends their `return 0` to the common exit; ClipPolyTop/Right/Bottom/Far are called out of line.
+// The intersection helpers are called out of line: they are extern, so /Ob2 auto-inlines them only up to the 174u cap, and the
+// LTVector & parameters indexed through LTVector::operator[] (the p[i] spelling of their bodies) weigh 197u/226u on the front end
+// (float * indexing: 137u/151u, inlined).
+// Not matching: register allocation (a zero register in ebx, pVerts in esi where the exe has edx) and the flags spill slot.
 // STUB: D3DREN 0x10001530
 int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 {
@@ -240,107 +229,19 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 	TLVertex *pOut = g_pClipScratchVerts;
 	TLVertex *pVerts = *ppVerts;
 	int nVerts = *pnVerts;
-	char bUnused0, bUnused1, bUnused2, bUnused3;
+	char bUnused0, bUnused1, bUnused2, bUnused3, bUnused4, bUnused5;
 
-	if (flags & 1)
-	{
-		int nInside = 0;
-		int *pInside;
-		TLVertex *pPrev, *pCur, *pEnd, *pOldOut;
-		int iPrev, iCur;
-		float t;
-
-		g_nPlaneClipTests++;
-		pInside = g_ClipNearInsideFlagsTLVertex;
-		pCur = pVerts;
-		pEnd = pCur + nVerts;
-		while (pCur != pEnd)
-		{
-			*pInside = pCur->m_Vec.z >= g_ViewParams.m_NearZ;
-			nInside += *pInside;
-			++pInside;
-			++pCur;
-		}
-		if (nInside == 0)
-			return 0;
-		else if (nInside != nVerts)
-		{
-			pOldOut = pOut;
-			iPrev = nVerts - 1;
-			pPrev = pVerts + iPrev;
-			for (iCur = 0; iCur < nVerts; iCur++)
-			{
-				pCur = pVerts + iCur;
-				if (g_ClipNearInsideFlagsTLVertex[iPrev])
-					*pOut++ = *pPrev;
-				if (g_ClipNearInsideFlagsTLVertex[iPrev] != g_ClipNearInsideFlagsTLVertex[iCur])
-				{
-					t = IntersectNearClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
-					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
-					++pOut;
-				}
-				iPrev = iCur;
-				pPrev = pCur;
-			}
-			nVerts = pOut - pOldOut;
-			pVerts = pOldOut;
-			pOut += nVerts;
-		}
-	}
-
-	if (flags & 4)
-	{
-		int nInside = 0;
-		int *pInside;
-		TLVertex *pPrev, *pCur, *pEnd, *pOldOut;
-		int iPrev, iCur;
-		float t;
-
-		g_nPlaneClipTests++;
-		pInside = g_ClipLeftInsideFlagsTLVertex;
-		pCur = pVerts;
-		pEnd = pCur + nVerts;
-		while (pCur != pEnd)
-		{
-			*pInside = -pCur->m_Vec.z < pCur->m_Vec.x;
-			nInside += *pInside;
-			++pInside;
-			++pCur;
-		}
-		if (nInside == 0)
-			return 0;
-		else if (nInside != nVerts)
-		{
-			pOldOut = pOut;
-			iPrev = nVerts - 1;
-			pPrev = pVerts + iPrev;
-			for (iCur = 0; iCur < nVerts; iCur++)
-			{
-				pCur = pVerts + iCur;
-				if (g_ClipLeftInsideFlagsTLVertex[iPrev])
-					*pOut++ = *pPrev;
-				if (g_ClipLeftInsideFlagsTLVertex[iPrev] != g_ClipLeftInsideFlagsTLVertex[iCur])
-				{
-					t = IntersectLeftClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
-					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
-					++pOut;
-				}
-				iPrev = iCur;
-				pPrev = pCur;
-			}
-			nVerts = pOut - pOldOut;
-			pVerts = pOldOut;
-			pOut += nVerts;
-		}
-	}
-
-	if ((flags & 8) && !ClipPolyTop(&bUnused0, &pVerts, &nVerts, &pOut))
+	if ((flags & 1) && !ClipPolyNear(&bUnused0, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x10) && !ClipPolyRight(&bUnused1, &pVerts, &nVerts, &pOut))
+	if ((flags & 4) && !ClipPolyLeft(&bUnused1, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x20) && !ClipPolyBottom(&bUnused2, &pVerts, &nVerts, &pOut))
+	if ((flags & 8) && !ClipPolyTop(&bUnused2, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 2) && !ClipPolyFar(&bUnused3, &pVerts, &nVerts, &pOut))
+	if ((flags & 0x10) && !ClipPolyRight(&bUnused3, &pVerts, &nVerts, &pOut))
+		return 0;
+	if ((flags & 0x20) && !ClipPolyBottom(&bUnused4, &pVerts, &nVerts, &pOut))
+		return 0;
+	if ((flags & 2) && !ClipPolyFar(&bUnused5, &pVerts, &nVerts, &pOut))
 		return 0;
 
 	*ppVerts = pVerts;
@@ -362,107 +263,19 @@ int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, in
 	UnkType_TLVertex40 *pOut = (UnkType_TLVertex40 *)g_pClipScratchVerts;
 	UnkType_TLVertex40 *pVerts = *ppVerts;
 	int nVerts = *pnVerts;
-	char bUnused0, bUnused1, bUnused2, bUnused3;
+	char bUnused0, bUnused1, bUnused2, bUnused3, bUnused4, bUnused5;
 
-	if (flags & 1)
-	{
-		int nInside = 0;
-		int *pInside;
-		UnkType_TLVertex40 *pPrev, *pCur, *pEnd, *pOldOut;
-		int iPrev, iCur;
-		float t;
-
-		g_nPlaneClipTests++;
-		pInside = g_ClipNearInsideFlagsVertex40;
-		pCur = pVerts;
-		pEnd = pCur + nVerts;
-		while (pCur != pEnd)
-		{
-			*pInside = pCur->m_Vec.z >= g_ViewParams.m_NearZ;
-			nInside += *pInside;
-			++pInside;
-			++pCur;
-		}
-		if (nInside == 0)
-			return 0;
-		else if (nInside != nVerts)
-		{
-			pOldOut = pOut;
-			iPrev = nVerts - 1;
-			pPrev = pVerts + iPrev;
-			for (iCur = 0; iCur < nVerts; iCur++)
-			{
-				pCur = pVerts + iCur;
-				if (g_ClipNearInsideFlagsVertex40[iPrev])
-					*pOut++ = *pPrev;
-				if (g_ClipNearInsideFlagsVertex40[iPrev] != g_ClipNearInsideFlagsVertex40[iCur])
-				{
-					t = IntersectNearClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
-					TLVertex40_ClipExtra(pPrev, pCur, pOut, t);
-					++pOut;
-				}
-				iPrev = iCur;
-				pPrev = pCur;
-			}
-			nVerts = pOut - pOldOut;
-			pVerts = pOldOut;
-			pOut += nVerts;
-		}
-	}
-
-	if (flags & 4)
-	{
-		int nInside = 0;
-		int *pInside;
-		UnkType_TLVertex40 *pPrev, *pCur, *pEnd, *pOldOut;
-		int iPrev, iCur;
-		float t;
-
-		g_nPlaneClipTests++;
-		pInside = g_ClipLeftInsideFlagsVertex40;
-		pCur = pVerts;
-		pEnd = pCur + nVerts;
-		while (pCur != pEnd)
-		{
-			*pInside = -pCur->m_Vec.z < pCur->m_Vec.x;
-			nInside += *pInside;
-			++pInside;
-			++pCur;
-		}
-		if (nInside == 0)
-			return 0;
-		else if (nInside != nVerts)
-		{
-			pOldOut = pOut;
-			iPrev = nVerts - 1;
-			pPrev = pVerts + iPrev;
-			for (iCur = 0; iCur < nVerts; iCur++)
-			{
-				pCur = pVerts + iCur;
-				if (g_ClipLeftInsideFlagsVertex40[iPrev])
-					*pOut++ = *pPrev;
-				if (g_ClipLeftInsideFlagsVertex40[iPrev] != g_ClipLeftInsideFlagsVertex40[iCur])
-				{
-					t = IntersectLeftClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
-					TLVertex40_ClipExtra(pPrev, pCur, pOut, t);
-					++pOut;
-				}
-				iPrev = iCur;
-				pPrev = pCur;
-			}
-			nVerts = pOut - pOldOut;
-			pVerts = pOldOut;
-			pOut += nVerts;
-		}
-	}
-
-	if ((flags & 8) && !ClipPolyTop40(&bUnused0, &pVerts, &nVerts, &pOut))
+	if ((flags & 1) && !ClipPolyNear40(&bUnused0, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x10) && !ClipPolyRight40(&bUnused1, &pVerts, &nVerts, &pOut))
+	if ((flags & 4) && !ClipPolyLeft40(&bUnused1, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 0x20) && !ClipPolyBottom40(&bUnused2, &pVerts, &nVerts, &pOut))
+	if ((flags & 8) && !ClipPolyTop40(&bUnused2, &pVerts, &nVerts, &pOut))
 		return 0;
-	if ((flags & 2) && !ClipPolyFar40(&bUnused3, &pVerts, &nVerts, &pOut))
+	if ((flags & 0x10) && !ClipPolyRight40(&bUnused3, &pVerts, &nVerts, &pOut))
+		return 0;
+	if ((flags & 0x20) && !ClipPolyBottom40(&bUnused4, &pVerts, &nVerts, &pOut))
+		return 0;
+	if ((flags & 2) && !ClipPolyFar40(&bUnused5, &pVerts, &nVerts, &pOut))
 		return 0;
 
 	*ppVerts = pVerts;
