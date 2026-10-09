@@ -705,20 +705,56 @@ void d3d_ListTextureFormats()
 // d3d_AddToString (0x1001ff80, defined below the printer): appends the text and a space to pStr and returns the end of the string.
 char *d3d_AddToString(char *pStr, const char *pToAdd);
 
+// The DDPF_ flag name of a pixel format (the first flag set, in this order) into pStr: the DirectDraw form of Jupiter's
+// d3d_D3DFormatToString (d3d_utils.cpp).  NAME: invented (not in d3d.ren: d3d_PrintFormatInfo expands it; the d3d_AddToString
+// calls inside get a budget share that expands the first ten and calls the copy from the other nine).
+static void d3d_DDPFFlagsToString(uint32 dwFlags, char *pStr)
+{
+	pStr[0] = 0;
+	if (dwFlags & DDPF_ALPHA)
+		d3d_AddToString(pStr, "DDPF_ALPHA");
+	else if (dwFlags & DDPF_ALPHAPIXELS)
+		d3d_AddToString(pStr, "DDPF_ALPHAPIXELS");
+	else if (dwFlags & DDPF_ALPHAPREMULT)
+		d3d_AddToString(pStr, "DDPF_ALPHAPREMULT");
+	else if (dwFlags & DDPF_BUMPLUMINANCE)
+		d3d_AddToString(pStr, "DDPF_BUMPLUMINANCE");
+	else if (dwFlags & DDPF_BUMPDUDV)
+		d3d_AddToString(pStr, "DDPF_BUMPDUDV");
+	else if (dwFlags & DDPF_COMPRESSED)
+		d3d_AddToString(pStr, "DDPF_COMPRESSED");
+	else if (dwFlags & DDPF_FOURCC)
+		d3d_AddToString(pStr, "DDPF_FOURCC");
+	else if (dwFlags & DDPF_LUMINANCE)
+		d3d_AddToString(pStr, "DDPF_LUMINANCE");
+	else if (dwFlags & DDPF_PALETTEINDEXED1)
+		d3d_AddToString(pStr, "DDPF_PALETTEINDEXED1");
+	else if (dwFlags & DDPF_PALETTEINDEXED2)
+		d3d_AddToString(pStr, "DDPF_PALETTEINDEXED2");
+	else if (dwFlags & DDPF_PALETTEINDEXED4)
+		d3d_AddToString(pStr, "DDPF_PALETTEINDEXED4");
+	else if (dwFlags & DDPF_PALETTEINDEXED8)
+		d3d_AddToString(pStr, "DDPF_PALETTEINDEXED8");
+	else if (dwFlags & DDPF_PALETTEINDEXEDTO8)
+		d3d_AddToString(pStr, "DDPF_PALETTEINDEXEDTO8");
+	else if (dwFlags & DDPF_RGB)
+		d3d_AddToString(pStr, "DDPF_RGB");
+	else if (dwFlags & DDPF_RGBTOYUV)
+		d3d_AddToString(pStr, "DDPF_RGBTOYUV");
+	else if (dwFlags & DDPF_STENCILBUFFER)
+		d3d_AddToString(pStr, "DDPF_STENCILBUFFER");
+	else if (dwFlags & DDPF_ZBUFFER)
+		d3d_AddToString(pStr, "DDPF_ZBUFFER");
+	else if (dwFlags & DDPF_ZPIXELS)
+		d3d_AddToString(pStr, "DDPF_ZPIXELS");
+	else
+		d3d_AddToString(pStr, "UNKNOWN");
+}
+
 // Prints one texture format (its DDPF_ name, bit counts and masks) through RenderStruct::ConsolePrint, or "<pStart>NONE" for a
 // missing one.
 // NAME: d3d_PrintFormatInfo: names_proposal.csv (medium; Jupiter d3d_PrintFormatInfo(pStart, format))
-// NOT MATCHING (576 vs 1344 bytes): d3d_AddToString is an inline function in the original (its out-of-line copy follows this
-// function in the exe): the exe expands it in the first ten branches of the flag chain (each expansion is the two inline strcats, no
-// tail merging) and calls the out-of-line copy from the other nine.  Written as `inline`, our build expands all nineteen sites and
-// merges the identical bodies (also 576 bytes, and no out-of-line copy is emitted); with a code-free cost of 7 units added to the
-// inline body the same ten sites expand, but the count is then one site off: the exe also keeps the second `flags & DDPF_FOURCC` test
-// of the chain (the 7th branch, the "DDPF_FOURCC" text, dead after the sprintf branch) while ours folds it as dead, so ours expands
-// the first ten live sites.  The spelling of the chain that keeps the dead test was not found (tried: a local copy of the flags,
-// direct member reads, a reference to the pixel format, the goto form, `== DDPF_FOURCC`).  The exe's local buffers are two
-// 256 byte arrays (frame 0x200), the source here has them.  d3d_AddToString is therefore written non-inline below so that its code
-// (which is byte-identical) is checked.
-// STUB: D3DREN 0x1001fa40
+// FUNCTION: D3DREN 0x1001fa40
 void d3d_PrintFormatInfo(const char *pStart, TextureFormat *pFormat)
 {
 	char spec[256];
@@ -737,45 +773,7 @@ void d3d_PrintFormatInfo(const char *pStart, TextureFormat *pFormat)
 	}
 	else
 	{
-		spec[0] = 0;
-		if (pFormat->m_PF.dwFlags & DDPF_ALPHA)
-			d3d_AddToString(spec, "DDPF_ALPHA");
-		else if (pFormat->m_PF.dwFlags & DDPF_ALPHAPIXELS)
-			d3d_AddToString(spec, "DDPF_ALPHAPIXELS");
-		else if (pFormat->m_PF.dwFlags & DDPF_ALPHAPREMULT)
-			d3d_AddToString(spec, "DDPF_ALPHAPREMULT");
-		else if (pFormat->m_PF.dwFlags & DDPF_BUMPLUMINANCE)
-			d3d_AddToString(spec, "DDPF_BUMPLUMINANCE");
-		else if (pFormat->m_PF.dwFlags & DDPF_BUMPDUDV)
-			d3d_AddToString(spec, "DDPF_BUMPDUDV");
-		else if (pFormat->m_PF.dwFlags & DDPF_COMPRESSED)
-			d3d_AddToString(spec, "DDPF_COMPRESSED");
-		else if (pFormat->m_PF.dwFlags & DDPF_FOURCC)
-			d3d_AddToString(spec, "DDPF_FOURCC");
-		else if (pFormat->m_PF.dwFlags & DDPF_LUMINANCE)
-			d3d_AddToString(spec, "DDPF_LUMINANCE");
-		else if (pFormat->m_PF.dwFlags & DDPF_PALETTEINDEXED1)
-			d3d_AddToString(spec, "DDPF_PALETTEINDEXED1");
-		else if (pFormat->m_PF.dwFlags & DDPF_PALETTEINDEXED2)
-			d3d_AddToString(spec, "DDPF_PALETTEINDEXED2");
-		else if (pFormat->m_PF.dwFlags & DDPF_PALETTEINDEXED4)
-			d3d_AddToString(spec, "DDPF_PALETTEINDEXED4");
-		else if (pFormat->m_PF.dwFlags & DDPF_PALETTEINDEXED8)
-			d3d_AddToString(spec, "DDPF_PALETTEINDEXED8");
-		else if (pFormat->m_PF.dwFlags & DDPF_PALETTEINDEXEDTO8)
-			d3d_AddToString(spec, "DDPF_PALETTEINDEXEDTO8");
-		else if (pFormat->m_PF.dwFlags & DDPF_RGB)
-			d3d_AddToString(spec, "DDPF_RGB");
-		else if (pFormat->m_PF.dwFlags & DDPF_RGBTOYUV)
-			d3d_AddToString(spec, "DDPF_RGBTOYUV");
-		else if (pFormat->m_PF.dwFlags & DDPF_STENCILBUFFER)
-			d3d_AddToString(spec, "DDPF_STENCILBUFFER");
-		else if (pFormat->m_PF.dwFlags & DDPF_ZBUFFER)
-			d3d_AddToString(spec, "DDPF_ZBUFFER");
-		else if (pFormat->m_PF.dwFlags & DDPF_ZPIXELS)
-			d3d_AddToString(spec, "DDPF_ZPIXELS");
-		else
-			d3d_AddToString(spec, "UNKNOWN");
+		d3d_DDPFFlagsToString(pFormat->m_PF.dwFlags, spec);
 	}
 	g_pStruct->ConsolePrint("%s%s - %d bits (%d %d %d %d) (%x %x %x %x)", pStart, spec, pFormat->m_PF.dwRGBBitCount,
 		pFormat->m_RBits, pFormat->m_GBits, pFormat->m_BBits, pFormat->m_ABits,
@@ -783,7 +781,7 @@ void d3d_PrintFormatInfo(const char *pStart, TextureFormat *pFormat)
 }
 
 // NAME: d3d_AddToString: names_proposal.csv (high; Jupiter d3d_AddToString(pStr, pToAdd, nBufferLen), here without the length).
-// An inline function in the original: this is its out-of-line copy (see the printer above); the code is identical either way.
+// An extern function defined after its callers (as in Jupiter d3d_utils.cpp): the printer expands it at ten of its nineteen sites.
 // FUNCTION: D3DREN 0x1001ff80
 char *d3d_AddToString(char *pStr, const char *pToAdd)
 {
