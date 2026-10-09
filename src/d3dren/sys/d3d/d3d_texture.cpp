@@ -133,10 +133,11 @@ TextureFormat *d3d_GetLightmapTextureFormat()
 // Creates a lightmap page texture surface (the DirectDraw surface in the lightmap format, DDSD_TEXTURESTAGE for one-pass lightmapping)
 // and an RTexture for it: the allocator callback the lightmap texture pools use (UnkType_LMTexturePools::CreateTexturePools).
 // NAME: names_proposal.csv guess_CreateLightmapPageTexture (low, invented): not used
-// NOT MATCHING (416 vs 432 bytes, 286 strict differences): the allocation failure returns early (the exe's Release path is the last
-// block).  The exe calls the UnkType_RTextureData constructor out of line (0x1001e900, its only caller) while inlining the rest of
-// RTexture(); ours inlines it: an inline-budget decision.  The format / surface failure epilogues are separate copies in the exe and
-// one shared block in ours, and the saved-register set differs (the exe saves esi at entry).
+// NOT MATCHING (416 vs 432 bytes): the exe calls the UnkType_RTextureData constructor out of line (0x1001e900, its only caller) inside
+// the expanded RTexture() of ObjectBank::Allocate.  By the budget model (tools/inline_budget.py --solve) that needs two more inline
+// call sites after Allocate (or ~74u more inline cost before it); with two code-free inline calls there (diagnostic only) the size is
+// the exe's and 37 instructions differ (ddsd width/height register choice, float schedule).  The two sites are not identified.
+// PARKED: call-set wall: two inline sites after g_RTextureBank.Allocate() missing (no authentic accessor/helper found)
 // STUB: D3DREN 0x1001e750
 RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 {
