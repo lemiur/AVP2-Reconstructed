@@ -44,14 +44,25 @@
   "world/intersect_line"
  ],
  "code_bytes": 148017,
- "commit": "de4657d5eddd07132cf41167ac763b458a6a283b",
+ "code_rules": {
+  "by_rule": {
+   "R1": 6,
+   "R13": 17,
+   "R2": 101,
+   "R4": 30
+  },
+  "code_bytes": 108727,
+  "functions": 1050,
+  "pending": 140
+ },
+ "commit": "d046fc3910226006c9d05e7af068278df18d4003",
  "contract": "4248b9357daaaf129a37baf7ad8bf7b3d008344b",
  "control": {
   "differing_bytes": 11,
   "va": "100073b0"
  },
  "data_bytes": 0,
- "date": "2026-10-09 00:43",
+ "date": "2026-10-09 08:04",
  "function_bytes_total": 280674,
  "functions": 1190,
  "image": "d3d.ren",
