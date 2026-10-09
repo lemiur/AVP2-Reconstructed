@@ -92,18 +92,18 @@ float IntersectFarClipPlane(float *p1, float *p2, float *pOut);
 // normal, clips it against the six shadow frustum planes (pInfo->m_FrustumPlanes), gives every vertex the ModelShadowAlpha colour and
 // the texture coordinates of the 4x4 at pInfo+0x60 (rows 0, 1, 3 = tu, tv, q), then transforms/projects it (TransformClipAndProjectShadowPolygon) and draws it
 // as a TRIANGLEFAN of 0x20-byte TL vertices with tu/q, tv/q.  `this` is not used.
-// Not matching (585 of 590 bytes, ~66 aligned instruction mismatches, all in two places; the algorithm and every call/global agree):
+// Not matching (33 aligned instruction mismatches, 28 ignoring stack offsets; the algorithm and every call/global agree).  The vertex
+// copy loop and the six-plane clip loop are now written like the sibling 0x10026d6a (cached source plane and vertex cursor; the clip
+// loop counts down from 6 with the delayed clipper store), which gives the exe's loop guard order and the in-memory plane counter.
+// Remaining:
 //  (1) the x87 term/operand order of the three matrix expressions: the exe has tu = z(V,M) x(V,M) y(M,V) and tv = q = x(V,M) z(M,V) y(M,V)
 //      (V = vertex field as `fld`, M = matrix element as `fmul`), we produce the default z,y,x / y,x,z with M first.  Source operand order
 //      and statement order of the three expressions do not change it, named float/LTVector/LTMatrix locals, pointers and references
 //      to the matrix change it only to other wrong orders; toy tests (800 reference prefixes) show it depends on the first-reference
 //      order of values in the whole function, which I could not recover.
-//  (2) frame/slot and register allocation of the clip stage: the exe keeps the plane counter in memory ([ebp-8], dec at the top, cmp/jne
-//      at the bottom), the clipper object at [ebp-0x14], pClipVerts in the dead pPoly... parameter slot [ebp+8] and pSrc in edx; we keep
-//      the counter in ebx (inc/cmp 6), the clipper object in [ebp+8] and pSrc in ecx (frame 0x221c instead of 0x2220).
-// Tried without effect on (2): the clip stage in its own block (kept; it is what fixes the slots of 0x10026d6a), separate loop variables per loop (that gave 74 -> 66 mismatches and is kept), unsigned/uint8/uint16 counters,
-// do/while and down-counting forms, declaration order (48 permutations), an inline clip helper with reference parameters, pCur copy of pSrc.
-// The ordering hint that did help: pVert = &pVerts[i] (a pointer local) in the vertex loop, which removes the per-field reloads of pVerts.
+//  (2) the clip stage's slots: the exe keeps pClipVerts in the dead pInfo parameter slot [ebp+8] and the plane counter at [ebp-8]
+//      (the vertex loop counter's slot); we swap the two.  Declaration order of the clip block's locals and reusing i/iVert/iDraw as the
+//      plane counter do not change it.
 // STUB: D3DREN 0x10025078
 void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 {
@@ -131,11 +131,13 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 		return;
 	}
 
+	LTPlane *pSourcePlane = pPoly->m_pPlane;
+	SPolyVertex *pCur = pSrc;
 	for (iVert = 0; iVert < nVerts; iVert++)
 	{
-		aVerts[iVert].m_Vec = *pSrc->m_Vec;
-		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
-		pSrc++;
+		aVerts[iVert].m_Vec = *pCur->m_Vec;
+		aVerts[iVert].m_Vec += pSourcePlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
+		pCur++;
 	}
 
 	pVerts = aVerts;
@@ -145,14 +147,13 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 		LTPlane *pPlane;
 		int nClip;
 		int iPlane;
-		pClipVerts = pVerts;
-		nClip = nVerts;
-		pClipOut = (UnkType_Vertex36 *)g_pClipScratchVerts;
 		pPlane = pInfo->m_FrustumPlanes;
-		for (iPlane = 0; iPlane < 6; iPlane++)
+		pClipOut = (UnkType_Vertex36 *)g_pClipScratchVerts;
+		pClipVerts = pVerts;
+		for (iPlane = 6, nClip = nVerts; iPlane != 0; )
 		{
-			clipper.m_Unk00 = pPlane;
-			if (!ClipShadowPolygonToPlane(&clipper, &pClipVerts, &nClip, &pClipOut))
+			--iPlane;
+			if (!ClipShadowPolygonToPlane((clipper.m_Unk00 = pPlane, &clipper), &pClipVerts, &nClip, &pClipOut))
 				return;
 			pPlane++;
 		}
