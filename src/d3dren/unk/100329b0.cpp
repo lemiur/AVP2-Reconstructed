@@ -413,7 +413,8 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 					*request.m_pSrcFormat = tmp;
 					request.m_pSrc = (uint8 *)accum;
 					request.m_SrcPitch = pPoly->m_LMWidth * 4;
-					*request.m_pDestFormat = lock.m_Unk0c;
+					PFormat &destFormat = lock.m_Unk0c;
+					*request.m_pDestFormat = destFormat;
 					request.m_pDest = lock.m_Unk00;
 					request.m_DestPitch = lock.m_Unk04;
 					request.m_Width = pPoly->m_LMWidth;
