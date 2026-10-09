@@ -1192,12 +1192,16 @@ void d3d_DrawLightScalePoly(const LTVector &vScale)
 // every vertex projected with the matrix handed in (MatVMul_H, the 1/w it returns is dropped), white diffuse, the stage 0 texture scale applied to the
 // vertex uv, the per-vertex fog hook for the specular alpha, clipped with the plane mask 0x3f and drawn as a triangle fan.  Only called by the mirror pass
 // when the surface has the overlay bit.  The exe expands the inline d3d_SetTexture here; the call below is the out-of-line one.
-// STUB diagnosis (W2): 560 of 624 bytes, 198 aligned mismatches.  Statement order, calls, constants and the loop are those of the exe.  Differences: (1) the exe expands the
-//   inline d3d_SetTexture (`mov edi,[pTexture+0xc]` ... d3d_CreateAndLoadTexture / d3d_BindRTexture / SetLOD), ours calls the out-of-line copy; (2) the exe calls the two vector member
-//   destructors out of line (0x10018aa0 / 0x100188e0, the node allocator's deallocate expanded inside them) after the inline ~UnkType_StateRestorer body (RestoreAllStates),
-//   ours expands them.  With the plain inline d3d_SetTexture of d3d_texture.h (tried) the destructors do come out of line (as
-//   ??1?$_Vector_base@URenderState, 80 bytes) but the function grows to 672 bytes and the copy of __node_alloc::deallocate (0x10018f80) is no longer emitted separately,
-//   so the option is left off; the exe's ~_Vector_base copies (96 / 112 bytes) have `_STL_alloc_proxy::deallocate` and the node allocator inlined, ours differ in that.
+// STUB diagnosis: 560 of 624 bytes, 181 aligned mismatches.  Measured (not applied, see below): with the inline d3d_SetTexture (no
+//   D3DREN_SETTEXTURE_EXTERN in this object), the vertex loop as a TLVertex walk (pDest++/pSrc++, count down with `!= 0`), SetUV(pDest,
+//   texel0 * u, texel1 * v) (the exe's tv-then-tu x87 order), d3d_GetWorldPolyVertices(pPoly, &pSrc, &nVerts) (auto-inlined: the exe's
+//   vertex/count load) and no explicit saver.RestoreAllStates() (the exe calls it once, from the inline ~UnkType_StateRestorer) the body is
+//   117 aligned (624 bytes).  Left: (1) inline budget: the exe refuses both ~vector sites inside ~UnkType_StateRestorer (calls 0x10018aa0 /
+//   0x100188e0) and inlines the vector<TextureState> constructor inside the saver constructor; this build inlines ~vector and refuses that
+//   constructor (needs ~60u more charged after the saver constructor without an extra pending site; 10-12 if(0)-store ballast before the
+//   clip reproduces the destructors); (2) the exe keeps 0 in ebx for the whole function and threads the inline texture search's known-null
+//   exits (all inline d3d_SetTexture sites in the DLL are STUBs).  Not applied because the out-of-line STLport copies of this object
+//   (0x10018a90 _Vector_base ctor, 0x10018f80 __node_alloc::deallocate) are only emitted by the current, wrong expansion here.
 // STUB: D3DREN 0x100155b0
 void d3d_DrawMirrorSurfaceOverlay(WorldPoly *pPoly, LTMatrix *pMatrix)
 {
