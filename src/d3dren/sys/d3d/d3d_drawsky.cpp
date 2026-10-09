@@ -297,6 +297,10 @@ void d3d_ApplyWorldPolyVertexLights(WorldPoly *pPoly, TLVertex *pVerts, int nVer
 			uint32 nCount = pPoly->m_nVertices;
 			if (nCount > 0)
 			{
+				// RULE-EXCEPTION: R4, retail walks one byte pointer biased to TLVertex::rgb.r (lea esi,[pVerts+0x12] loaded before the
+				// countdown store) and reads the position at -0x12..-0xa.  The typed TLVertex spelling (pVert->m_Vec, pVert->rgb) gets the
+				// same loop but the optimiser's induction pointer is initialised after the countdown (9 instructions differ, every
+				// variant tried: index, reference, TLRGB pointer, declaration order); only an explicit byte pointer gives retail's order.
 				uint8 *pColor = (uint8 *)pVerts + 0x12;
 				uint32 nPoly = nCount;
 				do
