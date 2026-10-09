@@ -366,22 +366,41 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 // ---- the biased sprite projection ----------------------------------------------------------------------------------------------------
 
 
+// The two inline helpers of the function: the exe expands both here; their out-of-line copies are TransformPositionInPlace
+// (0x10008719, unit unk/10007930) and ProjectPositionWithDepthBias (0x100062e0, unit unk/100062e0), which take float pointers.
+// helper written for this decompilation (TransformPositionInPlace expanded): camera space transform of one position, in place.
+static inline void TransformTLVertexInPlace(TLVertex *pVert, const float *pMatrix)
+{
+	float x = pMatrix[0] * pVert->m_Vec.x + pMatrix[1] * pVert->m_Vec.y + pMatrix[2] * pVert->m_Vec.z + pMatrix[3];
+	float y = pMatrix[4] * pVert->m_Vec.x + pMatrix[5] * pVert->m_Vec.y + pMatrix[6] * pVert->m_Vec.z + pMatrix[7];
+	float z = pMatrix[8] * pVert->m_Vec.x + pMatrix[9] * pVert->m_Vec.y + pMatrix[10] * pVert->m_Vec.z + pMatrix[11];
+	pVert->m_Vec.z = z;
+	pVert->m_Vec.x = x;
+	pVert->m_Vec.y = y;
+}
+
+// helper written for this decompilation (ProjectPositionWithDepthBias expanded): projects the vertex in place; x and y use the
+// unbiased w, z and rhw those of the position moved fZBias along z.  The bias parameter itself carries the biased z (a separate
+// local gives the exe's code only out of line).
+static inline void ProjectTLVertexWithDepthBias(TLVertex *pVert, float fZBias)
+{
+	LTVector result;
+	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.x = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
+	result.y = (g_ViewParams.m_DeviceTimesProjection.m[1][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pVert->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[1][3]) * w;
+	fZBias += pVert->m_Vec.z;
+	float w2 = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][2] * fZBias + g_ViewParams.m_DeviceTimesProjection.m[3][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.z = (g_ViewParams.m_DeviceTimesProjection.m[2][0] * pVert->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pVert->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[2][2] * fZBias + g_ViewParams.m_DeviceTimesProjection.m[2][3]) * w2;
+	pVert->rhw = w2;
+	pVert->m_Vec = result;
+}
+
 // guess: transforms the 0x20-byte vertices *ppVerts (*pnVerts of them) to camera space, clips them against the planes of the current
 // clip mask (g_ClipFlags; 0 when nothing is left) and projects them to the screen; the z (and the reciprocal w) is that of the vertex
 // moved fBias along z, but not in front of the near plane (the sprite bias: Jupiter SPRITE_POSITION_ZBIAS).  The fourth argument is not
 // used (the callers pass 0, as for d3d_ClipAndProjectTLVertices, its sibling without the bias).
 // NAME: guess_d3d_ProjectBiasedSpriteVerts (names_proposal.csv, low)
-// STUB diagnosis (W6, w4-ren-draw2): 784 vs 800 bytes.  Inline call set: MatVMul's nested share inside MatVMul_InPlace is
-// remaining/(pending+1) = 957/7 = 136.7u < 180u; it inlines (as in the exe) once at most 4 inline sites follow the first loop
-// (now: ClipPoly_Inline, three LTVector default constructors, two MatVMul_H).  Measured: one constructor fewer (copy-initialised
-// vBiased) plus the clip written in place, or the vectors declared before the first loop, all inline it.  But neither the inlined
-// first loop nor the projection loop is the exe's code: the exe keeps the transform temporary in scalars (x and z on the x87
-// stack, y spilled to a dead argument slot, stores y, z, x) and, in the projection loop, keeps fBiasZ on the x87 stack and shares
-// the m[3][1]*y and m[3][0]*x terms of the two homogeneous divides (spilled to the ppVerts/pnVerts slots); our loop copies vBiased
-// to the frame and recomputes both terms (frame 0x34 vs 0x1c).  Scalar first-loop spellings give the store pattern but other row
-// and term orders.  Open: the source shape of the projection loop's biased vector (no tried copy / in-place / 3-float form shares
-// the terms).
-// STUB: D3DREN 0x1002f010
+// FUNCTION: D3DREN 0x1002f010
 int ClipAndProjectPolyWithDepthBias(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int a4, float fBias)
 {
 	TLVertex *pVert;
@@ -390,7 +409,8 @@ int ClipAndProjectPolyWithDepthBias(TLVertex **ppVerts, int *pnVerts, ViewParams
 	pVert = *ppVerts;
 	for (i = *pnVerts; i != 0; i--)
 	{
-		MatVMul_InPlace(&pParams->m_mClipTransform, &pVert->m_Vec);
+		float *pMat = &pParams->m_mClipTransform.m[0][0];
+		TransformTLVertexInPlace(pVert, pMat);
 		pVert++;
 	}
 
@@ -403,22 +423,14 @@ int ClipAndProjectPolyWithDepthBias(TLVertex **ppVerts, int *pnVerts, ViewParams
 	pVert = *ppVerts;
 	for (i = *pnVerts; i != 0; i--)
 	{
-		LTMatrix *pMat = &g_ViewParams.m_DeviceTimesProjection;
-		LTVector vProj, vProjBiased, vBiased;
-		float fBiasZ = fBias;
-		float fW, fWBiased;
+		float fBiasZ;
 
 		if (fBias + pVert->m_Vec.z < g_CV_NearZ.m_FloatVal)
 			fBiasZ = g_CV_NearZ.m_FloatVal - pVert->m_Vec.z;
+		else
+			fBiasZ = fBias;
 
-		fW = MatVMul_H(&vProj, pMat, &pVert->m_Vec);
-		vBiased = pVert->m_Vec;
-		vBiased.z += fBiasZ;
-		fWBiased = MatVMul_H(&vProjBiased, pMat, &vBiased);
-		pVert->m_Vec.x = vProj.x;
-		pVert->m_Vec.y = vProj.y;
-		pVert->rhw = fWBiased;
-		pVert->m_Vec.z = vProjBiased.z;
+		ProjectTLVertexWithDepthBias(pVert, fBiasZ);
 		pVert++;
 	}
 	return 1;
