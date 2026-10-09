@@ -224,6 +224,10 @@ extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left pl
 // polyclip.h expanded twice for the near and left plane, ClipLineZ/ClipExtra called out of line, then ClipPolyTop/10006670/
 // 10006900/10006ba0 for flags 8/0x10/0x20/2).  The exe keeps flags and ppVerts in spill slots [esp+0x24]/[esp+0x34], pInside/
 // nInside at [esp+0x28]/[esp+0x20] and the loop end pointer in esi; `mov eax,[g_CV]` is hoisted above the pushes.
+// Inline/call set: the exe calls IntersectNearClipPlane/IntersectLeftClipPlane out of line (here and in ClipModelPolygon40); our /Ob2
+// build inlines both (the unit needs /Ob2, flagscan; the budget probe leaves the full 1530u before the call).  With the two helpers
+// kept out of line (auto_inline experiment, not kept) this function drops from 385 to 164 aligned mismatches and ClipModelPolygon40
+// from 213 to 50: the original's reason for the out-of-line calls is the open question.
 // STUB: D3DREN 0x10001530
 int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 {
