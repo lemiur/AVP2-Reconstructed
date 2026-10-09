@@ -26,6 +26,12 @@ What a run does:
   7. count: banked code bytes, functions and units; data bytes of banked units that supply their own .rdata/.data.
      Functions whose body is inline assembly (`__asm`) are "verbatim" and not counted as source. Fully matched
      units the gate could not bank are listed (the second oracle disagrees: a layout or ordering problem).
+     Partly matched units: each MATCH function is spliced into the unit's target object from the base object
+     (relink.py --splice); a red run drops the single functions whose bytes differ (once no whole unit is at
+     fault), and provenance compares each spliced function's image bytes with its base object (relocation
+     fields excepted); every build.py MATCH function that is not banked is listed;
+  8. control: a non-matching STUB is spliced as well (default: the lowest same-size one; --control VA, or
+     --no-control); the image must turn red with every differing byte inside that function, or the gate fails.
 
 Writes build/gate/byte_gate.json; an official run (clean tree) also writes progress/<version>/byte_gate.json.
 Exit code: 0 green, 1 red, 2 the gate could not run.
@@ -76,7 +82,7 @@ def git(*args):
     return r.returncode, r.stdout.strip()
 
 
-def run_relink(out, mode, exclude=()):
+def run_relink(out, mode, exclude=(), splice=False, splice_exclude=(), extra=()):
     """Fresh relink into `out`; returns (exe path or None, stdout, gate_units dict)."""
     if os.path.isdir(out):
         shutil.rmtree(out)
@@ -86,6 +92,14 @@ def run_relink(out, mode, exclude=()):
         args += ['--mode', 'mixed']
         if exclude:
             args += ['--exclude', ','.join(sorted(exclude))]
+        if splice:
+            args += ['--splice']
+            if splice_exclude:
+                p = os.path.join(out, 'splice_exclude.json')
+                with open(p, 'w') as f:
+                    json.dump([[u, '%08x' % va] for u, va in sorted(splice_exclude)], f)
+                args += ['--splice-exclude', p]
+    args += list(extra)
     env = dict(os.environ, RELINK_OUT=os.path.normpath(out))
     r = subprocess.run(args, cwd=ROOT, env=env, capture_output=True, text=True)
     exe = os.path.join(out, IMAGE_NAME)
@@ -120,7 +134,8 @@ class Attribution:
         return f if va < self.funcs[f][0] else None
 
     def units_of_diff(self, orig, exe, out):
-        """{unit: differing byte count} and {section: differing byte count} for one relinked image."""
+        """{unit: differing byte count}, {section: differing byte count} and {function VA: differing .text byte
+        count} for one relinked image."""
         import pefile
         a, b = pefile.PE(orig), pefile.PE(exe)
         base = a.OPTIONAL_HEADER.ImageBase
@@ -132,7 +147,7 @@ class Attribution:
                 for r in json.load(f):
                     data_ranges.append((int(r['start'], 16), int(r['end'], 16), r['unit']))
         data_ranges.sort()
-        per_unit, per_sec = {}, {}
+        per_unit, per_sec, per_func = {}, {}, {}
         for s in a.sections:
             n = s.Name.rstrip(b'\0').decode('latin1')
             da = s.get_data()
@@ -145,6 +160,8 @@ class Attribution:
                 if n == '.text':
                     f = self.func_at(va)
                     u = self.owner.get(f, '(no unit)') if f is not None else '(padding)'
+                    if f is not None:
+                        per_func[f] = per_func.get(f, 0) + 1
                 else:
                     k = bisect.bisect_right(data_ranges, (va, 0xFFFFFFFF, '')) - 1
                     u = data_ranges[k][2] if k >= 0 and data_ranges[k][0] <= va < data_ranges[k][1] else '(no unit)'
@@ -152,14 +169,17 @@ class Attribution:
         hdr = sum(1 for x, y in zip(open(orig, 'rb').read(0x400), open(exe, 'rb').read(0x400)) if x != y)
         if hdr:
             per_sec['(header)'] = hdr
-        return per_unit, per_sec
+        return per_unit, per_sec, per_func
 
 
 class Banker:
-    def __init__(self, want, orig, attr, max_runs, log):
+    def __init__(self, want, orig, attr, max_runs, log, splice=True):
         self.want, self.orig, self.attr, self.max_runs, self.log = want, orig, attr, max_runs, log
         self.runs = 0
         self.history = []
+        self.splice = splice
+        self.splice_exclude = set()         # (unit, va) of spliced functions the gate has rejected
+        self.rejected_funcs = {}
 
     def attempt(self, include, all_full):
         """One mixed relink with exactly `include` from base objects. Returns (green, exe, units, per_unit)."""
@@ -167,20 +187,21 @@ class Banker:
         out = os.path.join(GATE_DIR, 'run%02d' % self.runs)
         exclude = set(all_full) - set(include)
         t = time.time()
-        exe, log, units = run_relink(out, 'mixed', exclude)
+        exe, log, units = run_relink(out, 'mixed', exclude, self.splice, self.splice_exclude)
         if exe is None:
             self.log('  run %d: relink FAILED (%d units); see %s' % (self.runs, len(include), os.path.join(out, 'relink.log')))
             self.history.append({'run': self.runs, 'units': len(include), 'result': 'relink failed'})
             return False, None, units, {}
         h = sha1(exe)
         green = h == self.want
-        per_unit = {}
+        per_unit, per_sec, per_func = {}, {}, {}
         if not green:
-            per_unit, per_sec = self.attr.units_of_diff(self.orig, exe, out)
-        else:
-            per_sec = {}
-        self.log('  run %d: %d units from source: %s (%.0f s)%s' % (
-            self.runs, len(include), 'GREEN' if green else 'red', time.time() - t,
+            per_unit, per_sec, per_func = self.attr.units_of_diff(self.orig, exe, out)
+        self.last_per_func = per_func
+        sp = (units.get('splice') or {}).get('spliced', {})
+        self.last_spliced = {(u, int(v, 16)) for u, vs in sp.items() for v in vs}
+        self.log('  run %d: %d units + %d single functions from source: %s (%.0f s)%s' % (
+            self.runs, len(include), len(self.last_spliced), 'GREEN' if green else 'red', time.time() - t,
             '' if green else '; differing bytes: ' + ', '.join('%s %d' % kv for kv in sorted(per_sec.items()) if kv[1])))
         self.history.append({'run': self.runs, 'units': len(include), 'result': 'green' if green else 'red',
                              'sections': per_sec, 'units_with_diffs': per_unit})
@@ -196,6 +217,27 @@ class Banker:
             green, exe, units, per_unit = self.attempt(cands, all_full)
             if green:
                 return cands
+            # spliced functions holding differing bytes: drop just those functions, but only once no whole unit
+            # holds differing bytes (a unit whose functions move changes call sites in every other function)
+            unit_hit = {u for u in per_unit if u in cands}
+            bad_f = set() if unit_hit else {(u, va) for u, va in self.last_spliced if va in self.last_per_func}
+            if bad_f:
+                for k in bad_f:
+                    self.rejected_funcs[k] = '%d differing bytes' % self.last_per_func[k[1]]
+                self.splice_exclude |= bad_f
+                self.log('  excluding %d single functions: %s' % (len(bad_f), ', '.join(
+                    '%08x' % va for _, va in sorted(bad_f, key=lambda x: x[1]))))
+                # (spliced functions belong to partly matched units, never to the whole-unit candidates)
+                if not ({u for u in per_unit if u in cands}):
+                    continue
+            if self.splice and self.last_spliced and not ({u for u in per_unit if u in cands}):
+                # red with nothing attributable: splicing could be at fault (a slice changing bytes outside itself);
+                # retry without single functions before bisecting the units
+                self.log('  no attribution: retrying without single functions')
+                self.splice = False
+                for k in self.last_spliced:
+                    self.rejected_funcs.setdefault(k, 'splicing disabled after an unattributed red run')
+                continue
             fell = set(units.get('base_failed', []))
             culprits = {u for u in per_unit if u in cands} | (fell & set(cands))
             if not culprits:
@@ -242,6 +284,42 @@ def parse_map(path):
     return out
 
 
+def verify_spliced(units, spliced, exe, sizes):
+    """Problems found comparing each spliced function's base-object bytes with the linked image (relocation fields
+    excepted): proof that the image holds our compiled code there, not the original's."""
+    import mktarget
+    from coffedit import Coff
+    img = mktarget._image(exe)
+    by_name = {u.name: u for u in units}
+    bad, per_unit = [], {}
+    for u, va in spliced:
+        per_unit.setdefault(u, []).append(va)
+    for un, vas in per_unit.items():
+        u = by_name[un]
+        o = Coff.load(u.base_obj)
+        symva = {a.symbol.name: a.va for a in u.annots if a.kind == 'FUNCTION' and a.symbol is not None}
+        loc = {}
+        for s in o.syms:
+            if s is not None and s.name in symva and s.sec > 0 and s.typ == 0x20:
+                loc.setdefault(symva[s.name], (s.sec, s.value))
+        for va in vas:
+            if va not in loc:
+                bad.append('%s: spliced %08x has no base symbol' % (un, va))
+                continue
+            sec, off = loc[va]
+            n = sizes[(un, va)][0]
+            bs = o.sections[sec - 1]
+            mask = set()
+            for ro, _, rt in bs.relocs:
+                if off <= ro < off + n:
+                    mask.update(range(ro - off, ro - off + 4))
+            got = img.read(va, n)
+            want = bs.data[off:off + n]
+            if any(got[i] != want[i] for i in range(n) if i not in mask):
+                bad.append('%s: spliced %08x: image bytes are not the base object bytes' % (un, va))
+    return bad
+
+
 def verbatim_functions(units, names):
     """Annotated function VAs whose body contains inline assembly, per unit name in `names`."""
     out = {}
@@ -268,6 +346,9 @@ def main():
     ap.add_argument('--clean', action='store_true', help='recompile every unit (delete the objects' + chr(39) + ' stamps first)')
     ap.add_argument('--no-build', action='store_true', help='use the objects of the last build.py run')
     ap.add_argument('--exclude', default='', help='units never to take from source (comma-separated)')
+    ap.add_argument('--control', metavar='VA', default='auto', help='after a green run, splice this non-matching STUB too: the gate must turn red with the differing bytes inside it (proves the gate is not green by construction); default: the lowest same-size (DIFF) STUB')
+    ap.add_argument('--no-control', action='store_true', help='skip the negative control')
+    ap.add_argument('--no-splice', action='store_true', help='bank whole units only (no single functions)')
     ap.add_argument('--max-runs', type=int, default=24, help='relink budget for banking (default 24)')
     a = ap.parse_args()
     t0 = time.time()
@@ -348,14 +429,14 @@ def main():
     log('baseline: original bytes only: GREEN (%.0f s)' % (time.time() - t))
 
     rejected = {}
-    banker = Banker(want, R.EXE, attr, a.max_runs, log)
+    banker = Banker(want, R.EXE, attr, a.max_runs, log, splice=not a.no_splice)
     banked = banker.find(cands, full, rejected)
     if banked is None:
         print('GATE RED: no green set found within %d relinks' % a.max_runs)
         return 1
     last = os.path.join(GATE_DIR, 'run%02d' % banker.runs)
     # the last run is green for `banked` unless the bisection merged halves without a final run: re-run then
-    if banker.history[-1]['result'] != 'green' or banker.history[-1]['units'] != len(banked):
+    if banker.history[-1]['result'] != 'green':
         green, exe, _, _ = banker.attempt(banked, full)
         last = os.path.join(GATE_DIR, 'run%02d' % banker.runs)
         if not green:
@@ -391,12 +472,19 @@ def main():
         for va in attr.objvas.get(u, []):
             if g not in publics.get(va, set()):
                 bad.append('%s: function %08x not defined by the object holding its base object' % (u, va))
+    # single functions: the image bytes must be the base object's bytes (outside relocation fields)
+    spliced = {(u, int(v, 16)) for u, vs in ((gu.get('splice') or {}).get('spliced') or {}).items() for v in vs}
+    sizes = {}
+    for k, v in ((gu.get('splice') or {}).get('sizes') or {}).items():
+        u, va = k.rsplit('@', 1)
+        sizes[(u, int(va, 16))] = v
+    bad += verify_spliced(units, spliced, exe, sizes)
     if bad:
         print('GATE RED: provenance check failed:\n  ' + '\n  '.join(bad[:30]))
         return 1
 
     # counting, from the source of the green image
-    verb = verbatim_functions(units, banked)
+    verb = verbatim_functions(units, set(banked) | {u for u, _ in spliced})
     funcs = attr.funcs
     total_code = sum(end - va for va, (end, _) in funcs.items())
     n_f = code = 0
@@ -412,6 +500,14 @@ def main():
                 continue
             n_f += 1
             code += sz
+    s_f = s_b = 0
+    for (u, va) in sorted(spliced):
+        if va in verb.get(u, set()):
+            v_f += 1
+            v_b += sizes[(u, va)][0]
+            continue
+        s_f += 1
+        s_b += sizes[(u, va)][0]
     data = 0
     own = set(gu.get('own_data', [])) & set(banked)
     p = os.path.join(last, 'data_units.json')
@@ -420,14 +516,30 @@ def main():
             for r in json.load(f):
                 if r['unit'] in own and r['group'] in ('.rdata', '.data'):
                     data += int(r['end'], 16) - int(r['start'], 16)
+    # second oracle, per function: every build.py MATCH function should be banked (or verbatim)
+    single_set = set(spliced)
+    match_missing = []
+    for r in results:
+        if r.status == 'MATCH' and r.a.kind == 'FUNCTION':
+            un = r.a.unit.name
+            if un in banked or (un, r.a.va) in single_set or r.a.va in verb.get(un, set()):
+                continue
+            match_missing.append((un, r.a.va))
+    match_missing = sorted(set(match_missing), key=lambda x: x[1])
     not_banked = sorted(set(full) - set(banked))
     for u in not_banked:
         rejected.setdefault(u, 'excluded by --exclude' if u in never else 'not banked')
 
     log('GATE GREEN sha1=%s' % want)
-    log('banked from source: %d units, %d functions, %d code bytes (%.3f%% of %d function bytes); '
-        '%d own-data units, %d .rdata/.data bytes' % (len(banked), n_f, code, 100.0 * code / total_code, total_code,
-                                                    len(own), data))
+    log('banked from source: %d functions, %d code bytes (%.3f%% of %d function bytes): %d whole units '
+        '(%d functions, %d bytes) + %d single functions of partly matched units (%d bytes); '
+        '%d own-data units, %d .rdata/.data bytes' % (
+            n_f + s_f, code + s_b, 100.0 * (code + s_b) / total_code, total_code, len(banked), n_f, code,
+            s_f, s_b, len(own), data))
+    if banker.rejected_funcs:
+        log('single MATCH functions not banked: %d' % len(banker.rejected_funcs))
+        for (u, va), why in sorted(banker.rejected_funcs.items(), key=lambda x: x[0][1])[:40]:
+            log('  %08x %-36s %s' % (va, u, why))
     if v_f:
         log('verbatim (inline assembly, not counted): %d functions, %d bytes: %s' % (
             v_f, v_b, ', '.join('%08x' % va for s in verb.values() for va in sorted(s))))
@@ -435,16 +547,46 @@ def main():
         log('fully matched but not banked (second oracle disagrees: a layout or ordering problem): %d' % len(not_banked))
         for u in not_banked:
             log('  %-40s %s' % (u, rejected[u]))
+    log('build.py MATCH functions not banked: %d%s' % (len(match_missing), ': ' + ', '.join(
+        '%08x' % va for _, va in match_missing[:40]) if match_missing else ''))
     log('relinks: %d (+ baseline), %.0f s' % (banker.runs, time.time() - t0))
+
+    control = None
+    if a.control == 'auto' and not a.no_control:
+        stubs = sorted(r.a.va for r in results if r.a.kind == 'STUB' and r.status == 'DIFF')
+        a.control = '%08x' % stubs[0] if stubs else None
+    if a.control and not a.no_control:
+        cva = int(a.control, 16)
+        out = os.path.join(GATE_DIR, 'control')
+        cexe, _, _ = run_relink(out, 'mixed', set(full) - set(banked), banker.splice, banker.splice_exclude,
+                                ['--splice-force', a.control])
+        if cexe is None:
+            log('CONTROL FAILED: the control relink did not link')
+            return 1
+        if sha1(cexe) == want:
+            log('CONTROL FAILED: splicing STUB %08x left the image green: the gate cannot see that function' % cva)
+            return 1
+        per_unit, per_sec, per_func = attr.units_of_diff(R.EXE, cexe, out)
+        if set(per_func) != {cva}:
+            log('CONTROL FAILED: differing bytes outside %08x: %s' % (cva, ', '.join('%08x' % v for v in sorted(per_func))))
+            return 1
+        control = {'va': '%08x' % cva, 'differing_bytes': per_func[cva]}
+        log('control: STUB %08x spliced -> red, %d differing bytes, all inside it (CONTROL OK)' % (cva, per_func[cva]))
 
     result = {
         'module': modcfg.NAME, 'contract': want, 'image': name, 'commit': head, 'official': official,
         'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
-        'banked_units': banked, 'functions': n_f, 'code_bytes': code, 'function_bytes_total': total_code,
+        'banked_units': banked, 'functions': n_f + s_f, 'code_bytes': code + s_b, 'function_bytes_total': total_code,
+        'unit_functions': n_f, 'unit_code_bytes': code,
+        'single_functions': {u: ['%08x' % va for uu, va in sorted(spliced) if uu == u] for u in sorted({u for u, _ in spliced})},
+        'single_function_count': s_f, 'single_code_bytes': s_b,
+        'single_not_banked': {'%s@%08x' % k: v for k, v in sorted(banker.rejected_funcs.items())},
         'own_data_units': sorted(own), 'data_bytes': data,
         'verbatim': {u: ['%08x' % va for va in sorted(s)] for u, s in verb.items()},
         'not_banked': {u: rejected[u] for u in not_banked},
+        'match_not_banked': ['%s@%08x' % k for k in match_missing],
         'relinks': banker.history,
+        'control': control,
     }
     with open(os.path.join(GATE_DIR, 'byte_gate.json'), 'w') as f:
         json.dump(result, f, indent=1, sort_keys=True)

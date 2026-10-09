@@ -590,6 +590,124 @@ class Prepared:
         result = subset_sections(o, retained)
         return result, include, fva
 
+    def splice_functions(self, units, picks, kinds=('FUNCTION',)):
+        """Single-function banking: in the target object of a partly matched unit, replace the section of each
+        picked MATCH function by that function's bytes from the unit's base object.
+
+        `picks`: {unit name: set of function VAs}. The slice is the base function's code (up to the next function
+        symbol of its base section, at most the target section's length); a shorter function is completed with the
+        exe's own bytes (padding), so every function keeps its address. Each relocation of the slice is re-pointed
+        at the address the exe's bytes imply (exactly as use_base does for whole units): a target inside the slice
+        gets a local label, any other code or data target its canonical name. Returns
+        ({unit: [spliced VAs]}, {(unit, va): reason not spliced}, {(unit, va): (code bytes, total bytes)})."""
+        import struct
+        F = coffedit
+        img = self.orig.img
+        if not hasattr(self, 'used_names'):
+            self.used_names = set(self.text_name.values()) | set(self.data_name.values())
+        byname = {u.name: u for u in units}
+        done, failed, sizes = {}, {}, {}
+        for uname, vas in sorted(picks.items()):
+            u = byname.get(uname)
+            whole = uname in self.objs                   # else slice_interleaved cut it into '<unit>#<va>' objects
+            if u is None or not (whole or uname in self.orig_vas) or not os.path.exists(u.base_obj):
+                for va in vas:
+                    failed[(uname, va)] = 'no target or base object'
+                continue
+            o = Coff.load(u.base_obj)
+            symva = {a.symbol.name: a.va for a in u.annots if a.kind in kinds and a.symbol is not None}
+            if whole:
+                where = {va: (self.objs[uname], i + 1) for i, va in enumerate(self.objvas[uname])}
+            else:
+                where = {va: (self.objs['%s#%08x' % (uname, va)], 1) for va in self.orig_vas[uname]
+                         if '%s#%08x' % (uname, va) in self.objs}
+            bysec = {}
+            for s in o.syms:
+                if s is not None and s.sec > 0 and s.typ == 0x20 and not is_section_sym(s):
+                    bysec.setdefault(s.sec, []).append(s.value)
+            for k in bysec:
+                bysec[k] = sorted(set(bysec[k]))
+            loc = {}
+            for idx, s in enumerate(o.syms):
+                if s is not None and s.name in symva and s.sec > 0 and s.typ == 0x20:
+                    loc.setdefault(symva[s.name], (s.sec, s.value))
+            for va in sorted(vas):
+                if va not in loc or va not in where:
+                    failed[(uname, va)] = 'function not found in the base or target object'
+                    continue
+                bsec, off = loc[va]
+                bs = o.sections[bsec - 1]
+                if not bs.flags & F.SCN_CNT_CODE:
+                    failed[(uname, va)] = 'base symbol not in a code section'
+                    continue
+                t, tsecno = where[va]
+                ts = t.sections[tsecno - 1]
+                nxt = [v for v in bysec.get(bsec, []) if v > off]
+                n = min((nxt[0] if nxt else len(bs.data)) - off, len(ts.data))
+                data = bytearray(bs.data[off:off + n]) + bytearray(img.read(va + n, len(ts.data) - n))
+                relocs, err = [], None
+                newsym = {}
+
+                def ext(nm, typ):
+                    if nm not in newsym:
+                        i = t.find(nm)
+                        if i is None or t.syms[i].sec != 0 and t.syms[i].cls != F.CLS_EXTERNAL:
+                            i = t.add_symbol(nm, 0, 0, typ, F.CLS_EXTERNAL)
+                        newsym[nm] = i
+                    return newsym[nm]
+
+                for roff, si, rt in bs.relocs:
+                    if not off <= roff < off + n:
+                        continue
+                    S = o.syms[si]
+                    if S.sec == -1 or S.name == '__except_list':
+                        i = t.find(S.name)
+                        if i is None:
+                            i = len(t.syms)
+                            t.syms.append(Sym(S.name, S.value, S.sec, S.typ, S.cls))
+                        relocs.append([roff - off, i, rt])
+                        continue
+                    if rt not in (mktarget.IMAGE_REL_I386_DIR32, mktarget.IMAGE_REL_I386_REL32):
+                        err = 'relocation type %x' % rt
+                        break
+                    fva_ = va + roff - off
+                    field = struct.unpack('<I', img.read(fva_, 4))[0]
+                    addend = struct.unpack('<I', bs.data[roff:roff + 4])[0]
+                    if rt == mktarget.IMAGE_REL_I386_DIR32:
+                        tva = (field - addend) & 0xffffffff
+                    else:
+                        tva = (fva_ + 4 + struct.unpack('<i', struct.pack('<I', field))[0]
+                               - struct.unpack('<i', struct.pack('<I', addend))[0]) & 0xffffffff
+                    if tva < IMAGE_BASE or tva >= 0x500000:
+                        err = 'relocation at +%x points outside the image (%08x)' % (roff - off, tva)
+                        break
+                    if va <= tva < va + len(ts.data):
+                        nm = '$S%08x' % tva                 # a label inside the slice itself
+                        i = t.find(nm)
+                        if i is None:
+                            i = t.add_symbol(nm, tva - va, tsecno, 0, F.CLS_STATIC)
+                        relocs.append([roff - off, i, rt])
+                        continue
+                    if self.orig.text_lo <= tva < self.orig.text_hi and tva not in self.text_name:
+                        try:
+                            self.add_code_symbol(tva)
+                        except SystemExit as e:
+                            err = str(e)
+                            break
+                    nm = self.canon_target(tva)
+                    if nm is None:
+                        err = 'relocation at +%x targets %08x, which nothing names' % (roff - off, tva)
+                        break
+                    relocs.append([roff - off, ext(nm, 0x20 if rt == mktarget.IMAGE_REL_I386_REL32 else 0), rt])
+                if err:
+                    failed[(uname, va)] = err
+                    continue
+                ts.data, ts.size, ts.relocs = bytes(data), len(data), relocs
+                done.setdefault(uname, []).append(va)
+                sizes[(uname, va)] = (n, len(data))
+        self.spliced = done
+        return done, failed, sizes
+
     def own_data(self, name, x, layout):
         """--own-data: let base unit `name` keep its .rdata/.data sections (the chain relink_data found for it, `x`).
         Relocations in those sections that leave the kept sections are re-pointed at the names the exe's bytes imply;
@@ -1157,6 +1275,9 @@ def main():
     ap.add_argument('--own-data', nargs='?', const='', default=None, help='mixed mode: fully matched units whose .rdata/.data match supply their own sections (all of them, or the comma-separated list); implies --split-standin')
     ap.add_argument('--own-data-force', action='store_true', help='with --own-data: also units whose data status is not "match" (to see the byte differences)')
     ap.add_argument('--exclude', help='mixed mode: comma-separated fully matched units to keep as target objects (unlike --only, the default path with source EH helpers and native library data stays enabled; the byte gate uses this)')
+    ap.add_argument('--splice', action='store_true', help='mixed mode: also take every MATCH function of the partly matched units from its base object (single-function banking; Prepared.splice_functions)')
+    ap.add_argument('--splice-force', help='with --splice: also splice this STUB (hex VA): a negative control for the byte gate, which must then turn red')
+    ap.add_argument('--splice-exclude', help='with --splice: a JSON file listing ["unit", "hex va"] pairs not to splice')
     ap.add_argument('--rich', action='store_true', help='merge/pad the objects so that LINK writes the original' + chr(39) + 's Rich header, and set the original' + chr(39) + 's TimeDateStamp after the link (the byte gate uses both; tools/richpack.py)')
     ap.add_argument('--standin-data', action='store_true', help='mixed mode: take every unit' + chr(39) + 's .rdata/.data from the exe (one stand-in object) instead of the default --own-data')
     a = ap.parse_args()
@@ -1213,6 +1334,31 @@ def main():
         prep.use_base(units, full, set(a.only.split(',')) if a.only else None)
         if eh_plan is not None:
             eh_plan.verify_base_coverage(prep)
+        if a.splice:
+            skip = set()
+            if a.splice_exclude:
+                with open(a.splice_exclude) as f:
+                    skip = {(u, int(v, 16)) for u, v in json.load(f)}
+            picks = {}
+            for r in INV_RESULTS:
+                un = r.a.unit.name
+                if r.status == 'MATCH' and r.a.kind == 'FUNCTION' and un not in prep.base and \
+                        (un in prep.objs or un in prep.orig_vas) and (un, r.a.va) not in skip:
+                    picks.setdefault(un, set()).add(r.a.va)
+            kinds = ('FUNCTION',)
+            if a.splice_force:
+                fv = int(a.splice_force, 16)
+                hit = [r for r in INV_RESULTS if r.a.va == fv and r.a.kind == 'STUB']
+                if not hit:
+                    raise SystemExit('--splice-force %s: no STUB at that address' % a.splice_force)
+                picks.setdefault(hit[0].a.unit.name, set()).add(fv)
+                kinds = ('FUNCTION', 'STUB')
+            sp_done, sp_failed, sp_sizes = prep.splice_functions(units, picks, kinds)
+            print('spliced functions: %d in %d partly matched units (%d not spliceable)' % (
+                sum(len(v) for v in sp_done.values()), len(sp_done), len(sp_failed)))
+            prep.splice_report = {'spliced': {u: ['%08x' % va for va in sorted(v)] for u, v in sp_done.items()},
+                                  'failed': {'%s@%08x' % k: why for k, why in sorted(sp_failed.items())},
+                                  'sizes': {'%s@%08x' % k: list(v) for k, v in sorted(sp_sizes.items())}}
         print('base objects used: %d; fell back to target: %s' % (len(prep.base), prep.base_failed))
         if a.report_data:
             rep, tot = data_report(prep)
@@ -1282,7 +1428,8 @@ def main():
     with open(os.path.join(OUT, 'gate_units.json'), 'w') as f:      # read by tools/byte_gate.py
         json.dump({'mode': a.mode, 'base': sorted(getattr(prep, 'base', {})), 'own_data': sorted(own),
                    'out_of_order': sorted(n for n, r in getattr(prep, 'order_report', {}).items() if r[1]),
-                   'base_failed': sorted(getattr(prep, 'base_failed', {}) or [])}, f, indent=1)
+                   'base_failed': sorted(getattr(prep, 'base_failed', {}) or []),
+                   'splice': getattr(prep, 'splice_report', None)}, f, indent=1)
     if a.stage == 'prep':
         return
     rc, out = do_link(prep, standin, idata, a.mode, pieces)

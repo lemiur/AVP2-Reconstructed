@@ -11,7 +11,7 @@ function.
 | Inventoried function code (objdiff) | 92.19% | 4,558 of 4,774 |
 | Engine code | 90.5% | |
 | Inventoried lithshared, WONAPI, VC6 CRT functions | 100% | |
-| **Byte-gated**: linked from source, whole exe SHA1-identical | 44.5% of function code | 2,427 functions in 117 units |
+| **Byte-gated**: linked from source, whole exe SHA1-identical | 76.05% of function code | 3,662 functions (117 whole units + 1,235 single functions) |
 
 Most of the unmatched functions in that count are not engine functions: 173 of them, 1,869 bytes in all, are the
 compiler-generated exception funclets and destructor thunks at the end of `.text`. No unit owns them, so objdiff
@@ -36,9 +36,14 @@ the 41 stubs and two inline copies.
 The byte gate (`python tools/build.py gate`) is the strict measure. It relinks the whole executable, with every
 fully matched unit it can bank taken from our compiled objects and everything else from the original's bytes, and
 the result must have the original's SHA1 (`config/check.sha1`). Its count comes from the link itself: which objects
-LINK received, and where it placed each of their functions. Two fully matched units, ftserv and l_allocator, emit
-functions in a different order and are left out. Two functions with inline-assembly bodies are counted as verbatim,
-not as source. The latest result is committed in `progress/lithtech_1.0.9.6/byte_gate.json`.
+LINK received, and where it placed each of their functions. Every matching function of a partly matched unit is
+spliced into that unit's original-byte object from our compiled object, and its bytes in the image are compared with
+the compiled ones.
+
+ftserv and l_allocator emit their functions in a different order, so they are banked function by function rather
+than as whole units. Two functions with inline-assembly bodies are counted as verbatim, not as source. Every run also
+splices one non-matching stub as a negative control: the image must then turn red, with all the differing bytes
+inside that stub. The latest result is committed in `progress/lithtech_1.0.9.6/byte_gate.json`.
 
 These are function-code metrics, not whole-executable completion. The source exception helper ranges occupy
 54 existing report entries: 573 payload bytes and 168 padding bytes. Metadata and library-data totals are tracked separately
