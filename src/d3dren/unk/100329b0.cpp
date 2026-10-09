@@ -253,22 +253,22 @@ int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 
 }
 
 // guess: adds the light of the context to one RGB555 texel
-// Not matching (174 of 208 bytes differ): the inline-asm MulHigh helper is placed by the exe in the dead parameter homes ([ebp+8] =
-// pTexel, [ebp+0xc] = pCtx become the helper's `b` and `a`, result at [ebp-4]); ours spills to [ebp-4]/[ebp-8]/[ebp-0xc]. The data flow
-// (falloff index, three table lookups, 5-6-5/5-5-5 pack) is the exe's.
-// STUB: D3DREN 0x10033140
+// The channels live in a local array: with scalar r/g/b the compiler sinks each `+ MulHigh` into the final pack expression.
+// FUNCTION: D3DREN 0x10033140
 void AddLightmapLightToRGB555Texel(uint16 *pTexel, UnkType_LightCtx *pCtx)
 {
 	int a = g_LightmapLightFalloffTable[-(int)((1.0f - pCtx->m_Unk38 * pCtx->m_Unk30) * -63.0f)];
 
-	int r = (*pTexel >> 7) & 0xf8;
-	r += MulHigh(a, pCtx->m_Unk4c);
-	int g = (*pTexel >> 2) & 0xf8;
-	g += MulHigh(a, pCtx->m_Unk50);
-	int b = (*pTexel & 0x1f) * 8;
-	b += MulHigh(a, pCtx->m_Unk54);
-	*pTexel = (uint16)((((g_LightmapColorClampTable[255 + r] & 0xf8) << 5 | (g_LightmapColorClampTable[255 + g] & 0xf8)) << 2) |
-		(g_LightmapColorClampTable[255 + b] >> 3));
+	int rgb[3];
+
+	rgb[0] = (*pTexel >> 7) & 0xf8;
+	rgb[0] += MulHigh(a, pCtx->m_Unk4c);
+	rgb[1] = (*pTexel >> 2) & 0xf8;
+	rgb[1] += MulHigh(a, pCtx->m_Unk50);
+	rgb[2] = (*pTexel & 0x1f) * 8;
+	rgb[2] += MulHigh(a, pCtx->m_Unk54);
+	*pTexel = (uint16)((((g_LightmapColorClampTable[255 + rgb[0]] & 0xf8) << 5 | (g_LightmapColorClampTable[255 + rgb[1]] & 0xf8)) << 2) |
+		(g_LightmapColorClampTable[255 + rgb[2]] >> 3));
 }
 
 // guess: (re)builds the lightmap of a polygon from the light animations that touch it and puts it in its page.  The animations of
