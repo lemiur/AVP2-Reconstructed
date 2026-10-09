@@ -631,6 +631,7 @@ int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
+	char aBuf[0x500];
 	while (nTris)
 	{
 		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
@@ -714,7 +715,6 @@ int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 		}
 		else
 		{
-			char aBuf[0x500];
 			TLVertex *pPoly = (TLVertex *)aBuf;
 			int nPoly = 3;
 			TLVertex *pD = pPoly;
@@ -781,6 +781,7 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
+	char aBuf[0x500];
 	while (nTris)
 	{
 		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
@@ -864,7 +865,6 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 		}
 		else
 		{
-			char aBuf[0x500];
 			TLVertex *pPoly = (TLVertex *)aBuf;
 			int nPoly = 3;
 			TLVertex *pD = pPoly;
