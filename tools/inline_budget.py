@@ -123,7 +123,7 @@ def undecorate(name, flags=0x1000):
         n = ctypes.windll.dbghelp.UnDecorateSymbolName(name.encode('latin1'), _und_buf, len(_und_buf), flags)
         return _und_buf.value.decode('latin1') if n else name
 
-VC6CL = modcfg.CL                       # the module's compiler wrapper (d3dren: tools\vc6cl_d3dren.bat); VC6CL in the environment overrides
+VC6CL = modcfg.CL                       # the module's compiler wrapper (d3dren: tools\vc6cl_d3dren.bat); VC6CL (lithtech) or D3DRENCL (d3dren) in the environment overrides
 COST_CACHE = os.path.join(build.BUILD, 'inline_costs.json')       # per module: build/inline_costs.json, build/d3dren/inline_costs.json
 NAMEMAPS = [os.path.join(build.BUILD, 'namemap.json')] + (
     [r'E:\AVP2Source\decomp\build\namemap.json'] if modcfg.NAME == 'lithtech' else [])

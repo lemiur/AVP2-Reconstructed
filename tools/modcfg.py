@@ -68,7 +68,9 @@ else:
     OBJDIFF_DIR = BUILD
     SRC_SKIP = ()
     INC_SKIP = ()
-    CL = os.environ.get('VC6CL') or os.path.join(TOOLS, 'vc6cl_d3dren.bat')
+    # VC6CL is the ENGINE wrapper override (worktrees set it to tools/vc6cl_wt.bat, the Processor Pack compiler); it must
+    # not leak into the renderer, or a worktree's d3dren build and gate.py compile nothing.  D3DRENCL overrides this one.
+    CL = os.environ.get('D3DRENCL') or os.path.join(TOOLS, 'vc6cl_d3dren.bat')
     # Flags are established in config/d3dren/FACTS.md (evidence: byte-matched functions).  A unit overrides the
     # optimisation part with `// FLAGS: ...` in its first 30 lines, exactly as for lithtech.
     COMMON_FLAGS = ['/c', '/nologo', '/MT', '/W3', '/DWIN32', '/DNDEBUG', '/I' + INC]
