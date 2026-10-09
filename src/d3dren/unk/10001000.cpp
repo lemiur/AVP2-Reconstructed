@@ -750,19 +750,20 @@ int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 				pEnd = PoolLastVertex(m_Unk608);
 			}
 			nPoly--;
-			for (int i = 1; i < nPoly; i++)
+			for (int i = 1; i < nPoly; )
 			{
 				m_Unk5fc(pOut, pPoly);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * i);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * (i + 1));
+				i++;
+				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * i);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 			}
 		}
 Skip:
-		pTri++;
 		nTris--;
+		pTri++;
 	}
 	FlushModelPool(this, pOut);
 	return 1;
@@ -896,19 +897,20 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 				pEnd = PoolLastVertex(m_Unk608);
 			}
 			nPoly--;
-			for (int i = 1; i < nPoly; i++)
+			for (int i = 1; i < nPoly; )
 			{
 				m_Unk5fc(pOut, pPoly);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * i);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * (i + 1));
+				i++;
+				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * i);
 				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 			}
 		}
 Skip:
-		pTri++;
 		nTris--;
+		pTri++;
 	}
 	FlushModelPool(this, pOut);
 	return 1;
