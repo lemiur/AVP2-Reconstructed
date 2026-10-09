@@ -733,7 +733,9 @@ void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, in
 
 // guess: draws pPoly in a later pass: the vertices are rebuilt from the QVerts the first pass kept (the polygon was already
 // projected there), the colour, fog and texture coordinates of this pass are computed again, the textures bound and the fan drawn
-// STUB diagnosis (W6): 560 vs 553 bytes, 114 aligned mismatches ignoring stack offsets.  The vertex buffer is 0x80 vertices of 0x28 bytes
+// STUB diagnosis: 578 vs 553 bytes, 112 aligned mismatches ignoring stack offsets (128 with).  The queued-vertex range is read with
+// LOWORD/HIWORD (the exe's `movzx` of the count and separate dword load of the start; the masked form loads once); with it pPass is in
+// edi as in the exe.  The vertex buffer is 0x80 vertices of 0x28 bytes
 // (0x1400): that gives the exe's frame 0x1424.  The exe copies `this` (`mov edx,ecx`) and indexes the three callback tables with absolute displacements in a
 // different order, and the vertex source selection is scheduled differently; same control flow.  Permuter best 104 mismatches.
 // STUB: D3DREN 0x1002a693
@@ -756,12 +758,12 @@ void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPas
 	}
 	else
 	{
-		pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+		pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 		nVertices = pPoly->m_nVertices;
 	}
 
-	int nQVerts = *(uint32 *)((uint8 *)pPoly + 8) & 0xffff;
-	QVert *pQ = &m_Unk7bc[*(uint32 *)((uint8 *)pPoly + 8) >> 16];
+	int nQVerts = LOWORD(pPoly->m_Unk08);
+	QVert *pQ = &m_Unk7bc[HIWORD(pPoly->m_Unk08)];
 	pVerts = (TLVertex *)aVerts;
 	if (pPoly->m_Flags & 0x3f)
 	{
