@@ -385,6 +385,7 @@ def _unit_stamp(u):
     except OSError:
         pass
     h.update(b'\0' + ' '.join(COMMON_FLAGS + list(u.flags)).encode('latin1', 'replace') + b'\0')
+    h.update(b'checkout-relative paths\0')     # objects compiled with absolute paths are stale (see _checkout_relative)
     h.update((_header_digest() + _toolchain_digest()).encode())
     return h.hexdigest()
 
@@ -444,6 +445,24 @@ def _replace(src, dst):
     os.replace(src, dst)
 
 
+def _checkout_relative(args, cwd):
+    """Spell every /I and /Fo path inside this checkout relative to the compiler's working directory (the unit's
+    directory), so that the compiler sees the same strings in every checkout.  VC6's output depends on the path strings
+    it holds, not only on the source: kernel/sys/win/ltdirectmusicloader emits its adjustor-thunk COMDATs in an order that
+    follows the checkout's path (E:\\AVP2Source\\wt_d4-ren-structural: the original's order; wt_e2-engine-stubs: swapped),
+    so the same commit relinked to a different image in different checkouts."""
+    out = []
+    for a in args:
+        for opt in ('/I', '/Fo'):
+            if a.startswith(opt) and os.path.isabs(a[len(opt):]):
+                p = os.path.normpath(a[len(opt):])
+                if os.path.normcase(p).startswith(os.path.normcase(ROOT) + os.sep):
+                    a = opt + os.path.relpath(p, cwd)
+                break
+        out.append(a)
+    return out
+
+
 def compile_unit(u, force=False, quiet=False):
     """Compile u unless its object is current.  quiet: print nothing and list no failure (units nobody asked for)."""
     # The compiler writes a private temporary object that is renamed into place, under a per-unit lock, so a
@@ -461,9 +480,10 @@ def compile_unit(u, force=False, quiet=False):
         stamp = _unit_stamp(u)
         if not force and _up_to_date(u, stamp):       # another process compiled it while we waited
             return True
-        tmp = '%s.%d.tmp.obj' % (u.base_obj[:-4], os.getpid())
-        args = [VC6CL] + COMMON_FLAGS + u.flags + ['/Fo' + tmp, u.path]
-        r = subprocess.run(['cmd', '/c'] + args, capture_output=True, text=True, cwd=os.path.dirname(u.path),
+        tmp = u.base_obj[:-4] + '.tmp.obj'           # one name per unit: the unit lock is held
+        cwd = os.path.dirname(u.path)
+        args = [VC6CL] + _checkout_relative(COMMON_FLAGS + u.flags + ['/Fo' + tmp], cwd) + [os.path.basename(u.path)]
+        r = subprocess.run(['cmd', '/c'] + args, capture_output=True, text=True, cwd=cwd,
                            env=dict(os.environ, **modcfg.CL_ENV))
         out = '\n'.join(l for l in r.stdout.splitlines() if l.strip() and l.strip() != os.path.basename(u.path))
         if out and not quiet:
