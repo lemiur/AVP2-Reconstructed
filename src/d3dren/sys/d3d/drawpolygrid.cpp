@@ -220,6 +220,39 @@ inline void GenerateSignedPolyGridVertices(LTPolyGrid *pGrid, UnkType_TLVertex40
 // Internal functions
 // ---------------------------------------------------------------------------------------------------------------------------------
 
+// guess: the 0x28-byte vertex clipper dispatch as an inline function of the original (the exe expands it here with its own copies of the
+// vertex pointer and count; unit unk/10007930 has the out-of-line copy ClipPolygon40): the polygon *ppVerts / *pnVerts is clipped
+// against the planes of nFlags; with the UseD3DClip console variable set only the near plane is.
+static inline int ClipPolygon40_Inline(uint32 nFlags, UnkType_TLVertex40 **ppVerts, int *pnVerts)
+{
+	UnkType_TLVertex40 *pOut;
+	UnkType_TLVertex40 *pVerts;
+	int nVerts;
+	char c0, c1, c2, c3, c4, c5;
+
+	if (g_CV_UseD3DClip.m_IntVal)
+	{
+		nFlags &= 1;
+		if (!nFlags)
+			return 1;
+	}
+	pOut = (UnkType_TLVertex40 *)g_pClipScratchVerts;
+	pVerts = *ppVerts;
+	nVerts = *pnVerts;
+	if (((nFlags & 1) == 0 || ClipPolyNear40(&c0, &pVerts, &nVerts, &pOut))
+		&& ((nFlags & 4) == 0 || ClipPolyLeft40(&c1, &pVerts, &nVerts, &pOut))
+		&& ((nFlags & 8) == 0 || ClipPolyTop40(&c2, &pVerts, &nVerts, &pOut))
+		&& ((nFlags & 0x10) == 0 || ClipPolyRight40(&c3, &pVerts, &nVerts, &pOut))
+		&& ((nFlags & 0x20) == 0 || ClipPolyBottom40(&c4, &pVerts, &nVerts, &pOut))
+		&& ((nFlags & 2) == 0 || ClipPolyFar40(&c5, &pVerts, &nVerts, &pOut)))
+	{
+		*ppVerts = pVerts;
+		*pnVerts = nVerts;
+		return 1;
+	}
+	return 0;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Drawing
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -273,9 +306,32 @@ void d3d_DrawPolyGrid(ViewParams *pParams, LTObject *pObj)
 	int bEnvMap;
 	int nStage;
 	uint32 nTotal;
+	UnkType_TLVertex40 aVerts[3];
+	LTMatrix mFull;
 	int i;
 
-	d3d_GetBlendStates(pGrid, nSrcBlend, nDestBlend, nFog, nFogColor);
+	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FOGCOLOR, (unsigned long *)&nFogColor);
+	g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FOGENABLE, (unsigned long *)&nFog);
+	if ((pGrid->m_Flags & FLAG_FOGDISABLE) && pGrid->m_ObjectType != OT_MODEL)
+		nFog = 0;
+
+	if (pGrid->m_Flags2 & FLAG2_ADDITIVE)
+	{
+		nSrcBlend = D3DBLEND_ONE;
+		nDestBlend = D3DBLEND_ONE;
+		nFogColor = 0;
+	}
+	else if (pGrid->m_Flags2 & FLAG2_MULTIPLY)
+	{
+		nSrcBlend = D3DBLEND_ZERO;
+		nDestBlend = D3DBLEND_SRCCOLOR;
+		nFogColor = 0xFFFFFFFF;
+	}
+	else
+	{
+		nSrcBlend = D3DBLEND_SRCALPHA;
+		nDestBlend = D3DBLEND_INVSRCALPHA;
+	}
 	StateSet ssSrcBlend(D3DRENDERSTATE_SRCBLEND, nSrcBlend);
 	StateSet ssDestBlend(D3DRENDERSTATE_DESTBLEND, nDestBlend);
 	StateSet ssFog(D3DRENDERSTATE_FOGENABLE, nFog);
@@ -451,28 +507,15 @@ Textured:
 				}
 				else if (nResult != 1)
 				{
-					UnkType_PGVertex aVerts[3];
-					UnkType_TLVertex40 *pClipOut = (UnkType_TLVertex40 *)g_pClipScratchVerts;
-					UnkType_TLVertex40 *pIn = (UnkType_TLVertex40 *)aVerts;
+					UnkType_TLVertex40 *pIn = aVerts;
 					int nVerts = 3;
-					uint32 nFlags = nTriFlags;
-					char bUnused0, bUnused1, bUnused2, bUnused3, bUnused4, bUnused5;
 
-					aVerts[0] = *(UnkType_PGVertex *)&pVerts[pIndex[0]];
-					aVerts[1] = *(UnkType_PGVertex *)&pVerts[pIndex[1]];
-					aVerts[2] = *(UnkType_PGVertex *)&pVerts[pIndex[2]];
+					aVerts[0] = pVerts[pIndex[0]];
+					aVerts[1] = pVerts[pIndex[1]];
+					aVerts[2] = pVerts[pIndex[2]];
 
-					// The clip of ClipPolygon40 written out in place (when Direct3D clips the sides only the near plane is done here).
-					if (g_CV_UseD3DClip.m_IntVal == 0 || (nFlags &= 1) != 0)
-					{
-						if (((nFlags & 1) && !ClipPolyNear40(&bUnused0, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 4) && !ClipPolyLeft40(&bUnused1, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 8) && !ClipPolyTop40(&bUnused2, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 0x10) && !ClipPolyRight40(&bUnused3, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 0x20) && !ClipPolyBottom40(&bUnused4, &pIn, &nVerts, &pClipOut)) ||
-							((nFlags & 2) && !ClipPolyFar40(&bUnused5, &pIn, &nVerts, &pClipOut)))
-							goto NextTri;
-					}
+					if (!ClipPolygon40_Inline(nTriFlags, &pIn, &nVerts))
+						goto NextTri;
 
 					UnkType_TLVertex40 *pProj = pIn;
 					for (i = nVerts; i; i--)
@@ -497,7 +540,7 @@ NextTri:
 	}
 	else
 	{
-		LTMatrix mFull = pParams->m_DeviceTimesProjection * pParams->m_mClipTransform;
+		mFull = pParams->m_DeviceTimesProjection * pParams->m_mClipTransform;
 		UnkType_TLVertex40 *pCur = pVerts;
 
 		for (i = nTotal; i; i--)
