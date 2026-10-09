@@ -12,6 +12,7 @@ function.
 | Engine code | 90.5% | |
 | Inventoried lithshared, WONAPI, VC6 CRT functions | 100% | |
 | **Byte-gated**: linked from source, whole exe SHA1-identical | 76.05% of function code | 3,662 functions (117 whole units + 1,235 single functions) |
+| **Matched under the code rules**: byte-gated, and passing the [match] code rules | 69.40% of function code | 3,552 functions (110 byte-gated functions are MATCH-PENDING) |
 
 Most of the unmatched functions in that count are not engine functions: 173 of them, 1,869 bytes in all, are the
 compiler-generated exception funclets and destructor thunks at the end of `.text`. No unit owns them, so objdiff
@@ -44,6 +45,13 @@ ftserv and l_allocator emit their functions in a different order, so they are ba
 than as whole units. Two functions with inline-assembly bodies are counted as verbatim, not as source. Every run also
 splices one non-matching stub as a negative control: the image must then turn red, with all the differing bytes
 inside that stub. The latest result is committed in `progress/lithtech_1.0.9.6/byte_gate.json`.
+
+A byte-identical function counts as matched only if it also passes the code rules that keep the source honest:
+- each type and each global is declared once, in a header;
+- there are no fixed-offset casts or casts of `this`;
+- there are no placeholder virtuals, `volatile` carriers or assembly bodies.
+
+`python tools/build.py rules -v` lists the ones that don't pass (MATCH-PENDING). Naming is not required.
 
 These are function-code metrics, not whole-executable completion. The source exception helper ranges occupy
 54 existing report entries: 573 payload bytes and 168 padding bytes. Metadata and library-data totals are tracked separately
@@ -85,6 +93,7 @@ The DLL was built with a different compiler from the engine: the VC6 RTM front e
 | Prebuilt library code (VC6 RTM CRT) | 469 functions, 41,550 bytes (14.8%) |
 | objdiff | 67.43% of code, 1,658 of 1,729 functions, 154 of 178 units complete |
 | **Byte-gated**: spliced from source, whole DLL SHA1-identical | 52.74% of function code, all 1,190 matching functions |
+| **Matched under the code rules** | 38.74% of function code, 1,050 functions (140 MATCH-PENDING) |
 
 The source is organised as the DLL's 52 original object files, recovered from the binary's layout. The 2026-10-08
 matching sessions used twelve GPT-6 Luna agents at MAX effort with separate file ownership and address ranges.
@@ -173,6 +182,7 @@ python tools/build.py diff <func>  # side-by-side disassembly against the origin
 python tools/build.py report       # refresh progress/lithtech_1.0.9.6/report.json (--module d3dren: d3dren_1.0.9.6)
 python tools/build.py gate         # byte gate: whole-exe SHA1 with every bankable unit from source (needs a clean tree)
 python tools/build.py gate --module d3dren   # the same for d3d.ren (tools/relink_dll.py)
+python tools/build.py rules -v     # matched functions that break a [match] code rule (MATCH-PENDING)
 python tools/source_eh.py          # verify source EH helpers against the original; writes build/source_eh.json
 python tools/library_data.py       # verify native library data separately from function-code coverage
 python -m unittest discover -s tools/tests -v # run verifier regression tests

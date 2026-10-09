@@ -12,6 +12,8 @@ r"""decomp build driver for lithtech.exe (default) and d3d.ren (`--module d3dren
                                         -m audits the matching functions instead (self-test: expect none)
   python tools/build.py parked [-a]     write PARKED.md: every parked STUB (-a: every STUB) with its scores, audit and notes
   python tools/build.py relink         layout gate: mixed relink of every fully matched unit (tools/relink_gate.py)
+  python tools/build.py rules [-v]     code rules: which matched functions also pass the [match] rules of CODE_RULES
+                                        (MATCH-PENDING otherwise; tools/rulecheck.py)
   python tools/build.py gate [...]     byte gate: the whole relinked exe must have the original's SHA1 (config/check.sha1),
                                         with every bankable fully matched unit from source; prints GATE GREEN/RED and
                                         the banked counts (tools/byte_gate.py; --allow-dirty, --clean, --no-build)
@@ -1587,7 +1589,7 @@ def full_build_refused():
     return main_checkout and bool(os.environ.get('CLAUDECODE')) and not os.environ.get('DECOMP_LEAD')
 
 
-COMMANDS = ('all', 'check', 'diff', 'todo', 'audit', 'parked', 'target', 'relink', 'base', 'report', 'gate')
+COMMANDS = ('all', 'check', 'diff', 'todo', 'audit', 'parked', 'target', 'relink', 'base', 'report', 'gate', 'rules')
 HELP_FLAGS = ('-h', '--help', '-?', '/?', 'help')
 
 
@@ -1623,6 +1625,10 @@ def main(argv):
             return 2
         import relink_gate
         return relink_gate.main()
+    if cmd == 'rules':          # code-rule checker: which matches also pass the [match] rules (tools/rulecheck.py)
+        import rulecheck
+        sys.argv = [os.path.join(TOOLS, 'rulecheck.py')] + list(argv[1:])
+        return rulecheck.main()
     if cmd == 'gate':           # byte gate: whole-image SHA1 with every bankable unit from source (tools/byte_gate.py)
         import byte_gate
         sys.argv = [os.path.join(TOOLS, 'byte_gate.py')] + list(argv[1:])

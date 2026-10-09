@@ -606,6 +606,27 @@ def main():
         log('fully matched but not banked (second oracle disagrees: a layout or ordering problem): %d' % len(not_banked))
         for u in not_banked:
             log('  %-40s %s' % (u, rejected[u]))
+    # code rules: banked functions that break a [match] rule are MATCH-PENDING and not counted as matched
+    rc_ = subprocess.run([sys.executable, os.path.join(TOOLS, 'rulecheck.py'), '--module', modcfg.NAME, '--quiet'],
+                         cwd=ROOT, capture_output=True, text=True)
+    rules = None
+    rp = os.path.join(modcfg.BUILD, 'rulecheck.json')
+    if rc_.returncode == 0 and os.path.exists(rp):
+        with open(rp) as f:
+            rj = json.load(f)
+        pend = {int(r['va'], 16) for r in rj['functions'] if r['rules']}
+        banked_vas = {va for u in banked for va in attr.objvas.get(u, []) if va in funcs} | {va for _, va in spliced}
+        banked_vas -= {va for s_ in verb.values() for va in s_}
+        ok = banked_vas - pend
+        ok_b = sum(funcs[va][0] - va for va in ok if va in funcs)
+        rules = {'functions': len(ok), 'code_bytes': ok_b, 'pending': len(banked_vas & pend),
+                 'by_rule': rj['summary']['by_rule']}
+        log('matched under the code rules: %d functions, %d code bytes (%.3f%%); %d banked functions are '
+            'MATCH-PENDING (%s; python tools/build.py rules -v)' % (
+                len(ok), ok_b, 100.0 * ok_b / total_code, rules['pending'],
+                ', '.join('%s %d' % kv for kv in sorted(rules['by_rule'].items(), key=lambda x: int(x[0][1:])))))
+    else:
+        log('code rules: rulecheck.py failed; matched-under-rules not reported')
     log('build.py MATCH functions not banked: %d%s' % (len(match_missing), ': ' + ', '.join(
         '%08x' % va for _, va in match_missing[:40]) if match_missing else ''))
     log('relinks: %d (+ baseline), %.0f s' % (banker.runs, time.time() - t0))
@@ -662,6 +683,7 @@ def main():
         'match_not_banked': ['%s@%08x' % k for k in match_missing],
         'relinks': banker.history,
         'control': control,
+        'code_rules': rules,
     }
     with open(os.path.join(GATE_DIR, 'byte_gate.json'), 'w') as f:
         json.dump(result, f, indent=1, sort_keys=True)
