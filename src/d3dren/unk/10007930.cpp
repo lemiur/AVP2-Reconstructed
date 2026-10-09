@@ -15,6 +15,7 @@
 #include "de_objects.h"
 #include "de_world.h"
 #include "d3dren/pool.h"
+#include "d3dren/polydraw.h"
 #include "d3dren/d3ddevice.h"
 #include "d3dren/d3dstate.h"
 #include "d3dren/viewparams.h"
@@ -22,14 +23,13 @@
 #include "d3dren/scenedesc.h"
 #include "pixelformat.h"
 #include "counter.h"
-#include "d3dren/polydraw.h"
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Globals of this unit
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-// g_pGlobalPanInfo, g_TextureStageTexelSizes, g_fGlobalPan*, g_WorldPolyNodeBank, g_WorldPolyBucketBank, g_pDeferredGlobalPanPolys and
-// g_nTextureChanges: d3dren/polydraw.h; g_Textures: d3dren/d3dtexture.h; g_CurTextureFrameCode: d3dren/d3d_texture.h.
+// g_TextureStageTexelSizes, g_fGlobalPan*, g_WorldPolyNodeBank, g_WorldPolyBucketBank and g_pDeferredGlobalPanPolys: d3dren/polydraw.h;
+// g_pGlobalPanInfo, g_nTextureChanges and g_CurTextureFrameCode: d3dren/common_draw.h; g_Textures: d3dren/d3dtexture.h.
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The poly vertex fed to the TL vertex array, the dynamic light list of a poly and the callees of other units
@@ -46,16 +46,9 @@ struct UnkType_PolyLight
 };
 #define POLY_LIGHTS(p)	(*(UnkType_PolyLight **)((uint8 *)(p) + 0x30))
 
-// GLOBAL: D3DREN 0x10057774
-extern uint8 g_nPolyVertexAlpha;		// guess: alpha byte of the poly vertex colour
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];	// guess: red lighting table
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];	// guess: green lighting table
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];	// guess: blue lighting table
-// g_pfnCalcFogAlpha, g_nQueuedWorldPolyVertices, g_pQueuedWorldPolyVertices, g_nQueuedWorldPolyVertexCapacity, g_pTexturedWorldPolyBuckets,
-// g_nWorldPolysDrawn, g_nLightTests and g_u8FogColorR/G/B: d3dren/polydraw.h.
+// g_pfnCalcFogAlpha, g_nQueuedWorldPolyVertices, g_pQueuedWorldPolyVertices, g_nQueuedWorldPolyVertexCapacity, g_pTexturedWorldPolyBuckets
+// and g_u8FogColorR/G/B: d3dren/polydraw.h; g_VertexTintTableR/G/B: d3dren/d3d_draw.h; g_nPolyVertexAlpha, g_nWorldPolysDrawn and
+// g_nLightTests: d3dren/common_draw.h.
 
 void DrawPolyDynamicLightmaps(WorldPoly *pPoly, TLVertex *pVerts, int nVerts);
 
