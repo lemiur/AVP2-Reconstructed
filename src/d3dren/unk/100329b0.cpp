@@ -387,10 +387,9 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 					uint32 r = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 16) * 0x100 + scale] + (uint8)(*pAccum >> 16)];
 					uint32 g = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)(*pTemp >> 8) * 0x100 + scale] + (uint8)(*pAccum >> 8)];
 					uint32 b = g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[(uint8)*pTemp * 0x100 + scale] + (uint8)*pAccum];
-
+					pTemp++;
 					*pAccum = (r << 8 | g) << 8 | b;
 					pAccum++;
-					pTemp++;
 				}
 			}
 			nLayers++;
