@@ -151,6 +151,7 @@ void d3d_BindRTexture(RTexture *pRTexture)
 // Remaining difference: 3 of 666 bytes, 2 aligned instructions. The vertex-count update at the end reloads nVerts
 // into eax instead of the target's edx. Restoring fog and returning on clipping/growth failure preserves the
 // original entry pushes and shared epilogue; all 212 instructions otherwise align with the target.
+// PARKED: register choice only (nVerts reload in eax instead of edx after the UV2 loop; 2 aligned, 3 bytes); 3000+ permuter candidates and loop-form A/Bs exhausted
 // STUB: D3DREN 0x10007b41
 void DrawWorldTexturePoly(WorldPoly *pPoly)
 {

@@ -212,6 +212,7 @@ class VisibleSet { public: int Init(); };		// 0x10038cf0
 VisibleSet *d3d_GetVisibleSet();				// 0x10039e00
 
 // NAME: d3d_Init: RenderStruct::Init (+0x70), Jupiter common_init.cpp's rdll_RenderDLLSetup name for the slot (names_proposal medium)
+// PARKED: RECT centering schedule only (left/top copy in edx; 7 aligned, 20 bytes); 250+ statement/temp/chain-assignment A/Bs exhausted
 // STUB: D3DREN 0x10010b22
 // Remaining difference: 20 of 747 bytes (8 aligned instructions, 7 ignoring stack offsets). The device-search and failure
 // paths now follow the original; only the RECT setup at 0x10010d1a-0x10010d30 differs in register choice and scheduling.
