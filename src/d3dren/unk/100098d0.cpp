@@ -733,7 +733,7 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 {
 	UnkType_TLVertex40 aVerts[80];
 	float aTexMat[2][2];
-	float fU = g_WorldDetailTextureScale * g_TextureStageTexelSizes[1].m_Unk00;
+	float fU = g_TextureStageTexelSizes[1].m_Unk00 * g_WorldDetailTextureScale;
 	float fV = g_TextureStageTexelSizes[1].m_Unk04 * g_WorldDetailTextureScale;
 	aTexMat[0][0] = g_WorldDetailTextureAngleCos * fU;
 	aTexMat[0][1] = -(g_WorldDetailTextureAngleSin * fV);
