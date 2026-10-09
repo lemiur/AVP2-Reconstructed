@@ -379,8 +379,13 @@ void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly);
 // The light-anim helper is d3d_draw's d3d_AddLightAnimVertexColors body (SPolyVertex colours, a separate clamped count) with the
 // inverse weight computed inside the blend loop; the exe's out-of-line copy (0x100185a0) has the same code, so the original is
 // probably one inline function in a header that this object expands and d3d_draw / DrawTranslucentWorldModelPoly call.
-// STUB diagnosis: 720/720 bytes, 34 strict differences: base/index order of three byte-table loads and the schedule of the blend
-// loop's preheader (the exe loads pVerts before forming the inverse weight).
+// STUB diagnosis: 720/720 bytes, 5 differing bytes: with d3d_draw's exact helper body every instruction aligns; only the base/index
+// operand order of the five `pFrame0->m_pVertX[i]` byte loads differs (the exe alternates [ptr+i] / [i+ptr]).  Not names (helper,
+// parameters, loop index), not declaration order, scope or pRef/pAnim forms; the helper defined at the top of the unit or as
+// `inline d3d_AddLightAnimVertexColors` gives the same order.  A permuter run reached MATCH only with extra float temporaries in
+// the caller (`float f = uint16; nVerts = f;` and a named blend-percent float), i.e. a symbol-numbering tie-break; three more
+// permuter runs (9000 candidates, two with the type/cast mutations off) found no source-like form.
+// PARKED: operand-order tie-break only (5 bytes, base/index of five byte loads); the only exact state needs fake float temporaries
 // STUB: D3DREN 0x1002f780
 void RelightWorldPolyVertices(MainWorld *pWorld, WorldPoly *pPoly)
 {
