@@ -255,6 +255,7 @@ static inline WorldPoly *d3d_GetPolyFromHPoly(MainWorld *pWorld, HPOLY hPoly)
 	return pWorldData->m_pOriginalBsp->GetPolyFromHPoly(hPoly);
 }
 
+// PARKED: 12 bytes, the order of two spill reloads (esi/eax) at the rebuild-loop exits; source levers and a 3000-candidate permuter run leave it
 // STUB: D3DREN 0x1002ebb0
 int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, uint32 *pnPoints, TLVertex *pOut)
 {
