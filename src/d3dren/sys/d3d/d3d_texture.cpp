@@ -293,66 +293,45 @@ void d3d_ReinitLightmapTextureSupport()
 	}
 }
 
-// Texture manager Init: clears the tables and lists, creates the RTexture bank, enumerates the device's texture formats and picks one for
-// every FORMAT_* use; prints "FORMAT_x texture format missing." and fails when a required one is missing.  (The Jupiter CTextureManager::
-// Init + SelectTextureFormats; the lightmap texture support reset of d3d_ReinitLightmapTextureSupport is inlined at its end.)
-// NAME: names_proposal.csv CTextureManager::Init (medium, Jupiter): a global function in d3d.ren
-// NOT MATCHING (1216 vs 1152 bytes): all seven wanted-format tables are initialized before selection, and DetectDXTTextureFormatSupport is kept
-// out of line as in the exe.  The remaining difference is register and stack-slot selection: the exe reuses table storage for
-// the later surface description and writes repeated values from registers, while this compilation uses a larger frame and some
-// immediate stores.
-// STUB: D3DREN 0x1001ec50
-int CTextureManager_Init()
+// Picks a format for every FORMAT_* use from the enumerated ones; prints "FORMAT_x texture format missing." and fails when a required one
+// is missing.  NAME: Jupiter CTextureManager::SelectTextureFormats (a static function here: Init expands it, there is no copy in d3d.ren).
+static LTBOOL CTextureManager_SelectTextureFormats()
 {
-	memset(g_TextureFormats, 0, sizeof(g_TextureFormats));
-	g_pBoundTextures[0] = 0;
-	g_pBoundTextures[1] = 0;
-	g_TextureManagerResetList.m_nElements = 0;
-	g_pBoundTextures[2] = 0;
-	g_pBoundTextures[3] = 0;
-	g_TextureFormatList.TieOff();
-	g_TextureManagerResetList.m_Head.TieOff();
-	g_Textures.TieOff();
-	g_LightmapTexturePools.ResetTexturePoolLists();
-	g_RTextureBank.Init(0x40, 0);
-	g_bTextureManagerInitialized = 1;
-	g_pD3DDevice->EnumTextureFormats(d3d_EnumTextureFormatsCallback, 0);
-
 	// The wanted formats (bits of red, green, blue, alpha; one of these DDPF_ flags; none of these) in the order of preference.
 	TextureFormatSpec spec32[1] = { { 8, 8, 8, 8, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
-	TextureFormatSpec specBump[1] = { { 8, 8, 0, 0, DDPF_BUMPDUDV, DDPF_LUMINANCE } };
+	TextureFormatSpec specFullbrite[2] = { { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE }, { 4, 4, 4, 4, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
 	TextureFormatSpec spec4444[2] = { { 4, 4, 4, 4, DDPF_ALPHAPIXELS, DDPF_LUMINANCE }, { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
+	TextureFormatSpec specNormal[3] = { { 5, 6, 5, 0, DDPF_RGB, DDPF_LUMINANCE }, { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE },
+		{ 4, 4, 4, 4, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
 	TextureFormatSpec specInterface[2] = { { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE | DDPF_PALETTEINDEXED8 },
 		{ 4, 4, 4, 4, DDPF_ALPHAPIXELS, DDPF_LUMINANCE | DDPF_PALETTEINDEXED8 } };
 	TextureFormatSpec specLightmap[2] = { { 5, 5, 5, 0, DDPF_RGB, DDPF_LUMINANCE }, { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
-	TextureFormatSpec specFullbrite[2] = { { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE }, { 4, 4, 4, 4, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
-	TextureFormatSpec specNormal[3] = { { 5, 6, 5, 0, DDPF_RGB, DDPF_LUMINANCE }, { 5, 5, 5, 1, DDPF_ALPHAPIXELS, DDPF_LUMINANCE },
-		{ 4, 4, 4, 4, DDPF_ALPHAPIXELS, DDPF_LUMINANCE } };
+	TextureFormatSpec specBump[1] = { { 8, 8, 0, 0, DDPF_BUMPDUDV, DDPF_LUMINANCE } };
 
 	g_TextureFormats[FORMAT_32BIT] = d3d_FindTextureFormatBySpecs(spec32, 1);
 	g_TextureFormats[FORMAT_FULLBRITE] = d3d_FindTextureFormatBySpecs(specFullbrite, 2);
 	if (!g_TextureFormats[FORMAT_FULLBRITE])
 	{
 		AddDebugMessage(0, "FORMAT_FULLBRITE texture format missing.");
-		return 0;
+		return FALSE;
 	}
 	g_TextureFormats[FORMAT_4444] = d3d_FindTextureFormatBySpecs(spec4444, 2);
 	if (!g_TextureFormats[FORMAT_4444])
 	{
 		AddDebugMessage(0, "FORMAT_4444 texture format missing.");
-		return 0;
+		return FALSE;
 	}
 	g_TextureFormats[FORMAT_NORMAL] = d3d_FindTextureFormatBySpecs(specNormal, 3);
 	if (!g_TextureFormats[FORMAT_NORMAL])
 	{
 		AddDebugMessage(0, "FORMAT_NORMAL texture format missing.");
-		return 0;
+		return FALSE;
 	}
 	g_TextureFormats[FORMAT_INTERFACE] = d3d_FindTextureFormatBySpecs(specInterface, 2);
 	if (!g_TextureFormats[FORMAT_INTERFACE])
 	{
 		AddDebugMessage(0, "FORMAT_INTERFACE texture format missing.");
-		return 0;
+		return FALSE;
 	}
 	g_TextureFormats[FORMAT_LIGHTMAP] = d3d_FindTextureFormatBySpecs(specLightmap, 2);
 	if (!g_TextureFormats[FORMAT_LIGHTMAP])
@@ -362,6 +341,32 @@ int CTextureManager_Init()
 	}
 	g_TextureFormats[FORMAT_BUMPMAP] = d3d_FindTextureFormatBySpecs(specBump, 1);
 	DetectDXTTextureFormatSupport();
+	return TRUE;
+}
+
+// Texture manager Init: clears the tables and lists, creates the RTexture bank, enumerates the device's texture formats and picks one for
+// every FORMAT_* use (CTextureManager_SelectTextureFormats).  (The Jupiter CTextureManager::Init; the lightmap texture support reset of
+// d3d_ReinitLightmapTextureSupport is written out at its end.)
+// NAME: names_proposal.csv CTextureManager::Init (medium, Jupiter): a global function in d3d.ren
+// The format selection is a static function Init expands (its four "missing" exits cross-jump to one AddDebugMessage tail, and its
+// tables share stack with the surface description of the lightmap reset); the tables are declared in the order of their use.
+// FUNCTION: D3DREN 0x1001ec50
+int CTextureManager_Init()
+{
+	memset(g_TextureFormats, 0, sizeof(g_TextureFormats));
+	for (int i = 0; i < 4; i++)
+		g_pBoundTextures[i] = 0;
+	g_TextureManagerResetList.m_nElements = 0;
+	g_TextureFormatList.TieOff();
+	g_TextureManagerResetList.m_Head.TieOff();
+	g_Textures.TieOff();
+	g_LightmapTexturePools.ResetTexturePoolLists();
+	g_RTextureBank.Init(0x40, 0);
+	g_bTextureManagerInitialized = 1;
+	g_pD3DDevice->EnumTextureFormats(d3d_EnumTextureFormatsCallback, 0);
+
+	if (!CTextureManager_SelectTextureFormats())
+		return 0;
 	{
 		TextureFormat *pLightmapFormat;
 		DDSURFACEDESC2 ddsd;
