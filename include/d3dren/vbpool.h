@@ -2,7 +2,8 @@
 // classes that pick the vertex format (one texture coordinate set / two sets, transformed or untransformed).
 //
 // All type, member and slot names here are invented (no symbols survive in d3d.ren): UnkType_* classes,
-// m_Unk<offset> members, vfn_Unk<offset> virtual slots.  The roles are in the guess comments.
+// m_Unk<offset> members; the virtual slot names GetVertexSize / CreateVertexBuffers are invented from their bodies (names_proposal.csv,
+// provenance invented).  The roles are in the guess comments.
 //   vtable of the base class: 0x1004651c; derived vtables: 0x10046140 / 0x10046180 (A), 0x10046160 / 0x100461a0 (B).
 #ifndef __D3DREN_VBPOOL_H__
 #define __D3DREN_VBPOOL_H__
@@ -29,8 +30,8 @@ public:
 	virtual void	Term();												// slot 3  guess: release all buffers
 	virtual int		Init(IDirect3D7 *pD3D, uint32 nVertices, uint32 nBuffers, int bUntransformed, int bHardware);	// slot 4  guess: (re)create the pool
 	virtual int		Lock();												// slot 5
-	virtual int		vfn_Unk18() = 0;											// slot 6  guess: vertex size in bytes
-	virtual int		vfn_Unk1c(IDirect3D7 *pD3D) = 0;							// slot 7  guess: create the vertex buffers
+	virtual int		GetVertexSize() = 0;											// slot 6  guess: vertex size in bytes
+	virtual int		CreateVertexBuffers(IDirect3D7 *pD3D) = 0;							// slot 7  guess: create the vertex buffers
 
 	void			AdvanceBuffer();												// guess: advance to the next buffer (m_Unk18 wraps at m_Unk24)
 	void			RestartInNextBuffer();												// guess: next buffer and restart at vertex 0 (m_Unk1c = 0)
@@ -61,8 +62,8 @@ class UnkType_VertexBufferPoolA : public UnkType_VertexBufferPool
 public:
 	UnkType_VertexBufferPoolA(int bUntransformed) { m_Unk28 = bUntransformed; }
 
-	virtual int vfn_Unk18() { return m_Unk28 ? 28 : 32; }
-	virtual int vfn_Unk1c(IDirect3D7 *pD3D);
+	virtual int GetVertexSize() { return m_Unk28 ? 28 : 32; }
+	virtual int CreateVertexBuffers(IDirect3D7 *pD3D);
 };
 
 // Two texture coordinate sets: 40 bytes (XYZRHW) or 36 bytes (XYZ) per vertex.
@@ -72,8 +73,8 @@ class UnkType_VertexBufferPoolB : public UnkType_VertexBufferPool
 public:
 	UnkType_VertexBufferPoolB(int bUntransformed) { m_Unk28 = bUntransformed; }
 
-	virtual int vfn_Unk18() { return m_Unk28 ? 36 : 40; }
-	virtual int vfn_Unk1c(IDirect3D7 *pD3D);
+	virtual int GetVertexSize() { return m_Unk28 ? 36 : 40; }
+	virtual int CreateVertexBuffers(IDirect3D7 *pD3D);
 };
 
 #endif

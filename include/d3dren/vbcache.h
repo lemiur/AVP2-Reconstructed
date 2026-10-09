@@ -39,7 +39,7 @@ struct UnkType_VBCacheEntry
 
 // The model vertex buffer cache (vtable 0x1004659c, object 0x10093b10, 0x6c bytes): one vertex buffer per cached model piece,
 // looked up by two keys (FindEntry) or recycled round-robin (AllocEntry).  The virtual slots keep the names of the base class
-// slots they override; vfn_Unk18 returns the vertex size that the model drawer stores at +0x54, +0x58 holds the FVF.
+// slots they override; GetVertexSize returns the vertex size that the model drawer stores at +0x54, +0x58 holds the FVF.
 // The destructor is compiler generated (FUN_1003a973, scalar deleting destructor FUN_1003a9d4): it does not reset the vptr.
 class UnkType_VertexBufferCache : public UnkType_VertexBufferPool
 {
@@ -49,8 +49,8 @@ public:
 	virtual int		DrawPrimitive(IDirect3DDevice7 *pDevice, D3DPRIMITIVETYPE type, uint32 nVertices);	// slot 1 override FUN_1003ac2e
 	virtual void	Term();												// slot 3 override FUN_1003ac8f
 	virtual int		Lock();												// slot 5 override Lock
-	virtual int		vfn_Unk18() { return m_Unk54; }								// slot 6 FUN_1003a9d0
-	virtual int		vfn_Unk1c(IDirect3D7 *pD3D);								// slot 7 FUN_1003aa6d
+	virtual int		GetVertexSize() { return m_Unk54; }								// slot 6 FUN_1003a9d0
+	virtual int		CreateVertexBuffers(IDirect3D7 *pD3D);								// slot 7 FUN_1003aa6d
 
 	int				SelectEntry(uint32 nKey1, uint32 nKey2);							// guess: find the entry with these keys and make it the current buffer
 	int				AllocateEntry(uint32 nKey1, uint32 nKey2, uint32 nVertices, int bGrow);	// guess: claim an entry for these keys (grow the pool when bGrow)
@@ -63,7 +63,7 @@ public:
 	uint32	m_Unk58;	// 0x58  guess: FVF of the vertices (set by the model drawer)
 	int		m_Unk5c;	// 0x5c  guess: the current buffer was filled and still has to be optimized
 	uint32	m_Unk60;	// 0x60  guess: initial age of an entry (4 after the constructor; the ModelVBCacheDelay console variable)
-	IDirect3D7			*m_Unk64;	// 0x64 the Direct3D object that creates the buffers (stored by vfn_Unk1c)
+	IDirect3D7			*m_Unk64;	// 0x64 the Direct3D object that creates the buffers (stored by CreateVertexBuffers)
 	IDirect3DDevice7	*m_Unk68;	// 0x68 the device of the last draw call
 };
 

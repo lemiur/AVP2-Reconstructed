@@ -51,14 +51,14 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nFree2 = pp->m_Unk20 - pp->m_Unk1c; \
 		(P) = (TLVertex *)pp->Lock(); \
-		(E) = (char *)pp->Lock() + pp->vfn_Unk18() * (nFree2 - 1); \
+		(E) = (char *)pp->Lock() + pp->GetVertexSize() * (nFree2 - 1); \
 	}
 
 #define POOL_FLUSH_DRAW() \
 	{ \
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nBytes = (char *)pOut - (char *)pp->Lock(); \
-		uint32 nVertsOut = nBytes / pp->vfn_Unk18(); \
+		uint32 nVertsOut = nBytes / pp->GetVertexSize(); \
 		g_nModelTrianglesDrawn += nVertsOut / 3; \
 		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVertsOut); \
 	}
@@ -73,7 +73,7 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 		UnkType_VertexBufferPool *pPool = m_Unk608; \
 		uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c; \
 		char *pBase = (char *)pPool->Lock(); \
-		pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1); \
+		pEnd = pBase + pPool->GetVertexSize() * (nFree - 1); \
 	} \
 	ModelTri *pTri = pLOD->m_Tris.GetArray(); \
 	int nTris = pLOD->m_Tris.GetSize(); \

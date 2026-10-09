@@ -559,14 +559,14 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nFree2 = pp->m_Unk20 - pp->m_Unk1c; \
 		(P) = (TLVertex *)pp->Lock(); \
-		(E) = (char *)pp->Lock() + pp->vfn_Unk18() * (nFree2 - 1); \
+		(E) = (char *)pp->Lock() + pp->GetVertexSize() * (nFree2 - 1); \
 	}
 
 #define POOL_FLUSH_DRAW() \
 	{ \
 		UnkType_VertexBufferPool *pp = m_Unk608; \
 		uint32 nBytes = (char *)pOut - (char *)pp->Lock(); \
-		uint32 nVertsOut = nBytes / pp->vfn_Unk18(); \
+		uint32 nVertsOut = nBytes / pp->GetVertexSize(); \
 		g_nModelTrianglesDrawn += nVertsOut / 3; \
 		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVertsOut); \
 	}
@@ -581,7 +581,7 @@ static inline void ProjectPos(float *pDest, float *pSrc)
 		UnkType_VertexBufferPool *pPool = m_Unk608; \
 		uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c; \
 		char *pBase = (char *)pPool->Lock(); \
-		pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1); \
+		pEnd = pBase + pPool->GetVertexSize() * (nFree - 1); \
 	} \
 	ModelTri *pTri = pLOD->m_Tris.GetArray(); \
 	int nTris = pLOD->m_Tris.GetSize(); \
@@ -764,7 +764,7 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 	UnkType_VertexBufferPool *pPool = m_Unk608;
 	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
 	char *pBase = (char *)pPool->Lock();
-	char *pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1);
+	char *pEnd = pBase + pPool->GetVertexSize() * (nFree - 1);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
 	for (;;)
@@ -773,7 +773,7 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 		{
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nBytes = (char *)pOut - (char *)p->Lock();
-			uint32 nVerts = nBytes / p->vfn_Unk18();
+			uint32 nVerts = nBytes / p->GetVertexSize();
 			g_nModelTrianglesDrawn += nVerts / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
 			return 1;
@@ -814,7 +814,7 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 			pOut = (TLVertex *)m_Unk608->Lock();
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-			pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
+			pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
 		}
 Skip:
 		pTri++;
@@ -830,7 +830,7 @@ int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 	UnkType_VertexBufferPool *pPool = m_Unk608;
 	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
 	char *pBase = (char *)pPool->Lock();
-	char *pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1);
+	char *pEnd = pBase + pPool->GetVertexSize() * (nFree - 1);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
 	for (;;)
@@ -839,7 +839,7 @@ int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 		{
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nBytes = (char *)pOut - (char *)p->Lock();
-			uint32 nVerts = nBytes / p->vfn_Unk18();
+			uint32 nVerts = nBytes / p->GetVertexSize();
 			g_nModelTrianglesDrawn += nVerts / 3;
 			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
 			return 1;
@@ -881,7 +881,7 @@ int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 			pOut = (TLVertex *)m_Unk608->Lock();
 			UnkType_VertexBufferPool *p = m_Unk608;
 			uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-			pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
+			pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
 		}
 Skip:
 		pTri++;
@@ -908,7 +908,7 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 	UnkType_VertexBufferPool *pPool = m_Unk608;
 	uint32 nFree = pPool->m_Unk20 - pPool->m_Unk1c;
 	char *pBase = (char *)pPool->Lock();
-	char *pEnd = pBase + pPool->vfn_Unk18() * (nFree - 1);
+	char *pEnd = pBase + pPool->GetVertexSize() * (nFree - 1);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
 	if (m_Unk8b4)
@@ -940,7 +940,7 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 					pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 					UnkType_VertexBufferPool *p = m_Unk608;
 					uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-					pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
+					pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
 				}
 			}
 			pTri++;
@@ -966,14 +966,14 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 				pOut = (UnkType_TnLVertex *)m_Unk608->Lock();
 				UnkType_VertexBufferPool *p = m_Unk608;
 				uint32 nFree2 = p->m_Unk20 - p->m_Unk1c;
-				pEnd = (char *)p->Lock() + p->vfn_Unk18() * (nFree2 - 1);
+				pEnd = (char *)p->Lock() + p->GetVertexSize() * (nFree2 - 1);
 			}
 			pTri++;
 		}
 	}
 	UnkType_VertexBufferPool *p = m_Unk608;
 	uint32 nBytes = (char *)pOut - (char *)p->Lock();
-	uint32 nVerts = nBytes / p->vfn_Unk18();
+	uint32 nVerts = nBytes / p->GetVertexSize();
 	g_nModelTrianglesDrawn += nVerts / 3;
 	((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
 	return 1;
@@ -1277,13 +1277,13 @@ void ModelDraw::PrepareModelPieceVertices()
 
 // The in-class inline virtuals (defined in vbpool.h), the scalar deleting destructor and the buffer creation virtuals.
 // The four classes have identical members; the linker folded them, so only one instance of each is annotated:
-// FUNCTION: D3DREN 0x10006140 ?vfn_Unk18@?$UnkType_VertexBufferPoolA@$0A@@@UAEHXZ
-// FUNCTION: D3DREN 0x10006150 ?vfn_Unk18@?$UnkType_VertexBufferPoolB@$0A@@@UAEHXZ
+// FUNCTION: D3DREN 0x10006140 ?GetVertexSize@?$UnkType_VertexBufferPoolA@$0A@@@UAEHXZ
+// FUNCTION: D3DREN 0x10006150 ?GetVertexSize@?$UnkType_VertexBufferPoolB@$0A@@@UAEHXZ
 // FUNCTION: D3DREN 0x10006160 ??_G?$UnkType_VertexBufferPoolA@$0A@@@UAEPAXI@Z
-// FUNCTION: D3DREN 0x10006180 ?vfn_Unk1c@?$UnkType_VertexBufferPoolA@$0A@@@UAEHPAUIDirect3D7@@@Z
-// FUNCTION: D3DREN 0x10006230 ?vfn_Unk1c@?$UnkType_VertexBufferPoolB@$0A@@@UAEHPAUIDirect3D7@@@Z
+// FUNCTION: D3DREN 0x10006180 ?CreateVertexBuffers@?$UnkType_VertexBufferPoolA@$0A@@@UAEHPAUIDirect3D7@@@Z
+// FUNCTION: D3DREN 0x10006230 ?CreateVertexBuffers@?$UnkType_VertexBufferPoolB@$0A@@@UAEHPAUIDirect3D7@@@Z
 
-template <int N> int UnkType_VertexBufferPoolA<N>::vfn_Unk1c(IDirect3D7 *pD3D)
+template <int N> int UnkType_VertexBufferPoolA<N>::CreateVertexBuffers(IDirect3D7 *pD3D)
 {
 	D3DVERTEXBUFFERDESC desc;
 	LPDIRECT3DVERTEXBUFFER7 pVB;
@@ -1311,7 +1311,7 @@ template <int N> int UnkType_VertexBufferPoolA<N>::vfn_Unk1c(IDirect3D7 *pD3D)
 	return bOK;
 }
 
-template <int N> int UnkType_VertexBufferPoolB<N>::vfn_Unk1c(IDirect3D7 *pD3D)
+template <int N> int UnkType_VertexBufferPoolB<N>::CreateVertexBuffers(IDirect3D7 *pD3D)
 {
 	D3DVERTEXBUFFERDESC desc;
 	LPDIRECT3DVERTEXBUFFER7 pVB;

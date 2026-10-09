@@ -145,7 +145,7 @@ int UnkType_VertexBufferPool::Init(IDirect3D7 *pD3D, uint32 nVertices, uint32 nB
 		m_Unk28 = bUntransformed;
 		m_Unk2c = bHardware;
 		m_Unk04.Init(nBuffers, 0);
-		bOK = vfn_Unk1c(pD3D);
+		bOK = CreateVertexBuffers(pD3D);
 		if (bOK)
 		{
 			bOK = 1;
@@ -158,7 +158,7 @@ int UnkType_VertexBufferPool::Init(IDirect3D7 *pD3D, uint32 nVertices, uint32 nB
 
 // FUNCTION: D3DREN 0x1003a8b1
 // guess: locks the current buffer and returns the address of the vertex at the current offset (NOOVERWRITE when
-// appending, DISCARDCONTENTS at the start of the buffer).  vfn_Unk18() is the vertex size.
+// appending, DISCARDCONTENTS at the start of the buffer).  GetVertexSize() is the vertex size.
 int UnkType_VertexBufferPool::Lock()
 {
 	DWORD flags;
@@ -172,7 +172,7 @@ int UnkType_VertexBufferPool::Lock()
 		return 0;
 	int base = *pData;
 	int off = m_Unk1c;
-	int p = vfn_Unk18() * off + base;
+	int p = GetVertexSize() * off + base;
 	*pData = p;
 	m_Unk34 = 1;
 	return p;
@@ -199,7 +199,7 @@ void UnkType_VertexBufferPool::ReleaseVertexBuffers()
 UnkType_VertexBufferCache UnkType_ModelVBCacheHolder::s_ModelVertexBufferCache;
 
 // FUNCTION: D3DREN 0x1003a994
-// FUNCTION: D3DREN 0x1003a9d0 ?vfn_Unk18@UnkType_VertexBufferCache@@UAEHXZ
+// FUNCTION: D3DREN 0x1003a9d0 ?GetVertexSize@UnkType_VertexBufferCache@@UAEHXZ
 // FUNCTION: D3DREN 0x1003a9d4 ??_GUnkType_VertexBufferCache@@UAEPAXI@Z
 UnkType_VertexBufferCache::UnkType_VertexBufferCache() : m_Unk60(4)
 {
@@ -239,7 +239,7 @@ int UnkType_VertexBufferCache::Lock()
 }
 
 // FUNCTION: D3DREN 0x1003aa6d
-int UnkType_VertexBufferCache::vfn_Unk1c(IDirect3D7 *pD3D)
+int UnkType_VertexBufferCache::CreateVertexBuffers(IDirect3D7 *pD3D)
 {
 	uint32 i;
 
