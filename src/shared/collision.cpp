@@ -1216,12 +1216,13 @@ void GetSpherePosTestPolys(SphereMoveInfo *pInfo, WorldPoly **pPolies, int *pnPo
 // Wave 7: only the last statement's operator* and operator+= differ in the call list (the original inlines both,
 // operator*'s constructor out of line). Direct `if(0)` lines (own size 1..12) move the line but never give the
 // original's pattern; Init(), a stored 1/n, macros for vPos/vP0/the lerp, pDest assigned first: no help.
-// Wave 7 phase 2 (inline_budget.py 41a7f0 --solve): B 1782u; the exe's last statement (op* inline with its
-// ctor out of line, op+= out of line) needs B 1808-1814u, i.e. 13-16u MORE own code (wave 7 only tried 1-12u of
-// ballast), or one more pending site after the loop's Dot with +13..+36u. Tried as real source (--variants, all
-// +/-1..4u, none in range): vP0 without the named vOffset, nPolies = 0 per step, bWall = 0, a trailing return,
-// vStep = vDelta; vStep *= fStep, a braced fTime clamp. Audit: the call difference is that inlining decision.
-// PARKED: inlining of the last statement (needs 13-16u more own code, source unknown) plus the ebx/ebp swap and a 12-byte larger frame
+// inline_budget.py 41a7f0 --solve (R11 model): the tail op+= passes its vector on the stack, so no tail exemption;
+// the exe's last statement (op* inline with its ctor out of line, op+= out of line) needs one more free inline site
+// after the loop plus 24-40u more own code (measured with probes). vAvg declared in the ground-normal block supplies
+// the site (its ctor); the declaration initialisers supply the own code (+32u; which locals the original initialised
+// is a guess: bWall's survives as a store the exe lacks). That gives the exe's call list: 195 aligned (73 ignoring
+// stack offsets), 507/507 instructions; left: frame 0xd0 vs 0xc4 and the ebx/ebp swap.
+// PARKED: exe call list reached (late vAvg ctor site + initialised locals, the latter a budget fit); frame 12 bytes larger, ebx/ebp swap
 // STUB: LITHTECH 0x0041a7f0
 void OrientMovement(SphereMoveInfo *pInfo)
 {
@@ -1229,11 +1230,11 @@ void OrientMovement(SphereMoveInfo *pInfo)
 	LTRotation rot;
 	LTVector vRight, vUp, vForward;
 	LTVector vPos, vP0, vNormal, vHitNormal;
-	LTVector *pDest, *pStart;
+	LTVector *pDest = LTNULL, *pStart = LTNULL;
 	float fTime;
-	int nPolies, bWall, bHit, i, nSteps;
-	LTVector vDelta, vStep, vAvg;
-	float fStep;
+	int nPolies = 0, bWall = 0, bHit = 0, i = 0, nSteps = 0;
+	LTVector vDelta, vStep;
+	float fStep = 0.0f;
 
 	rot = pInfo->m_pObj->m_Rotation;
 	math.GetRotationVectors(rot, vRight, vUp, vForward);
@@ -1299,6 +1300,7 @@ void OrientMovement(SphereMoveInfo *pInfo)
 	}
 
 	// Stand on the average of the ground normals.
+	LTVector vAvg;
 	vAvg.Init(0.0f, 0.0f, 0.0f);
 	for (i = 0; i < pInfo->m_nGroundNormals; i++)
 		vAvg += pInfo->m_GroundNormals[i];
@@ -1905,12 +1907,11 @@ inline void MoveToFrontside(Node *pRoot, CollideInfo *pInfo, ClassifyPoints *pCP
 // aligned mismatches (212 ignoring stack offsets). Left: the first copy's compare/push isn't merged into the last
 // (ours is 48 bytes larger), the side test's Norm still calls Mag out of line, and the ebx/ebp swap. A single shared
 // tail (no fDot) is worse (645). AddMovement is now defined after this function, in exe order (no code change).
-// Wave 7 phase 2 (inline_budget.py 41c460 --solve): no budget change with up to 6 extra pending sites
-// reproduces the exe's out-of-line calls: the remaining call difference (the side test's Norm calling Mag out of
-// line; inline in the exe) needs a different site tree, not a size change. Audit: that Mag call plus the
-// unmerged first copy of the "go into the start side" tail (ours-only immediates 1/0x4100/2/0xfffe/0xffff, -0.001f
-// and three je: the same code the exe has once), i.e. inlining and tail merging, no behaviour difference.
-// PARKED: tail merging and one inlining decision the budget model can't reproduce; ebx/ebp swap
+// inline_budget.py 41c460 (R11 model): no tail site is involved. The one call difference is the side test's Norm
+// calling Mag out of line (model: limit 61.2 for cost 62, 35 pending sites after it); measured, Mag inlines there only
+// with ~190u more budget (24 dead stores) or with ~3 fewer inline sites after the Norm. Plus the unmerged first copy
+// of the "go into the start side" tail (ours-only 1/0x4100/2/0xfffe/0xffff, -0.001f, three je).
+// PARKED: tail merging, plus Norm's nested Mag (needs ~3 fewer inline sites after the side test, or ~95u more own code); ebx/ebp swap
 // STUB: LITHTECH 0x0041c460
 LTBOOL ClipBoxIntoTree(uint16 iRoot, CollideInfo *pInfo, LTBOOL bSecondPass, LTBOOL *pbHit)
 {
