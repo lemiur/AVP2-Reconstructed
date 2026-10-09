@@ -28,5 +28,9 @@ int d3d_TestModelFrustum(ModelDraw *pDraw, ModelInstance *pInstance, uint32 *pCl
 int d3d_TestSphereClipPlanes(LTVector *pPos, float fRadius, LTPlane *pPlanes, uint32 *pFlags);	// guess: sphere against 6 planes (0 = outside)
 void d3d_QueueModel(ViewParams *pParams, LTObject *pObject);	// guess: BaseObjectSet::Draw callback of the models
 void d3d_BuildModelWarbleTables();			// guess: fills the warble tables
+// GLOBAL: D3DREN 0x10053278
+extern float g_fModelWarblePhase;			// guess: warble phase (advanced per frame by d3d_RenderScene)
+// GLOBAL: D3DREN 0x10054870
+extern float g_fModelWarbleFraction;			// guess: warble fraction
 
 #endif

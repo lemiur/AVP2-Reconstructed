@@ -12,5 +12,10 @@ extern PFormat g_ScreenPixelFormat;
 extern int g_nWindowBlitScaleX;				// guess: horizontal divisor of the RenderStruct width / stretch of the window blit (1)
 // GLOBAL: D3DREN 0x10057e28
 extern int g_nWindowBlitScaleY;				// guess: vertical divisor (1)
+// TODO(identity): no unit defines this flag yet.  Its .bss neighbours 0x100584e8/ec/f0 (g_bFogStateInitialized,
+// g_bDitherStateInitialized, g_bTextureFilterStateInitialized) are defined in sys/d3d/d3d_init and, like it, cleared by d3d_Init
+// (common_init), so its owner is probably sys/d3d/d3d_init; declared here because both readers (common_init, d3d_draw) include this header.
+// GLOBAL: D3DREN 0x100584e4
+extern int g_bWarbleTableInitialized;		// guess: the model warble tables were built (d3d_RenderScene)
 
 #endif

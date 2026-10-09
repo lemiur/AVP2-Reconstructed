@@ -192,8 +192,6 @@ void d3d_Term()
 extern int g_nSysMemParameter;				// guess: the "SysMem" console parameter as an int
 int g_nWindowBlitScaleY;				// guess: vertical divisor of the RenderStruct height (1); GLOBAL in common_init.h
 int g_nWindowBlitScaleX;				// guess: horizontal divisor of the RenderStruct width (1)
-// GLOBAL: D3DREN 0x100584e4
-extern int g_bWarbleTableInitialized;
 // GLOBAL: D3DREN 0x100584e8
 extern int g_bFogStateInitialized;
 // GLOBAL: D3DREN 0x100584ec

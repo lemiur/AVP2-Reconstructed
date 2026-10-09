@@ -85,6 +85,7 @@ ConVar g_CV_RenderToFront("RenderToFront", 0.0f);
 #include "d3dren/drawobjects.h"
 #include "d3dren/visibleset.h"
 #include "d3dren/pool.h"
+#include "d3dren/setupmodel.h"
 #include "counter.h"
 #include "ltcodes.h"
 #include "pixelformat.h"
@@ -1741,12 +1742,6 @@ float g_fFogDepthRange;				// guess: FogFarZ - FogNearZ
 // GLOBAL: D3DREN 0x10057a58
 float g_fWarbleTableScale;				// guess: the warble value the warble table was built for
 
-// GLOBAL: D3DREN 0x1005ce18
-extern int g_bPortalsEnabled;
-// GLOBAL: D3DREN 0x10058cdc
-extern int g_nUnclippedModelsDrawn;
-// GLOBAL: D3DREN 0x100587e0
-extern int g_nClippedModelsDrawn;
 int g_nLastColorTableVertexTint;
 uint8 g_MultipassVertexTintTableR[256];	// guess: red lighting table (multipass / dynamic light pass); the next two are green and blue
 uint8 g_MultipassVertexTintTableG[256];
@@ -1757,13 +1752,6 @@ uint8 g_VertexTintTableB[256];
 // GLOBAL: D3DREN 0x1006cd70
 extern void (*g_pfnDrawVisibleReflections)();	// guess: optional callback run after the solid objects (RenderScene sets it)
 void __fastcall d3d_NullPreFrameCallback(LTVector *pPos, uint32 *pSpecular);	// 0x1002cc80: the table fog hook
-// GLOBAL: D3DREN 0x100584e4
-extern int g_bWarbleTableInitialized;
-// GLOBAL: D3DREN 0x10053278
-extern float g_fModelWarblePhase;	// guess: warble phase
-// GLOBAL: D3DREN 0x10054870
-extern float g_fModelWarbleFraction;	// guess: warble fraction
-void d3d_BuildModelWarbleTables();	// 0x1000b6cd: fills the warble tables
 int CanDrawPortals();
 void d3d_DrawVisibleReflections();
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk);

@@ -454,7 +454,7 @@ ConVar g_CV_TestLightmap("TestLightmap", 1.0f);
 // iNextPass as an if/else (the ?: form compiles branch-free and takes ebx from pPass), one iStage counter for both stage loops, and
 // the pass list held in pList with the empty-list test on pList->m_Unk188 before pHead is taken.  Remaining: the exe keeps pNode in
 // ecx at the node loop's join points (the Free(pNode) push goes through ecx), ours in eax/memory.
-/// Tried: next-link/node load order (24/22), a break + iStage test or flag instead of the goto (35/30 or same), pPoly before
+// Tried: next-link/node load order (24/22), a break + iStage test or flag instead of the goto (35/30 or same), pPoly before
 // iNextPass, the first-poly link reused; two 3000-candidate permuter runs found nothing better.
 // PARKED: register residue: the exe keeps pNode in ecx at the node loop's joins (Free's push via ecx), no source lever found
 // STUB: D3DREN 0x1002a0c2
@@ -736,7 +736,7 @@ void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, in
 
 // guess: draws pPoly in a later pass: the vertices are rebuilt from the QVerts the first pass kept (the polygon was already
 // projected there), the colour, fog and texture coordinates of this pass are computed again, the textures bound and the fan drawn
-/// STUB diagnosis: 549 vs 553 bytes, 70 aligned mismatches ignoring stack offsets (97 with).  The vertex source is walked with
+// STUB diagnosis: 549 vs 553 bytes, 70 aligned mismatches ignoring stack offsets (97 with).  The vertex source is walked with
 // pSrc++ (the exe's `add ebx, 0x18` / `add [ebp-0xc], 0x18`); the two QVert loops write through their own cursor pOut from aVerts
 // (pVerts keeps aVerts / the clipper's output for DrawPrimitive, no reset), position and rhw copied as members (3 movsd + mov).
 // Remaining: the exe keeps pPoly in ebx (the bind loop reuses the pPoly slot for the stage pointer), nQVerts shares its slot with the
