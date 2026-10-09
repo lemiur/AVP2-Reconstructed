@@ -728,13 +728,13 @@ void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, in
 
 // guess: draws pPoly in a later pass: the vertices are rebuilt from the QVerts the first pass kept (the polygon was already
 // projected there), the colour, fog and texture coordinates of this pass are computed again, the textures bound and the fan drawn
-// STUB diagnosis (W6): 560 vs 553 bytes, 118 aligned mismatches ignoring stack offsets: the frame is 0x1434 against the exe's 0x1424
-// (16 bytes more locals), the exe copies `this` (`mov edx,ecx`) and indexes the three callback tables with absolute displacements in a
+// STUB diagnosis (W6): 560 vs 553 bytes, 114 aligned mismatches ignoring stack offsets.  The vertex buffer is 0x80 vertices of 0x28 bytes
+// (0x1400): that gives the exe's frame 0x1424.  The exe copies `this` (`mov edx,ecx`) and indexes the three callback tables with absolute displacements in a
 // different order, and the vertex source selection is scheduled differently; same control flow.  Permuter best 104 mismatches.
 // STUB: D3DREN 0x1002a693
 void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, int iNextPass)
 {
-	uint8 aVerts[0x1410];
+	uint8 aVerts[0x1400];
 	UnkType_PolyVertex *pSrc;
 	TLVertex *pVerts;
 	int nVertices;

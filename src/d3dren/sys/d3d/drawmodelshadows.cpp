@@ -843,7 +843,10 @@ ConVar g_CV_ModelShadowProjShow("ModelShadowProjShow", 0.0f);
 // Not matching: 10/692 bytes differ (4 aligned instruction mismatches). The six-plane clip loop now has
 // the target's down-count, delayed clipper store, bottom `test/jne`, and `pop edi` placement. Remaining differences are in the initial
 // vertex-loop register choices and setup ordering. The source-plane pointer is cached without dereferencing it for an empty
-// input, and the output array lives only in the successful draw branch. Keep this a STUB until the whole function is byte-exact.
+// input, and the output array lives only in the successful draw branch.  The exe loads the plane and spills the vertex cursor after
+// the `nVerts > 0` guard; reading pPoly->m_pPlane inside the loop gives that order but swaps ecx/edx (6 mismatches); pCur/pSrc/index
+// forms of the copy loop and a 3000-candidate permuter run found nothing better than 4.
+// PARKED: complete body; 4-instruction guard/spill schedule residue of the first vertex loop, no source lever or permuter candidate closes it
 // STUB: D3DREN 0x10026d6a
 void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist)
 {
