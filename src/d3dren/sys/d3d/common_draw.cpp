@@ -546,10 +546,10 @@ inline LTBOOL d3d_InitFrustum(ViewParams *pParams,
 // NAME: d3d_InitFrame: Jupiter common_draw.cpp d3d_InitFrame (names_proposal medium); the Talon form takes two more arguments (the
 // scratch vertex buffer of the polygon clippers, stored in g_pClipScratchVerts, and an int stored in g_nInitFrameArgument) and has Jupiter's
 // d3d_InitFrustum inlined (it has no copy of its own in d3d.ren).
-// STUB: D3DREN 0x100103c2
-// Remaining difference: 16 aligned mismatches, 0 ignoring stack offsets (949 bytes, same instructions).  `/ 255.0f` divides a vector
-// constructed from g_GlobalLightScale's members (the exe copies it through the FPU first).  Two dead argument homes are swapped: the
-// exe puts the RoundFloatToInt results in nUnk's home (+0x10) and the frustum's farZ/xFov in pDesc's (+8); this build the reverse.
+// `/ 255.0f` divides a vector constructed from g_GlobalLightScale's members (the exe copies it through the FPU first).  The argument
+// stores are in this order (the scheduler emits them in the exe's order either way); it decides which dead argument home
+// the RoundFloatToInt results and the frustum's farZ/xFov get.
+// FUNCTION: D3DREN 0x100103c2
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 {
 	RenderContext *pContext;
@@ -562,8 +562,8 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 
 	g_nRenderFrameCount++;
 	g_pClipScratchVerts = pScratchVerts;
-	g_pSceneDesc = pDesc;
 	g_nInitFrameArgument = nUnk;
+	g_pSceneDesc = pDesc;
 	g_pGlobalPanInfo = g_pStruct->m_GlobalPans;
 
 	// Get stuff out of the context (if it exists).
