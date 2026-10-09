@@ -199,4 +199,12 @@ extern int g_nUnclippedModelsDrawn;		// guess: models drawn without clipping thi
 // GLOBAL: D3DREN 0x1006d1b8
 extern uint16 g_ParticleQuadIndices[0x300];	// the index list of the particle quads (0 1 2 0 2 3 ...), built by d3d_InitParticleQuadIndices
 
+// ---- globals of unit unk/10007930 (the deferred global-pan poly list and the 0x28-byte near/left clippers) ----
+// GLOBAL: D3DREN 0x1004ffb8
+extern UnkType_PoolNode *g_pDeferredGlobalPanPolys;	// head of the deferred draw list
+// GLOBAL: D3DREN 0x10094c20
+extern int g_ClipNearInsideFlagsVertex40[56];	// guess: Jupiter polyclip.h bInside[] of the near plane clipper for 0x28-byte vertices
+// GLOBAL: D3DREN 0x10094d00
+extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left plane clipper
+
 #endif

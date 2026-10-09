@@ -22,45 +22,14 @@
 #include "d3dren/scenedesc.h"
 #include "pixelformat.h"
 #include "counter.h"
+#include "d3dren/polydraw.h"
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Globals of this unit
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-// GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *g_pGlobalPanInfo;	// &RenderStruct::m_GlobalPans[n] (the current global pan texture)
-
-// Per-stage texture coordinate scale pair (u, v), indexed by the device stage.
-struct UnkType_StageUV
-{
-	float	m_Unk00;
-	float	m_Unk04;
-};
-// GLOBAL: D3DREN 0x10061810
-extern UnkType_StageUV g_TextureStageTexelSizes[8];
-
-// GLOBAL: D3DREN 0x1004eba8
-extern float g_fGlobalPanUScale;		// guess: world poly u scale of the current texture (stage scale / texture width)
-// GLOBAL: D3DREN 0x1004ebac
-extern float g_fGlobalPanVScale;		// guess: v scale
-// GLOBAL: D3DREN 0x1004ffb0
-extern float g_fGlobalPanUOffset;		// guess: u offset of the current texture
-// GLOBAL: D3DREN 0x1004ffb4
-extern float g_fGlobalPanVOffset;		// guess: v offset
-
-// GLOBAL: D3DREN 0x10058758
-extern UnkType_Pool g_WorldPolyNodeBank;	// inside a larger global that starts at 0x1005872c (+0x2c): the poly queue node pool
-// GLOBAL: D3DREN 0x10058c98
-extern UnkType_Pool g_WorldPolyBucketBank;	// inside a larger global that starts at 0x10058c90 (+0x8)
-// GLOBAL: D3DREN 0x1004ffb8
-extern UnkType_PoolNode *g_pDeferredGlobalPanPolys;	// head of the deferred draw list
-// GLOBAL: D3DREN 0x10062868
-extern LTLink g_Textures;		// NAME: g_Textures: Jupiter d3d_texture.cpp DECLARE_LTLINK(g_Textures) (names_proposal, high); LRU list of RTextures
-
-// GLOBAL: D3DREN 0x100577b8
-extern uint16 g_CurTextureFrameCode;		// guess: current texture frame code (stored into SharedTexture::m_Unknown30)
-// GLOBAL: D3DREN 0x10057794
-extern int g_nTextureChanges;		// guess: g_nTextureChanges: counted per texture binding ("Texture changes: %d")
+// g_pGlobalPanInfo, g_TextureStageTexelSizes, g_fGlobalPan*, g_WorldPolyNodeBank, g_WorldPolyBucketBank, g_pDeferredGlobalPanPolys and
+// g_nTextureChanges: d3dren/polydraw.h; g_Textures: d3dren/d3dtexture.h; g_CurTextureFrameCode: d3dren/d3d_texture.h.
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The poly vertex fed to the TL vertex array, the dynamic light list of a poly and the callees of other units
@@ -77,8 +46,6 @@ struct UnkType_PolyLight
 };
 #define POLY_LIGHTS(p)	(*(UnkType_PolyLight **)((uint8 *)(p) + 0x30))
 
-// GLOBAL: D3DREN 0x1005872c
-extern void (__fastcall *g_pfnCalcFogAlpha)(LTVector *pPos, uint32 *pSpecular);	// guess: per-vertex fog alpha hook
 // GLOBAL: D3DREN 0x10057774
 extern uint8 g_nPolyVertexAlpha;		// guess: alpha byte of the poly vertex colour
 // GLOBAL: D3DREN 0x1005a004
@@ -87,24 +54,8 @@ extern uint8 g_VertexTintTableR[256];	// guess: red lighting table
 extern uint8 g_VertexTintTableG[256];	// guess: green lighting table
 // GLOBAL: D3DREN 0x1005a204
 extern uint8 g_VertexTintTableB[256];	// guess: blue lighting table
-// GLOBAL: D3DREN 0x100587e4
-extern uint32 g_nQueuedWorldPolyVertices;		// guess: number of TL vertices in use in the scratch array g_pQueuedWorldPolyVertices
-// GLOBAL: D3DREN 0x100587fc
-extern TLVertex *g_pQueuedWorldPolyVertices;	// guess: the scratch TL vertex array
-// GLOBAL: D3DREN 0x1005a368
-extern uint32 g_nQueuedWorldPolyVertexCapacity;		// guess: capacity of g_pQueuedWorldPolyVertices
-// GLOBAL: D3DREN 0x1005a308
-extern UnkType_PoolBucket *g_pTexturedWorldPolyBuckets;	// guess: list of the buckets (queued polys per texture)
-// GLOBAL: D3DREN 0x100566ac
-extern int g_nWorldPolysDrawn;		// guess: polys drawn (statistics)
-// GLOBAL: D3DREN 0x100566cc
-extern int g_nLightTests;		// guess: dynamic lights tested (statistics)
-// GLOBAL: D3DREN 0x10058040
-extern uint8 g_u8FogColorR;		// guess: fog colour bytes (see d3d_PackSqrtRGB)
-// GLOBAL: D3DREN 0x10058041
-extern uint8 g_u8FogColorG;
-// GLOBAL: D3DREN 0x10058042
-extern uint8 g_u8FogColorB;
+// g_pfnCalcFogAlpha, g_nQueuedWorldPolyVertices, g_pQueuedWorldPolyVertices, g_nQueuedWorldPolyVertexCapacity, g_pTexturedWorldPolyBuckets,
+// g_nWorldPolysDrawn, g_nLightTests and g_u8FogColorR/G/B: d3dren/polydraw.h.
 
 void DrawPolyDynamicLightmaps(WorldPoly *pPoly, TLVertex *pVerts, int nVerts);
 
@@ -118,10 +69,7 @@ struct UnkType_DynLMSetup : public UnkType_LMLock
 };
 int BuildDynamicLightmapPixels(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, UnkType_PolyLight *pLight, float fScale);	// unit unk/10030bb0
 
-// GLOBAL: D3DREN 0x10094c20
-extern int g_ClipNearInsideFlagsVertex40[56];	// guess: Jupiter polyclip.h bInside[] of the near plane clipper for 0x28-byte vertices
-// GLOBAL: D3DREN 0x10094d00
-extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left plane clipper
+// g_ClipNearInsideFlagsVertex40, g_ClipLeftInsideFlagsVertex40: d3dren/polydraw.h.
 
 // ClipPolyTop40, ClipPolyRight40, ClipPolyBottom40, ClipPolyFar40: the 0x28-byte clippers of unit unk/10001000 (top, right, bottom, far).
 int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
@@ -400,8 +348,6 @@ void DrawPolyDynamicLightmaps(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 		LTVector P;
 		UnkType_CountAdderRaw cTimer(g_pSceneDesc->m_pTicks_Render_PolyGrids);
 		LTVector Q;
-		struct SavedState { D3DRENDERSTATETYPE m_Type; DWORD m_Val; };
-		SavedState rsAlphaBlend, rsDestBlend, rsSrcBlend, rsFogColor;
 		DWORD dwOldAddress;
 
 		LTMatrix mInvTransform;
@@ -411,67 +357,57 @@ void DrawPolyDynamicLightmaps(WorldPoly *pPoly, TLVertex *pVerts, int nVerts)
 		pPoly->m_LMHeight = (uint8)g_CV_LMDynamicSize.m_IntVal;
 		SetupLMPlaneVectors((pPoly->m_Flags & 0x3800) >> 11, pPoly->m_pPlane->m_Normal, P, Q);
 
-		rsAlphaBlend.m_Type = D3DRENDERSTATE_ALPHABLENDENABLE;
-		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, &rsAlphaBlend.m_Val);
-		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-		rsSrcBlend.m_Type = D3DRENDERSTATE_SRCBLEND;
-		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_SRCBLEND, &rsSrcBlend.m_Val);
-		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE);
-		rsDestBlend.m_Type = D3DRENDERSTATE_DESTBLEND;
-		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_DESTBLEND, &rsDestBlend.m_Val);
-		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-		rsFogColor.m_Type = D3DRENDERSTATE_FOGCOLOR;
-		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FOGCOLOR, &rsFogColor.m_Val);
-		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, 0);
-		g_pD3DDevice->GetTextureStageState(0, D3DTSS_ADDRESS, &dwOldAddress);
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-
 		{
-			LTMatrix mCopy = g_ViewParams.m_FullTransform;
-			mCopy.Inverse();
-			mInvTransform = mCopy;
-		}
+			StateSet rsAlphaBlend(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
+			StateSet rsSrcBlend(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE);
+			StateSet rsDestBlend(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+			StateSet rsFogColor(D3DRENDERSTATE_FOGCOLOR, 0);
+			g_pD3DDevice->GetTextureStageState(0, D3DTSS_ADDRESS, &dwOldAddress);
+			g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
+			g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
 
-		for (pLight = POLY_LIGHTS(pPoly); pLight; pLight = pLight->m_pNext)
-		{
-			UnkType_DynLMSetup setup;
-			int nBuild;
-
-			if (setup.LockStagingLightmap(pPoly, 1, 0, 0))
 			{
-				nBuild = BuildDynamicLightmapPixels(&setup, pPoly, pLight, 1.0f);
-				if (setup.UnlockStagingLightmap(nBuild) && nBuild)
-				{
-					float fScale = 1.0f / (pLight->m_pLight->GetLightRadius((uint32)pLight->m_pLight) * g_CV_LMDynamicScale.m_FloatVal);
-					int n = nVerts;
-					if (n)
-					{
-						float *pUV = &pVerts->tv;
-						for (; n; n--)
-						{
-							LTVector vWorld;
-							LTVector vDelta;
+				LTMatrix mCopy = g_ViewParams.m_FullTransform;
+				mCopy.Inverse();
+				mInvTransform = mCopy;
+			}
 
-							mInvTransform.Apply4x4(*(LTVector *)((uint8 *)pUV - 0x1c), vWorld);
-							vDelta = vWorld - pLight->m_Pos;
-							pUV[-1] = P.Dot(vDelta) * fScale + 0.5f;
-							pUV[0] = Q.Dot(vDelta) * fScale + 0.5f;
-							pUV += 8;
+			for (pLight = POLY_LIGHTS(pPoly); pLight; pLight = pLight->m_pNext)
+			{
+				UnkType_DynLMSetup setup;
+				int nBuild;
+
+				if (setup.LockStagingLightmap(pPoly, 1, 0, 0))
+				{
+					nBuild = BuildDynamicLightmapPixels(&setup, pPoly, pLight, 1.0f);
+					if (setup.UnlockStagingLightmap(nBuild) && nBuild)
+					{
+						float fScale = 1.0f / (pLight->m_pLight->GetLightRadius((uint32)pLight->m_pLight) * g_CV_LMDynamicScale.m_FloatVal);
+						int n = nVerts;
+						if (n)
+						{
+							float *pUV = &pVerts->tv;
+							for (; n; n--)
+							{
+								LTVector vWorld;
+								LTVector vDelta;
+
+								mInvTransform.Apply4x4(*(LTVector *)((uint8 *)pUV - 0x1c), vWorld);
+								vDelta = vWorld - pLight->m_Pos;
+								pUV[-1] = P.Dot(vDelta) * fScale + 0.5f;
+								pUV[0] = Q.Dot(vDelta) * fScale + 0.5f;
+								pUV += 8;
+							}
 						}
+						g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 					}
-					g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
 				}
 			}
-		}
 
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, dwOldAddress);
-		g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-		d3d_SetTexture(g_pGlobalPanInfo->m_pTexture, g_NormalTextureStage, 0);
-		g_pD3DDevice->SetRenderState(rsFogColor.m_Type, rsFogColor.m_Val);
-		g_pD3DDevice->SetRenderState(rsDestBlend.m_Type, rsDestBlend.m_Val);
-		g_pD3DDevice->SetRenderState(rsSrcBlend.m_Type, rsSrcBlend.m_Val);
-		g_pD3DDevice->SetRenderState(rsAlphaBlend.m_Type, rsAlphaBlend.m_Val);
+			g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, dwOldAddress);
+			g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+			d3d_SetTexture(g_pGlobalPanInfo->m_pTexture, g_NormalTextureStage, 0);
+		}
 		CountAdder_Destructor((CountAdder *)&cTimer);
 	}
 }
