@@ -543,6 +543,11 @@ CMovingCylinder::EHeightSection CMovingCylinder::GetHeightSection(float fYValue)
 // Also tried: the two height slides as an inline SlideToHeight(vPt, fY, fSlopeX, fSlopeZ) (62), block-local fDist, a
 // named vEdgeXZ.z/x for t, a scaled direction vector; a 10-minute permuter run reaches 28 only through unauthentic
 // mutations (a float copy of vEdgeXZ.z, LTBOOLs retyped).
+// Wave 9 pass 3 (structural): ruled out a vector edge normal plus a float edge distance instead of the LTPlane (54), a
+// different order of the flag stores than bInside first, every helper boundary above; the exe's only out-of-line
+// calls are the two GetHeightSection as ours, its vertex walk (pointer + count-down) and early-outs are already ours,
+// and the surviving lineage (Jupiter, lithtech_x64) has a different algorithm (ClipPolyToYRange/DistSqrSegSeg).
+// PARKED: x87 stack allocation only (44 aligned): the exe keeps vEdgeXZ.z, fDist and the edge normal's y on the FPU or in an extra home, copies vCur with fld/fstp, and its frame is 12 bytes larger; calls, CFG and behaviour match
 // STUB: LITHTECH 0x004190f0
 LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 {
