@@ -1003,7 +1003,7 @@ void FillInPlaysoundMessage(CServerEvent *pEvent, Client *pClient, CPacket *pPac
 // Reads in all packets from the net.
 // ----------------------------------------------------------------------- //
 
-// The volatile handle view preserves VC6's original register choice for the call.
+// The else branch's pSender local gives the exe's register for m_hFTServ (eax, not ecx) before fts_ProcessPacket.
 // FUNCTION: LITHTECH 0x00476710
 LTBOOL ProcessIncomingPackets(CServerMgr *pServerMgr)
 {
@@ -1035,11 +1035,11 @@ LTBOOL ProcessIncomingPackets(CServerMgr *pServerMgr)
 		else
 		{
 			// Let the file transfer manager have the packet (including the ID...)
-			pClient = sm_FindClient(pServerMgr, pPacket->m_pSender);
+			CBaseConn *pSender = pPacket->m_pSender;
+			pClient = sm_FindClient(pServerMgr, pSender);
 			if (pClient)
 			{
-				volatile FTServ * const &fileTransfer = (volatile FTServ *)pClient->m_hFTServ;
-				fts_ProcessPacket((FTServ *)fileTransfer, pPacket);
+				fts_ProcessPacket(pClient->m_hFTServ, pPacket);
 			}
 		}
 	}
