@@ -566,6 +566,17 @@ static inline char *PoolLastVertex(UnkType_VertexBufferPool *p)
 	return pBase + p->GetVertexSize() * nLast;
 }
 
+// Draws what the fill loop put into the pool since the last Lock (one triangle list) and counts the triangles.
+// helper written for this decompilation (the exe has it inlined at every flush; the name is mine).
+static inline void FlushModelPool(ModelDraw *pDraw, TLVertex *pOut)
+{
+	UnkType_VertexBufferPool *p = pDraw->m_Unk608;
+	uint32 nBytes = (char *)pOut - (char *)p->Lock();
+	uint32 nVerts = nBytes / p->GetVertexSize();
+	g_nModelTrianglesDrawn += nVerts / 3;
+	((UnkType_VBPoolDrawView *)pDraw->m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
+}
+
 // The macros below write out code that the original had in macros or inline helpers; their names are mine (no evidence).
 #define POOL_REFILL_END(P, E) \
 	{ \
@@ -573,14 +584,6 @@ static inline char *PoolLastVertex(UnkType_VertexBufferPool *p)
 		(E) = PoolLastVertex(m_Unk608); \
 	}
 
-#define POOL_FLUSH_DRAW() \
-	{ \
-		UnkType_VertexBufferPool *pp = m_Unk608; \
-		uint32 nBytes = (char *)pOut - (char *)pp->Lock(); \
-		uint32 nVertsOut = nBytes / pp->GetVertexSize(); \
-		g_nModelTrianglesDrawn += nVertsOut / 3; \
-		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVertsOut); \
-	}
 
 // The body of the two clipping callbacks.  REALLYCLOSE adds the z bias g_CV_NearZ.m_FloatVal to the w of the z row (ProjectPositionWithDepthBias).
 // Per triangle: the clip planes of g_ClipFlags are tested vertex by vertex (count of vertices inside: none = skip the
@@ -594,7 +597,7 @@ static inline char *PoolLastVertex(UnkType_VertexBufferPool *p)
 	{ \
 		if (nTris == 0) \
 		{ \
-			POOL_FLUSH_DRAW() \
+			FlushModelPool(this, pOut); \
 			return 1; \
 		} \
 		float *pV0 = &pVerts[pTri->m_Indices[0]].m_Vec.x; \
@@ -720,7 +723,7 @@ Clip: \
 					} \
 					if ((char *)pOut + (nPoly * 3 - 6) * m_Unk5f8 > pEnd) \
 					{ \
-						POOL_FLUSH_DRAW() \
+						FlushModelPool(this, pOut); \
 						m_Unk608->RestartInNextBuffer(); \
 						POOL_REFILL_END(pOut, pEnd) \
 					} \
@@ -775,11 +778,7 @@ int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 	{
 		if (nTris == 0)
 		{
-			UnkType_VertexBufferPool *p = m_Unk608;
-			uint32 nBytes = (char *)pOut - (char *)p->Lock();
-			uint32 nVerts = nBytes / p->GetVertexSize();
-			g_nModelTrianglesDrawn += nVerts / 3;
-			((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
+			FlushModelPool(this, pOut);
 			return 1;
 		}
 		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
@@ -884,13 +883,7 @@ Skip:
 		pTri++;
 		nTris--;
 	}
-	{
-		UnkType_VertexBufferPool *p = m_Unk608;
-		uint32 nBytes = (char *)pOut - (char *)p->Lock();
-		uint32 nVerts = nBytes / p->GetVertexSize();
-		g_nModelTrianglesDrawn += nVerts / 3;
-		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
-	}
+	FlushModelPool(this, pOut);
 	return 1;
 }
 
@@ -986,13 +979,7 @@ int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 			nTris--;
 		}
 	}
-	{
-		UnkType_VertexBufferPool *p = m_Unk608;
-		uint32 nBytes = (char *)pOut - (char *)p->Lock();
-		uint32 nVerts = nBytes / p->GetVertexSize();
-		g_nModelTrianglesDrawn += nVerts / 3;
-		((UnkType_VBPoolDrawView *)m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, nVerts);
-	}
+	FlushModelPool(this, pOut);
 	return 1;
 }
 
