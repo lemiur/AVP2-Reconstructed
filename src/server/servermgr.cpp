@@ -292,7 +292,7 @@ LTBOOL CServerMgr::Init()
 	m_World.m_WorldTree.InitWorldTree(&m_ObjectMgr);
 
 	m_NetMgr.Init("SERVER_PLAYER");
-	m_NetMgr.m_pHandler = (CNetHandler*)this;
+	m_NetMgr.m_pHandler = this;
 
 	dl_TieOff(&m_RemovedObjectHead);
 	m_pServerAppHandler = LTNULL;

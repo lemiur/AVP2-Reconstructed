@@ -125,7 +125,7 @@ public:
 	CSoundMgr		m_SoundMgr;			// 0x0784 (soundmgr.h; 0x910 bytes), the client ILTSoundMgr
 	SMusicMgr		m_MusicMgr;			// 0x1094
 	char			m_MusicDLLName[256];	// 0x1104
-	LTLink			m_TextureUsers;		// 0x1204 objects whose +0xc0 is a SharedTexture* (cm_TagUsedTextures; type unknown)
+	LTLink			m_TextureUsers;		// 0x1204 the client models (Model::m_Link; cm_TagUsedTextures)
 	LTList			m_Sprites;			// 0x1210
 	LTList			m_SharedTextures;	// 0x1220
 	StructBank		m_FileIDInfoBank;	// 0x1230 FileIDInfos (CClientShell::GetClientFileIDInfo)

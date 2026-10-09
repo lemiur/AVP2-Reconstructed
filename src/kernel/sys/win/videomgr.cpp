@@ -65,7 +65,7 @@ VideoSurfaceLink::VideoSurfaceLink(VideoInst *pVideo)
 VideoSurfaceLink::~VideoSurfaceLink()
 {
 	if(m_pSurface)
-		((Nexus*)((uint8*)m_pSurface + 0x24))->RemoveLeech(&m_SurfaceLeech);
+		m_pSurface->m_Nexus.RemoveLeech(&m_SurfaceLeech);
 
 	SetTexture(LTNULL);
 }
@@ -74,11 +74,11 @@ VideoSurfaceLink::~VideoSurfaceLink()
 void VideoSurfaceLink::SetSurface(Surface *pSurface)
 {
 	if(m_pSurface)
-		((Nexus*)((uint8*)m_pSurface + 0x24))->RemoveLeech(&m_SurfaceLeech);
+		m_pSurface->m_Nexus.RemoveLeech(&m_SurfaceLeech);
 
 	m_pSurface = pSurface;
 	if(pSurface)
-		nexus_AddLeech((Nexus*)((uint8*)pSurface + 0x24), &m_SurfaceLeech);
+		nexus_AddLeech(&pSurface->m_Nexus, &m_SurfaceLeech);
 }
 
 // FUNCTION: LITHTECH 0x0049d120

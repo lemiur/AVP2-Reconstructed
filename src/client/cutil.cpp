@@ -342,7 +342,7 @@ void cm_TagUsedTextures(CClientMgr *pClientMgr)
 	pListHead = &pClientMgr->m_TextureUsers;
 	for (pCur=pListHead->m_pNext; pCur != pListHead; pCur=pCur->m_pNext)
 	{
-		TagTexture(*(SharedTexture**)((uint8*)pCur->m_pData + 0xc0));
+		TagTexture(((Model*)pCur->m_pData)->m_pFadeSpriteTex);
 	}
 
 	// Tag all linked textures
