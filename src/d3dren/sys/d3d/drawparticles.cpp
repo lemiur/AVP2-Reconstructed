@@ -86,6 +86,11 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 // the object to view matrix, and draws the particles in batches of 128 with d3d_DrawParticleBatch.  Its typed locals match the SDK
 // IntersectQuery (52 bytes) and IntersectInfo (40 bytes); the renderer's constructor copies are at 0x1000bdeb and 0x1000be28.
 // The surrounding function body remains a STUB.
+// Inline call set (tools/inline_budget.py, nested shares): the exe expands the first LTVector::Init of each constructor and calls the
+// rest (3 calls; ours 1: first out, later in).  Measured with probes: one or two more free inline sites after `info` give the exe's
+// three Init calls, frame 0xf0 and size, but then d3d_FindRTextureForStage inlines; an extra ~9-store (~65u) inline charge before
+// d3d_SetTexture (or a correspondingly heavier d3d_SetTexture) plus one free site gives the exe's whole call set.  Which original
+// statements carry that charge is open (B is at the 1000u floor, so moving open-coded statements into inline helpers is the lever).
 // FUNCTION: D3DREN 0x10009020 ?MatMul@@YAXPAVLTMatrix@@00@Z
 // STUB: D3DREN 0x10008ce0
 void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
