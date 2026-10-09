@@ -853,9 +853,9 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 		int iGroup = pTextureData->m_Header.GetTextureGroup();
 		if (iGroup > 9)
 			iGroup = 9;
-		iStartMipmap = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.m_Extra[4] + g_MipmapOffset;
+		iStartMipmap = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.GetUIMipmapOffset() + g_MipmapOffset;
 		if (g_CV_S3TCEnable.m_IntVal == 0)
-			iStartMipmap += pTextureData->m_Header.m_Extra[3];
+			iStartMipmap += pTextureData->m_Header.GetNonS3TCMipmapOffset();
 		if (iStartMipmap < 0)
 			iStartMipmap = 0;
 		else if (iStartMipmap > 3)
@@ -901,9 +901,9 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 	pRTexture->m_iStartMipmap = iStartMipmap;
 	pRTexture->m_Unk47 = nMipmaps;
 	pRTexture->m_Unk48 = iFormat;
-	pRTexture->m_DetailTextureScale = *(float *)&pTextureData->m_Header.m_Extra[6] + 1.0f;
+	pRTexture->m_DetailTextureScale = pTextureData->m_Header.GetDetailTextureScale();
 	{
-		float fAngle = (float)(int16)(pTextureData->m_Header.m_Extra[11] * 256 + pTextureData->m_Header.m_Extra[10]) * 0.017453292f;
+		float fAngle = (float)pTextureData->m_Header.GetDetailTextureAngle() * 0.017453292f;
 		pRTexture->m_DetailTextureAngleC = (float)cos(fAngle);
 		pRTexture->m_DetailTextureAngleS = (float)sin(fAngle);
 	}
@@ -1306,7 +1306,7 @@ ParseColorKey:
 		AddDebugMessage(4, "Unable to create (%dx%d) texture surface.", ddsd.dwWidth, ddsd.dwHeight);
 		return 0;
 	}
-	pData->m_pSurface->SetPriority(pTextureData->m_Header.m_Extra[5]);
+	pData->m_pSurface->SetPriority(pTextureData->m_Header.GetTexturePriority());
 
 	width = pTextureData->m_Mips[iStartMipmap].m_Width;
 	height = pTextureData->m_Mips[iStartMipmap].m_Height;
@@ -1329,8 +1329,8 @@ ParseColorKey:
 	pData->m_Unk04 = fU;
 	fV = 1.0f / (float)uOutHeight;
 	pData->m_Unk08 = fV;
-	pData->m_Unk04 = (float)(1 << pTextureData->m_Header.m_Extra[4]) * fU;
-	pData->m_Unk08 = (float)(1 << pTextureData->m_Header.m_Extra[4]) * fV;
+	pData->m_Unk04 = pTextureData->m_Header.GetUIMipmapScale() * fU;
+	pData->m_Unk08 = pTextureData->m_Header.GetUIMipmapScale() * fV;
 	return 1;
 }
 
@@ -1501,9 +1501,9 @@ RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, int bAdd
 
 		if (iGroup > 9)
 			iGroup = 9;
-		iStart = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.m_Extra[4] + g_MipmapOffset;
+		iStart = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.GetUIMipmapOffset() + g_MipmapOffset;
 		if (g_CV_S3TCEnable.m_IntVal == 0)
-			iStart += pTextureData->m_Header.m_Extra[3];
+			iStart += pTextureData->m_Header.GetNonS3TCMipmapOffset();
 		if (iStart < 0)
 			iStart = 0;
 		else if (iStart > 3)
@@ -1584,11 +1584,11 @@ ParseColorKey:
 		AddDebugMessage(4, "Unable to create (%dx%d) texture surface.", ddsd.dwWidth, ddsd.dwHeight);
 		return 0;
 	}
-	pSurface->SetPriority(pTextureData->m_Header.m_Extra[5]);
+	pSurface->SetPriority(pTextureData->m_Header.GetTexturePriority());
 
 	AdjustAspectRatio(pTextureData->m_Mips[0].m_Width, pTextureData->m_Mips[0].m_Height, &width, &height);
-	fU = (float)(1 << pTextureData->m_Header.m_Extra[4]) * (1.0f / (float)width);
-	fV = (float)(1 << pTextureData->m_Header.m_Extra[4]) * (1.0f / (float)height);
+	fU = pTextureData->m_Header.GetUIMipmapScale() * (1.0f / (float)width);
+	fV = pTextureData->m_Header.GetUIMipmapScale() * (1.0f / (float)height);
 
 	pRTexture = g_RTextureBank.Allocate();
 	if (!pRTexture)
@@ -1607,9 +1607,9 @@ ParseColorKey:
 	pRTexture->m_iStartMipmap = iStartMipmap;
 	pRTexture->m_Unk47 = nMipmaps;
 	pRTexture->m_Unk48 = iFormat;
-	pRTexture->m_DetailTextureScale = *(float *)&pTextureData->m_Header.m_Extra[6] + 1.0f;
+	pRTexture->m_DetailTextureScale = pTextureData->m_Header.GetDetailTextureScale();
 	{
-		float fAngle = (float)(int16)(pTextureData->m_Header.m_Extra[11] * 256 + pTextureData->m_Header.m_Extra[10]) * 0.017453292f;
+		float fAngle = (float)pTextureData->m_Header.GetDetailTextureAngle() * 0.017453292f;
 		pRTexture->m_DetailTextureAngleC = (float)cos(fAngle);
 		pRTexture->m_DetailTextureAngleS = (float)sin(fAngle);
 	}
