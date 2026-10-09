@@ -381,7 +381,7 @@ inline LTRESULT ReadObjectSubPacket(CClientShell *pShell, CPacket *pPacket, uint
 // inlined at 166u where the exe refuses it (needs one more pending site after it, or 143u+ charged before);
 // ReadObjectSubPacket's children all get 28u, so every ~CPacketRef (42u) is refused where the exe inlines one.
 // The two requirements pull in opposite directions; --solve finds no combination (<= 6 sites, |dB| <= 300).
-// PARKED: inlining decisions only (CF_OTHER ReadType, one ~CPacketRef); the budget model finds no single change
+// PARKED: inlining decisions only (CF_OTHER ReadType, one ~CPacketRef); rechecked with the R11 model: no tail site, --solve still finds no change
 // STUB: LITHTECH 0x0048ada0
 LTRESULT OnUpdatePacket(CClientShell *pShell, CPacket *pPacket)
 {

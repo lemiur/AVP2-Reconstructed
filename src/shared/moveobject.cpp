@@ -611,7 +611,7 @@ inline void GetSphereMoveBox(MoveState *pState, float fRadius)
 // m_vDeltaPos): inlining decisions. Most promising next idea: find the 28-50u of own code (an SDK macro instead
 // of a written-out expression, or a block that was an inline helper in Talon) and then work the frame (the exe's
 // vMin/vMax for GetBoxIntersection sit at esp+0x6c/0x78, MaybeCollide's 3rd/4th args at esp+0x5c/0x54).
-// PARKED: remaining ~530 is frame/register layout; inlining differs by 2 calls the budget model explains (needs 28-50u less own code)
+// PARKED: remaining ~530 is frame/register layout; inlining differs by 2 calls (R11 model: 57-63u less own code, or one more pending site after loop 2's Mag and 18-40u less)
 // STUB: LITHTECH 0x0045ddf0
 void DetectAndProcessCollisions(MoveState *pState, const LTVector &startPos, const LTVector &destPos)
 {
@@ -1311,7 +1311,7 @@ inline void GetMovementBox(LTVector *pvMoveMin, LTVector *pvMoveMax, LTVector *p
 // 0x460206), and no <= 6 extra pending sites do: the end of the function must be cheaper or DoSolidWMCollision
 // (842u, itself a STUB) different in the original. Next idea: settle DoSolidWMCollision's source first, then
 // rerun `inline_budget.py 45fc60 --solve`.
-// PARKED: behaviour now matches the exe; remaining call differences are inlining decisions at the end that the budget model can't reproduce yet
+// PARKED: behaviour now matches the exe; remaining call differences are inlining decisions at the end (rechecked with R11: no tail site in the loop, --solve finds no budget/pending change)
 // STUB: LITHTECH 0x0045fc60
 LTBOOL CheckIntersectOnMovement(MoveState *pState, LTObject *pTestObj, LTBOOL bPushAway)
 {
@@ -1513,7 +1513,7 @@ LTBOOL CheckIntersectOnMovement(MoveState *pState, LTObject *pTestObj, LTBOOL bP
 // change drops loop 2's limit below 527u. Audit: one SetPos call fewer than the exe: the exe duplicates the
 // `if(bStopped) SetPos; return bStopped;` tail into the inlined DoSolidBBoxCollision's `return LTTRUE` path (a
 // layout difference, not behaviour); writing the tail in both branches gives 184 here but DAPC 594.
-// PARKED: inline decisions match the exe; the rest waits for DAPC's own-size fix (then adopt the in-place vMin/vMax: 112)
+// PARKED: inline decisions match the exe (R11 model too: B within -44..+50u); the rest waits for DAPC's own-size fix (then adopt the in-place vMin/vMax: 112)
 // STUB: LITHTECH 0x00460cb0
 inline LTBOOL MaybeCollide(MoveState *pState, LTObject *pTestObj, LTVector *pUnused, float *pUnused2)
 {

@@ -527,7 +527,7 @@ LTBOOL Model::LoadWeightSets(ILTStream &file)
 // _Construct out of line (4 vs our 3), one more ~_String_base (3 vs 2 + one inlined _M_deallocate_block) and no
 // out-of-line _Rb_tree lower_bound (ours 2): less budget in the child-model block's first half, more in its second.
 // No behaviour difference besides these inlining decisions.
-// PARKED: STLport inlining decisions in the child-model block (push_back _Construct, ~string, map lower_bound) and the shared error-cleanup layout
+// PARKED: STLport inlining decisions in the child-model block (push_back _Construct, ~string, map lower_bound) and the shared error-cleanup layout; the R11 model can't replay it (model != build on ~50 STLport sites)
 // STUB: LITHTECH 0x00456390
 LTRESULT Model::Load(ModelLoadRequest *pRequest)
 {

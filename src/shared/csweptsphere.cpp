@@ -39,13 +39,12 @@ inline LTVector* PolyVert(WorldPoly *pPoly, uint32 i) { return ((SPolyVertex*)(p
 // budget, so the first vector constructor inlines (out of line in the original) while the loop's Dot still goes out
 // of line (inline in the original): 207 aligned mismatches (194 ignoring stack offsets; 184 before, with the
 // comparison forms and return wrong).
-// Wave 7 phase 2 (budget model): B = 1298u (size 645u); the model reproduces our build and the exe's counts except
-// the face loop's last Dot (vEdge.Cross(...).Dot(vNormal)): it sees 21u left (cost 54u, refused) where the exe inlines
-// it. --solve: the original was 17..34u bigger in own code (B +34..+68u), with or without extra pending sites; the
-// constructor counts (12 out of line) already agree (the audit's ctor/Dot offsets are the same calls in other places).
-// Tried for that size (real code only): a named fDenom, `else return LTFALSE`, a pV0 local, `bHit = LTTRUE; return
-// bHit`, braces, `*pT = t = 1.0f` (size 1680 = the exe's, 190 ignoring offsets, but the Dot stays out of line).
-// PARKED: inlining decision of the face loop's Dot (the model needs 17-34u more own code) plus register choice; behaviour identical
+// inline_budget.py 424970 --solve (R11 model, LTVector ctor 47u): no tail site; the face loop's last Dot
+// (vEdge.Cross(...).Dot(vNormal)) sees 21u for cost 54. Measured: 6-8 dead stores (+24..32u own code) give the exe's
+// call list (Dot inline, 12 ctors out of line; 135 aligned ignoring offsets, 469 vs 460 instructions); fewer (or
+// initialised declarations, +8..16u) change nothing, more inline a ctor. The real +24u is unknown (tried: a named
+// fDenom, `else return LTFALSE`, a pV0 local, `bHit = LTTRUE; return bHit`, `*pT = t = 1.0f`, Norm(1.0f)).
+// PARKED: inlining decision of the face loop's Dot (needs 24-32u more own code, measured) plus register choice; behaviour identical
 // STUB: LITHTECH 0x00424970
 LTBOOL SweptSphereToPoly(LTVector *pStart, LTVector *pEnd, float fRadius, WorldPoly *pPoly, float *pT,
 	LTVector *pNormal)
@@ -136,12 +135,11 @@ Edges:
 // (`fld st(0); fstp [pT]`) where we go through memory, and calls Dot/operator* out of line at the end (we inline them:
 // we still have more budget there). Tried: the Dot/MagSqr forms of a, b, A, B, C (32 combinations), Dist, a named
 // 1/fLen, `vDir *= ...`.
-// Wave 7 phase 2 (budget model): B = 1000u (the floor, so own size can't lower it). The model agrees with our build;
-// the exe calls the final `vRel.Dot(vDir)` and `vDir * dot` out of line (4 out-of-line ctors, ours 5 with those
-// inlined): the Dot sees 128u left where the exe must have < 54u, i.e. ~75u more inline cost charged before it
-// (no pending-site count or budget change reproduces it, --solve). Tried with --variants: vDir from `vEdge / fLen`,
-// `* (1.0f / fLen)` (both fix the ctor count, not the Dot), a Norm()ed copy, `vEdge / vEdge.Mag()`.
-// PARKED: inlining decisions at the end (exe calls Dot/operator* out of line: ~75u more inline cost earlier) and x87 scheduling; behaviour identical
+// inline_budget.py 425000 --solve (R11 model): B = 1000u (the floor). No tail site (the last call is Norm(1.0f), a
+// stack argument, before `return LTTRUE`). The exe calls the final `vRel.Dot(vDir)` and `vDir * dot` out of line:
+// the Dot sees 128u where the exe must have < 54u, i.e. ~75u more inline cost charged before it; no pending-site
+// count or budget change reproduces it. Tried: vDir from `vEdge / fLen`, `* (1.0f / fLen)`, a Norm()ed copy.
+// PARKED: inlining decisions at the end (exe calls Dot/operator* out of line: ~75u more inline cost earlier, rechecked with R11) and x87 scheduling; behaviour identical
 // STUB: LITHTECH 0x00425000
 LTBOOL SweptSphereToEdge(LTVector *pStart, LTVector *pEnd, float fRadius, LTVector *pV0, LTVector *pV1,
 	float *pT, LTVector *pNormal)

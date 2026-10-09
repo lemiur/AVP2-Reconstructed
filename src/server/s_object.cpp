@@ -268,7 +268,7 @@ inline void PhysicsUpdateObject(CServerMgr *pServerMgr, LTObject *pObj)
 // ebp/ebx swapped, and MotionState's m_pVelocity/m_pAcceleration/m_Flags stores in the order +0xc,+0x10,+8.
 // Equivalently PhysicsUpdateObject could cost ~31u more with 3 sites, ~73u with 2, ~157u with none. No real
 // source for those sites found (no locals with destructors exist; Jupiter ends FullObjectUpdate with the call).
-// PARKED: inlining decisions only: needs 4 more free pending sites after PhysicsUpdateObject (measured), source unknown
+// PARKED: inlining decisions only: needs 4 more free pending sites after PhysicsUpdateObject (measured; R11 model agrees, the tail call has stack args), source unknown
 // STUB: LITHTECH 0x00477120
 void sm_UpdateObject(CServerMgr *pServerMgr, LTObject *pObj)
 {

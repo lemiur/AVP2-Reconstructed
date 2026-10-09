@@ -30,7 +30,7 @@
 // &dr = pState->m_Offset` and `float dt` locals (alone or together) leave no budget that reproduces the exe (the
 // friction block's -= goes out of line first). The missing pending site after the second Norm() has no
 // candidate in Jupiter's code (it writes the same statements); look for a Talon-only accessor or helper there.
-// PARKED: one out-of-line ctor (inlining decision); the budget model needs an unidentified pending site plus 24-34u less own code
+// PARKED: one out-of-line ctor (inlining decision); the R11 model (ctor 47u, no tail site) still needs one more pending site after the 2nd Norm plus 24-34u less own code
 // STUB: LITHTECH 0x0045c600
 LTBOOL CalcMotion(MotionState *pState)
 {

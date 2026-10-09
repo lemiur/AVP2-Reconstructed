@@ -183,7 +183,7 @@ static inline void AddSize(uint32 *pSize, uint32 nBytes)
 // if pPacket is null).
 // ----------------------------------------------------------------------- //
 
-// PARKED: inline decisions of the last packet writes (the exe calls _DeleteAndDestroyArray out of line in the 0xFFFF WriteType and inlines BaseNew in the hidden-piece one; the budget model can't replay it) plus the ebx/ebp role swap from +0x842; behaviour otherwise matches
+// PARKED: inline decisions of the last packet writes (the exe calls _DeleteAndDestroyArray out of line in the 0xFFFF WriteType and inlines BaseNew in the hidden-piece one; the R11 model still can't replay it: WriteTypeImpl 170u within a few u of every share, no tail site) plus the ebx/ebp role swap from +0x842; behaviour otherwise matches
 // STUB: LITHTECH 0x004745c0
 // Wave 6: GetMessageImpl() for ic_WriteCompWorldPos/ic_WriteCompRot: aligned 848 -> 510 (SIZE 3696 vs 4032).
 // Remaining: the original inlines scale.z's WriteType(float) (we call it out of line) and, at the end, the

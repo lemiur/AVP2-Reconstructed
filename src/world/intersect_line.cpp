@@ -67,7 +67,7 @@ inline LTBOOL InsideConvex(WorldPoly *pPoly, LTVector *pPt)
 // So the original InsideConvex was ~85u bigger before Cross, or the caller charged that much more before it. Tried with
 // --variants: DistSqr for the radius test (worse), LTPlane::Normal() for the m_Dist Dot, Cross(*pPrev - currVec),
 // vertex accessors (free, change nothing).
-// PARKED: inlining decisions only (Cross's ctor and one Dot out of line in the exe); the model needs ~85u more cost in InsideConvex
+// PARKED: inlining decisions only (Cross's ctor and one Dot out of line in the exe); the model (rechecked with R11, no tail site) needs ~85u more cost in InsideConvex
 // STUB: LITHTECH 0x004442a0
 static LTBOOL InternalIntersectLineNode(
 	Node *pRoot,
