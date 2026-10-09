@@ -194,7 +194,9 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 // fSize, colour from the system colour and the particle colour / alpha, the texture coordinates clipped together with the quad against the
 // screen rectangle), and draws the quads with DrawIndexedPrimitive; returns the particle after the last one.
 // Recovered from the original: 1.2f view-volume limit, packed uint32 fog/specular colour, and once-per-call UV endpoint loads.
-// Still not byte-matched: the frame, spills, x87 expression order and vertex-store schedule differ.
+// The camera and screen transforms are the SDK's MatVMul_H (aligned 435 -> 324).
+// Still not byte-matched: the frame (0x4064 vs 0x4080), spills, the term order of the camera transform's x/y/z rows (the exe's
+// w row is MatVMul_H's) and the vertex-store schedule differ.
 // STUB: D3DREN 0x10009370
 PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize)
 {
@@ -202,7 +204,6 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 	TLVertex *pOut;
 	float fRed, fGreen, fBlue, fAlpha;
 	float fHalfSize, fHalfSizeBase;
-	float *m = &pMat->m[0][0];
 	// Original UV endpoints are loaded once at 0x100093b6..0x10009405.
 	float fBaseU0 = g_fParticleTextureUMin;
 	float fBaseU1 = g_fParticleTextureUMax;
@@ -224,21 +225,17 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 
 		do
 		{
-			float fX = pParticle->m_Pos.x, fY = pParticle->m_Pos.y, fZ = pParticle->m_Pos.z;
-			float fInvW = 1.0f / (m[13] * fY + m[12] * fX + m[14] * fZ + m[15]);
-			float vx = (m[1] * fY + fZ * m[2] + m[0] * fX + m[3]) * fInvW;
-			float vy = (fZ * m[6] + m[4] * fX + fY * m[5] + m[7]) * fInvW;
-			float vz = (fZ * m[10] + m[8] * fX + fY * m[9] + m[11]) * fInvW;
+			LTVector vCam;
+			MatVMul_H(&vCam, pMat, &pParticle->m_Pos);
+			float vx = vCam.x, vy = vCam.y, vz = vCam.z;
 			// The original fmul at 0x100094d1 reads 1.2f from 0x100461e8.
 			float fLimit = vz * 1.2f;
 
 			if (g_ViewParams.m_NearZ < vz && vz < g_ViewParams.m_FarZ && -fLimit < vx && vx < fLimit && vy < fLimit && -fLimit < vy)
 			{
-				LTMatrix &mP = g_ViewParams.m_DeviceTimesProjection;
-				float fW = 1.0f / (mP.m[3][2] * vz + mP.m[3][0] * vx + mP.m[3][1] * vy + mP.m[3][3]);
-				float sx = (mP.m[0][2] * vz + mP.m[0][0] * vx + mP.m[0][1] * vy + mP.m[0][3]) * fW;
-				float sy = (mP.m[1][2] * vz + mP.m[1][0] * vx + mP.m[1][1] * vy + mP.m[1][3]) * fW;
-				float sz = (mP.m[2][2] * vz + mP.m[2][0] * vx + mP.m[2][1] * vy + mP.m[2][3]) * fW;
+				LTVector vScreen;
+				float fW = MatVMul_H(&vScreen, &g_ViewParams.m_DeviceTimesProjection, &vCam);
+				float sx = vScreen.x, sy = vScreen.y, sz = vScreen.z;
 				float fExtent, x0, x1, y0, y1, u0, u1, v0, v1;
 				uint32 dwColor;
 
