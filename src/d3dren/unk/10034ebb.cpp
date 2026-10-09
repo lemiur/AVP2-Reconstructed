@@ -179,7 +179,7 @@ int DrawMultitexturedLightmappedPoly(WorldPoly *pPoly)
 	int i;
 	StateChange *pStateChange;
 
-	pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+	pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 
 	if (pPoly->m_nVertices > 0x80)
 	{
@@ -214,13 +214,13 @@ int DrawMultitexturedLightmappedPoly(WorldPoly *pPoly)
 	}
 	else if (pVerts == verts)
 	{
-		SetPolyLocalLightmapUVs(pPoly, pVerts, (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58), nVerts);
+		SetPolyLocalLightmapUVs(pPoly, pVerts, (UnkType_PolyVertex *)pPoly->m_Vertices, nVerts);
 	}
 	else
 	{
 		pVerts = verts;
 		nVerts = pPoly->m_nVertices;
-		FillPolyVerticesWithLocalLightmapUVs(pPoly, verts, (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58), nVerts);
+		FillPolyVerticesWithLocalLightmapUVs(pPoly, verts, (UnkType_PolyVertex *)pPoly->m_Vertices, nVerts);
 		if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
 			return 0;
 	}
@@ -343,7 +343,7 @@ int DrawPolyBaseTexturePass(WorldPoly *pPoly)
 	uint32 i;
 
 	uint32 nPolyVerts = pPoly->m_nVertices;
-	pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+	pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 	pDest = verts;
 	for (i = 0; i < nPolyVerts; i++)
 	{
@@ -383,7 +383,7 @@ int DrawPolyWithWorldPlanarTexture(WorldPoly *pPoly)
 	StateChange *pStateChange;
 
 	uint32 nPolyVerts = pPoly->m_nVertices;
-	pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+	pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 	pDest = verts;
 	for (i = 0; i < nPolyVerts; i++)
 	{

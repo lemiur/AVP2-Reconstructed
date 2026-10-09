@@ -295,7 +295,7 @@ void GetTextureBucketKey(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
 // FUNCTION: D3DREN 0x10029e39
 void GetLightmapBucketKey(WorldPoly *pPoly, int *pBucket, uint32 *pKey)
 {
-	uint32 key = *(uint32 *)((uint8 *)pPoly + 0x48);
+	uint32 key = (uint32)pPoly->m_Unk48;
 	*pKey = key;
 	*pBucket = (key >> 2) & 0x1f;
 }
@@ -633,7 +633,7 @@ void DrawPolyMgr::DrawUntexturedBucket(UnkType_DPMNode *pNode)
 		}
 		else
 		{
-			pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+			pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 			nVerts = pPoly->m_nVertices;
 		}
 
@@ -679,7 +679,7 @@ void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, in
 	}
 	else
 	{
-		pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+		pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 		buf.m_nVertices = pPoly->m_nVertices;
 	}
 
@@ -716,7 +716,7 @@ void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, in
 		{
 			if (m_Unk7bc.GetSize() - m_Unk7d0 >= (uint32)buf.m_nVertices || m_Unk7bc.NiceSetSize(m_Unk7bc.GetSize() + 0x100))
 			{
-			*(uint32 *)((uint8 *)pPoly + 8) = (m_Unk7d0 << 16) | (buf.m_nVertices & 0xffff);
+			pPoly->m_Unk08 = (m_Unk7d0 << 16) | (buf.m_nVertices & 0xffff);
 			if (pVerts == (TLVertex *)buf.m_Verts)
 				pPoly->m_Flags &= 0xffc0;
 			QVert *pQ = &m_Unk7bc[m_Unk7d0];

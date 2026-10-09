@@ -301,7 +301,7 @@ NextPoly:;
 									}
 									else
 									{
-										pVerts = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+										pVerts = (UnkType_PolyVertex *)pPoly->m_Vertices;
 										nVerts = pPoly->m_nVertices;
 									}
 

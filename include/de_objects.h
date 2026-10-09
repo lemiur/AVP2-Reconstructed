@@ -19,10 +19,20 @@ struct ObjectCreateStruct;
 // Internal object flags (m_InternalFlags).
 #define IFLAG_APPLYPHYSICS	(1<<6)
 
+// A polygon vertex (0x18 bytes).
+struct SPolyVertex
+{
+	LTVector	*m_Vec;			// 0x00
+	float		m_U, m_V;		// 0x04 texture coordinates (surface effects keep them current)
+	float		m_Unk0c, m_Unk10;	// 0x0c renderer: lightmap texture coordinates (page relative, AssignPolyLightmapPage)
+	uint8		m_Color[4];		// 0x14 r, g, b, a (a = 255)
+};
+
 // Talon world polygon / BSP node; only what CalcMotion uses.
 struct WorldPoly
 {
-	uint8		m_Pad00[0x0c];
+	uint8		m_Pad00[0x08];
+	uint32		m_Unk08;		// 0x08 renderer: DrawPolyMgr's queued-vertex range of the poly (first << 16 | count)
 	uint32		*m_pLMAnimRefs;	// 0x0c (light anim, entry) pairs in WorldBsp::m_PolyAnimRefs
 	uint32		m_nLMAnimRefs;	// 0x10
 	uint16		m_Flags;		// 0x14 WPF_ (de_world.h); bits 11-13 are the lightmap plane
@@ -31,17 +41,20 @@ struct WorldPoly
 	float		m_Radius;		// 0x24 bounding sphere radius (w_CalcBoundingSpheres)
 	LTPlane		*m_pPlane;		// 0x28
 	void		*m_pSurface;	// 0x2c Surface* (de_world.h)
-	uint8		m_Pad30[0x38 - 0x30];
+	void		*m_Unk30;		// 0x30 renderer: the dynamic lights touching the poly this frame (list head, 0 = none)
+	uint8		m_Pad34[0x38 - 0x34];
 	LTVector	m_Unknown38;	// 0x38 read from the world file (w_LoadWorldBsp)
 	uint16		m_iNextSurfacePoly;	// 0x44 next poly on the same Surface (0xFFFF ends)
-	uint8		m_Pad46[0x4c - 0x46];
+	uint16		m_Unk46;		// 0x46 renderer: frame code of the last frame the poly was visited (cleared on wrap, d3d_ClearWorldBspFrameCodes)
+	struct LightmapPage	*m_Unk48;	// 0x48 renderer: the lightmap page holding the poly's lightmap (d3dren/lightmap.h), 0 = none
 	uint8		m_LMWidth;		// 0x4c lightmap size in samples
 	uint8		m_LMHeight;		// 0x4d
-	uint8		m_Pad4e[0x50 - 0x4e];
-	struct SPolyVertex	*m_pVertices;	// 0x50 points at m_Vertices unless the poly grew
+	uint8		m_Unk4e;		// 0x4e renderer: x of the poly's lightmap in its page (texels)
+	uint8		m_Unk4f;		// 0x4f renderer: y of the poly's lightmap in its page (texels)
+	SPolyVertex	*m_pVertices;	// 0x50 points at m_Vertices unless the poly grew
 	uint16		m_nVertices;	// 0x54
 	uint16		m_nExtraVertices;	// 0x56 counted only when m_pVertices was reallocated
-	// m_Vertices (SPolyVertex, 0x18 bytes each) follow at 0x58.
+	SPolyVertex	m_Vertices[0];	// 0x58 the poly's own vertices (NAME: Jupiter de_world.h WorldPoly::m_Vertices); sizeof(WorldPoly) is 0x58
 
 	LTPlane*	GetPlane()	{ return m_pPlane; }
 
@@ -53,15 +66,6 @@ struct WorldPoly
 	{
 		return (m_pVertices != (SPolyVertex*)(this + 1)) ? m_nExtraVertices + m_nVertices : m_nVertices;
 	}
-};
-
-// A polygon vertex (0x18 bytes).
-struct SPolyVertex
-{
-	LTVector	*m_Vec;			// 0x00
-	float		m_U, m_V;		// 0x04 texture coordinates (surface effects keep them current)
-	uint8		m_Pad0C[0x14 - 0xc];
-	uint8		m_Color[4];		// 0x14 r, g, b, a (a = 255)
 };
 
 struct Node

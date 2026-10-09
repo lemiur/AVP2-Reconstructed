@@ -530,7 +530,7 @@ void d3d_AccumulateWorldPolyFillArea(WorldPoly *pPoly)
 	pVerts = aVerts;
 	TLVertex *pVerts2 = pVerts;
 	pDest = pVerts2;
-	pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+	pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 	for (uint16 j=(uint16)nVerts; j>0; j--)
 	{
 		pDest->m_Vec.x = pSrc->m_Vec->x;
@@ -611,7 +611,7 @@ int d3d_DrawFlatWorldPoly(WorldPoly *pPoly)
 	}
 	else
 	{
-		pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+		pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 
@@ -853,7 +853,7 @@ void d3d_GetWorldPolyVertices(WorldPoly *pPoly, UnkType_PolyVertex **ppVerts, in
 	}
 	else
 	{
-		*ppVerts = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+		*ppVerts = (UnkType_PolyVertex *)pPoly->m_Vertices;
 		*pnVerts = pPoly->m_nVertices;
 	}
 }
@@ -1081,7 +1081,7 @@ void d3d_FlushFlatWorldPolys(UnkType_PoolNode *pList)
 		}
 		else
 		{
-			pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+			pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 			nVerts = pPoly->m_nVertices;
 		}
 		pDest = aVerts;
@@ -1260,7 +1260,7 @@ void d3d_DrawMirrorSurfaceOverlay(WorldPoly *pPoly, LTMatrix *pMatrix)
 	}
 	else
 	{
-		pSrc = (UnkType_PolyVert *)((uint8 *)pPoly + 0x58);
+		pSrc = (UnkType_PolyVert *)pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 
@@ -1967,8 +1967,8 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		g_pMultipassWorldPolyBuckets = 0;
 		g_pFlatWorldPolyQueue = 0;
 		g_nQueuedWorldPolyVertices = 0;
-		*(uint32 *)&g_pStruct->m_Pad48[4] = 0;
-		*(uint32 *)&g_pStruct->m_Pad48[0] = 0;
+		g_pStruct->m_Unk4c = 0;
+		g_pStruct->m_Unk48 = 0;
 
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FILLMODE, g_Wireframe ? D3DFILL_WIREFRAME : D3DFILL_SOLID);
 		if (!g_CV_ShowPortalBounds.m_IntVal)

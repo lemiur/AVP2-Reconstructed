@@ -434,7 +434,7 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 		}
 		else
 		{
-			CountAdder cntAdd((uint32*)((uint8*)g_pStruct + 0x58));
+			CountAdder cntAdd(&g_pStruct->m_Ticks_TagVisibleLeaves);
 
 			request.m_iObjArray = NOA_Objects;
 			pViewPos = g_ViewParams.m_bPortalView ? (LTVector*)((uint8*)&g_ViewParams + 0x4d8) : &g_ViewParams.m_Pos;
@@ -500,7 +500,7 @@ void d3d_TagVisibleLeaves(int bUseVisBSP)
 									}
 									else
 									{
-										pVerts = (uint8*)pPoly + 0x58;
+										pVerts = pPoly->m_Vertices;
 										nVerts = pPoly->m_nVertices;
 									}
 
@@ -622,8 +622,8 @@ LTBOOL d3d_IsWorldNodeVisible(WorldTreeNode *pNode)
 	float fRadius;
 	int i;
 
-	vCenter = *(LTVector*)((uint8*)pNode + 0x30);
-	fRadius = -*(float*)((uint8*)pNode + 0x40);
+	vCenter = pNode->m_Center;
+	fRadius = -pNode->m_Radius;
 
 	for (i = 0; i < 6; i++)
 	{

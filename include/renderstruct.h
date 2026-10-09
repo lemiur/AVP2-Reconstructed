@@ -74,7 +74,11 @@ struct RenderStruct
 	uint32			m_Height;		// 0x40
 	int				m_bInitted;		// 0x44
 
-	uint8			m_Pad48[0x58 - 0x48];	// 0x4c per-frame texture byte counter, 0x50 total texture memory (d3d.ren)
+	// Renderer memory statistics (written by d3d.ren only; the engine never reads them).
+	uint32			m_Unk48;		// 0x48 renderer: texture bytes bound this frame (reset per frame)
+	uint32			m_Unk4c;		// 0x4c renderer: lightmap page bytes bound this frame (reset per frame)
+	uint32			m_Unk50;		// 0x50 renderer: texture and lightmap page memory in use
+	uint8			m_Pad54[0x58 - 0x54];
 
 	// Renderer profile counters (the demo manager's PDCounters: draw counts while "ShowPerformance" is on).
 	uint32			m_Ticks_TagVisibleLeaves;	// 0x58

@@ -93,7 +93,7 @@ void d3d_DrawSkyWorldPoly(WorldPoly *pPoly)
 	}
 	else
 	{
-		pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+		pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 

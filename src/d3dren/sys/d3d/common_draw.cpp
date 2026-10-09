@@ -95,7 +95,7 @@ void d3d_ClearWorldBspFrameCodes(WorldBsp *pBsp)
 
 	for (i = 0; i < pBsp->m_nPolies; i++)
 	{
-		*(uint16 *)((uint8 *)pBsp->m_Polies[i] + 0x46) = 0;
+		pBsp->m_Polies[i]->m_Unk46 = 0;
 	}
 }
 

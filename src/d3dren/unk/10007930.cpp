@@ -184,7 +184,7 @@ void d3d_BindRTexture(RTexture *pRTexture)
 	{
 		pTex->m_Unk1c.Remove();
 		g_Textures.m_pPrev->AddAfter(&pTex->m_Unk1c);
-		*(int *)&g_pStruct->m_Pad48[0] += pTex->m_Unk10;	// RenderStruct+0x48: per-frame texture byte counter
+		g_pStruct->m_Unk48 += pTex->m_Unk10;
 		pTex->m_Unk14 = g_CurFrameCode;
 	}
 	g_pD3DDevice->SetTexture(pTex->m_Unk42 & 0xff, pTex->m_Unk0c);

@@ -257,7 +257,7 @@ int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 
 		SetupLMPlaneVectors((pPoly->m_Flags & 0x3800) >> 11, pPoly->m_pPlane->m_Normal, P, Q);
 
-		SPolyVertex *pVert = (SPolyVertex *)((uint8 *)pPoly + 0x58);
+		SPolyVertex *pVert = pPoly->m_Vertices;
 		SPolyVertex *pEnd = pVert + pPoly->GetNumVertices();
 		float fScale = 0.015625f;
 		while (pVert != pEnd)
