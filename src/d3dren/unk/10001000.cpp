@@ -758,6 +758,8 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 }
 
 // guess: the callback for pieces that need no clipping: projects the vertices in software (matrix g_ViewParams.m_DeviceTimesProjection.m[0][0]) and draws.
+// Not matching (same size): frame one slot smaller than the exe's, the loop-exit `test`, and the projection term order (exe z-y-x for the
+// w/x/y rows, x-z-y for z; ours and the SDK MatVMul_H give z-x-y; source term order does not move VC6's choice).
 // STUB: D3DREN 0x100036d0
 int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -826,6 +828,8 @@ Skip:
 }
 
 // guess: the default draw callback: copies the transformed vertices of each (front facing) triangle into the pool
+// Not matching (100 bytes, 17 aligned ignoring stack offsets): the exe's frame is 0x14 (ours 0xc) with the triangle count in the dead
+// pLOD argument home and a `test eax,eax` after the loop-counter decrement; same residue as DrawPieceProjected/Untransformed.
 // STUB: D3DREN 0x10003b60
 int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -886,18 +890,12 @@ Skip:
 	return 1;
 }
 
-// The TnL vertex of the hardware T&L pool: position, diffuse, specular, one texture coordinate pair (0x1c bytes).  The texture
-// coordinate fillers write at +0x18/+0x1c of a TLVertex, so they are handed a pointer 4 bytes before the vertex.
-struct UnkType_TnLVertex
-{
-	LTVector	m_Vec;		// 0x00
-	uint32		color;		// 0x0c
-	uint32		specular;	// 0x10
-	float		tu, tv;		// 0x14
-};
+// The TnL vertex of the hardware T&L pool is a TLVertex without rhw (position, diffuse, specular, one texture coordinate pair, 0x1c
+// bytes): after the position the output pointer steps back 4 bytes so that the TLVertex colour/texture-coordinate members land on it.
 
 // guess: the untransformed variant of DrawPieceTransformed: writes XYZ + diffuse + specular vertices (stride m_Unk5f8 - 4) so that
 // Direct3D transforms them; the back face test (m_Unk8b4) is done on the model-space x/y of the vertices.
+// Not matching (1056 vs 1072 bytes): the stack-frame/loop-exit residue of DrawPieceTransformed.
 // STUB: D3DREN 0x10003e00
 int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
