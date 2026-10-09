@@ -118,7 +118,7 @@ LTRESULT r_LoadSystemTexture(SharedTexture *pSharedTexture, TextureData **ppText
 	// Store its pointer in the SharedTexture.
 	pSharedTexture->m_pEngineData = *ppTextureData;
 	pSharedTexture->SetCommandLine((*ppTextureData)->m_Header.m_CommandString);
-	pSharedTexture->m_Unknown3C = (*ppTextureData)->m_Header.m_Extra[4];
+	pSharedTexture->m_Unknown3C = (*ppTextureData)->m_Header.GetUIMipmapOffset();
 	(*ppTextureData)->m_pSharedTexture = pSharedTexture;
 
 	if(bBind)
