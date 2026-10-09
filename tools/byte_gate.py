@@ -618,7 +618,10 @@ def main():
         banked_vas = {va for u in banked for va in attr.objvas.get(u, []) if va in funcs} | {va for _, va in spliced}
         banked_vas -= {va for s_ in verb.values() for va in s_}
         ok = banked_vas - pend
-        ok_b = sum(funcs[va][0] - va for va in ok if va in funcs)
+        # measure each function as the banked count does: whole units by extent, single splices by compiled size
+        measure = {va: funcs[va][0] - va for u in banked for va in attr.objvas.get(u, []) if va in funcs}
+        measure.update({va: sizes[(u, va)][0] for (u, va) in spliced})
+        ok_b = sum(measure[va] for va in ok if va in measure)
         rules = {'functions': len(ok), 'code_bytes': ok_b, 'pending': len(banked_vas & pend),
                  'by_rule': rj['summary']['by_rule']}
         log('matched under the code rules: %d functions, %d code bytes (%.3f%%); %d banked functions are '
