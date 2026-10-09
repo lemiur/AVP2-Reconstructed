@@ -530,13 +530,18 @@ CMovingCylinder::EHeightSection CMovingCylinder::GetHeightSection(float fYValue)
 // direction) -> 349/181, 2176 bytes. Audit: behaviour matches, no inline-budget question (the model reproduces
 // the exe's calls at any budget). Left: the register/frame layout above and 64 bytes of size in the vertex loop
 // (the exe walks the vertices with a pointer in edx and the count in ebp).
+// Wave 9: VEC_SUB for the two XZ offsets (vTo, vToProj) and the vertex array indexed from pPoly at each use (no hoisted
+// pVert; the exe's `[pPoly + n*0x18 + 0x40]` is Jupiter's trailing WorldPoly::m_Vertices[1] member, which our
+// WorldPoly lacks): 166 -> 72 aligned ignoring stack offsets, everything matches up to the XZ edge length. Left: the exe
+// keeps vEdge.x on the FPU and a second home for vEdge.z through the length, t and VEC_ADDSCALED; its vCur fallback copies
+// use fld/fstp and share the final vPt.z store with VEC_ADDSCALED (ours: mov copies, 32 bytes smaller). Tried: x/z orders
+// of the length and t, `vPt = vCur`, Init(), *pCur.
 // STUB: LITHTECH 0x004190f0
 LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 {
 	LTPlane *pPlane;
-	SPolyVertex *pVert;
 	LTVector *pCur;
-	LTVector vPrev, vPt, vBest, vEdgeNormal, vDiff;
+	LTVector vPrev, vPt, vBest, vEdgeNormal, vDiff, vToProj, vTo;
 	float fPolyRadius, fAbsY, fHeightDiff, fBest, fLen, fInv, t, fSlopeX, fSlopeZ, fDist;
 	int iPrevSection, iCurSection;
 	uint32 i, nVerts;
@@ -581,13 +586,12 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 	}
 
 	nVerts = pPoly->m_nVertices;
-	pVert = (SPolyVertex*)(pPoly + 1);
-	vPrev = *pVert[nVerts - 1].m_Vec;
-	vBest = *pVert[nVerts - 1].m_Vec;
+	vPrev = *((SPolyVertex*)(pPoly + 1))[nVerts - 1].m_Vec;
+	vBest = *((SPolyVertex*)(pPoly + 1))[nVerts - 1].m_Vec;
 	fBest = m_fSphere;
 	for (i = 0; i < nVerts; i++)
 	{
-		pCur = pVert[i].m_Vec;
+		pCur = ((SPolyVertex*)(pPoly + 1))[i].m_Vec;
 		LTVector vCur = *pCur;
 		LTVector vEdge = vCur - vPrev;
 
@@ -634,7 +638,7 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 				}
 			}
 
-			LTVector vTo = vPt - m_vEnd;
+			VEC_SUB(vTo, vPt, m_vEnd);
 			fDist = (float)sqrt(vTo.x * vTo.x + vTo.z * vTo.z);
 			if (fDist < fBest)
 			{
@@ -655,7 +659,7 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 		vPrev = *pCur;
 	}
 
-	LTVector vToProj = vProj - m_vEnd;
+	VEC_SUB(vToProj, vProj, m_vEnd);
 	if (fBest < m_fRadius && (!bInside || bHoriz || (float)sqrt(vToProj.x * vToProj.x + vToProj.z * vToProj.z) >= fBest) &&
 		!bStep)
 	{
