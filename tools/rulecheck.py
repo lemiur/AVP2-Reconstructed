@@ -184,13 +184,14 @@ def main():
     a = ap.parse_args()
     import build as B
     units = B.find_units()
-    tdefs, gdecls = header_index([modcfg.INC], set(modcfg.INC_SKIP) if modcfg.NAME == 'lithtech' else set())
+    tdefs, gdecls = header_index([modcfg.INC], set(modcfg.INC_SKIP) if modcfg.NAME == 'lithtech' else {'d3dren'})
     if modcfg.NAME == 'd3dren':     # the renderer's own headers live in include/d3dren and the engine's in include/
         tdefs2, gdecls2 = header_index([os.path.join(modcfg.INC, 'd3dren')], set())
         for k, v in tdefs2.items():
             tdefs.setdefault(k, set()).update(v)
-        for k, v in gdecls2.items():
-            gdecls.setdefault(k, set()).update(v)
+        # a renderer global is its own storage in d3d.ren: an engine global of the same name (g_ScreenWidth) is
+        # another binary's variable, so the renderer's declaration replaces it instead of conflicting with it
+        gdecls.update(gdecls2)
     dup_types = {k for k, v in tdefs.items() if len(v) > 1}
     conflict_globals = {k for k, v in gdecls.items() if len(v) > 1}
 
