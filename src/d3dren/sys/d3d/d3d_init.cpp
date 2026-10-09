@@ -493,11 +493,11 @@ int d3d_CreateDeviceWithZBuffer(RenderStructInit *pInit, GUID guid)
 // NAME: CheckSpecialCards: Jupiter d3d_device.cpp CD3D_Device::CheckSpecialCards() ("First check if they want to force it. char*
 // pForceMode = "ForceMode"" then vendor ids; Jupiter's body is stripped, this one is the original).  d3d.ren has no CD3D_Device
 // instance: free function.
-// STUB diagnosis: 448 of 448 bytes (same size, 216 bytes differ, 134 vs 128 instructions).  The exe has no register for the constant 1 (every store
-// of 1 is `mov dword ptr [..], 1`, only esi = 0 is kept, and `push edi` comes after the early exits), ours keeps 1 in edi for the four sites
-// (g_bModelShadowsSupported, g_bPowerVRWorkaround, g_bLoadWholeLightmapSurface twice).  The exe merges the two g_bLoadWholeLightmapSurface = 1 sites (the ForceMode "Rage128" test and the vendor
-// 0x1002 test jump to one block, and the PowerVR block follows the 0x1033 test inline); the variants that do the same with a Rage128 label are 432
-// bytes with another layout.
+// STUB diagnosis: 448 of 448 bytes, the same 128 instructions; only the four early-return branches differ (ALIGNED 4): the exe's
+// shared epilogue follows the g_bLoadWholeLightmapSurface store and the Permedia2 block has its own copy, ours shares the one after
+// Permedia2.  Tried: Permedia2 at the end / inside the ForceMode test / in an else of the vendor test, the 0x1002 and 0x121a arms
+// as nested ifs, separate ifs with returns, explicit returns, duplicated (non-goto) bodies; permuter 3000 candidates, no change.
+// PARKED: epilogue placement of the early returns (4 jump displacements); instruction stream identical
 // STUB: D3DREN 0x1001a8b0
 void CheckSpecialCards()
 {
