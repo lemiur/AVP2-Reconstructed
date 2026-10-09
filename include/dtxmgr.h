@@ -43,6 +43,19 @@ public:
 	inline BPPIdent	GetBPPIdent()				{return m_Extra[2] == 0 ? BPP_32 : (BPPIdent)m_Extra[2];}
 	inline void		SetBPPIdent(BPPIdent id)	{m_Extra[2] = (uint8)id;}
 
+	inline uint32	GetNonS3TCMipmapOffset()	{return (uint32)m_Extra[3];}
+
+	inline uint32	GetUIMipmapOffset()			{return m_Extra[4];}
+	inline float	GetUIMipmapScale()			{return (float)(1 << GetUIMipmapOffset());}
+
+	inline uint32	GetTexturePriority()		{return m_Extra[5];}
+
+	// NOTE: it adds 1.0f so all the old values of 0.0f return 1.0f.
+	// (the add of 1.0f should be totally transparent to everything though!)
+	inline float	GetDetailTextureScale()		{return *((float*)&m_Extra[6]) + 1.0f;}
+
+	inline int16	GetDetailTextureAngle()		{return (int16)((m_Extra[10]) + (m_Extra[11] << 8));}
+
 public:
 	uint32	m_ResType;			// 0x00
 	int32	m_Version;			// 0x04 CURRENT_DTX_VERSION
