@@ -440,6 +440,11 @@ static int s_CornerOrderBack[4] = { 3, 2, 1, 0 };
 // m_pRenderData before d3d_FindRTextureForStage (include/d3dren/d3d_texture.h) refuses the search only at >= 64u, which
 // contradicts d3d_DrawPolyGrid (the exe inlines both searches there), and any new declaration in that header moves
 // ClipPolyNear40 / ClipPolyLeft40 (unit unk/10007930) by 4 bytes.
+// Helper recovery (measured with inline_budget.py, not kept): a Jupiter-style vertex fill helper (d3d_SetupVertexPos / SetupVert,
+// 82u) for the four corners lowers B to 1276u and gives Dist the exe's decisions, but then SpriteGetColor and the fourth fill are
+// refused (the exe expands both); with the colour code also written out Dist and SpriteGetColor fit but B rises to 2078u and
+// TransformVertexPositionsHomogeneous and the search stay inline (closest budget 1224u).  The exe needs roughly 12 more free top-level
+// sites after Dist and 70..95u less own size at once; no helper with evidence in Jupiter or the SDK headers gives both.
 // STUB: D3DREN 0x1002e310
 void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
 {
