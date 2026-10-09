@@ -530,10 +530,10 @@ CMovingCylinder::EHeightSection CMovingCylinder::GetHeightSection(float fYValue)
 // direction) -> 349/181, 2176 bytes. Audit: behaviour matches, no inline-budget question (the model reproduces
 // the exe's calls at any budget). Left: the register/frame layout above and 64 bytes of size in the vertex loop
 // (the exe walks the vertices with a pointer in edx and the count in ebp).
-// Wave 9: VEC_SUB for the two XZ offsets (vTo, vToProj), the vertex array indexed from pPoly at each use (no hoisted
+// Wave 9: the XZ offsets (vTo, vToProj) as y-zeroed vectors measured by Mag(), the vertex array indexed from pPoly at each use (no hoisted
 // pVert; the exe's `[pPoly + n*0x18 + 0x40]` is Jupiter's trailing WorldPoly::m_Vertices member), and the XZ edge as an
 // LTVector of its own (`vEdgeXZ(vEdge.x, 0, vEdge.z)`, length by Mag(): the exe recomputes the squares in Norm, so
-// they are not the same expression as the XZ length): 166 -> 66 aligned ignoring stack offsets. Left: the exe keeps
+// they are not the same expression as the XZ length): 166 -> 58 aligned ignoring stack offsets. Left: the exe keeps
 // vEdgeXZ.z in memory (fst, frame 16 bytes larger) and reads it again for VEC_ADDSCALED; its vCur fallback copies use
 // fld/fstp and share the final vPt.z store with VEC_ADDSCALED (ours: mov copies). Tried without gain: x/z orders of the
 // length and t, float locals for the XZ components, an inline XZ-length helper, the edge-point block as an inline
@@ -642,8 +642,8 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 				}
 			}
 
-			VEC_SUB(vTo, vPt, m_vEnd);
-			fDist = (float)sqrt(vTo.x * vTo.x + vTo.z * vTo.z);
+			vTo.Init(vPt.x - m_vEnd.x, 0.0f, vPt.z - m_vEnd.z);
+			fDist = vTo.Mag();
 			if (fDist < fBest)
 			{
 				fBest = fDist;
@@ -663,8 +663,8 @@ LTBOOL CMovingCylinder::CollideWith(WorldPoly *pPoly, Node *pNode)
 		vPrev = *pCur;
 	}
 
-	VEC_SUB(vToProj, vProj, m_vEnd);
-	if (fBest < m_fRadius && (!bInside || bHoriz || (float)sqrt(vToProj.x * vToProj.x + vToProj.z * vToProj.z) >= fBest) &&
+	vToProj.Init(vProj.x - m_vEnd.x, 0.0f, vProj.z - m_vEnd.z);
+	if (fBest < m_fRadius && (!bInside || bHoriz || vToProj.Mag() >= fBest) &&
 		!bStep)
 	{
 		// An edge or vertex of the polygon.
