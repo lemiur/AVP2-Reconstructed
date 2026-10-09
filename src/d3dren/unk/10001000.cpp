@@ -585,6 +585,26 @@ static inline void DrawFullModelPool(ModelDraw *pDraw)
 	((UnkType_VBPoolDrawView *)pDraw->m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, pDraw->m_Unk608->m_Unk20 - pDraw->m_Unk608->m_Unk1c);
 }
 
+// guess: back face test of a camera-space triangle after the perspective divide (x/z, y/z); m_bCullFlip mirrors the winding.
+// helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
+static inline LTBOOL IsFrontFacing(TLVertex *pV0, TLVertex *pV1, TLVertex *pV2)
+{
+	float r0 = 1.0f / pV0->m_Vec.z;
+	float r1 = 1.0f / pV1->m_Vec.z;
+	float r2 = 1.0f / pV2->m_Vec.z;
+	LTVector p0, d1, d2;
+	p0.x = r0 * pV0->m_Vec.x;
+	p0.y = r0 * pV0->m_Vec.y;
+	d1.x = r1 * pV1->m_Vec.x - p0.x;
+	d1.y = r1 * pV1->m_Vec.y - p0.y;
+	d2.x = r2 * pV2->m_Vec.x - p0.x;
+	d2.y = r2 * pV2->m_Vec.y - p0.y;
+	float fCross = d2.x * d1.y - d2.y * d1.x;
+	if (g_ViewParams.m_bCullFlip)
+		fCross = -fCross;
+	return fCross > 0.0f;
+}
+
 void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 
 // guess: the "really close" variant (instances with FLAG_REALLYCLOSE): the z row uses z + g_CV_NearZ (ProjectPositionWithDepthBias).
@@ -609,8 +629,8 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 	while (nTris)
 	{
 		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
-		TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
 		TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
+		TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
 		uint32 clipFlags;
 		int nIn = 3;
 		if (g_ClipFlags & 4)
@@ -663,20 +683,7 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 		}
 		if (nIn == 3)
 		{
-			float r0 = 1.0f / pV0->m_Vec.z;
-			float r1 = 1.0f / pV1->m_Vec.z;
-			float r2 = 1.0f / pV2->m_Vec.z;
-			LTVector p0, d1, d2;
-			p0.x = r0 * pV0->m_Vec.x;
-			p0.y = r0 * pV0->m_Vec.y;
-			d1.x = r1 * pV1->m_Vec.x - p0.x;
-			d1.y = r1 * pV1->m_Vec.y - p0.y;
-			d2.x = r2 * pV2->m_Vec.x - p0.x;
-			d2.y = r2 * pV2->m_Vec.y - p0.y;
-			float fCross = d2.x * d1.y - d2.y * d1.x;
-			if (g_ViewParams.m_bCullFlip)
-				fCross = -fCross;
-			if (!(fCross > 0.0f))
+			if (!IsFrontFacing(pV0, pV1, pV2))
 				goto Skip;
 			ProjectVertex(pOut, pV0);
 			pOut->color = pV0->color;
@@ -702,7 +709,7 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 		}
 		else
 		{
-			char aBuf[0x4f0];
+			char aBuf[0x500];
 			TLVertex *pPoly = (TLVertex *)aBuf;
 			int nPoly = 3;
 			TLVertex *pD = pPoly;
@@ -722,26 +729,8 @@ int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 			m_Unk5f4(pD, pV2, &pTri->m_UVs[2].tu);
 			if (!m_Unk600(clipFlags, (void **)&pPoly, &nPoly))
 				goto Skip;
-			{
-				int nStride = m_Unk5f8;
-				TLVertex *pP1 = (TLVertex *)((char *)pPoly + nStride);
-				TLVertex *pP2 = (TLVertex *)((char *)pPoly + nStride * 2);
-				float r0 = 1.0f / pPoly->m_Vec.z;
-				float r1 = 1.0f / pP1->m_Vec.z;
-				float r2 = 1.0f / pP2->m_Vec.z;
-				LTVector p0, d1, d2;
-				p0.x = r0 * pPoly->m_Vec.x;
-				p0.y = r0 * pPoly->m_Vec.y;
-				d1.x = r1 * pP1->m_Vec.x - p0.x;
-				d1.y = r1 * pP1->m_Vec.y - p0.y;
-				d2.x = r2 * pP2->m_Vec.x - p0.x;
-				d2.y = r2 * pP2->m_Vec.y - p0.y;
-				float fCross = d2.x * d1.y - d2.y * d1.x;
-				if (g_ViewParams.m_bCullFlip)
-					fCross = -fCross;
-				if (!(fCross > 0.0f))
-					goto Skip;
-			}
+			if (!IsFrontFacing(pPoly, (TLVertex *)((char *)pPoly + m_Unk5f8), (TLVertex *)((char *)pPoly + m_Unk5f8 * 2)))
+				goto Skip;
 			char *pPolyEnd = (char *)pPoly + m_Unk5f8 * nPoly;
 			for (TLVertex *pP = pPoly; (char *)pP < pPolyEnd; pP = (TLVertex *)((char *)pP + m_Unk5f8))
 				ProjectPosition(pP, pP);
