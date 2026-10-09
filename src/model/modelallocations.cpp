@@ -81,6 +81,9 @@ LTBOOL ModelAllocations::CalcAllocationSize(uint32 &size)
 	size += WordAlign(sizeof(AnimNode*))		* m_nNodes * m_nParentAnims		// ModelAnim::m_AnimNodes.
 		+ WordAlign(sizeof(ModelNode*) + sizeof(ModelNode)) * nChildNodes;			// ModelNode::m_Children.
 	// Preserve VC6's original operand load order for this product.
+	// RULE-EXCEPTION: R17, retail loads m_nChildModels before m_nNodes for this product; the natural
+	// `WordAlign(..) * m_nChildModels * m_nNodes` (also grouped, reordered, or via a local/pointer/reference)
+	// loads m_nNodes first, and only a volatile read forces the original order.
 	volatile uint32 &childModelCount = m_nChildModels;
 	size += WordAlign(sizeof(NodeRelation))		* childModelCount * m_nNodes;	// ChildInfo::m_Relation.
 	size += WordAlign(sizeof(ModelTri))			* m_nTris;						// PieceLOD::m_Tris.

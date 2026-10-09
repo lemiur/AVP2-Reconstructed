@@ -1141,6 +1141,9 @@ uint32 Model::CalcNumParentAnims()
 // Parses the model's command string (the "ModelEdit" properties).
 // Keep the NormalRef reset stores in their original order. Reload the node index through a volatile pointer after
 // SetupTransforms so VC6 uses the same register and load sequence for the transform copy.
+// RULE-EXCEPTION: R17, retail's register choice for the NormalRef transform copy (index in esi, base in eax)
+// is only reached by reloading the index through a volatile pointer; plain, local-copy, reference and GetArray
+// spellings all pick edx/esi the other way round and shift every register of the rest of the function.
 // FUNCTION: LITHTECH 0x0044fa10
 void Model::ParseCommandString()
 {
