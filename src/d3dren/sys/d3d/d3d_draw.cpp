@@ -1490,7 +1490,7 @@ static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVe
 // left plane x + z == 0 (flag 4)
 #define CLIPTEST_LEFT(v)	((v).x > -(v).z)
 #define DOCLIP_LEFT(p0, p1) \
-	t = -(((p0).z + (p0).x) / ((((p1).x - (p0).x) + (p1).z) - (p0).z)); \
+	t = ((p0).z + (p0).x) / -((((p1).x - (p0).x) + (p1).z) - (p0).z); \
 	pOut->m_Vec.y = ((p1).y - (p0).y) * t + (p0).y; \
 	z = ((p1).z - (p0).z) * t + (p0).z; \
 	pOut->m_Vec.z = z; \
@@ -1498,7 +1498,7 @@ static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVe
 // top plane y == z (flag 8)
 #define CLIPTEST_TOP(v)		((v).y < (v).z)
 #define DOCLIP_TOP(p0, p1) \
-	t = -(((p0).y - (p0).z) / ((((p1).y - (p0).y) - (p1).z) + (p0).z)); \
+	t = ((p0).y - (p0).z) / -((((p1).y - (p0).y) - (p1).z) + (p0).z); \
 	pOut->m_Vec.x = ((p1).x - (p0).x) * t + (p0).x; \
 	z = ((p1).z - (p0).z) * t + (p0).z; \
 	pOut->m_Vec.z = z; \
@@ -1506,7 +1506,7 @@ static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVe
 // right plane x == z (flag 0x10)
 #define CLIPTEST_RIGHT(v)	((v).x < (v).z)
 #define DOCLIP_RIGHT(p0, p1) \
-	t = -(((p0).x - (p0).z) / ((((p1).x - (p0).x) - (p1).z) + (p0).z)); \
+	t = ((p0).x - (p0).z) / -((((p1).x - (p0).x) - (p1).z) + (p0).z); \
 	pOut->m_Vec.y = ((p1).y - (p0).y) * t + (p0).y; \
 	z = ((p1).z - (p0).z) * t + (p0).z; \
 	pOut->m_Vec.z = z; \
@@ -1514,7 +1514,7 @@ static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVe
 // bottom plane y + z == 0 (flag 0x20)
 #define CLIPTEST_BOTTOM(v)	((v).y > -(v).z)
 #define DOCLIP_BOTTOM(p0, p1) \
-	t = -(((p0).y + (p0).z) / ((((p1).y - (p0).y) + (p1).z) - (p0).z)); \
+	t = ((p0).y + (p0).z) / -((((p1).y - (p0).y) + (p1).z) - (p0).z); \
 	pOut->m_Vec.x = ((p1).x - (p0).x) * t + (p0).x; \
 	z = ((p1).z - (p0).z) * t + (p0).z; \
 	pOut->m_Vec.z = z; \
@@ -1529,12 +1529,11 @@ static inline void TLVertex_ClipExtra_Line(TLVertex *pPrev, TLVertex *pCur, TLVe
 
 // guess: clips the line of pVerts[0], pVerts[1] (camera space TL vertices) in place against the planes of nMask (1 near, 4 left, 8 top, 0x10 right,
 // 0x20 bottom, 2 far; the callers pass 0x3f); returns 0 when the whole line is outside.  Jupiter has the macro file but no function around it.
-// STUB diagnosis (W2): 116 of 3952 bytes differ (same size, same instruction count 1373, 56 aligned mismatches of which ~16 are relocation operands): the
-//   structure of all six planes, both branches and every DOCLIP matches.  Two small differences remain: (1) the integer loads of the 4th ClipExtra channel
-//   (rgb.a) are scheduled differently in all 12 expansions (exe `mov al,[a0]; mov [ebp+8],eax; xor ebx,ebx; mov bl,[a1]; sub`, ours `mov al; xor ebx; mov bl;
-//   mov [ebp+8],eax; sub`; r, g, b and the specular alpha are identical); (2) the numerator of the bottom plane t is `fld y; fadd z` in the exe, `fld z; fadd y` here.
-//   Tried: channel order permutations (rgbas is the best), macro instead of inline ClipExtra (669 bytes), int locals / byte-through-color forms of the alpha line,
-//   swapped sum order, dummy early references to x/y/z.
+// STUB diagnosis: same size and instructions, 12 aligned mismatches.  The left/top/right/bottom t is spelled `n / -d` (VC6 emits the
+//   same fdivp/fchs as for `-(n / d)` but the tree shape decides how the 4th ClipExtra channel's prev-alpha spill is scheduled; this
+//   form gives the exe's schedule in those four planes).  Left: the near and far planes still spill after the cur-alpha load (the exe
+//   spills right after the prev-alpha load; every code-identical spelling of their t tried keeps it, the ones that move it add an
+//   fchs), and the bottom numerator is `fld z; fadd y` here, `fld y; fadd z` in the exe (both operand orders give z first).
 // STUB: D3DREN 0x100161e0
 int d3d_ClipTLVertexLine(float *pVertsRaw, int nMask)
 {
