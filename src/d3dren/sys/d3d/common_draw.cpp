@@ -533,21 +533,14 @@ inline LTBOOL d3d_InitFrustum(ViewParams *pParams,
         &mat, LTVector(1.0f, 1.0f, 1.0f));
 }
 
-// Component-wise SDK VEC_MULSCALAR formula, returned through the original-style vector temporary.
-inline LTVector ScaleVectorComponents(LTVector v, float scale)
-{
-    LTVector ret;
-    VEC_MULSCALAR(ret, v, scale);
-    return ret;
-}
-
 // NAME: d3d_InitFrame: Jupiter common_draw.cpp d3d_InitFrame (names_proposal medium); the Talon form takes two more arguments (the
 // scratch vertex buffer of the polygon clippers, stored in g_pClipScratchVerts, and an int stored in g_nInitFrameArgument) and has Jupiter's
 // d3d_InitFrustum inlined (it has no copy of its own in d3d.ren).
 // STUB: D3DREN 0x100103c2
-// Remaining difference: 939 instead of 949 bytes (486 bytes differ). The inline frustum call snapshots its FOV, near/far,
-// and screen parameters before matrix construction, as in the original. The scaled vectors pass through local float
-// temporaries before their DWORD copies. Some vector copies and x87 scheduling still differ.
+// Remaining difference: 72 aligned mismatches, 20 ignoring stack offsets (264 vs 266 instructions).  The two derived light scale vectors
+// are SDK operators on g_GlobalLightScale (`* 255.0f`, `/ 255.0f`; VC6 multiplies by the reciprocal); the x*255 product is shared with
+// the colour byte.  The exe's frame is 12 bytes larger (0x88): for `/ 255.0f` it first copies g_GlobalLightScale into a temporary
+// through the FPU (x kept in st0), which neither operator form nor a by-value helper reproduces exactly; slots shift from there.
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 {
 	RenderContext *pContext;
@@ -595,8 +588,8 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 	g_vSceneClientVectorSecondary = pDesc->m_Unknown44;
 
 	g_GlobalLightScale = pDesc->m_GlobalLightScale;
-	g_GlobalLightScale255 = ScaleVectorComponents(g_GlobalLightScale, 255.0f);
-	g_vGlobalLightScalePerByte = ScaleVectorComponents(g_GlobalLightScale, 1.0f / 255.0f);
+	g_GlobalLightScale255 = g_GlobalLightScale * 255.0f;
+	g_vGlobalLightScalePerByte = g_GlobalLightScale / 255.0f;
 	g_GlobalLightScaleColor.r = (uint8)RoundFloatToInt(g_GlobalLightScale.x * 255.0f);
 	g_GlobalLightScaleColor.g = (uint8)RoundFloatToInt(g_GlobalLightScale.y * 255.0f);
 	g_GlobalLightScaleColor.b = (uint8)RoundFloatToInt(g_GlobalLightScale.z * 255.0f);
