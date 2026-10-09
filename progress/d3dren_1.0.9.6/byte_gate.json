@@ -47,22 +47,21 @@
  "code_rules": {
   "by_rule": {
    "R1": 6,
-   "R13": 17,
-   "R2": 101,
-   "R4": 30
+   "R2": 80,
+   "R4": 1
   },
-  "code_bytes": 108727,
-  "functions": 1050,
-  "pending": 140
+  "code_bytes": 119935,
+  "functions": 1104,
+  "pending": 86
  },
- "commit": "65813b15415a64e12b0f329b3809de458b8dffee",
+ "commit": "11795f4c2d54b557a9df38131287c0333693b68a",
  "contract": "4248b9357daaaf129a37baf7ad8bf7b3d008344b",
  "control": {
   "differing_bytes": 11,
   "va": "100073b0"
  },
  "data_bytes": 0,
- "date": "2026-10-09 11:18",
+ "date": "2026-10-09 11:34",
  "function_bytes_total": 280674,
  "functions": 1190,
  "image": "d3d.ren",
