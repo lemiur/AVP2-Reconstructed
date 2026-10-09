@@ -733,12 +733,14 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 {
 	UnkType_TLVertex40 aVerts[80];
 	float aTexMat[2][2];
-	float fU = g_TextureStageTexelSizes[1].m_Unk00 * g_WorldDetailTextureScale;
-	float fV = g_TextureStageTexelSizes[1].m_Unk04 * g_WorldDetailTextureScale;
-	aTexMat[0][0] = g_WorldDetailTextureAngleCos * fU;
-	aTexMat[0][1] = -(g_WorldDetailTextureAngleSin * fV);
-	aTexMat[1][0] = g_WorldDetailTextureAngleSin * fU;
-	aTexMat[1][1] = g_WorldDetailTextureAngleCos * fV;
+	float aScale[2];
+	int nVerts;
+	aScale[0] = g_TextureStageTexelSizes[1].m_Unk00 * g_WorldDetailTextureScale;
+	aScale[1] = g_TextureStageTexelSizes[1].m_Unk04 * g_WorldDetailTextureScale;
+	aTexMat[0][0] = g_WorldDetailTextureAngleCos * aScale[0];
+	aTexMat[0][1] = -(g_WorldDetailTextureAngleSin * aScale[1]);
+	aTexMat[1][0] = g_WorldDetailTextureAngleSin * aScale[0];
+	aTexMat[1][1] = g_WorldDetailTextureAngleCos * aScale[1];
 	int bAlphaBlend = 1;
 	int bSaturate = 1;
 	UnkType_PoolNode *pNode = pBucket->m_Unk04;
@@ -779,7 +781,7 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 			{
 				TLVertex *pSrc = g_pQueuedWorldPolyVertices + pNode->m_Unk04;
 				UnkType_TLVertex40 *pDest = aVerts;
-				int nVerts = pNode->m_Unk08;
+				nVerts = pNode->m_Unk08;
 				int i = nVerts;
 				while (i--)
 				{
@@ -797,7 +799,6 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 			else
 			{
 				UnkType_PolyVertex *pSrc;
-				int nVerts;
 				if (g_FixTJunc != 0)
 				{
 					pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
@@ -814,15 +815,15 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 					pDest->m_Vec.x = pSrc->m_Vec->x;
 					pDest->m_Vec.y = pSrc->m_Vec->y;
 					pDest->m_Vec.z = pSrc->m_Vec->z;
-					if (bKeepColor == 0)
-						pDest->color = g_GlobalVertexTintColor.color;
-					else
+					if (bKeepColor)
 					{
 						pDest->rgb.r = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.r + pSrc->m_Color[2] * 256];
 						pDest->rgb.g = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.g + pSrc->m_Color[1] * 256];
 						pDest->rgb.b = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.b + pSrc->m_Color[0] * 256];
 						pDest->rgb.a = g_ByteMultiplyTable.m_Unk00[g_GlobalVertexTintColor.rgb.a + pSrc->m_Color[3] * 256];
 					}
+					else
+						pDest->color = g_GlobalVertexTintColor.color;
 					pDest->tu2 = g_TextureStageTexelSizes[1].m_Unk00 * pSrc->m_U;
 					pDest->tv2 = g_TextureStageTexelSizes[1].m_Unk04 * pSrc->m_V;
 					(*g_pfnCalcFogAlpha)(&pDest->m_Vec, &pDest->specular);
