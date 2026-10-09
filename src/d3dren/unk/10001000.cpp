@@ -215,7 +215,12 @@ int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, Unk
 // The intersection helpers are called out of line: they are extern, so /Ob2 auto-inlines them only up to the 174u cap, and the
 // LTVector & parameters indexed through LTVector::operator[] (the p[i] spelling of their bodies) weigh 197u/226u on the front end
 // (float * indexing: 137u/151u, inlined).
-// Not matching: register allocation (a zero register in ebx, pVerts in esi where the exe has edx) and the flags spill slot.
+// Not matching: register allocation.  ClipModelPolygon40: `flags` lives in eax and its spill slot comes second (the exe loads
+// g_CV_UseD3DClip first and keeps flags in [esp+0x20]), and the exe reuses the dead nInside register (xor ebx,ebx) for iCur = 0.
+// ClipModelPolygon32 also keeps a zero register in ebx from the entry and pVerts in esi (exe edx).  Declarations at the top (as the
+// twin ClipPolygon40 of unk/10007930), and uint32 counters (polyclip.h) do not move it; the permuter (3000
+// candidates each) only moves it with a local copy of the flags parameter (40: 29 -> 16 aligned), which is not source.
+// PARKED: register allocation (flags spill order, zero register for iCur/nInside); only a fake parameter copy moves it
 // STUB: D3DREN 0x10001530
 int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 {
@@ -250,6 +255,7 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 }
 
 // guess: the 0x28-byte vertex twin of ClipModelPolygon32 (same shape, see there): ClipExtra TLVertex40_ClipExtra, planes ClipPolyTop40/10007100/100073b0/10007670.
+// PARKED: register allocation (flags spill order, zero register for iCur), see ClipModelPolygon32
 // STUB: D3DREN 0x10001b30
 int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts)
 {
