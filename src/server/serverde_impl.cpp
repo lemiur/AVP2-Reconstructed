@@ -58,6 +58,7 @@ void		si_RelinquishList(ObjectList *pList);
 // CreateLTServer.
 #include <string.h>
 #include "bdefs.h"
+#include "server_vars.h"
 #include "servermgr.h"
 #include "boxfind.h"
 #include "s_object.h"
@@ -75,7 +76,6 @@ void		si_RelinquishList(ObjectList *pList);
 #include "s_client.h"
 #include "server_extradata.h"
 #include "model.h"
-extern float g_CV_DebugMaxDims;
 
 
 void sm_SetLightAnimChanged(CServerMgr *pServerMgr, uint32 iLightAnim, uint32 flags);	// s_client, 0x00473550

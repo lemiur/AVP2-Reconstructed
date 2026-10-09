@@ -34,6 +34,7 @@
 #include "WONAuth/AuthContext.h"
 #include "WONAuth/PeerAuthServer.h"
 #include "engine_vars.h"
+#include "server_vars.h"
 #include "moveobject.h"
 #include "serverde_impl.h"
 

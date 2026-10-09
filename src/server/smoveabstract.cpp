@@ -7,7 +7,7 @@
 #include "s_object.h"
 #include "interlink.h"
 #include "counter.h"
-#include "engine_vars.h"
+#include "server_vars.h"
 #include "moveobject.h"
 
 

@@ -5,6 +5,7 @@
 #include "bdefs.h"
 #include "concommand.h"
 #include "engine_vars.h"
+#include "server_vars.h"
 
 #define DEFAULT_CLIENT_UPDATE_RATE	10	// Jupiter shared/src/packetdefs.h
 

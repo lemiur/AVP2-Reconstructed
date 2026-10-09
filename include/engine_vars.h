@@ -6,8 +6,8 @@
 
 struct LTCommandVar;
 
+
 extern int32 g_CV_RenderEnable;
-extern uint32 g_Ticks_ClassUpdate;
 extern int32 g_CV_FlashClients;
 extern int32 g_CV_PlayDemoReps;
 extern int32 g_CV_PlayDemoProfile;
@@ -91,14 +91,6 @@ extern LTBOOL g_bMusicEnable;
 extern LTBOOL g_bSoundEnable;
 extern int32 g_CV_ForceSoundDisable;
 extern float g_fLodScale;
-extern float g_ServerFPS;
-extern float g_CV_TimeScale;
-extern float g_DebugMaxPos;
-extern float g_CV_DebugMaxDims;
-extern LTBOOL g_CV_ShowGameTime;
-extern LTBOOL g_CV_ShowClassTicks;
-extern LTBOOL g_CV_ShowSphereFindTicks;
-extern LTBOOL g_CV_ShowPolyFindTicks;
 extern int32 g_CV_ConsoleHistoryLen;
 extern int32 g_CV_ConsoleBufferLen;
 extern float g_CV_ConsoleAlpha;
