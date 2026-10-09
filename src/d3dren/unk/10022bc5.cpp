@@ -50,24 +50,8 @@ ConVar g_CV_MultipassGouraud("MultipassGouraud", 1.0f);
 // callees and globals of other units
 // NAME: UnkType_PolyVertex (polydraw.h): the 0x18-byte world poly vertex; the bytes at +0x14..0x16 are b, g, r (the lighting tables are
 // indexed in that order below).
-extern UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of the buckets (polys queued per lightmap page); see unit unk/100132a0
-// GLOBAL: D3DREN 0x10057774
-extern uint8 g_nPolyVertexAlpha;				// guess: alpha byte of the poly vertex colour
-// GLOBAL: D3DREN 0x10059d04
-extern uint8 g_MultipassVertexTintTableR[256];			// guess: red lighting table (the multipass / dynamic light pass); the next two are the green and blue ones
-// GLOBAL: D3DREN 0x10059e04
-extern uint8 g_MultipassVertexTintTableG[256];
-// GLOBAL: D3DREN 0x10059f04
-extern uint8 g_MultipassVertexTintTableB[256];
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];			// guess: red table of the single pass ("saturate" variant); a104 green, a204 blue
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];
 void d3d_ApplyWorldPolyVertexLights(WorldPoly *pPoly, TLVertex *pVerts, int nVerts);	// unit unk/10019350 (drawsky.h)
 int d3d_DrawFlatWorldPoly(WorldPoly *pPoly);										// unit unk/100132a0
-extern int g_bDrawGouraudFullbritePass;				// guess: draw state flag (Gouraud fullbrites in use); declared by unit unk/100132a0
 
 // Jupiter TLVertex::SetTCoords (3d_ops.h): the exe inlines it into the vertex builders (both arguments on the FPU stack, then two stores).
 inline void TLVertex_SetTCoords(TLVertex *pVert, float inTU, float inTV)

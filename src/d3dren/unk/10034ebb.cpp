@@ -27,19 +27,7 @@
 #include "world_tree.h"
 
 // Texture coordinate offsets/scales the world poly draw state sets (SetupWorldTextureCoordinates's unit): world x/z of the current texture ref.
-// GLOBAL: D3DREN 0x1004ffb0
-extern float g_fGlobalPanUOffset;
-// GLOBAL: D3DREN 0x1004ffb4
-extern float g_fGlobalPanVOffset;
-// GLOBAL: D3DREN 0x1004eba8
-extern float g_fGlobalPanUScale;
-// GLOBAL: D3DREN 0x1004ebac
-extern float g_fGlobalPanVScale;
-// GLOBAL: D3DREN 0x10057774
-extern uint8 g_nPolyVertexAlpha;		// guess: alpha byte of the vertex colours
 // The current texture reference: [0] SharedTexture*, [4]/[8] texture offset, [0xc]/[0x10] texture size (GlobalPanInfo, RenderStruct::m_GlobalPans).
-// GLOBAL: D3DREN 0x10055ce0
-extern GlobalPanInfo *g_pGlobalPanInfo;	// &RenderStruct::m_GlobalPans[n]
 
 // callbacks of ProcessQueuedPolyList (one queued poly each); they return non-zero when they drew something
 int DrawMultitexturedLightmappedPoly(WorldPoly *pPoly);
@@ -48,15 +36,7 @@ int DrawPolyBaseTexturePass(WorldPoly *pPoly);
 uint32 ProcessQueuedPolyList(UnkType_PoolNode *pNode, int (*pfn)(WorldPoly *), int bFree, UnkType_PoolNode **ppDeferred);
 
 // Gamma/colour byte tables of the world poly vertex colours (256 entries each).
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];
 
-// GLOBAL: D3DREN 0x1007d424
-extern int g_bLightmapModulate2X;		// guess: set elsewhere (lightmap draw state)
 void SetPolyLocalLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pVerts, UnkType_PolyVertex *pSrc, int nVerts);
 void FillPolyVerticesWithLocalLightmapUVs(WorldPoly *pPoly, UnkType_TLVertex40 *pDest, UnkType_PolyVertex *pSrc, int nVerts);
 int d3d_RefreshWorldPolyLightmap(WorldPoly *pPoly, int bDirect);	// W8's unit: updates the dynamic lights of the poly's lightmap

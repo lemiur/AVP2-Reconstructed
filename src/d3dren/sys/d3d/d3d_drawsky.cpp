@@ -39,10 +39,6 @@ static UnkType_EmptyCtorSky s_Empty;
 
 
 // globals of other units used below
-// GLOBAL: D3DREN 0x10055ce8
-extern LTVector g_GlobalVertexTint;		// guess: the global light colour (W4's seed declares it the same way): scales the sky object colour
-// GLOBAL: D3DREN 0x100566cc
-extern int g_nLightTests;		// guess: the number of light tests this frame ("Num Light Tests")
 // RTM compiler/NAME: d3d_SetTranslucentObjectStates / d3d_UnsetTranslucentObjectStates: Jupiter d3d_draw.h (unit unk/100132a0, package W2)
 void d3d_SetTranslucentObjectStates(int bAdditive);			// 0x10013ba0
 void d3d_UnsetTranslucentObjectStates(int bChangeZ);		// 0x10013df0
@@ -58,8 +54,6 @@ float g_fSkyWorldModelTintR;		// guess: the sky object's colour (red, green, blu
 float g_fSkyWorldModelTintG;
 // GLOBAL: D3DREN 0x1005a3d8
 float g_fSkyWorldModelTintB;
-// GLOBAL: D3DREN 0x10057774
-extern uint8 g_nPolyVertexAlpha;		// guess: the alpha byte of the vertex colours
 
 
 // guess: the vertex buffer of d3d_DrawSkyWorldPoly: a function-local static of a class with a (do nothing) destructor

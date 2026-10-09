@@ -20,11 +20,8 @@
 #include "d3dren/drawobjects.h"	// ObjectHandler, g_ObjectHandlers
 
 // Globals of other units that this one reads.  Names in Ghidra style unless names_proposal.csv has a high row.
-// GLOBAL: D3DREN 0x100561f0
-extern uint32 g_CurObjectFrameCode;		// NAME: Jupiter g_CurObjectFrameCode (names_proposal high)
 #include "d3dren/d3dstate.h"
-// GLOBAL: D3DREN 0x10056770
-extern MainWorld *g_pFrameMainWorld;			// guess: g_pMainWorld (names_proposal guess_g_pMainWorld, low)
+#include "d3dren/polydraw.h"	// g_pFrameMainWorld and the world poly statistics
 
 // FUNCTION: D3DREN 0x10038830 _$E4
 // FUNCTION: D3DREN 0x10038850 _$E2
@@ -190,24 +187,9 @@ void VisibleSet::ClearSet()
 // Node tagging.  The Talon engine queries the world tree (VisQueryRequest) and calls back into the renderer.
 // ---------------------------------------------------------------------------------------------------------------------
 
-// GLOBAL: D3DREN 0x10055cf4
-extern int g_nVisibleLeaves;				// guess: g_nVisibleLeaves (names_proposal low): "Visible Leaves: %d"
-// GLOBAL: D3DREN 0x10056688
-extern int g_nWorldPolysProcessed;				// guess: g_nWorldPoliesProcessed (names_proposal low)
-// GLOBAL: D3DREN 0x100584a4
-extern int g_LockPVS;				// g_CV_LockPVS mirror (names_proposal medium, not in rendererconsolevars.h yet)
-// GLOBAL: D3DREN 0x100584b8
-extern int g_DrawAll;				// g_CV_DrawAll mirror (names_proposal medium)
-// GLOBAL: D3DREN 0x100584dc
-extern int g_DrawFlat;				// g_CV_DrawFlat mirror (names_proposal medium)
-// GLOBAL: D3DREN 0x1005811c
-extern int g_FixTJunc;				// g_CV_FixTJunc mirror (names_proposal medium)
-// GLOBAL: D3DREN 0x1005ce18
-extern int g_bPortalsEnabled;
 
-// Raw views while the Talon layouts of these are not published (ViewParams: owner W1; WorldPoly::m_Pad46 and
-// Leaf::m_Pad2C are padding in the shared headers and may only be renamed there, so they are read through casts).
-#define WORLDPOLY_FRAMECODE(p)	(*(uint16*)((uint8*)(p) + 0x46))
+// Raw views while the Talon layouts of these are not published (ViewParams: owner W1; Leaf::m_Pad2C is padding in the
+// shared header and may only be renamed there, so it is read through a cast).
 #define LEAF_FRAMECODE(p)		(*(uint16*)((uint8*)(p) + 0x2c))
 #define VIEW_CLIPPLANES		(g_ViewParams.m_ClipPlanes)	// the 6 view frustum planes {nx, ny, nz, dist}
 
@@ -281,7 +263,7 @@ static inline void d3d_TagPoly(WorldPoly *pPoly)
 	VisibleSet::SortedPoly *pEntry;
 	uint32 i;
 
-	if (WORLDPOLY_FRAMECODE(pPoly) != g_CurFrameCode)
+	if (pPoly->m_Unk46 != g_CurFrameCode)
 	{
 		pSurface = (Surface*)pPoly->m_pSurface;
 		if (!(pSurface->m_Flags & SURF_INVISIBLE))
@@ -316,7 +298,7 @@ static inline void d3d_TagPoly(WorldPoly *pPoly)
 			}
 		}
 Tagged:
-		WORLDPOLY_FRAMECODE(pPoly) = g_CurFrameCode;
+		pPoly->m_Unk46 = g_CurFrameCode;
 	}
 }
 
@@ -367,16 +349,6 @@ void ProcessAllBspObjectsAndPolys(WorldBsp *pBsp)
 LTBOOL d3d_IsPortalInsideViewFrustum(BspPortal *pPortal);
 // 0x100185a0 (d3d_draw, W2): applies one light anim to a poly's lightmap data.
 int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef);
-// the draw callbacks the poly draw loop calls (function pointers set by the draw units)
-typedef void (*PFN_DrawWorldPoly)(WorldPoly *pPoly);
-// GLOBAL: D3DREN 0x10058cd8
-extern PFN_DrawWorldPoly g_pfnDrawUntexturedWorldPoly;
-// GLOBAL: D3DREN 0x100587e8
-extern PFN_DrawWorldPoly g_pfnDrawTexturedWorldPoly;
-// GLOBAL: D3DREN 0x1005a304
-extern PFN_DrawWorldPoly g_pfnDrawPanningSkyWorldPoly;
-// GLOBAL: D3DREN 0x10058c24
-extern PFN_DrawWorldPoly g_pfnDrawLightmappedWorldPoly;
 void d3d_DrawSky();		// 0x1002d4c0 (unit unk/1002d080, W6; named there from names_proposal.csv, see drawsky.h)
 void ApplyVisibleDynamicLights();		// 0x10023cb0 (unit unk/10023860, W8)
 

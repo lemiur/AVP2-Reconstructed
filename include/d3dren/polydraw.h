@@ -154,4 +154,60 @@ int ClipPoly(uint32 nFlags, TLVertex **ppVerts, int *pnVerts);
 int ClipPolyNear(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 int ClipPolyLeft(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
 
+// ---- per-frame state and tables of the world polygon draw code (definitions: the owning units, not yet reconstructed) ----------
+// GLOBAL: D3DREN 0x10057774
+extern uint8 g_nPolyVertexAlpha;				// guess: the alpha byte of the poly vertex colours
+// GLOBAL: D3DREN 0x10055ce8
+extern LTVector g_GlobalVertexTint;			// guess: the global light colour (SceneDesc +0x5c): scales the vertex colours
+// GLOBAL: D3DREN 0x100566cc
+extern int g_nLightTests;					// guess: dynamic light tests this frame ("Num Light Tests")
+// GLOBAL: D3DREN 0x10056688
+extern int g_nWorldPolysProcessed;			// guess: g_nWorldPoliesProcessed (names_proposal low)
+// GLOBAL: D3DREN 0x10055cf4
+extern int g_nVisibleLeaves;				// guess: g_nVisibleLeaves (names_proposal low): "Visible Leaves: %d"
+// GLOBAL: D3DREN 0x1005ce18
+extern int g_bPortalsEnabled;				// guess: world models are drawn through the sorted portal path
+// GLOBAL: D3DREN 0x10058c90
+extern UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of the buckets (polys queued per lightmap page)
+// GLOBAL: D3DREN 0x10058d00
+extern int g_bDrawGouraudFullbritePass;		// guess: draw state flag (Gouraud fullbrites in use)
+// Lighting / gamma byte tables of the vertex colours (256 entries each): the multipass (dynamic light) set and the single pass set.
+// GLOBAL: D3DREN 0x10059d04
+extern uint8 g_MultipassVertexTintTableR[256];
+// GLOBAL: D3DREN 0x10059e04
+extern uint8 g_MultipassVertexTintTableG[256];
+// GLOBAL: D3DREN 0x10059f04
+extern uint8 g_MultipassVertexTintTableB[256];
+// GLOBAL: D3DREN 0x1005a004
+extern uint8 g_VertexTintTableR[256];
+// GLOBAL: D3DREN 0x1005a104
+extern uint8 g_VertexTintTableG[256];
+// GLOBAL: D3DREN 0x1005a204
+extern uint8 g_VertexTintTableB[256];
+// The current global pan texture reference (&RenderStruct::m_GlobalPans[n]) and the world texture coordinate offsets/scales
+// the world poly draw state sets from it (SetupWorldTextureCoordinates).
+// GLOBAL: D3DREN 0x10055ce0
+extern GlobalPanInfo *g_pGlobalPanInfo;
+// GLOBAL: D3DREN 0x1004ffb0
+extern float g_fGlobalPanUOffset;
+// GLOBAL: D3DREN 0x1004ffb4
+extern float g_fGlobalPanVOffset;
+// GLOBAL: D3DREN 0x1004eba8
+extern float g_fGlobalPanUScale;
+// GLOBAL: D3DREN 0x1004ebac
+extern float g_fGlobalPanVScale;
+// GLOBAL: D3DREN 0x1007d424
+extern int g_bLightmapModulate2X;			// guess: lightmap stage colour op is MODULATE2X (lightmap draw state)
+
+// The world poly draw callbacks of the frame (d3d_draw selects them per draw mode; the poly loops call them).
+typedef void (*PFN_DrawWorldPoly)(WorldPoly *pPoly);
+// GLOBAL: D3DREN 0x10058cd8
+extern PFN_DrawWorldPoly g_pfnDrawUntexturedWorldPoly;
+// GLOBAL: D3DREN 0x100587e8
+extern PFN_DrawWorldPoly g_pfnDrawTexturedWorldPoly;
+// GLOBAL: D3DREN 0x1005a304
+extern PFN_DrawWorldPoly g_pfnDrawPanningSkyWorldPoly;
+// GLOBAL: D3DREN 0x10058c24
+extern PFN_DrawWorldPoly g_pfnDrawLightmappedWorldPoly;
+
 #endif

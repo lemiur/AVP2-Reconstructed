@@ -25,6 +25,9 @@ extern RTextureBase *g_pBoundTextures[8];	// the texture (RTexture or lightmap p
 // GLOBAL: D3DREN 0x100577a0
 // NAME: g_CurFrameCode: Jupiter common_draw.cpp / names_proposal high (defined in sys/d3d/common_draw)
 extern uint16 g_CurFrameCode;	// the current texture frame code (RenderStruct::IncCurTextureFrameCode)
+// GLOBAL: D3DREN 0x100561f0
+// NAME: g_CurObjectFrameCode: Jupiter common_draw.cpp / names_proposal high (defined in sys/d3d/common_draw)
+extern uint32 g_CurObjectFrameCode;
 
 // Binds pPoly's lightmap page on device stage nStage unless it is already there; returns 0 when the poly has no page.
 int d3d_SetLightmapTexture(WorldPoly *pPoly, int nStage);
