@@ -79,7 +79,6 @@ extern float g_fParticleTextureVMin;		// guess: v of the top texel edge, g_fPart
 extern float g_fParticleTextureVMax;
 // GLOBAL: D3DREN 0x10055cd8
 extern int g_nParticlesDrawn;		// guess: statistics: particles (quads) drawn this frame
-extern uint16 g_ParticleQuadIndices[0x300];	// the index list of the quads (0 1 2 0 2 3 ...); declared by unit unk/10029660
 PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize);
 
 // guess: draws a particle system: binds its texture (the inlined texture binding with the per-stage record search d3d_FindRTextureForStage), builds
