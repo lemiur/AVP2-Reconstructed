@@ -459,20 +459,17 @@ void d3d_SetupPerspectiveMatrix(LTMatrix *pMatrix, float nearZ, float farZ)
 
 // NAME: d3d_SetupSkyStuff: Jupiter common_draw.cpp static d3d_SetupSkyStuff (the Talon one takes no arguments: it works on
 // g_pSceneDesc->m_SkyDef and g_ViewParams)
-// STUB: D3DREN 0x100102b9
-// Remaining difference: 4 aligned instructions (265 vs 266 bytes).  The sky position is Jupiter's `ViewMin + (ViewMax - ViewMin) * percents`
-// as one expression of SDK operators (the by-value ViewMin copy and the kept x term are the exe's).  The exe holds &m_ExtentsMax in a
-// register (`add ecx, 0x150`, then [ecx], [ecx+4], [ecx+8]); we address it as [ecx+0x150..].  Tried: reference/pointer/inline-accessor
-// forms of min and max, their declaration order, a named range vector, a named world pointer.
+// FUNCTION: D3DREN 0x100102b9
+// The sky position is Jupiter's `ViewMin + (ViewMax - ViewMin) * percents` as one expression of SDK operators.  The percents are
+// one expression on the world extents read through g_pFrameMainWorld (Jupiter's min/max reference locals fold &m_ExtentsMax into
+// the displacements instead of the exe's `add ecx, 0x150`).
 void d3d_SetupSkyStuff()
 {
 	LTVector percents;
 
 	if (g_pSceneDesc->m_DrawMode == DRAWMODE_NORMAL)
 	{
-		const LTVector &min = g_pFrameMainWorld->m_ExtentsMin;
-		const LTVector &max = g_pFrameMainWorld->m_ExtentsMax;
-		percents = (g_ViewParams.m_Pos - min) / (max - min);
+		percents = (g_ViewParams.m_Pos - g_pFrameMainWorld->m_ExtentsMin) / (g_pFrameMainWorld->m_ExtentsMax - g_pFrameMainWorld->m_ExtentsMin);
 	}
 	else
 	{
