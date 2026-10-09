@@ -514,6 +514,19 @@ int g_nDynamicLightmapsRefreshed;
 int g_nTextureUploadSaves;
 // g_nModelTrianglesDrawn, g_nPlaneClipTests, g_ClipFlags, g_pClipScratchVerts: include/d3dren/viewparams.h
 
+// NAME: d3d_SetFPState: Jupiter common_draw.h (same body).
+inline void d3d_SetFPState()
+{
+	short control;
+
+	_asm
+	{
+		fstcw	control		// Get FPU control word
+		and	control, 0xfcff	// PC field = 00 for single precision
+		fldcw	control
+	}
+}
+
 // NAME: d3d_InitFrustum: Jupiter common_draw.cpp, expanded in d3d_InitFrame in Talon.
 inline LTBOOL d3d_InitFrustum(ViewParams *pParams,
     float xFov, float yFov, float nearZ, float farZ,
@@ -534,23 +547,17 @@ inline LTBOOL d3d_InitFrustum(ViewParams *pParams,
 // scratch vertex buffer of the polygon clippers, stored in g_pClipScratchVerts, and an int stored in g_nInitFrameArgument) and has Jupiter's
 // d3d_InitFrustum inlined (it has no copy of its own in d3d.ren).
 // STUB: D3DREN 0x100103c2
-// Remaining difference: 72 aligned mismatches, 20 ignoring stack offsets (264 vs 266 instructions).  The two derived light scale vectors
-// are SDK operators on g_GlobalLightScale (`* 255.0f`, `/ 255.0f`; VC6 multiplies by the reciprocal); the x*255 product is shared with
-// the colour byte.  The exe's frame is 12 bytes larger (0x88): for `/ 255.0f` it first copies g_GlobalLightScale into a temporary
-// through the FPU (x kept in st0), which neither operator form nor a by-value helper reproduces exactly; slots shift from there.
+// Remaining difference: 16 aligned mismatches, 0 ignoring stack offsets (949 bytes, same instructions).  `/ 255.0f` divides a vector
+// constructed from g_GlobalLightScale's members (the exe copies it through the FPU first).  Two dead argument homes are swapped: the
+// exe puts the RoundFloatToInt results in nUnk's home (+0x10) and the frustum's farZ/xFov in pDesc's (+8); this build the reverse.
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 {
 	RenderContext *pContext;
-	short control;
 
-	// d3d_SetFPState (Jupiter common_draw.h): lower the floating point precision to speed up multiplies and divides.
-	_asm
-	{
-		fstcw	control
-		and	control, 0xfcff
-		fldcw	control
-	}
+	// Lower the floating point precision to speed up multiplies and divides.
+	d3d_SetFPState();
 
+	// Possibly read in the new options.
 	d3d_ReadConsoleVariables();
 
 	g_nRenderFrameCount++;
@@ -586,7 +593,7 @@ LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk)
 
 	g_GlobalLightScale = pDesc->m_GlobalLightScale;
 	g_GlobalLightScale255 = g_GlobalLightScale * 255.0f;
-	g_vGlobalLightScalePerByte = g_GlobalLightScale / 255.0f;
+	g_vGlobalLightScalePerByte = LTVector(g_GlobalLightScale.x, g_GlobalLightScale.y, g_GlobalLightScale.z) / 255.0f;
 	g_GlobalLightScaleColor.r = (uint8)RoundFloatToInt(g_GlobalLightScale.x * 255.0f);
 	g_GlobalLightScaleColor.g = (uint8)RoundFloatToInt(g_GlobalLightScale.y * 255.0f);
 	g_GlobalLightScaleColor.b = (uint8)RoundFloatToInt(g_GlobalLightScale.z * 255.0f);
