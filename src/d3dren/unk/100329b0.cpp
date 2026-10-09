@@ -253,9 +253,12 @@ static void FillLightmapRGB32Rect(UnkType_LightCtx *pCtx)
 // unless bNot32Bit): per light the context is built (SetupLightmapLightContext), then every texel inside the light's radius gets the light added
 // with its falloff (AddLightmapLightToRGB32Rect for a 32 bit rectangle, AddLightmapLightToRGB555Texel per 16 bit texel) or, with the FastLight console variable or a
 // light that has FLAG 0x10, the flat colour.  Returns 1 when any texel was changed.
-// Not matching (1360 vs 1280 bytes): CFG and prologue are the exe's.  Inline/call-set wall (tools/inline_budget.py): the exe calls
-// every LTVector operator of the falloff walk out of line (its share must be < 56u, ours is 242u) and inlines the 32-bit flat walk's
-// inner operator+ with its ctor out of line (share 68..136u, ours 11u); the RGB555 flat walk already has the exe's call set.
+// Not matching (1344 vs 1280 bytes, 38 aligned mismatches ignoring stack offsets): the flat-colour branch comes first in the source
+// (the exe still lays the falloff walk out first; written falloff-first, the falloff walk gets the larger inline share and inlines
+// its vector operators).  Inline/call-set wall: probing with free pending sites after the if/else chain, three of them give the
+// exe's 1280 bytes and call set except that the RGB555 flat walk's inner operator+ keeps its constructor out of line (the model
+// wants that walk's share >= 162u, it gets ~146u); the real source of those pending sites (accessors after the light draw?) is not
+// identified.
 // STUB: D3DREN 0x10032c40
 int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit)
 {
@@ -270,20 +273,20 @@ int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 
 		SetupLightmapLightContext(pWorld, pPoly, &pNode->m_Unk08, pBits, pitch, w, h, pLight->m_LightRadius,
 			pLight->m_ColorR, pLight->m_ColorG, pLight->m_ColorB, &ctx);
 
-		if (g_FastLight == 0 && !(pLight->m_Flags & 0x10) && ctx.m_Unk3c != 0)
+		if (g_FastLight != 0 || (pLight->m_Flags & 0x10) || ctx.m_Unk3c == 0)
 		{
 			if (bNot32Bit)
-				AddLightmapLightToRGB555Rect(&ctx);
+				FillLightmapRGB555Rect(&ctx);
 			else
-				AddLightmapLightToRGB32Rect(&ctx, 0, 0);
+				FillLightmapRGB32Rect(&ctx);
 		}
 		else if (bNot32Bit)
 		{
-			FillLightmapRGB555Rect(&ctx);
+			AddLightmapLightToRGB555Rect(&ctx);
 		}
 		else
 		{
-			FillLightmapRGB32Rect(&ctx);
+			AddLightmapLightToRGB32Rect(&ctx, 0, 0);
 		}
 	}
 
