@@ -158,8 +158,6 @@ void DrawWorldTexturePoly(WorldPoly *pPoly)
 	UnkType_TLVertex40 *pVerts;
 	UnkType_PolyVert *pSrc;
 	int nVerts;
-	struct { D3DRENDERSTATETYPE m_Type; DWORD m_Val; } saved;
-	DWORD dwFogColor;
 
 	if (g_FixTJunc)
 	{
@@ -179,10 +177,7 @@ void DrawWorldTexturePoly(WorldPoly *pPoly)
 	}
 
 	{
-		dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
-		saved.m_Type = D3DRENDERSTATE_FOGCOLOR;
-		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_FOGCOLOR, &saved.m_Val);
-		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
+		StateSet fogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
 
 		{
 			UnkType_TLVertex40 *pDest = aVerts;
@@ -215,10 +210,7 @@ void DrawWorldTexturePoly(WorldPoly *pPoly)
 
 		if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0) ||
 			!(g_nQueuedWorldPolyVertices + nVerts <= g_nQueuedWorldPolyVertexCapacity || d3d_GrowTLVertexBuffer(g_nQueuedWorldPolyVertexCapacity + nVerts + 0x5dc)))
-		{
-			g_pD3DDevice->SetRenderState(saved.m_Type, saved.m_Val);
 			return;
-		}
 		{
 			TLVertex *pStore = g_pQueuedWorldPolyVertices + g_nQueuedWorldPolyVertices;
 			UnkType_PoolNode *pNode;
@@ -261,7 +253,6 @@ void DrawWorldTexturePoly(WorldPoly *pPoly)
 			g_nQueuedWorldPolyVertices += nVerts;
 			g_nWorldPolysDrawn++;
 		}
-		g_pD3DDevice->SetRenderState(saved.m_Type, saved.m_Val);
 	}
 }
 
