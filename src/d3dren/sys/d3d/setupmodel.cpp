@@ -1006,19 +1006,14 @@ UnkType_DrawState::UnkType_DrawState()
 
 // guess: the per-model entry: caches the instance, fades the model by its distance (DrawFadeSprite draws the fade sprite), picks the
 // LOD, looks the model up in the rigid vertex buffer cache, builds the matrices, lights it and calls DrawModelRenderPasses.
-// Not matching (2126 vs 2129 bytes, 628 vs 627 instructions; all code and the stack frame are the same, 60 of the 70 aligned
-// differences are unrelocated addresses): the matrix products are the SDK's `LTMatrix::operator*` (a hidden shared temporary at
-// [ebp-0x68]; with explicit MatMul calls and a named temporary the two REALLYCLOSE / else products were merged into one call with a
-// selected argument, which the exe does not do).  What is left is the direction of one cross-jump: after the products the exe emits the
-// shared `rep movsd` of `m_Unk510 = <temp>` inside the field-of-view block and lets the default case of the m_Unk8ac switch jump back
-// to it (0x1000d953), ours emits it in the default case and jumps forward from the field-of-view block (3 bytes of size difference
-// in that region, `push 0x10; pop ecx` placement in the else branch).  No source shape tried (if/else vs ternary vs pointer for the
-// matrix source, memcpy, copy placement, block order) changes it; permuter 3000 candidates did not either.
+// The matrix products are the SDK's `LTMatrix::operator*` (a hidden shared temporary at [ebp-0x68]).  The default case of the
+// m_Unk8ac switch tests m_Unk8b0 first: with the product in its else branch, the shared `rep movsd` of `m_Transform = <temp>` stays
+// in the field-of-view block and the default case jumps back to it (0x1000d953), as in the exe.
 // FUNCTION: D3DREN 0x1000dbf8 ?TransformPlane@LTMatrix@@QAE?AVLTPlane@@AAV2@@Z
 // FUNCTION: D3DREN 0x1000dc6d ?Apply@LTMatrix@@QAEXABV?$_CVector@M@@AAV2@@Z
 // FUNCTION: D3DREN 0x1000dfb6 ??0?$_CVector@M@@QAE@MMM@Z
 // FUNCTION: D3DREN 0x1000dfcf ?Dist@?$_CVector@M@@QBEMABV1@@Z
-// STUB: D3DREN 0x1000d3a7
+// FUNCTION: D3DREN 0x1000d3a7
 void ModelDraw::DrawModel(ModelInstance *pInstance)
 {
 	UnkType_DrawState state;
@@ -1178,14 +1173,14 @@ void ModelDraw::DrawModel(ModelInstance *pInstance)
 			g_ClipFlags = 1;
 			break;
 		default:
-			if (!m_Unk8b0)
-			{
-				m_Transform = mWork * m_ModelTransform;
-			}
-			else
+			if (m_Unk8b0)
 			{
 				m_Transform = m_ModelTransform;
 				g_ClipFlags = 1;
+			}
+			else
+			{
+				m_Transform = mWork * m_ModelTransform;
 			}
 			break;
 		}
