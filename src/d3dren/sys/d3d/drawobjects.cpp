@@ -150,6 +150,9 @@ static inline uint32 GetDrawerObjectFlags(const ObjectDrawer &d)
 // whose flags DWORD serves both tests and which is passed to the callback (`LTObject *pObject = s_TransObjList[i].m_pObject;
 // uint32 flags = pObject->m_Flags;` inside the guard): that reproduces the loop's registers exactly, but VC6 then keeps the
 // constant 0 in ebx for the whole function (push ebx, cmp/push/mov with ebx: 355 differing bytes), which the exe does not.
+// (w4-ren-draw2) Rechecked: with the in-guard object read the loop is the exe's instruction for instruction except the cached
+// zero; local copies / references of m_bPortalView, int/LTBOOL flags, `!` spellings and nested ifs do not release ebx.  A
+// 10-minute permuter run removed it only with dead stores and reordered calls (not source).
 void d3d_FlushObjectQueues()
 {
 	g_pStruct->Unknown24();

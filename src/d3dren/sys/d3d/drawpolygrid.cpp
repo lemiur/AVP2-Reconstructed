@@ -249,6 +249,9 @@ inline void GenerateSignedPolyGridVertices(LTPolyGrid *pGrid, UnkType_TLVertex40
 //     (FogColor, Dest, Src, Fog) in the exe, in declaration order here.
 //  3. x87 scheduling of the 12 products of the inline MatMul (the exe computes [1][0], [2][0], [0][1].. [2][3] and finally [0][0], [0][3];
 //     the element copies of GetBasisVectors/GetTranslation sit between them) and of the integer stores around the texture coordinate terms.
+//  (w4-ren-draw2) Writing the triangle clip as an inline ClipPolygon40 helper (the unit unk/10007930 copy's body) does take
+//  LTMatrix::operator* out of line, but the helper itself is then refused (cost > the 161u left) and GenerateSignedPolyGridVertices
+//  too; the solver wants 60-80u less own size (dB -120..-160) or ~120u more charge between GenerateSigned... and operator*.
 //  Not source-explainable by this author: 1.  2./3. are probably consequences of 1. plus the exact declaration/statement order of the
 //  original; tools/permute.py (30 min, 4 jobs) found nothing better than semantic-breaking mutations.
 // FUNCTION: D3DREN 0x1002ce70 ??H?$_CVector@M@@QBE?AV0@V0@@Z

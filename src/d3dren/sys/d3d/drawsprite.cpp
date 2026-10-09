@@ -371,10 +371,16 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 // moved fBias along z, but not in front of the near plane (the sprite bias: Jupiter SPRITE_POSITION_ZBIAS).  The fourth argument is not
 // used (the callers pass 0, as for d3d_ClipAndProjectTLVertices, its sibling without the bias).
 // NAME: guess_d3d_ProjectBiasedSpriteVerts (names_proposal.csv, low)
-// STUB diagnosis (W6): 784 vs 800 bytes.  The exe expands MatVMul_InPlace (one temporary: y goes through the stack, x and z stay on the
-// x87 stack, z/x/y term order) in the first loop; ours calls the SDK's out-of-line MatVMul (same finding as W2's TransformPositionInPlace: no
-// source form of the SDK call or of an explicit expansion gives the exe's code).  The clip dispatch and the biased projection loop
-// are the exe's.
+// STUB diagnosis (W6, w4-ren-draw2): 784 vs 800 bytes.  Inline call set: MatVMul's nested share inside MatVMul_InPlace is
+// remaining/(pending+1) = 957/7 = 136.7u < 180u; it inlines (as in the exe) once at most 4 inline sites follow the first loop
+// (now: ClipPoly_Inline, three LTVector default constructors, two MatVMul_H).  Measured: one constructor fewer (copy-initialised
+// vBiased) plus the clip written in place, or the vectors declared before the first loop, all inline it.  But neither the inlined
+// first loop nor the projection loop is the exe's code: the exe keeps the transform temporary in scalars (x and z on the x87
+// stack, y spilled to a dead argument slot, stores y, z, x) and, in the projection loop, keeps fBiasZ on the x87 stack and shares
+// the m[3][1]*y and m[3][0]*x terms of the two homogeneous divides (spilled to the ppVerts/pnVerts slots); our loop copies vBiased
+// to the frame and recomputes both terms (frame 0x34 vs 0x1c).  Scalar first-loop spellings give the store pattern but other row
+// and term orders.  Open: the source shape of the projection loop's biased vector (no tried copy / in-place / 3-float form shares
+// the terms).
 // STUB: D3DREN 0x1002f010
 int ClipAndProjectPolyWithDepthBias(TLVertex **ppVerts, int *pnVerts, ViewParams *pParams, int a4, float fBias)
 {
