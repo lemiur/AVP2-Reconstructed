@@ -94,9 +94,7 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 	IntersectInfo info;
 	LTMatrix mObject;
 	LTMatrix mFull;
-	uint32 nStage;
 	SharedTexture *pTexture;
-	RTexture *pRTexture;
 	int nBatches, nRest;
 	PSParticle *pParticle;
 	LTMatrix *pView;
@@ -106,59 +104,19 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 	{
 		CountAdder cTimer(g_pSceneDesc->m_pTicks_Render_ParticleSystems);
 
-		nStage = g_NormalTextureStage;
 		pTexture = pSystem->m_pCurTexture;
-		pRTexture = 0;
-		if (pTexture)
-		{
-			pTexture->m_Unknown30 = g_CurTextureFrameCode;
-			if (pTexture->m_pRenderData)
-				pRTexture = (RTexture *)d3d_FindRTextureForStage(pTexture->m_pRenderData, (uint8)nStage);
-			if (!pRTexture || pRTexture != (RTexture *)g_pBoundTextures[nStage])
-			{
-				if (!pRTexture)
-				{
-					RTexture *pFirst = (RTexture *)pTexture->m_pRenderData;
-					if (!pFirst)
-					{
-						pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 0);
-					}
-					else
-					{
-						pRTexture = d3d_CreateAndLoadTexture(pTexture, nStage, 1);
-						if (pRTexture)
-						{
-							pRTexture->m_Unk30 = pFirst->m_Unk30;
-							pFirst->m_Unk30 = pRTexture;
-						}
-					}
-				}
-				if (pRTexture)
-					d3d_BindRTexture(pRTexture);
-			}
-		}
-
-		if (!pRTexture)
+		if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
 		{
 			g_fParticleTextureVMax = 0.0f;
 			g_fParticleTextureUMax = 0.0f;
 			g_fParticleTextureVMin = 0.0f;
 			g_fParticleTextureUMin = 0.0f;
-			if (g_pBoundTextures[nStage])
-			{
-				g_pD3DDevice->SetTexture(nStage, 0);
-				g_pBoundTextures[nStage] = 0;
-			}
+			d3d_DisableTexture(g_NormalTextureStage);
 		}
 		else
 		{
 			RTextureBase *pBase;
 
-			if (pRTexture->m_Unk44)
-			{
-				pRTexture->m_Data.m_pSurface->SetLOD(0);
-				pRTexture->m_Unk44 = 0;
-			}
 			g_fParticleTextureUMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
 			pBase = (RTextureBase *)g_pBoundTextures[g_NormalTextureStage];
 			g_fParticleTextureUMax = ((float)(uint32)pBase->GetBaseWidth() - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
