@@ -605,16 +605,16 @@ static inline void DrawFullModelPool(ModelDraw *pDraw)
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
 static inline LTBOOL IsFrontFacing(TLVertex *pV0, TLVertex *pV1, TLVertex *pV2)
 {
-	float r0 = 1.0f / pV0->m_Vec.z;
-	float r1 = 1.0f / pV1->m_Vec.z;
-	float r2 = 1.0f / pV2->m_Vec.z;
-	LTVector p0, d1, d2;
-	p0.x = r0 * pV0->m_Vec.x;
-	p0.y = r0 * pV0->m_Vec.y;
-	d1.x = r1 * pV1->m_Vec.x - p0.x;
-	d1.y = r1 * pV1->m_Vec.y - p0.y;
-	d2.x = r2 * pV2->m_Vec.x - p0.x;
-	d2.y = r2 * pV2->m_Vec.y - p0.y;
+	LTVector vInvZ, p0, d1, d2;
+	vInvZ.x = 1.0f / pV0->m_Vec.z;
+	vInvZ.y = 1.0f / pV1->m_Vec.z;
+	vInvZ.z = 1.0f / pV2->m_Vec.z;
+	p0.x = vInvZ.x * pV0->m_Vec.x;
+	p0.y = vInvZ.x * pV0->m_Vec.y;
+	d1.x = vInvZ.y * pV1->m_Vec.x - p0.x;
+	d1.y = vInvZ.y * pV1->m_Vec.y - p0.y;
+	d2.x = vInvZ.z * pV2->m_Vec.x - p0.x;
+	d2.y = vInvZ.z * pV2->m_Vec.y - p0.y;
 	float fCross = d2.x * d1.y - d2.y * d1.x;
 	if (g_ViewParams.m_bCullFlip)
 		fCross = -fCross;
