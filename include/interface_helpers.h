@@ -202,5 +202,54 @@ inline void cis_UnlockSurface(CisSurface *pSurface)
 	}
 }
 
+// The rectangle cis_Clip2dPoly clips warp polygons to (interface_helpers.cpp).
+extern float g_RectLeft;
+extern float g_RectTop;
+extern float g_RectRight;
+extern float g_RectBottom;
+
+class CLeftWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_x >= g_RectLeft;} };
+class CTopWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_y >= g_RectTop;} };
+class CRightWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_x < g_RectRight;} };
+class CBottomWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_y < g_RectBottom;} };
+
+#define DO_WARPCLIP(pt1, pt2, destCoord1, destCoord2, coord) \
+	float t = (coord - pt1.destCoord1) / (pt2.destCoord1 - pt1.destCoord1);\
+	pOut->destCoord1 = coord;\
+	pOut->destCoord2 = pt1.destCoord2 + (pt2.destCoord2 - pt1.destCoord2) * t;\
+	pOut->source_x = pt1.source_x + (pt2.source_x - pt1.source_x) * t;\
+	pOut->source_y = pt1.source_y + (pt2.source_y - pt1.source_y) * t;
+
+class CLeftWarpClip {
+	public:
+		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
+		{
+			DO_WARPCLIP(pPt1, pPt2, dest_x, dest_y, g_RectLeft);
+		}
+};
+
+class CRightWarpClip {
+	public:
+		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
+		{
+			DO_WARPCLIP(pPt1, pPt2, dest_x, dest_y, g_RectRight);
+		}
+};
+
+class CTopWarpClip {
+	public:
+		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
+		{
+			DO_WARPCLIP(pPt1, pPt2, dest_y, dest_x, g_RectTop);
+		}
+};
+
+class CBottomWarpClip {
+	public:
+		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
+		{
+			DO_WARPCLIP(pPt1, pPt2, dest_y, dest_x, g_RectBottom);
+		}
+};
 
 #endif  // __INTERFACE_HELPERS_H__

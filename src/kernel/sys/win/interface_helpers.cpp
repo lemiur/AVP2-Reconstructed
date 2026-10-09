@@ -290,63 +290,19 @@ void cis_GetWarpCoordinates(WarpCoords *pLeftCoords, WarpCoords *pRightCoords,
 // GLOBAL: LITHTECH 0x004e3b30
 static LTWarpPt g_WPClipBuckets[2][MAX_WARP_POINTS+50];
 // GLOBAL: LITHTECH 0x004e42b0
-static float g_RectLeft;
+float g_RectLeft;
 // GLOBAL: LITHTECH 0x004e3b28
-static float g_RectTop;
+float g_RectTop;
 // GLOBAL: LITHTECH 0x004e42b4
-static float g_RectRight;
+float g_RectRight;
 // GLOBAL: LITHTECH 0x004e42bc
-static float g_RectBottom;
+float g_RectBottom;
 // GLOBAL: LITHTECH 0x004e42b8
 static int g_CurClipBucket;
 
-class CLeftWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_x >= g_RectLeft;} };
-class CTopWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_y >= g_RectTop;} };
-class CRightWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_x < g_RectRight;} };
-class CBottomWarpTest	{ public: LTBOOL operator()(LTWarpPt &pt) {return pt.dest_y < g_RectBottom;} };
-
-#define DO_WARPCLIP(pt1, pt2, destCoord1, destCoord2, coord) \
-	float t = (coord - pt1.destCoord1) / (pt2.destCoord1 - pt1.destCoord1);\
-	pOut->destCoord1 = coord;\
-	pOut->destCoord2 = pt1.destCoord2 + (pt2.destCoord2 - pt1.destCoord2) * t;\
-	pOut->source_x = pt1.source_x + (pt2.source_x - pt1.source_x) * t;\
-	pOut->source_y = pt1.source_y + (pt2.source_y - pt1.source_y) * t;
-
-class CLeftWarpClip {
-	public:
-		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
-		{
-			DO_WARPCLIP(pPt1, pPt2, dest_x, dest_y, g_RectLeft);
-		}
-};
-
+// The right and top clips (CRightWarpClip, CTopWarpClip: interface_helpers.h) are left out of line too.
 // FUNCTION: LITHTECH 0x00442a00 ??RCRightWarpClip@@QAEXAAULTWarpPt@@0PAU1@@Z
-class CRightWarpClip {
-	public:
-		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
-		{
-			DO_WARPCLIP(pPt1, pPt2, dest_x, dest_y, g_RectRight);
-		}
-};
-
 // FUNCTION: LITHTECH 0x00442a60 ??RCTopWarpClip@@QAEXAAULTWarpPt@@0PAU1@@Z
-class CTopWarpClip {
-	public:
-		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
-		{
-			DO_WARPCLIP(pPt1, pPt2, dest_y, dest_x, g_RectTop);
-		}
-};
-
-class CBottomWarpClip {
-	public:
-		void operator()(LTWarpPt &pPt1, LTWarpPt &pPt2, LTWarpPt *pOut)
-		{
-			DO_WARPCLIP(pPt1, pPt2, dest_y, dest_x, g_RectBottom);
-		}
-};
-
-
 // Only the last (bottom) clip is left out of line.
 // FUNCTION: LITHTECH 0x00443300 ?WarpPolyClip@@YAIVCBottomWarpTest@@VCBottomWarpClip@@AAPAULTWarpPt@@AAH@Z
 template<class test, class clip>
