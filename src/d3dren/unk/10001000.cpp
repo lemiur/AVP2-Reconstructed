@@ -1268,74 +1268,154 @@ void ModelDraw::SelectPieceDrawCallbacks(int a1)
 
 // ---- the skinning / lighting / projection of one piece (SkinAndLightPieceVertices) and its driver (PrepareModelPieceVertices) ----------------------
 
-// guess: accumulates the bone-transformed offsets of one model vertex into pOut (x, y, z, w; pOut is cleared first)
-// helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
-static inline void SkinVertexInto(ModelVert *pVert, LTMatrix *pTransforms, float *pOut)
-{
-	NewVertexWeight *pW = pVert->m_Weights;
-	for (uint32 n = pVert->m_nWeights; n != 0; n--)
-	{
-		float *pM = (float *)((char *)pTransforms + pW->m_iNode * 0x40);
-		pOut[0] = pM[0] * pW->m_Vec[0] + pM[1] * pW->m_Vec[1] + pM[2] * pW->m_Vec[2] + pM[3] * pW->m_Vec[3] + pOut[0];
-		pOut[1] = pM[4] * pW->m_Vec[0] + pM[5] * pW->m_Vec[1] + pM[6] * pW->m_Vec[2] + pM[7] * pW->m_Vec[3] + pOut[1];
-		pOut[2] = pM[8] * pW->m_Vec[0] + pM[9] * pW->m_Vec[1] + pM[10] * pW->m_Vec[2] + pM[11] * pW->m_Vec[3] + pOut[2];
-		pOut[3] = pM[12] * pW->m_Vec[0] + pM[13] * pW->m_Vec[1] + pM[14] * pW->m_Vec[2] + pM[15] * pW->m_Vec[3] + pOut[3];
-		pW++;
-	}
-}
+// The four loops of SkinAndLightPieceVertices (bounds on/off x LOD blend on/off) are built from the macros below; the exe has the
+// four copies.  The macro names are mine (no evidence).
+// Skins the vertex into pDest: SDK MatVMul_Add per bone weight, the weight sum accumulated in rhw.
+#define SKIN_MODEL_VERTEX() \
+		pDest->m_Vec.x = 0.0f; \
+		pDest->m_Vec.y = 0.0f; \
+		pDest->m_Vec.z = 0.0f; \
+		pDest->rhw = 0.0f; \
+		pWeight = pVert->m_Weights; \
+		for (nWeights = pVert->m_nWeights; nWeights != 0; nWeights--) \
+		{ \
+			MatVMul_Add(&pDest->m_Vec.x, &pTransforms[pWeight->m_iNode], pWeight->m_Vec); \
+			pWeight++; \
+		}
 
-// One loop of SkinAndLightPieceVertices: the exe has four copies of it (bounds on/off x LOD blend on/off); BOUNDS and BLEND are constants.
-#define MODELVERT_LOOP(BOUNDS, BLEND) 	for (; nVerts != 0; nVerts--, pVert++, pDest++) 	{ 		pDest->m_Vec.x = 0.0f; 		pDest->m_Vec.y = 0.0f; 		pDest->m_Vec.z = 0.0f; 		pDest->rhw = 0.0f; 		SkinVertexInto(pVert, pTransforms, &pDest->m_Vec.x); 		if (BLEND) 		{ 			ModelVert *pVertB = &pLOD2->m_Verts.GetArray()[pVert->m_iReplacement]; 			float vb[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; 			SkinVertexInto(pVertB, pTransforms, vb); 			pDest->m_Vec.x = (vb[0] - pDest->m_Vec.x) * m_fLODBlend + pDest->m_Vec.x; 			pDest->m_Vec.y = (vb[1] - pDest->m_Vec.y) * m_fLODBlend + pDest->m_Vec.y; 			pDest->m_Vec.z = (vb[2] - pDest->m_Vec.z) * m_fLODBlend + pDest->m_Vec.z; 			pDest->rhw = 1.0f / ((vb[3] - pDest->rhw) * m_fLODBlend + pDest->rhw); 		} 		else 			pDest->rhw = 1.0f / pDest->rhw; 		pDest->m_Vec.x = pDest->rhw * pDest->m_Vec.x; 		pDest->m_Vec.y = pDest->rhw * pDest->m_Vec.y; 		pDest->m_Vec.z = pDest->rhw * pDest->m_Vec.z; 		if (BOUNDS) 		{ 			if (pMin[0] <= pDest->m_Vec.x) { if (pMax[0] < pDest->m_Vec.x) pMax[0] = pDest->m_Vec.x; } else pMin[0] = pDest->m_Vec.x; 			if (pMin[1] <= pDest->m_Vec.y) { if (pMax[1] < pDest->m_Vec.y) pMax[1] = pDest->m_Vec.y; } else pMin[1] = pDest->m_Vec.y; 			if (pMin[2] <= pDest->m_Vec.z) { if (pMax[2] < pDest->m_Vec.z) pMax[2] = pDest->m_Vec.z; } else pMin[2] = pDest->m_Vec.z; 		} 		float fDot = fDx * pVert->m_Normal.x + fDy * pVert->m_Normal.y + fDz * pVert->m_Normal.z; 		float fR = fBaseR, fG = fBaseG, fB = fBaseB; 		if (0.0f < fDot) 		{ 			fR = (fLitR - fBaseR) * fDot + fBaseR; 			fG = (fLitG - fBaseG) * fDot + fBaseG; 			fB = (fLitB - fBaseB) * fDot + fBaseB; 		} 		UnkType_ModelLight *pLight = m_Unk3c; 		UnkType_ModelLight *pLightEnd = m_Unk3c + m_nModelLights; 		for (; pLight != pLightEnd; pLight++) 		{ 			float fLd = pVert->m_Normal.x * pLight->m_Unk10.x + pVert->m_Normal.y * pLight->m_Unk10.y + pVert->m_Normal.z * pLight->m_Unk10.z; 			if (0.0f < fLd) 			{ 				float fDist = (pVert->m_Vec.y - pLight->m_Unk00.y) * (pVert->m_Vec.y - pLight->m_Unk00.y) 					+ (pVert->m_Vec.z - pLight->m_Unk00.z) * (pVert->m_Vec.z - pLight->m_Unk00.z) 					+ (pVert->m_Vec.x - pLight->m_Unk00.x) * (pVert->m_Vec.x - pLight->m_Unk00.x); 				if (fDist < pLight->m_Unk0c) 				{ 					fLd = (pLight->m_Unk0c - fDist) * fLd; 					fR = fLd * pLight->m_Unk1c.x + fR; 					fG = fLd * pLight->m_Unk1c.y + fG; 					fB = fLd * pLight->m_Unk1c.z + fB; 				} 			} 		} 		if (255.0f < fR) 			fR = 255.0f; 		if (255.0f < fG) 			fG = 255.0f; 		if (255.0f < fB) 			fB = 255.0f; 		pLighting[0] = fR + pLighting[0]; 		pLighting[1] = fG + pLighting[1]; 		pLighting[2] = fB + pLighting[2]; 		pDest->rgb.r = (uint8)RoundFloatToInt(fR); 		pDest->rgb.g = (uint8)RoundFloatToInt(fG); 		pDest->rgb.b = (uint8)RoundFloatToInt(fB); 		pDest->rgb.a = m_Unk8a8; 		pfn(pDest); 	}
+// Blends the skinned vertex with its replacement vertex in the coarser LOD pLOD2 (m_fLODBlend) and divides by the weight sum.
+#define BLEND_MODEL_VERTEX() \
+		{ \
+			float vB[4]; \
+			vB[0] = vB[1] = vB[2] = vB[3] = 0.0f; \
+			pWeight = pVertB->m_Weights; \
+			for (nWeights = pVertB->m_nWeights; nWeights != 0; nWeights--) \
+			{ \
+				MatVMul_Add(vB, &pTransforms[pWeight->m_iNode], pWeight->m_Vec); \
+				pWeight++; \
+			} \
+			pDest->m_Vec.x = pDest->m_Vec.x + (vB[0] - pDest->m_Vec.x) * m_fLODBlend; \
+			pDest->m_Vec.y = pDest->m_Vec.y + (vB[1] - pDest->m_Vec.y) * m_fLODBlend; \
+			pDest->m_Vec.z = pDest->m_Vec.z + (vB[2] - pDest->m_Vec.z) * m_fLODBlend; \
+			pDest->rhw = 1.0f / (pDest->rhw + (vB[3] - pDest->rhw) * m_fLODBlend); \
+		}
+
+// Grows the bounding box pMin/pMax by the projected vertex.
+#define UPDATE_MODEL_BOUNDS() \
+		if (pDest->m_Vec.x < pMin->x) \
+			pMin->x = pDest->m_Vec.x; \
+		else if (pDest->m_Vec.x > pMax->x) \
+			pMax->x = pDest->m_Vec.x; \
+		if (pDest->m_Vec.y < pMin->y) \
+			pMin->y = pDest->m_Vec.y; \
+		else if (pDest->m_Vec.y > pMax->y) \
+			pMax->y = pDest->m_Vec.y; \
+		if (pDest->m_Vec.z < pMin->z) \
+			pMin->z = pDest->m_Vec.z; \
+		else if (pDest->m_Vec.z > pMax->z) \
+			pMax->z = pDest->m_Vec.z;
+
+// Lights the vertex: the directional light (between the shadow and the lit colour) plus the model lights, clamped to 255, added
+// to the piece's light sum; then the per-vertex generator.
+#define LIGHT_MODEL_VERTEX() \
+		{ \
+			float fDot = VEC_DOT(vDir, pVert->m_Normal); \
+			if (fDot > 0.0f) \
+				VEC_LERP(vColor, vBase, vLit, fDot) \
+			else \
+				vColor = vBase; \
+			for (UnkType_ModelLight *pLight = m_Unk3c; pLight != &m_Unk3c[m_nModelLights]; pLight++) \
+			{ \
+				float fLightDot = pLight->m_Unk10.Dot(pVert->m_Normal); \
+				if (fLightDot > 0.0f) \
+				{ \
+					float fDistSqr = (pVert->m_Vec - pLight->m_Unk00).MagSqr(); \
+					if (fDistSqr < pLight->m_Unk0c) \
+						vColor += pLight->m_Unk1c * ((pLight->m_Unk0c - fDistSqr) * fLightDot); \
+				} \
+			} \
+			if (vColor.x > 255.0f) \
+				vColor.x = 255.0f; \
+			if (vColor.y > 255.0f) \
+				vColor.y = 255.0f; \
+			if (vColor.z > 255.0f) \
+				vColor.z = 255.0f; \
+			*pLighting += vColor; \
+			pDest->rgb.r = (uint8)RoundFloatToInt(vColor.x); \
+			pDest->rgb.g = (uint8)RoundFloatToInt(vColor.y); \
+			pDest->rgb.b = (uint8)RoundFloatToInt(vColor.z); \
+			pDest->rgb.a = m_Unk8a8; \
+			pfnPerVertex(this, pVert, pDest); \
+		}
 
 // guess: skins, lights and projects the vertices of one piece into pDest (TL vertices), calls the per-vertex generator,
 // accumulates the vertex colours into pLighting and (bBounds) the min/max of the projected positions into pMin/pMax.
 // With the LOD blend enabled (m_bLODBlend) every vertex is the m_fLODBlend blend of the vertex of pLOD and its replacement in pLOD2.
-// Not matching: semantically complete, four loop copies as in the exe; the exe's loop body differs in x87 term order and register
-// allocation (not yet worked on), the function was written from the Ghidra C only.
 // STUB: D3DREN 0x10004660
-void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, void *pfnPerVertex, LTMatrix *pTransforms,
-	float *pLighting, char bBounds, float *pMin, float *pMax)
+void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, PFN_GenTexCoords pfnPerVertex, LTMatrix *pTransforms,
+	LTVector *pLighting, char bBounds, LTVector *pMin, LTVector *pMax)
 {
-	void (__fastcall *pfn)(TLVertex *) = (void (__fastcall *)(TLVertex *))pfnPerVertex;
-	float fScale = m_DirLightAmount;
-	float fDx = fScale * m_DirLightDir.x;
-	float fDy = fScale * m_DirLightDir.y;
-	float fDz = fScale * m_DirLightDir.z;
-	float fBaseR = m_LightAdd.x + m_ObjectColor.x * m_AmbientLight.x;
-	float fBaseG = m_ObjectColor.y * m_AmbientLight.y + m_LightAdd.y;
-	float fBaseB = m_ObjectColor.z * m_AmbientLight.z + m_LightAdd.z;
-	float fLitR = m_LightAdd.x + m_ObjectColor.x * m_DirLightColor.x;
-	float fLitG = m_ObjectColor.y * m_DirLightColor.y + m_LightAdd.y;
-	float fLitB = m_ObjectColor.z * m_DirLightColor.z + m_LightAdd.z;
+	LTVector vDir = m_DirLightDir * m_DirLightAmount;
+	LTVector vBase = m_AmbientLight * m_ObjectColor + m_LightAdd;
+	LTVector vLit = m_DirLightColor * m_ObjectColor + m_LightAdd;
+	LTVector vColor;
 	ModelVert *pVert = pLOD->m_Verts.GetArray();
 	int nVerts = pLOD->m_Verts.GetSize();
+	NewVertexWeight *pWeight;
+	uint32 nWeights;
 
-	if (bBounds == 0)
+	if (!bBounds)
 	{
-		if (m_bLODBlend == 0)
+		if (m_bLODBlend)
 		{
-			MODELVERT_LOOP(0, 0)
+			ModelVert *pVerts2 = pLOD2->m_Verts.GetArray();
+			for (; nVerts != 0; nVerts--, pVert++, pDest++)
+			{
+				ModelVert *pVertB = &pVerts2[pVert->m_iReplacement];
+				SKIN_MODEL_VERTEX()
+				BLEND_MODEL_VERTEX()
+				pDest->m_Vec *= pDest->rhw;
+				LIGHT_MODEL_VERTEX()
+			}
 		}
 		else
 		{
-			MODELVERT_LOOP(0, 1)
+			for (; nVerts != 0; nVerts--, pVert++, pDest++)
+			{
+				SKIN_MODEL_VERTEX()
+				pDest->rhw = 1.0f / pDest->rhw;
+				pDest->m_Vec *= pDest->rhw;
+				LIGHT_MODEL_VERTEX()
+			}
 		}
 	}
 	else
 	{
-		pMin[0] = 100000.0f;
-		pMin[1] = 100000.0f;
-		pMin[2] = 100000.0f;
-		pMax[0] = -100000.0f;
-		pMax[1] = -100000.0f;
-		pMax[2] = -100000.0f;
-		if (m_bLODBlend == 0)
+		pMin->x = pMin->y = pMin->z = 100000.0f;
+		*pMax = LTVector(-100000.0f, -100000.0f, -100000.0f);
+		if (m_bLODBlend)
 		{
-			MODELVERT_LOOP(1, 0)
+			ModelVert *pVerts2 = pLOD2->m_Verts.GetArray();
+			for (; nVerts != 0; nVerts--, pVert++, pDest++)
+			{
+				ModelVert *pVertB = &pVerts2[pVert->m_iReplacement];
+				SKIN_MODEL_VERTEX()
+				BLEND_MODEL_VERTEX()
+				pDest->m_Vec *= pDest->rhw;
+				UPDATE_MODEL_BOUNDS()
+				LIGHT_MODEL_VERTEX()
+			}
 		}
 		else
 		{
-			MODELVERT_LOOP(1, 1)
+			for (; nVerts != 0; nVerts--, pVert++, pDest++)
+			{
+				SKIN_MODEL_VERTEX()
+				pDest->rhw = 1.0f / pDest->rhw;
+				pDest->m_Vec *= pDest->rhw;
+				UPDATE_MODEL_BOUNDS()
+				LIGHT_MODEL_VERTEX()
+			}
 		}
 	}
 }
@@ -1375,20 +1455,20 @@ void ModelDraw::PrepareModelPieceVertices()
 					bBounds = 0;
 				else
 					bBounds = 1;
-				float vMin[3], vMax[3];
-				SkinAndLightPieceVertices(pLOD, pLODB, m_Unk82c + iVertBase, m_Unk5ec, pTransforms, &m_pInstance->m_ModelLighting.x, bBounds, vMin, vMax);
+				LTVector vMin, vMax;
+				SkinAndLightPieceVertices(pLOD, pLODB, m_Unk82c + iVertBase, m_Unk5ec, pTransforms, &m_pInstance->m_ModelLighting, bBounds, &vMin, &vMax);
 				if (bBounds)
 				{
 					// the 8 corners of the bounding box (bit 2: x, bit 1: y, bit 0: z from vMax) against the six clip planes
 					LTVector pts[8];
-					pts[0].Init(vMin[0], vMin[1], vMin[2]);
-					pts[1].Init(vMin[0], vMin[1], vMax[2]);
-					pts[2].Init(vMin[0], vMax[1], vMin[2]);
-					pts[3].Init(vMin[0], vMax[1], vMax[2]);
-					pts[4].Init(vMax[0], vMin[1], vMin[2]);
-					pts[5].Init(vMax[0], vMin[1], vMax[2]);
-					pts[6].Init(vMax[0], vMax[1], vMin[2]);
-					pts[7].Init(vMax[0], vMax[1], vMax[2]);
+					pts[0].Init(vMin.x, vMin.y, vMin.z);
+					pts[1].Init(vMin.x, vMin.y, vMax.z);
+					pts[2].Init(vMin.x, vMax.y, vMin.z);
+					pts[3].Init(vMin.x, vMax.y, vMax.z);
+					pts[4].Init(vMax.x, vMin.y, vMin.z);
+					pts[5].Init(vMax.x, vMin.y, vMax.z);
+					pts[6].Init(vMax.x, vMax.y, vMin.z);
+					pts[7].Init(vMax.x, vMax.y, vMax.z);
 					int nIn;
 #define BOX_CLIP_TEST(T) \
 					nIn = T(0) + T(1) + T(2) + T(3) + T(4) + T(5) + T(6) + T(7); \
