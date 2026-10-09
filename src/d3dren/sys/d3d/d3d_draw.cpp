@@ -2040,12 +2040,10 @@ void d3d_TermPolyDrawPools()
 
 // guess: adds the per-vertex colours of the light animation frames (blended by m_PercentBetween) of one poly to the vertex colours of
 // pPolyData (0x18-byte poly vertices, colour bytes at +0x14/+0x15/+0x16); returns 0 when the poly index is outside the animation.
-// STUB diagnosis: 68 aligned mismatches (61 ignoring stack offsets; was 86).  The vertex data is an SPolyVertex array (m_Color, indexed per
-//   vertex: that gives the exe's first loop exactly), the blend weights are uint8 (inv = 0xff - percent) and the blended term is
-//   Mul[frame1 * 0x100 + percent] + Mul[frame0 * 0x100 + inv].  Remaining: the exe needs no local at all (percent goes to the dead pAnim
-//   slot, pFrame1 to pRef's, pFrame1 lives in ebp from the start) and computes the nested LTMIN of the two uint8 counts in cl without
-//   spilling; ours keeps a 4-byte local for percent and pushes ebp only in the blend branch.
-// STUB: D3DREN 0x100185a0
+// The vertex data is an SPolyVertex array (m_Color, indexed per vertex), the blended term is
+// Mul[frame1 * 0x100 + percent] + Mul[frame0 * 0x100 + (uint8)(0xff - percent)] written in place (a named uint8 inv costs the exe's
+// register assignment), and the clamped count is its own local (the exe stores it into the dead nPolyData slot on both paths).
+// FUNCTION: D3DREN 0x100185a0
 int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef)
 {
 	LAPolyRef *pPolyRef = (LAPolyRef *)pRef;
@@ -2053,6 +2051,7 @@ int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *p
 	LAPolyFrame *pFrame0, *pFrame1;
 	SPolyVertex *pVerts = (SPolyVertex *)pPolyData;
 	uint32 i;
+	uint32 nVerts;
 
 	if (pPolyRef->m_iPoly >= pAnim->m_nPolies)
 		return 0;
@@ -2065,11 +2064,11 @@ int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *p
 	else if (percent == 0xff)
 		pFrame0 = pFrame1;
 
-	nPolyData = LTMIN(nPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
+	nVerts = LTMIN(nPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
 
 	if (pFrame0 == pFrame1)
 	{
-		for (i = 0; i < nPolyData; i++)
+		for (i = 0; i < nVerts; i++)
 		{
 			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + pFrame0->m_pVertR[i]];
 			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + pFrame0->m_pVertG[i]];
@@ -2078,13 +2077,11 @@ int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *p
 	}
 	else
 	{
-		uint8 inv = 0xff - percent;
-
-		for (i = 0; i < nPolyData; i++)
+		for (i = 0; i < nVerts; i++)
 		{
-			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv]]];
-			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertG[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertG[i] * 0x100 + inv]]];
-			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertB[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertB[i] * 0x100 + inv]]];
+			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + (uint8)(0xff - percent)]]];
+			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertG[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertG[i] * 0x100 + (uint8)(0xff - percent)]]];
+			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertB[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertB[i] * 0x100 + (uint8)(0xff - percent)]]];
 		}
 	}
 	return 1;
