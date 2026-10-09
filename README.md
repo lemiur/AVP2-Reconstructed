@@ -84,6 +84,7 @@ The DLL was built with a different compiler from the engine: the VC6 RTM front e
 | Written but not yet matching (`// STUB:`) | 70 functions (85,540 compiled bytes) |
 | Prebuilt library code (VC6 RTM CRT) | 469 functions, 41,550 bytes (14.8%) |
 | objdiff | 67.43% of code, 1,658 of 1,729 functions, 154 of 178 units complete |
+| **Byte-gated**: spliced from source, whole DLL SHA1-identical | 52.74% of function code, all 1,190 matching functions |
 
 The source is organised as the DLL's 52 original object files, recovered from the binary's layout. The 2026-10-08
 matching sessions used twelve GPT-6 Luna agents at MAX effort with separate file ownership and address ranges.
@@ -94,10 +95,21 @@ matches are preserved; both module gates pass. Full validation and remaining dif
 The same search improves `d3d_FlushObjectQueues` at `0x10028660` from 103 to 53 differing bytes; it also remains a STUB.
 Final objdiff inventories leave 59,981 unmatched engine function-code bytes and 90,395 unmatched renderer
 function-code bytes. These totals exclude unfinished data/layout work and do not measure whole-file completion.
-Still to do: the remaining stubs, the data sections (initialisers, vtables, ownership and
-order), removing the last three stand-in definitions, and a relink of the DLL itself. Its string resource and its
-three exports are already reconstructed (`config/d3dren/d3dren.rc`, `d3dren.def`) and verified against the
-original by `tools/test_d3dren_resources.py`; no complete renderer DLL has been linked yet.
+`tools/relink_dll.py` relinks the DLL, and `python tools/build.py gate --module d3dren` byte-gates it against
+`config/d3dren/check.sha1`.
+
+The DLL's units are not contiguous: a unit's COMDATs sit among other units' code. So every matching function is
+spliced singly into the original-order objects instead of linking whole objects. Data still comes from the
+original's bytes.
+
+The rebuilt DLL is SHA1-identical to the original, including three pieces that need reproducing explicitly:
+- **Base relocations:** the data stand-in carries a fixup at every site of the original's `.reloc`.
+- **The `.reloc` size LINK reserves:** reproduced with fixups in a section `/OPT:REF` discards.
+- **The export object's tool stamp:** reproduced in the Rich header.
+
+Still to do: the remaining stubs, the data sections (initialisers, vtables, ownership and order), and removing the
+last three stand-in definitions. Its string resource and its three exports are already reconstructed
+(`config/d3dren/d3dren.rc`, `d3dren.def`) and verified against the original by `tools/test_d3dren_resources.py`.
 
 The renderer's names come from its Ghidra project: `config/d3dren/symbols.csv` is the Ghidra export, and the
 scripts in `tools/ghidra/` export, apply and sync names and fix function boundaries (`SyncNamesPE.java` brings
@@ -160,6 +172,7 @@ python tools/build.py check <unit> # compile and check one unit
 python tools/build.py diff <func>  # side-by-side disassembly against the original
 python tools/build.py report       # refresh progress/lithtech_1.0.9.6/report.json (--module d3dren: d3dren_1.0.9.6)
 python tools/build.py gate         # byte gate: whole-exe SHA1 with every bankable unit from source (needs a clean tree)
+python tools/build.py gate --module d3dren   # the same for d3d.ren (tools/relink_dll.py)
 python tools/source_eh.py          # verify source EH helpers against the original; writes build/source_eh.json
 python tools/library_data.py       # verify native library data separately from function-code coverage
 python -m unittest discover -s tools/tests -v # run verifier regression tests

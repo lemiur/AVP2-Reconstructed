@@ -55,6 +55,7 @@ EXE = r'E:\AVP2Source\bin\lithtech.exe'
 MSVC = r'E:\MSVC6\VC98\Bin'
 LINK = os.path.join(MSVC, 'LINK.EXE')
 IMAGE_BASE = 0x400000
+IMAGE_END = 0x500000       # relocation targets must lie in [IMAGE_BASE, IMAGE_END) (relink_dll.py resets both)
 
 RDATA_LO = 0x4C6480        # first byte after the import address table, 16-aligned
 RDATA_HI = 0x4CD37C        # start of the import descriptors (.idata$2)
@@ -527,7 +528,7 @@ class Prepared:
                     tva = (field - addend) & 0xffffffff
                 else:
                     tva = (fva_ + 4 + struct.unpack('<i', struct.pack('<I', field))[0] - struct.unpack('<i', struct.pack('<I', addend))[0]) & 0xffffffff
-                if tva < IMAGE_BASE or tva >= 0x500000:
+                if tva < IMAGE_BASE or tva >= IMAGE_END:
                     raise BaseFail('reloc +%x in section %d (%s) to %s has address %08x (field %08x, addend %08x)' % (
                         off, secno, o.sections[secno - 1].name, S.name, tva, field, addend))
                 nm = self.canon_target(tva)
@@ -678,7 +679,7 @@ class Prepared:
                     else:
                         tva = (fva_ + 4 + struct.unpack('<i', struct.pack('<I', field))[0]
                                - struct.unpack('<i', struct.pack('<I', addend))[0]) & 0xffffffff
-                    if tva < IMAGE_BASE or tva >= 0x500000:
+                    if tva < IMAGE_BASE or tva >= IMAGE_END:
                         err = 'relocation at +%x points outside the image (%08x)' % (roff - off, tva)
                         break
                     if va <= tva < va + len(ts.data):

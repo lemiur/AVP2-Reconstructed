@@ -78,11 +78,13 @@ def merge(coffs):
     return out
 
 
-def pack(paths, entries, outdir):
+def pack(paths, entries, outdir, tail=()):
     """Merge/pad the ordered object list `paths` into exactly sum(counts) objects carrying `entries`' ids.
 
-    Returns the new ordered path list. Raises ValueError when the entries are empty."""
-    total = sum(n for _, n in entries)
+    `tail`: objects linked last, unmerged, each taking the next id from the end of the sequence (a DLL's export
+    object, which LINK would otherwise build itself and stamp with its own build). Returns the new ordered path
+    list. Raises ValueError when the entries are empty."""
+    total = sum(n for _, n in entries) - len(tail)
     if not total:
         raise ValueError('the original image has no Rich header to reproduce')
     if os.path.isdir(outdir):
@@ -90,6 +92,8 @@ def pack(paths, entries, outdir):
             os.remove(os.path.join(outdir, f))
     os.makedirs(outdir, exist_ok=True)
     ids = [v for v, n in entries for _ in range(n)]
+    tail_ids = ids[len(ids) - len(tail):] if tail else []
+    ids = ids[:len(ids) - len(tail)] if tail else ids
     # leave room for at least one padding object per id that would otherwise land on a real group: not needed,
     # the ids are positional, so real groups simply take the first slots
     groups = []
@@ -106,6 +110,16 @@ def pack(paths, entries, outdir):
         c.save(p)
         out.append(p)
         manifest[os.path.basename(p)] = groups[i] if i < len(groups) else []
+    for i, (t, v) in enumerate(zip(tail, tail_ids)):
+        c = Coff.load(t)
+        for sym in c.syms:
+            if sym is not None and sym.name == '@comp.id':
+                sym.name = '@comp.ix'
+        c.add_symbol('@comp.id', v, -1, 0, CLS_STATIC)
+        p = os.path.join(outdir, 'tail%02d_%s' % (i, os.path.basename(t)))
+        c.save(p)
+        out.append(p)
+        manifest[os.path.basename(p)] = [t]
     import json
     with open(os.path.join(outdir, 'manifest.json'), 'w') as f:       # merged object -> its input objects
         json.dump(manifest, f, indent=0)

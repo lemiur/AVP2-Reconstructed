@@ -36,7 +36,8 @@ What a run does:
 Writes build/gate/byte_gate.json; an official run (clean tree) also writes progress/<version>/byte_gate.json.
 Exit code: 0 green, 1 red, 2 the gate could not run.
 
-Only lithtech.exe has a relink; `--module d3dren` reports that and exits 2.
+--module d3dren gates d3d.ren through tools/relink_dll.py (contract config/d3dren/check.sha1). Its units are not
+contiguous in the DLL, so every MATCH function is banked singly; data comes from the original's bytes.
 """
 import argparse
 import bisect
@@ -87,7 +88,10 @@ def run_relink(out, mode, exclude=(), splice=False, splice_exclude=(), extra=())
     if os.path.isdir(out):
         shutil.rmtree(out)
     os.makedirs(out)
-    args = [sys.executable, os.path.join(TOOLS, 'relink.py'), '--rich']
+    if modcfg.NAME == 'lithtech':
+        args = [sys.executable, os.path.join(TOOLS, 'relink.py'), '--rich']
+    else:
+        args = [sys.executable, os.path.join(TOOLS, 'relink_dll.py'), '--module', modcfg.NAME, '--rich']
     if mode == 'mixed':
         args += ['--mode', 'mixed']
         if exclude:
@@ -320,24 +324,62 @@ def verify_spliced(units, spliced, exe, sizes):
     return bad
 
 
-def verbatim_functions(units, names):
-    """Annotated function VAs whose body contains inline assembly, per unit name in `names`."""
-    out = {}
+def _code(line):
+    """A source line without its // comment and string/char literals (for brace counting)."""
+    line = re.sub(r'"(?:\\.|[^"\\])*"' + r"|'(?:\\.|[^'\\])*'", '""', line)
+    return line.split('//', 1)[0]
+
+
+def asm_functions(units, names):
+    """({unit: VAs of annotated functions whose own body is inline assembly}, {unit: {VA: [helpers]}} of annotated
+    functions that call an unannotated helper (an inline function) whose body is inline assembly).
+
+    Bodies are found by brace depth at file scope: an annotation names the next function body; a body that holds
+    `__asm`/`_asm` belongs to that annotation, or, unannotated, is a helper named by the identifier before its `(`."""
+    verb, uses = {}, {}
     ann = re.compile(r'^\s*//\s*(?:FUNCTION|STUB):\s*%s\s+0x([0-9a-fA-F]+)' % modcfg.TAG)
     by_name = {u.name: u for u in units}
     for n in names:
         u = by_name.get(n)
         if u is None:
             continue
-        last = None
         with open(u.path, encoding='latin1') as f:
-            for line in f:
-                m = ann.match(line)
-                if m:
-                    last = int(m.group(1), 16)
-                elif re.search(r'\b_*asm\b', line) and not line.lstrip().startswith('//') and last is not None:
-                    out.setdefault(n, set()).add(last)
-    return out
+            lines = f.read().splitlines()
+        bodies = []                  # (annotated VA or None, helper name or None, [body lines])
+        depth, pending, cur, sig = 0, None, None, []
+        for line in lines:
+            m = ann.match(line)
+            if m and depth == 0:
+                pending = int(m.group(1), 16)
+                continue
+            c = _code(line)
+            if depth == 0:
+                sig.append(c)
+                if '{' in c:
+                    head = ' '.join(sig).split('{', 1)[0]
+                    nm = re.findall(r'(~?\w+)\s*\(', head)
+                    cur = (pending, nm[-1] if nm else None, [])
+                    pending, sig = None, []
+            if cur is not None:
+                cur[2].append(c)
+            depth += c.count('{') - c.count('}')
+            if depth <= 0:
+                depth = 0
+                if cur is not None:
+                    bodies.append(cur)
+                    cur = None
+                if ';' in c or '}' in c:
+                    sig = []
+        helpers = {h for va, h, b in bodies if va is None and h and any(re.search(r'\b_*asm\b', x) for x in b)}
+        for va, h, b in bodies:
+            if va is None:
+                continue
+            if any(re.search(r'\b_*asm\b', x) for x in b):
+                verb.setdefault(n, set()).add(va)
+            called = sorted(x for x in helpers if any(re.search(r'\b%s\s*\(' % re.escape(x), y) for y in b))
+            if called:
+                uses.setdefault(n, {})[va] = called
+    return verb, uses
 
 
 def main():
@@ -358,15 +400,16 @@ def main():
         print(s, flush=True)
         lines.append(s)
 
-    if modcfg.NAME != 'lithtech':
-        print('GATE ERROR: %s has no relink yet; the byte gate covers lithtech.exe only' % modcfg.NAME)
-        return 2
     want, name, size = read_contract()
     if name != IMAGE_NAME:
         print('GATE ERROR: the contract is for %s, this module builds %s' % (name, IMAGE_NAME))
         return 2
-    import relink as R
-    for p in (modcfg.IMAGE, R.EXE):
+    if modcfg.NAME == 'lithtech':
+        import relink as R
+    else:
+        import relink_dll  # noqa: F401   (points relink.py's machinery at this module)
+        import relink as R
+    for p in sorted({modcfg.IMAGE, R.EXE}):
         if os.path.getsize(p) != size or sha1(p) != want:
             print('GATE ERROR: %s does not match the contract (%s, %d bytes)' % (p, want, size))
             return 2
@@ -391,7 +434,7 @@ def main():
                     os.remove(st)
                     n += 1
             log('clean: %d object stamps removed (every unit recompiles)' % n)
-        env = dict(os.environ, DECOMP_LEAD='1')
+        env = dict(os.environ, DECOMP_LEAD='1', DECOMP_MODULE=modcfg.NAME)
         t = time.time()
         r = subprocess.run([sys.executable, os.path.join(TOOLS, 'build.py')], cwd=ROOT, env=env,
                            capture_output=True, text=True)
@@ -417,6 +460,8 @@ def main():
     attr = Attribution(symtab)
     never = set(x for x in a.exclude.split(',') if x)
     cands = [u for u in full if u not in never]
+    if modcfg.NAME != 'lithtech':
+        cands = []          # d3d.ren banks every MATCH function singly (relink_dll.py: its units are not contiguous)
     log('fully matched units (every annotated function MATCH): %d; candidates: %d' % (len(full), len(cands)))
 
     # baseline: the relink of the original's bytes must be green, or nothing measured below means anything
@@ -484,7 +529,7 @@ def main():
         return 1
 
     # counting, from the source of the green image
-    verb = verbatim_functions(units, set(banked) | {u for u, _ in spliced})
+    verb, asm_uses = asm_functions(units, set(banked) | {u for u, _ in spliced})
     funcs = attr.funcs
     total_code = sum(end - va for va, (end, _) in funcs.items())
     n_f = code = 0
@@ -526,16 +571,30 @@ def main():
                 continue
             match_missing.append((un, r.a.va))
     match_missing = sorted(set(match_missing), key=lambda x: x[1])
-    not_banked = sorted(set(full) - set(banked))
+    if modcfg.NAME == 'lithtech':
+        not_banked = sorted(set(full) - set(banked))
+    else:       # units are banked function by function: a fully matched unit is banked when all its functions are
+        miss_units = {u for u, _ in match_missing}
+        not_banked = sorted(u for u in full if u in miss_units)
+        banked = sorted(u for u in full if u not in miss_units)
     for u in not_banked:
         rejected.setdefault(u, 'excluded by --exclude' if u in never else 'not banked')
 
     log('GATE GREEN sha1=%s' % want)
-    log('banked from source: %d functions, %d code bytes (%.3f%% of %d function bytes): %d whole units '
-        '(%d functions, %d bytes) + %d single functions of partly matched units (%d bytes); '
-        '%d own-data units, %d .rdata/.data bytes' % (
-            n_f + s_f, code + s_b, 100.0 * (code + s_b) / total_code, total_code, len(banked), n_f, code,
-            s_f, s_b, len(own), data))
+    if modcfg.NAME == 'lithtech':
+        log('banked from source: %d functions, %d code bytes (%.3f%% of %d function bytes): %d whole units '
+            '(%d functions, %d bytes) + %d single functions of partly matched units (%d bytes); '
+            '%d own-data units, %d .rdata/.data bytes' % (
+                n_f + s_f, code + s_b, 100.0 * (code + s_b) / total_code, total_code, len(banked), n_f, code,
+                s_f, s_b, len(own), data))
+    else:
+        log('banked from source: %d functions, %d code bytes (%.3f%% of %d function bytes), each spliced singly; '
+            '%d fully matched units entirely banked; data from the original' % (
+                s_f, s_b, 100.0 * s_b / total_code, total_code, len(banked)))
+    if asm_uses:
+        log('counted, but calling an inline-assembly helper: %d functions: %s' % (
+            sum(len(v) for v in asm_uses.values()), ', '.join(
+                '%08x (%s)' % (va, ','.join(h)) for u in sorted(asm_uses) for va, h in sorted(asm_uses[u].items()))))
     if banker.rejected_funcs:
         log('single MATCH functions not banked: %d' % len(banker.rejected_funcs))
         for (u, va), why in sorted(banker.rejected_funcs.items(), key=lambda x: x[0][1])[:40]:
@@ -552,26 +611,41 @@ def main():
     log('relinks: %d (+ baseline), %.0f s' % (banker.runs, time.time() - t0))
 
     control = None
-    if a.control == 'auto' and not a.no_control:
-        stubs = sorted(r.a.va for r in results if r.a.kind == 'STUB' and r.status == 'DIFF')
-        a.control = '%08x' % stubs[0] if stubs else None
-    if a.control and not a.no_control:
-        cva = int(a.control, 16)
+    if not a.no_control:
+        if a.control == 'auto':
+            # same-size (DIFF) stubs, lowest first; one whose relocation sites are not addresses in the original
+            # cannot be spliced, and the next is tried
+            tries = sorted(r.a.va for r in results if r.a.kind == 'STUB' and r.status == 'DIFF')[:8]
+        else:
+            tries = [int(a.control, 16)]
         out = os.path.join(GATE_DIR, 'control')
-        cexe, _, _ = run_relink(out, 'mixed', set(full) - set(banked), banker.splice, banker.splice_exclude,
-                                ['--splice-force', a.control])
-        if cexe is None:
-            log('CONTROL FAILED: the control relink did not link')
+        for cva in tries:
+            cexe, _, cu = run_relink(out, 'mixed', set(full) - set(banked), banker.splice, banker.splice_exclude,
+                                     ['--splice-force', '%08x' % cva])
+            if cexe is None:
+                log('CONTROL FAILED: the control relink did not link')
+                return 1
+            sp = (cu.get('splice') or {}).get('spliced') or {}
+            if not any(int(v, 16) == cva for vs in sp.values() for v in vs):
+                log('  control: STUB %08x cannot be spliced (%s); next' % (cva, next(
+                    (w for k, w in ((cu.get('splice') or {}).get('failed') or {}).items() if k.endswith('%08x' % cva)),
+                    'not spliced')))
+                continue
+            if sha1(cexe) == want:
+                log('CONTROL FAILED: splicing STUB %08x left the image green: the gate cannot see that function' % cva)
+                return 1
+            per_unit, per_sec, per_func = attr.units_of_diff(R.EXE, cexe, out)
+            if set(per_func) != {cva}:
+                log('CONTROL FAILED: differing bytes outside %08x: %s' % (
+                    cva, ', '.join('%08x' % v for v in sorted(per_func))))
+                return 1
+            control = {'va': '%08x' % cva, 'differing_bytes': per_func[cva]}
+            log('control: STUB %08x spliced -> red, %d differing bytes, all inside it (CONTROL OK)' % (
+                cva, per_func[cva]))
+            break
+        else:
+            log('CONTROL FAILED: none of %d candidate stubs could be spliced' % len(tries))
             return 1
-        if sha1(cexe) == want:
-            log('CONTROL FAILED: splicing STUB %08x left the image green: the gate cannot see that function' % cva)
-            return 1
-        per_unit, per_sec, per_func = attr.units_of_diff(R.EXE, cexe, out)
-        if set(per_func) != {cva}:
-            log('CONTROL FAILED: differing bytes outside %08x: %s' % (cva, ', '.join('%08x' % v for v in sorted(per_func))))
-            return 1
-        control = {'va': '%08x' % cva, 'differing_bytes': per_func[cva]}
-        log('control: STUB %08x spliced -> red, %d differing bytes, all inside it (CONTROL OK)' % (cva, per_func[cva]))
 
     result = {
         'module': modcfg.NAME, 'contract': want, 'image': name, 'commit': head, 'official': official,
@@ -583,6 +657,7 @@ def main():
         'single_not_banked': {'%s@%08x' % k: v for k, v in sorted(banker.rejected_funcs.items())},
         'own_data_units': sorted(own), 'data_bytes': data,
         'verbatim': {u: ['%08x' % va for va in sorted(s)] for u, s in verb.items()},
+        'asm_helper_callers': {u: {'%08x' % va: h for va, h in sorted(d.items())} for u, d in asm_uses.items()},
         'not_banked': {u: rejected[u] for u in not_banked},
         'match_not_banked': ['%s@%08x' % k for k in match_missing],
         'relinks': banker.history,
