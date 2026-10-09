@@ -165,23 +165,103 @@ void SetupLightmapLightContext(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pL
 	pCtx->m_Unk44 = h;
 }
 
+// guess: the per-light walks over the texels of a locked lightmap (invented names; static, inlined once each into
+// ApplyPolyDynamicLightsToLightmap): the falloff-lit RGB555 rectangle (the 16-bit sibling of AddLightmapLightToRGB32Rect) and the
+// flat-colour RGB555 / RGB32 rectangles.
+static void AddLightmapLightToRGB555Rect(UnkType_LightCtx *pCtx)
+{
+	uint8 *pRow = pCtx->m_Unk3c;
+	LTVector vRow = pCtx->m_Unk00;
+	uint32 y, x;
+
+	for (y = pCtx->m_Unk44; y != 0; y--)
+	{
+		LTVector vCol = vRow;
+		uint16 *pTexel = (uint16 *)pRow;
+
+		for (x = pCtx->m_Unk40; x != 0; x--)
+		{
+			pCtx->m_Unk30 = (vCol - pCtx->m_Unk24).MagSqr();
+			if (pCtx->m_Unk30 < pCtx->m_Unk34)
+			{
+				AddLightmapLightToRGB555Texel(pTexel, pCtx);
+				pCtx->m_Unk58 = 1;
+			}
+			pTexel++;
+			vCol = vCol + pCtx->m_Unk0c;
+		}
+		pRow += pCtx->m_Unk48;
+		vRow = vRow + pCtx->m_Unk18;
+	}
+}
+
+static void FillLightmapRGB555Rect(UnkType_LightCtx *pCtx)
+{
+	uint8 *pRow = pCtx->m_Unk3c;
+	LTVector vRow = pCtx->m_Unk00;
+	uint32 y, x;
+
+	for (y = pCtx->m_Unk44; y != 0; y--)
+	{
+		LTVector vCol = vRow;
+		uint16 *pTexel = (uint16 *)pRow;
+
+		for (x = pCtx->m_Unk40; x != 0; x--)
+		{
+			pCtx->m_Unk30 = vCol.DistSqr(pCtx->m_Unk24);
+			if (pCtx->m_Unk30 < pCtx->m_Unk34)
+			{
+				*pTexel = pCtx->m_Unk5c;
+				pCtx->m_Unk58 = 1;
+			}
+			pTexel++;
+			vCol = vCol + pCtx->m_Unk0c;
+		}
+		pRow += pCtx->m_Unk48;
+		vRow = vRow + pCtx->m_Unk18;
+	}
+}
+
+static void FillLightmapRGB32Rect(UnkType_LightCtx *pCtx)
+{
+	uint8 *pRow = pCtx->m_Unk3c;
+	LTVector vRow = pCtx->m_Unk00;
+	uint32 y, x;
+
+	for (y = pCtx->m_Unk44; y != 0; y--)
+	{
+		LTVector vCol = vRow;
+		uint32 *pTexel = (uint32 *)pRow;
+
+		for (x = pCtx->m_Unk40; x != 0; x--)
+		{
+			pCtx->m_Unk30 = vCol.DistSqr(pCtx->m_Unk24);
+			if (pCtx->m_Unk30 < pCtx->m_Unk34)
+			{
+				*pTexel = pCtx->m_Unk60;
+				pCtx->m_Unk58 = 1;
+			}
+			pTexel++;
+			vCol = vCol + pCtx->m_Unk0c;
+		}
+		pRow += pCtx->m_Unk48;
+		vRow = vRow + pCtx->m_Unk18;
+	}
+}
+
 // guess: applies the dynamic lights of a polygon (the list at WorldPoly+0x30) to its locked lightmap pBits (w x h texels, 32 bit
 // unless bNot32Bit): per light the context is built (SetupLightmapLightContext), then every texel inside the light's radius gets the light added
 // with its falloff (AddLightmapLightToRGB32Rect for a 32 bit rectangle, AddLightmapLightToRGB555Texel per 16 bit texel) or, with the FastLight console variable or a
 // light that has FLAG 0x10, the flat colour.  Returns 1 when any texel was changed.
-// Not matching (size 1040 vs 1280): first pass only (semantics from the disassembly; not yet diffed instruction by instruction).  The exe
-// keeps the three per-light flat/falloff branches, the light colour bytes read as r = +0x94, g = +0x95, b = +0x96 of the DynamicLight and the
-// LTVector walk of the texel position (operator- / operator+ out-of-line copies 0x1000e06c/0x1002ce70, MagSqr 0x100085d3) which our
-// inlining does not reproduce yet (our walk is inlined).
+// Not matching (1360 vs 1280 bytes): CFG and prologue are the exe's.  Inline/call-set wall (tools/inline_budget.py): the exe calls
+// every LTVector operator of the falloff walk out of line (its share must be < 56u, ours is 242u) and inlines the 32-bit flat walk's
+// inner operator+ with its ctor out of line (share 68..136u, ours 11u); the RGB555 flat walk already has the exe's call set.
 // STUB: D3DREN 0x10032c40
 int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 *pBits, long pitch, uint32 w, uint32 h, char bNot32Bit)
 {
 	UnkType_LightCtx ctx;
 	UnkType_PolyLightNode *pNode;
 	DynamicLight *pLight;
-	uint8 *pRow;
-	LTVector vRow, vCol;
-	uint32 x, y;
 
 	ctx.m_Unk58 = 0;
 	for (pNode = WORLDPOLY_UNK30(pPoly); pNode; pNode = pNode->m_Unk00)
@@ -192,60 +272,18 @@ int ApplyPolyDynamicLightsToLightmap(MainWorld *pWorld, WorldPoly *pPoly, uint8 
 
 		if (g_FastLight == 0 && !(pLight->m_Flags & 0x10) && ctx.m_Unk3c != 0)
 		{
-			if (!bNot32Bit)
-			{
+			if (bNot32Bit)
+				AddLightmapLightToRGB555Rect(&ctx);
+			else
 				AddLightmapLightToRGB32Rect(&ctx, 0, 0);
-				continue;
-			}
-
-			pRow = ctx.m_Unk3c;
-			vRow = ctx.m_Unk00;
-			for (y = ctx.m_Unk44; y != 0; y--)
-			{
-				uint16 *pTexel = (uint16 *)pRow;
-
-				vCol = vRow;
-				for (x = ctx.m_Unk40; x != 0; x--)
-				{
-					ctx.m_Unk30 = (vCol - ctx.m_Unk24).MagSqr();
-					if (ctx.m_Unk30 < ctx.m_Unk34)
-					{
-						AddLightmapLightToRGB555Texel(pTexel, &ctx);
-						ctx.m_Unk58 = 1;
-					}
-					pTexel++;
-					vCol = vCol + ctx.m_Unk0c;
-				}
-				pRow += ctx.m_Unk48;
-				vRow = vRow + ctx.m_Unk18;
-			}
+		}
+		else if (bNot32Bit)
+		{
+			FillLightmapRGB555Rect(&ctx);
 		}
 		else
 		{
-			pRow = ctx.m_Unk3c;
-			vRow = ctx.m_Unk00;
-			for (y = ctx.m_Unk44; y != 0; y--)
-			{
-				uint8 *pTexel = pRow;
-
-				vCol = vRow;
-				for (x = ctx.m_Unk40; x != 0; x--)
-				{
-					ctx.m_Unk30 = (vCol - ctx.m_Unk24).MagSqr();
-					if (ctx.m_Unk30 < ctx.m_Unk34)
-					{
-						if (!bNot32Bit)
-							*(uint32 *)pTexel = ctx.m_Unk60;
-						else
-							*(uint16 *)pTexel = ctx.m_Unk5c;
-						ctx.m_Unk58 = 1;
-					}
-					pTexel += bNot32Bit ? 2 : 4;
-					vCol = vCol + ctx.m_Unk0c;
-				}
-				pRow += ctx.m_Unk48;
-				vRow = vRow + ctx.m_Unk18;
-			}
+			FillLightmapRGB32Rect(&ctx);
 		}
 	}
 
