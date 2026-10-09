@@ -97,34 +97,38 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 {
 	UnkType_TLVertex40 aVerts[128];
 	UnkType_TLVertex40 *pVerts;
-	int nVerts;
+	int i;
 	int bNeedProject = 1;
+	DWORD dwOldAlphaFunc;
 	int bClipped = 0;
 	int bLightmapTexture = 1;
 	int bEnvMap;
 	int nTotalVerts;
 	UnkType_PolyVertex *pSrcVerts;
+	DWORD dwOldAlphaBlend;
 	TLVertex *pDest;
-	DWORD dwOldAlphaBlend, dwOldAlphaFunc, dwOldZFunc;
-	LPDIRECTDRAWSURFACE7 pOldTexture;
-	int i;
 	TLVertex *pD;
+	int nVerts;
+	LPDIRECTDRAWSURFACE7 pOldTexture;
+	DWORD dwOldZFunc;
 	UnkType_TLVertex40 *pS;
 
-	SharedTexture *pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture;
-	uint32 nSurfFlags = ((Surface *)pPoly->m_pSurface)->m_Flags & 0x100000;
+	SharedTexture *pTexture;
+	pTexture = ((Surface *)pPoly->m_pSurface)->m_pTexture;
 	bEnvMap = pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0 && g_bTwoTextureStageBlendValidated != 0;
+	uint32 nSurfFlags = ((Surface *)pPoly->m_pSurface)->m_Flags & 0x100000;
 	if (g_FixTJunc != 0)
 	{
 		pSrcVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nTotalVerts = pPoly->m_nExtraVertices;
+		nVerts = nTotalVerts;
 	}
 	else
 	{
 		pSrcVerts = (UnkType_PolyVertex *)(pPoly + 1);
 		nTotalVerts = pPoly->m_nVertices;
+		nVerts = nTotalVerts;
 	}
-	nVerts = nTotalVerts;
 	if (nVerts > 0x80)
 	{
 		dsi_ConsolePrint("Error: vertex buffer overflow");
@@ -133,12 +137,15 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
 	pVerts = aVerts;
 	d3d_BuildDualTextureWorldVertices(nSurfFlags, aVerts, pSrcVerts, nVerts);
-	if (g_ClipFlags != 0 && !bEnvMap)
+	if (g_ClipFlags != 0)
 	{
-		if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
-			return;
-		bClipped = pVerts != aVerts;
-		bNeedProject = 0;
+		if (!bEnvMap)
+		{
+			if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
+				return;
+			bClipped = pVerts != aVerts;
+			bNeedProject = 0;
+		}
 	}
 	if (g_CV_LMAnim.m_IntVal != 0)
 		RelightWorldPolyIfNeeded(g_pFrameMainWorld, pPoly);
@@ -151,21 +158,27 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 		WORLDPOLY_LMPAGE(pPoly)->m_Unk20 = 1;
 	if (bFirst != 0)
 	{
-		bLightmapTexture = 0;
 		if (bClipped)
 		{
 			pVerts = aVerts;
 			nVerts = nTotalVerts;
 			d3d_BuildLightmappedWorldVertices(nSurfFlags, pPoly, aVerts, pSrcVerts, nTotalVerts);
 			bNeedProject = 1;
+			bLightmapTexture = 0;
 		}
 		else
+		{
 			d3d_UpdateWorldVertexLightmapUVs(pPoly, pVerts, pSrcVerts, nVerts);
+			bLightmapTexture = 0;
+		}
 	}
-	if (bNeedProject && !bEnvMap)
+	if (bNeedProject)
 	{
-		if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
-			return;
+		if (!bEnvMap)
+		{
+			if (!TransformClipProjectPolygon40(&pVerts, &nVerts, &g_ViewParams, 0))
+				return;
+		}
 	}
 	pDest = d3d_ReservePolyScratchVertices(nVerts);
 	if (!pDest)
@@ -175,8 +188,8 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 		if (nVerts != 0)
 		{
 			pD = pDest;
-			pS = pVerts;
 			i = nVerts;
+			pS = pVerts;
 			do
 			{
 				*pD = *(TLVertex *)pS;
@@ -256,16 +269,18 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 				return;
 			}
 		}
-		if (bEnvMap)
-			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pDest, nVerts, 0);
-		else
+		if (!bEnvMap)
 			d3d_DrawClippedTriangleFan(pDest, nVerts, &g_ViewParams, 0x1c4);
+		else
+			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pDest, nVerts, 0);
 	}
 	if (g_bChromaKeyPass != 0)
 	{
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, dwOldAlphaBlend);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHAFUNC, dwOldAlphaFunc);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZFUNC, dwOldZFunc);
+		g_nWorldPolysDrawn++;
+		g_nQueuedWorldPolyVertices += nVerts;
 	}
 	else
 	{
@@ -290,9 +305,9 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 		pNode->m_Unk14 = 3;
 		if (g_CV_FixSparkleys.m_IntVal != 0)
 			d3d_FlushWorldTextureBuckets();
+		g_nWorldPolysDrawn++;
+		g_nQueuedWorldPolyVertices += nVerts;
 	}
-	g_nQueuedWorldPolyVertices += nVerts;
-	g_nWorldPolysDrawn++;
 }
 
 // guess: if the poly's light-animation flag (bit 0x8000 of WorldPoly::m_Flags, part of WPF_RELIGHT) is set, clears it and
