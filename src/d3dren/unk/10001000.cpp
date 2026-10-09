@@ -988,47 +988,47 @@ Skip:
 }
 
 // guess: the default draw callback: copies the transformed vertices of each (front facing) triangle into the pool
-// Not matching (same size, 2 aligned ignoring stack offsets): the exe's frame is 0x14 (ours 0xc) with the triangle count in the dead
-// pLOD argument home; same frame residue as DrawPieceProjected/Untransformed.  The count is decremented before the cursor step
-// (the exe's `test eax,eax` after the `dec`).
-// STUB: D3DREN 0x10003b60
+// The three vertex pointers are an array: its three frame slots stay reserved when pV[0] lives in a register (the exe's 0x14 frame with
+// one unused slot), and the triangle count then takes the dead pLOD argument home.
+// FUNCTION: D3DREN 0x10003b60
 int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
 	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
 	char *pEnd = PoolLastVertex(m_Unk608);
 	ModelTri *pTri = pLOD->m_Tris.GetArray();
 	int nTris = pLOD->m_Tris.GetSize();
+	TLVertex *pV[3];
 	while (nTris)
 	{
-		TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
-		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
-		TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
+		pV[0] = &pVerts[pTri->m_Indices[0]];
+		pV[1] = &pVerts[pTri->m_Indices[1]];
+		pV[2] = &pVerts[pTri->m_Indices[2]];
 		if (m_Unk8b4)
 		{
-			float fCross = (pV1->m_Vec.x - pV0->m_Vec.x) * (pV2->m_Vec.y - pV0->m_Vec.y)
-				- (pV2->m_Vec.x - pV0->m_Vec.x) * (pV1->m_Vec.y - pV0->m_Vec.y);
+			float fCross = (pV[1]->m_Vec.x - pV[0]->m_Vec.x) * (pV[2]->m_Vec.y - pV[0]->m_Vec.y)
+				- (pV[2]->m_Vec.x - pV[0]->m_Vec.x) * (pV[1]->m_Vec.y - pV[0]->m_Vec.y);
 			if (g_ViewParams.m_bCullFlip)
 				fCross = -fCross;
 			if (!(fCross > g_CV_ModelMinTri.m_FloatVal))
 				goto Skip;
 		}
-		pOut->m_Vec = pV0->m_Vec;
-		pOut->rhw = pV0->rhw;
-		pOut->color = pV0->color;
+		pOut->m_Vec = pV[0]->m_Vec;
+		pOut->rhw = pV[0]->rhw;
+		pOut->color = pV[0]->color;
 		pOut->specular = m_Unk640;
-		m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
+		m_Unk5f4(pOut, pV[0], &pTri->m_UVs[0].tu);
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-		pOut->m_Vec = pV1->m_Vec;
-		pOut->rhw = pV1->rhw;
-		pOut->color = pV1->color;
+		pOut->m_Vec = pV[1]->m_Vec;
+		pOut->rhw = pV[1]->rhw;
+		pOut->color = pV[1]->color;
 		pOut->specular = m_Unk640;
-		m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
+		m_Unk5f4(pOut, pV[1], &pTri->m_UVs[1].tu);
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
-		pOut->m_Vec = pV2->m_Vec;
-		pOut->rhw = pV2->rhw;
-		pOut->color = pV2->color;
+		pOut->m_Vec = pV[2]->m_Vec;
+		pOut->rhw = pV[2]->rhw;
+		pOut->color = pV[2]->color;
 		pOut->specular = m_Unk640;
-		m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
+		m_Unk5f4(pOut, pV[2], &pTri->m_UVs[2].tu);
 		pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
 		if ((char *)pOut > pEnd && nTris > 1)
 		{
