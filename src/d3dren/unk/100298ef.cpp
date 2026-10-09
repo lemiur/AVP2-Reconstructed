@@ -733,8 +733,11 @@ void DrawPolyMgr::DrawPolyFirstPass(WorldPoly *pPoly, UnkType_DPMPass *pPass, in
 
 // guess: draws pPoly in a later pass: the vertices are rebuilt from the QVerts the first pass kept (the polygon was already
 // projected there), the colour, fog and texture coordinates of this pass are computed again, the textures bound and the fan drawn
-/// STUB diagnosis: 550 vs 553 bytes, 85 aligned mismatches ignoring stack offsets (104 with); the vertex source is walked
-// with pSrc++ in both loops (the exe's `add ebx, 0x18` / `add [ebp-0xc], 0x18`).  The queued-vertex range is read with
+/// STUB diagnosis: 549 vs 553 bytes, 70 aligned mismatches ignoring stack offsets (97 with).  The vertex source is walked with
+// pSrc++ (the exe's `add ebx, 0x18` / `add [ebp-0xc], 0x18`); the two QVert loops write through their own cursor pOut from aVerts
+// (pVerts keeps aVerts / the clipper's output for DrawPrimitive, no reset), position and rhw copied as members (3 movsd + mov).
+// Remaining: the exe keeps pPoly in ebx (the bind loop reuses the pPoly slot for the stage pointer), nQVerts shares its slot with the
+// no-clip loop's pSrc, and the frame slot order of nQVerts / i / nVertices differs.  The queued-vertex range is read with
 // LOWORD/HIWORD (the exe's `movzx` of the count and separate dword load of the start; the masked form loads once); with it pPass is in
 // edi as in the exe.  The vertex buffer is 0x80 vertices of 0x28 bytes
 // (0x1400): that gives the exe's frame 0x1424.  The exe copies `this` (`mov edx,ecx`) and indexes the three callback tables with absolute displacements in a
@@ -748,6 +751,7 @@ void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPas
 	int nVertices;
 	int i;
 	uint32 j;
+	TLVertex *pOut;
 	uint32 iStride = s_VertexSizes[pPass->m_nStages];
 	UnkType_DPMColorFn pfnColor = s_ColorFns[pPass->m_Unk10];
 	UnkType_DPMFogFn pfnFog = *s_FogFns[pPass->m_Unk14];
@@ -787,28 +791,29 @@ void DrawPolyMgr::DrawPolyAdditionalPass(WorldPoly *pPoly, UnkType_DPMPass *pPas
 			return;
 		}
 
-		pVerts = (TLVertex *)aVerts;
+		pOut = (TLVertex *)aVerts;
 		for (i = 0; i < nVertices; i++)
 		{
-			*(QVert *)pVerts = *pQ;
+			pOut->m_Vec = pQ->pos;
+			pOut->rhw = pQ->w;
 			pQ++;
-			pVerts = (TLVertex *)((uint8 *)pVerts + iStride);
+			pOut = (TLVertex *)((uint8 *)pOut + iStride);
 		}
-		pVerts = (TLVertex *)aVerts;
 	}
 	else
 	{
+		pOut = (TLVertex *)aVerts;
 		for (i = 0; i < nVertices; i++)
 		{
-			*(QVert *)pVerts = *pQ;
-			(this->*pfnColor)(pSrc, pVerts);
-			pfnFog(pSrc->m_Vec, &pVerts->specular);
-			(this->*m_Unk7b8)(pSrc, &pVerts->tu, 0);
+			pOut->m_Vec = pQ->pos;
+			pOut->rhw = pQ->w;
+			(this->*pfnColor)(pSrc, pOut);
+			pfnFog(pSrc->m_Vec, &pOut->specular);
+			(this->*m_Unk7b8)(pSrc, &pOut->tu, 0);
 			pQ++;
 			pSrc++;
-			pVerts = (TLVertex *)((uint8 *)pVerts + iStride);
+			pOut = (TLVertex *)((uint8 *)pOut + iStride);
 		}
-		pVerts = (TLVertex *)aVerts;
 	}
 
 	for (j = 0; j < pPass->m_nStages; j++)
