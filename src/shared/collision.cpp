@@ -24,13 +24,6 @@ int ci_IsSphereInsideBSP(Node **ppNode, LTVector *pCenter, float radius);
 
 #define NUM_BOX_POINTS	8
 
-// Talon spheres keep the radius first.
-struct PhysicsSphere
-{
-	float		m_Radius;
-	LTVector	m_Center;
-};
-
 
 
 // ------------------------------------------------------------------ //
@@ -67,11 +60,9 @@ LTVector g_BoxMax;
 static LTVector g_P0;
 // GLOBAL: LITHTECH 0x004e2490
 static LTVector g_P1;
-// The box's bounding spheres at the start and end of the movement.
-// GLOBAL: LITHTECH 0x004e0ca0
-extern PhysicsSphere g_StartSphere;
-// GLOBAL: LITHTECH 0x004e24b0
-extern PhysicsSphere g_EndSphere;
+// The box's bounding spheres at the start and end of the movement, g_StartSphere and g_EndSphere (collision.h), lie in
+// this unit's .bss but have no definition here: a PhysicsSphere definition (LTVector member) adds a dynamic-initializer
+// group (_$E) the exe doesn't have, which moves g_BoxFindPlanes' initializer (0x00418380).
 // The box's corners at the start and end of the movement.
 // GLOBAL: LITHTECH 0x004e2cc0
 extern LTVector g_MovePts[2][NUM_BOX_POINTS];
@@ -109,7 +100,7 @@ CollideRequest *g_pCurRequest;
 CollideInfo *g_pCurInfo;
 // The radius of the moving box (from its dims).
 // GLOBAL: LITHTECH 0x004e0494
-extern float g_BoxRadius;
+float g_BoxRadius;
 
 // Profiling.
 // GLOBAL: LITHTECH 0x004e24ac
@@ -1560,10 +1551,11 @@ static void SetupMoveBox(LTVector *pMin, LTVector *pMax)
 
 #define MAX_PHYSICS_ITERATIONS	40
 
-// Reset by CollideWithWorld (the profiling counters of the functions below).
-extern uint32 g_Ticks_PolyTouchesBox;
+// Reset by CollideWithWorld (the profiling counters of PolyTouchesBox, clippoly.cpp).
+// GLOBAL: LITHTECH 0x004e0490
+uint32 g_Ticks_PolyTouchesBox;
 // GLOBAL: LITHTECH 0x004e24a8
-extern uint32 g_nPolyTouchesBoxCalls;
+uint32 g_nPolyTouchesBoxCalls;
 // GLOBAL: LITHTECH 0x004e2f70
 uint32 g_Ticks_CollideBoxWithTree;
 // GLOBAL: LITHTECH 0x004e2458

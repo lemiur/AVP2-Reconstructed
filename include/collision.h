@@ -70,6 +70,27 @@ struct CollideInfo
 };
 
 
+// Talon spheres keep the radius first.
+struct PhysicsSphere
+{
+	float		m_Radius;
+	LTVector	m_Center;
+};
+
+// The moving box's bounding spheres at the start and end of the movement (SetupBox).
+// GLOBAL: LITHTECH 0x004e0ca0
+extern PhysicsSphere g_StartSphere;
+// GLOBAL: LITHTECH 0x004e24b0
+extern PhysicsSphere g_EndSphere;
+// The radius of the moving box (from its dims).
+// GLOBAL: LITHTECH 0x004e0494
+extern float g_BoxRadius;
+// PolyTouchesBox's profiling counters (reset by CollideWithWorld).
+// GLOBAL: LITHTECH 0x004e0490
+extern uint32 g_Ticks_PolyTouchesBox;
+// GLOBAL: LITHTECH 0x004e24a8
+extern uint32 g_nPolyTouchesBoxCalls;
+
 // "NewCollision" and "NewStairStep" console variables (the table at 0x004d2424).
 // GLOBAL: LITHTECH 0x004d2164
 extern int32 g_CV_NewCollision;
