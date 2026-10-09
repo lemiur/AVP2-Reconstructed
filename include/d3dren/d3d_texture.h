@@ -48,6 +48,21 @@ void d3d_BindRTexture(RTexture *pRTexture);
 #ifdef D3DREN_SETTEXTURE_EXTERN
 int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLOD);		// 0x100079e4
 #else
+// NAME: d3d_FindRTextureForStage: the RTexture of stage nStage in the chain of a SharedTexture's renderer textures (linked through
+// +0x30, stage word +0x42), or 0.  An inline of this header (d3d_SetTexture expands it); the exe's out-of-line copy is 0x10009350,
+// defined in sys/d3d/drawparticles, which defines D3DREN_FINDRTEXTURE_EXTERN before including this header.
+#ifdef D3DREN_FINDRTEXTURE_EXTERN
+void *d3d_FindRTextureForStage(void *pChain, uint8 nStage);		// 0x10009350
+#else
+inline void *d3d_FindRTextureForStage(void *pChain, uint8 nStage)
+{
+	UnkType_RTexView *pRTexture = (UnkType_RTexView *)pChain;
+	while (pRTexture && pRTexture->m_Unk42 != nStage)
+		pRTexture = pRTexture->m_Unk30;
+	return pRTexture;
+}
+#endif
+
 inline int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLOD)
 {
 	UnkType_RTexView *pRTexture;
@@ -58,34 +73,30 @@ inline int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLO
 
 	pFirst = (UnkType_RTexView *)pTexture->m_pRenderData;
 	pTexture->m_Unknown30 = g_CurTextureFrameCode;
-	for (pRTexture = pFirst; pRTexture; pRTexture = pRTexture->m_Unk30)
+	pRTexture = (UnkType_RTexView *)d3d_FindRTextureForStage(pFirst, (uint8)nStage);
+	if (pRTexture)
 	{
-		if (pRTexture->m_Unk42 == (uint8)nStage)
-			break;
-	}
-
-	if (pRTexture && pRTexture == (UnkType_RTexView *)g_pBoundTextures[nStage])
-	{
+		if (pRTexture != (UnkType_RTexView *)g_pBoundTextures[nStage])
+			goto Bind;
 	}
 	else
 	{
-		if (!pRTexture)
+		if (pFirst)
 		{
-			if (!pFirst)
-			{
-				pRTexture = (UnkType_RTexView *)d3d_CreateAndLoadTexture(pTexture, nStage, 0);
-				if (!pRTexture)
-					return 0;
-			}
-			else
-			{
-				pRTexture = (UnkType_RTexView *)d3d_CreateAndLoadTexture(pTexture, nStage, 1);
-				if (!pRTexture)
-					return 0;
-				pRTexture->m_Unk30 = pFirst->m_Unk30;
-				pFirst->m_Unk30 = pRTexture;
-			}
+			UnkType_RTexView *pNew = (UnkType_RTexView *)d3d_CreateAndLoadTexture(pTexture, nStage, 1);
+			if (!pNew)
+				return 0;
+			pNew->m_Unk30 = pFirst->m_Unk30;
+			pFirst->m_Unk30 = pNew;
+			pRTexture = pNew;
 		}
+		else
+		{
+			pRTexture = (UnkType_RTexView *)d3d_CreateAndLoadTexture(pTexture, nStage, 0);
+			if (!pRTexture)
+				return 0;
+		}
+Bind:
 		d3d_BindRTexture((RTexture *)pRTexture);
 	}
 

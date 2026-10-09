@@ -7,6 +7,7 @@
 // version transforms and clips the particle quads itself and draws them as a TL vertex list), plus the out-of-line copies of
 // SDK matrix inlines it needed (MatMul, LTVector::Init).  A object (16-byte aligned functions): the module default flags.
 // FLAGS: /O2 /Ob2
+#define D3DREN_FINDRTEXTURE_EXTERN	// d3d_texture.h: this object defines the out-of-line d3d_FindRTextureForStage (0x10009350)
 #include <windows.h>
 #include "ltbasedefs.h"
 #include "ltmatrix.h"
