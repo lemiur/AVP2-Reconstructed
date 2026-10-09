@@ -1142,7 +1142,7 @@ void ModelDraw::DrawProjectedModelShadows(uint32 nMaxShadows)
 				if ((m_pInstance->m_HiddenPieces & (1 << iPiece)) == 0)
 				{
 					LTVector vLighting, vMin, vMax;
-					SkinAndLightPieceVertices(pLOD, pLOD2, pVerts, m_Unk5ec, m_pModel->m_Transforms.GetArray(), &vLighting.x, 0, &vMin.x, &vMax.x);
+					SkinAndLightPieceVertices(pLOD, pLOD2, pVerts, m_Unk5ec, m_pModel->m_Transforms.GetArray(), &vLighting, 0, &vMin, &vMax);
 					TLVertex *pV = pVerts;
 					uint32 nVerts = pLOD->m_Verts.GetSize();
 					if (nVerts != 0)

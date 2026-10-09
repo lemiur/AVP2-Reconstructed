@@ -1310,18 +1310,18 @@ void ModelDraw::SelectPieceDrawCallbacks(int a1)
 
 // Grows the bounding box pMin/pMax by the projected vertex.
 #define UPDATE_MODEL_BOUNDS() \
-		if (pDest->m_Vec.x < pMin[0]) \
-			pMin[0] = pDest->m_Vec.x; \
-		else if (pDest->m_Vec.x > pMax[0]) \
-			pMax[0] = pDest->m_Vec.x; \
-		if (pDest->m_Vec.y < pMin[1]) \
-			pMin[1] = pDest->m_Vec.y; \
-		else if (pDest->m_Vec.y > pMax[1]) \
-			pMax[1] = pDest->m_Vec.y; \
-		if (pDest->m_Vec.z < pMin[2]) \
-			pMin[2] = pDest->m_Vec.z; \
-		else if (pDest->m_Vec.z > pMax[2]) \
-			pMax[2] = pDest->m_Vec.z;
+		if (pDest->m_Vec.x < pMin->x) \
+			pMin->x = pDest->m_Vec.x; \
+		else if (pDest->m_Vec.x > pMax->x) \
+			pMax->x = pDest->m_Vec.x; \
+		if (pDest->m_Vec.y < pMin->y) \
+			pMin->y = pDest->m_Vec.y; \
+		else if (pDest->m_Vec.y > pMax->y) \
+			pMax->y = pDest->m_Vec.y; \
+		if (pDest->m_Vec.z < pMin->z) \
+			pMin->z = pDest->m_Vec.z; \
+		else if (pDest->m_Vec.z > pMax->z) \
+			pMax->z = pDest->m_Vec.z;
 
 // Lights the vertex: the directional light (between the shadow and the lit colour) plus the model lights, clamped to 255, added
 // to the piece's light sum; then the per-vertex generator.
@@ -1348,9 +1348,7 @@ void ModelDraw::SelectPieceDrawCallbacks(int a1)
 				vColor.y = 255.0f; \
 			if (vColor.z > 255.0f) \
 				vColor.z = 255.0f; \
-			pLighting[0] += vColor.x; \
-			pLighting[1] += vColor.y; \
-			pLighting[2] += vColor.z; \
+			*pLighting += vColor; \
 			pDest->rgb.r = (uint8)RoundFloatToInt(vColor.x); \
 			pDest->rgb.g = (uint8)RoundFloatToInt(vColor.y); \
 			pDest->rgb.b = (uint8)RoundFloatToInt(vColor.z); \
@@ -1363,11 +1361,11 @@ void ModelDraw::SelectPieceDrawCallbacks(int a1)
 // With the LOD blend enabled (m_bLODBlend) every vertex is the m_fLODBlend blend of the vertex of pLOD and its replacement in pLOD2.
 // Not matching (4240 vs 4256 bytes; frame and ebp slots as the exe): register allocation.  The exe keeps `this` in ebx (spilled to
 // [ebp-4] where the first skin loop of the blend copies needs ebx for pTransforms), computes the replacement vertex before the skin
-// loop and walks pVert from +0x18; ours keeps `this` in edi and computes pVertB after the loop.  pLighting/pMin/pMax are LTVector* in
-// the original (the exe initialises pMax through an LTVector temporary; drawmodelshadows passes &v.x): kept float* here.
+// loop and walks pVert from +0x18; ours keeps `this` in edi and computes pVertB after the loop.  pLighting/pMin/pMax are LTVector*
+// (the exe initialises pMin with Init and pMax through an LTVector temporary).
 // STUB: D3DREN 0x10004660
 void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, PFN_GenTexCoords pfnPerVertex, LTMatrix *pTransforms,
-	float *pLighting, char bBounds, float *pMin, float *pMax)
+	LTVector *pLighting, char bBounds, LTVector *pMin, LTVector *pMax)
 {
 	LTVector vDir = m_DirLightDir * m_DirLightAmount;
 	LTVector vBase = m_AmbientLight * m_ObjectColor + m_LightAdd;
@@ -1405,8 +1403,8 @@ void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVer
 	}
 	else
 	{
-		pMin[0] = pMin[1] = pMin[2] = 100000.0f;
-		pMax[0] = pMax[1] = pMax[2] = -100000.0f;
+		pMin->Init(100000.0f, 100000.0f, 100000.0f);
+		*pMax = LTVector(-100000.0f, -100000.0f, -100000.0f);
 		if (m_bLODBlend)
 		{
 			ModelVert *pVerts2 = pLOD2->m_Verts.GetArray();
@@ -1469,20 +1467,20 @@ void ModelDraw::PrepareModelPieceVertices()
 					bBounds = 0;
 				else
 					bBounds = 1;
-				float vMin[3], vMax[3];
-				SkinAndLightPieceVertices(pLOD, pLODB, m_Unk82c + iVertBase, m_Unk5ec, pTransforms, &m_pInstance->m_ModelLighting.x, bBounds, vMin, vMax);
+				LTVector vMin, vMax;
+				SkinAndLightPieceVertices(pLOD, pLODB, m_Unk82c + iVertBase, m_Unk5ec, pTransforms, &m_pInstance->m_ModelLighting, bBounds, &vMin, &vMax);
 				if (bBounds)
 				{
 					// the 8 corners of the bounding box (bit 2: x, bit 1: y, bit 0: z from vMax) against the six clip planes
 					LTVector pts[8];
-					pts[0].Init(vMin[0], vMin[1], vMin[2]);
-					pts[1].Init(vMin[0], vMin[1], vMax[2]);
-					pts[2].Init(vMin[0], vMax[1], vMin[2]);
-					pts[3].Init(vMin[0], vMax[1], vMax[2]);
-					pts[4].Init(vMax[0], vMin[1], vMin[2]);
-					pts[5].Init(vMax[0], vMin[1], vMax[2]);
-					pts[6].Init(vMax[0], vMax[1], vMin[2]);
-					pts[7].Init(vMax[0], vMax[1], vMax[2]);
+					pts[0].Init(vMin.x, vMin.y, vMin.z);
+					pts[1].Init(vMin.x, vMin.y, vMax.z);
+					pts[2].Init(vMin.x, vMax.y, vMin.z);
+					pts[3].Init(vMin.x, vMax.y, vMax.z);
+					pts[4].Init(vMax.x, vMin.y, vMin.z);
+					pts[5].Init(vMax.x, vMin.y, vMax.z);
+					pts[6].Init(vMax.x, vMax.y, vMin.z);
+					pts[7].Init(vMax.x, vMax.y, vMax.z);
 					int nIn;
 #define BOX_CLIP_TEST(T) \
 					nIn = T(0) + T(1) + T(2) + T(3) + T(4) + T(5) + T(6) + T(7); \

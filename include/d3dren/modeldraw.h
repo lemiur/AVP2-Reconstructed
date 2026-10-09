@@ -149,7 +149,7 @@ public:
 
 	// guess: skins, lights and projects the vertices of one piece (see PrepareModelPieceVertices, its only caller).
 	void SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, PFN_GenTexCoords pfnPerVertex, LTMatrix *pTransforms,
-		float *pLighting, char bBounds, float *pMin, float *pMax);
+		LTVector *pLighting, char bBounds, LTVector *pMin, LTVector *pMax);
 
 	// guess: per piece of the model: skin/light/project it into m_Unk82c and decide which of the draw callback variants it needs.
 	void PrepareModelPieceVertices();
