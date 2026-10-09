@@ -146,6 +146,10 @@ static inline uint32 GetDrawerObjectFlags(const ObjectDrawer &d)
 // and static-list initialization. The loop's portal guard/load schedule, index registers and final
 // counter epilogue still differ. The callback-local drawer reference preserves both field reads
 // before the call. ALIGNED 22/22; the independently reviewed sort remains exact.
+// The exe's loop is the portal guard (reading s_TransObjList[i].m_pObject->m_Flags2), then a fresh read of the object pointer
+// whose flags DWORD serves both tests and which is passed to the callback (`LTObject *pObject = s_TransObjList[i].m_pObject;
+// uint32 flags = pObject->m_Flags;` inside the guard): that reproduces the loop's registers exactly, but VC6 then keeps the
+// constant 0 in ebx for the whole function (push ebx, cmp/push/mov with ebx: 355 differing bytes), which the exe does not.
 void d3d_FlushObjectQueues()
 {
 	g_pStruct->Unknown24();
