@@ -76,6 +76,7 @@ class UnkType_RTextureData : public RTextureBase
 {
 public:
 	UnkType_RTextureData() {}										// 0x1001e900 (out of line copy: vptr only)
+	virtual ~UnkType_RTextureData() {}								// 0x10020350 (out of line copy: base vptr only)
 
 	virtual int		IsRTexture();									// 0x1001e6f0: returns 1
 	virtual int		IsFullbrite();									// 0x1001e700

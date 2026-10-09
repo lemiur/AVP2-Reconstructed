@@ -800,11 +800,9 @@ char *d3d_AddToString(char *pStr, const char *pToAdd)
 // d3d_CreateMipmapTextureSurface, ObjectBank::Allocate (folded with AllocVoid, 0x10021c80), the UnkType_RTextureData assignment,
 // CheapLTLink::AddAfter) stay calls.
 // NAME: names_proposal.csv d3d_CreateAndLoadTexture (medium, Jupiter d3d_texture.cpp)
-// NOT MATCHING: the exe also calls the UnkType_RTextureData destructor at each exit of the expanded body (the implicit one is 17u,
-// free, expanded).  An explicit `virtual ~UnkType_RTextureData() {}` (43u) gives this function the exe's size and call set (52
-// mismatches, registers) but then CTextureManager_CreateRTexture's copy refuses sb_Allocate and one more IsS3TCFormatSupported (its
-// dtor sites take budget); not adopted.  Also `not al; movsx` in the format choice.
-// STUB: D3DREN 0x1001fff0
+// The explicit UnkType_RTextureData destructor (43u) is refused here, so each exit of the expanded body calls it out of line
+// (0x10020350), as the exe does.
+// FUNCTION: D3DREN 0x1001fff0
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageFlags, uint8 bAdditional)
 {
 	RTexture *pRTexture = 0;
@@ -838,9 +836,8 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 // FUNCTION: D3DREN 0x10020330 ?AddAfter@CheapLTLink@@QAEXPAV1@@Z
 // FUNCTION: D3DREN 0x10020350 ??1UnkType_RTextureData@@UAE@XZ
 // FUNCTION: D3DREN 0x10020fb0 ??4UnkType_RTextureData@@QAEAAV0@ABV0@@Z
-// STANDIN: forces the out-of-line copy of the implicit UnkType_RTextureData destructor, which d3d_CreateAndLoadTexture calls out of
-// line in the exe (at every exit of the expanded CTextureManager_CreateRTexture) and expands in our build; with inline_depth(0) the
-// copy comes out byte-identical to the exe's.  It also emits the constructor copy 0x1001e900 (d3d_CreateLightmapRTexture's call).
+// STANDIN: forces the out-of-line copy of the UnkType_RTextureData constructor 0x1001e900 (d3d_CreateLightmapRTexture's call in the
+// exe; our d3d_CreateLightmapRTexture expands it).  With inline_depth(0) the copy comes out byte-identical to the exe's.
 // (not in d3d.ren)
 #pragma inline_depth(0)
 void StandIn_RTextureInlines()
@@ -1305,7 +1302,7 @@ inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, u
 	UnkType_RTextureData data;
 	RTexture *pRTexture;
 	int iFormat;
-	int iStartMipmap, nMipmaps, nAvailable, i;
+	int iStartMipmap, nMipmaps, nAvailable;
 
 	if (nStageFlags & 0x100)
 	{
@@ -1315,15 +1312,16 @@ inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, u
 	}
 	else
 	{
-		uint32 dtxFlags = pTextureData->m_Flags;
-		if (!(dtxFlags & DTX_PREFER16BIT) && g_32BitTextures && g_TextureFormats[FORMAT_32BIT])
+		if (!(pTextureData->m_Header.m_IFlags & DTX_PREFER16BIT) && g_32BitTextures && g_TextureFormats[FORMAT_32BIT])
 			iFormat = FORMAT_32BIT;
-		else if (dtxFlags & DTX_PREFER5551)
+		else if (pTextureData->m_Header.m_IFlags & DTX_PREFER5551)
 			iFormat = FORMAT_FULLBRITE;
-		else if (dtxFlags & DTX_PREFER4444)
+		else if (pTextureData->m_Header.m_IFlags & DTX_PREFER4444)
 			iFormat = FORMAT_4444;
+		else if (pTextureData->m_Header.m_IFlags & DTX_FULLBRITE)
+			iFormat = FORMAT_FULLBRITE;
 		else
-			iFormat = ((~dtxFlags & DTX_FULLBRITE) << 1) | 1;
+			iFormat = FORMAT_NORMAL;
 	}
 
 	memset(&data, 0, sizeof(data));
@@ -1386,9 +1384,10 @@ inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, u
 		pRTexture->m_DetailTextureAngleC = (float)cos(fAngle);
 		pRTexture->m_DetailTextureAngleS = (float)sin(fAngle);
 	}
+	uint32 nBytesPPShift = g_TextureFormats[iFormat]->m_BytesPPShift;
 	pRTexture->m_Data.m_nMemory = 0;
-	for (i = iStartMipmap; i < iStartMipmap + nMipmaps; i++)
-		pRTexture->m_Data.m_nMemory += (pTextureData->m_Mips[i].m_Width * pTextureData->m_Mips[i].m_Height) << g_TextureFormats[iFormat]->m_BytesPPShift;
+	for (uint32 i = iStartMipmap; i < (uint32)(iStartMipmap + nMipmaps); i++)
+		pRTexture->m_Data.m_nMemory += (pTextureData->m_Mips[i].m_Width * pTextureData->m_Mips[i].m_Height) << nBytesPPShift;
 	pRTexture->m_pSharedTexture = pBuild->m_pSharedTexture;
 	if (!(bAdditional & 1))
 		pBuild->m_pSharedTexture->m_pRenderData = pRTexture;
