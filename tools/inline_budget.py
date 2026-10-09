@@ -1,4 +1,5 @@
-r"""VC6 inline-budget model and oracle (wave 7; wave 8: hashed cost cache, ICF, STLport/header templates, margins).
+r"""VC6 inline-budget model and oracle (wave 7; wave 8: hashed cost cache, ICF, STLport/header templates, margins;
+wave 9: tail exemption R11, auto-inline cap R12, non-tail cost probes, /O1 refused, --validate --all).
 
   python tools/inline_budget.py <function name or hex address> [options]
       -v          print the whole site tree (default: top level + every site whose decision differs)
@@ -15,6 +16,9 @@ r"""VC6 inline-budget model and oracle (wave 7; wave 8: hashed cost cache, ICF, 
       --cost NAME=U        what-if: use cost U for a callee (mangled or undecorated name; repeatable)
   python tools/inline_budget.py --validate [names...]
       run the model on matched functions (default: NOTES.md's inline cases) and score its predictions
+  python tools/inline_budget.py [--module d3dren] --validate --all [unit filter] [-v]
+      every matched (FUNCTION) annotation of the module's /O2 /Ob2 units, one unit at a time (the d3dren default);
+      /O1 units are refused and counted as skipped
   python tools/inline_budget.py --variants <function> <variants.py> [--sweep]
       score vtry-style source variants in memory (the source file is never touched): B, size, model and build
       out-of-line calls vs the exe
@@ -79,6 +83,30 @@ THE MODEL (measured with toy programs in wave 7; u = 1/6 of `g[3] = 1;`)
  R10 A callee compiled earlier in the file costs the same (its pre-optimisation size), but VC6 can delete a call
     of a known side-effect-free function whose result is unused (or a ctor on a dead local) - the tool's cost
     probes therefore use every result.
+ R11 (wave 9) Tail exemption. A site in tail position of the compiled function (only the function exit follows it: the
+    last statement, the end of an if/else arm or switch case, `x(); return;`, dead local stores after it, `return
+    <its own result>`, also through a local or a ?: temporary, an inline call without code after it) is inlined
+    whatever its cost. Loops, `return 0;` after a void call, struct returns, stores, real calls or local destructors
+    after it are not tail. Only a call that passes no argument on the stack escapes (stack_args: no parameters, `this`
+    alone, or __fastcall with at most two integral/pointer ones); `h(3)` or `gc.m(3)` in tail position keep the
+    budget (measured: inline and extern, any size). A nested site is tail when it is tail in its parent's body and the parent is tail. A tail
+    site that fits its limit is charged and shares as usual; one that does not fit charges nothing and its whole
+    expansion is inlined without budget (every site under it). The tree reads tail positions from the /Od listing
+    (is_tail). Tail exemption also inlines a non-inline function over the R12 cap.
+ R12 (wave 9) Auto-inlining under /Ob2. A non-inline function defined in the unit is a candidate: one with external
+    linkage (also an out-of-class member) or a static one referenced more than once only up to AUTO_CAP = 174u
+    (size; 175u never inlines) and then within the usual limit (min(cap, limit)); a static function referenced once
+    gets the full limit like an inline one. A function over the cap is no candidate: not inlined (except in tail
+    position, R11) and not a pending site for R8. Definition order does not matter. Over-cap sizes are measured
+    inside the function (measure_own_sizes). `static inline` functions are no COMDATs but inline candidates
+    (mark_static_inline). VC6's /O2 alone means /Ob1 (no auto-inlining): R12 applies to the renderer's /O2 /Ob2
+    units, not to the engine's /O2 ones (ob_level).
+ Cost probes (wave 9). The wrapper probe used to call R() as W's last statement: R was in tail position, so a
+    callee whose call is a void statement (R's last) escaped the budget, and R itself escaped it near the top of
+    the search range (call expressions over ~30u): both read as free (tools/inline_rules.py `ctor`).
+    R() now comes first in W; ICF copies are emitted with a non-inline call after the callee.
+ /O1 units (also /O1 /Ob2) are refused: /O1 judges every site alone (no cumulative budget) with other size weights
+    (6 global stores inline, 7 not; 3 ext() calls, 57 empty blocks); measured with tools/inline_rules.py --flags /O1.
 
 READING A RESULT
  - Our build vs the model: they agree on 99% of sites (--validate); a disagreement is usually a site within a
@@ -130,6 +158,8 @@ NAMEMAPS = [os.path.join(build.BUILD, 'namemap.json')] + (
 PROBE_TIMEOUT = 180                     # seconds per probe compile (a hung CL.EXE is killed)
 FLAGS_OVERRIDE = []                     # --flags "/O1 /Ob2": replaces the unit's optimisation flags for every probe (what-if)
 FLOOR, FREE, MAXDEPTH = 1000, 40, 8
+AUTO_CAP = 174                          # R12: largest size (u) at which /Ob2 auto-inlines a non-inline function (extern, or static
+                                        # referenced more than once): 174 inlines, 175 never (both compilers)
 ERR = float(os.environ.get('IB_ERR', 2))          # u: decisions within +-ERR of their limit are "undecided"
 BCORR = int(os.environ.get('IB_BCORR', 0))     # experiment: subtract the probe call's 2 x 4u from a measured B
 INTDIV = bool(os.environ.get('IB_INTDIV'))     # experiment: truncate every share to an integer
@@ -198,27 +228,199 @@ class CompileError(Exception):
     pass
 
 
+class Listing(dict):
+    """parse_listing's result: {mangled: info}; .refs = {symbol: references in code (calls, OFFSET/DD uses)},
+    .public = symbols with a PUBLIC directive (external linkage; a static function has none)."""
+    refs, public = None, None
+
+
 def parse_listing(asm):
-    """{mangled: {'comdat': bool, 'calls': [mangled...], 'desc': str}} from a /FAs listing (call/jmp to symbols)."""
-    funcs, cur, body = {}, None, None
+    """{mangled: {'comdat': bool, 'calls': [mangled...], 'tails': [bool...], 'line': first source line, 'desc': str}}
+    from a /FAs listing (call/jmp to symbols). 'tails' says, per call, whether the call is in tail position of the
+    function (see is_tail; meaningful in an /Od listing)."""
+    funcs, cur, body = Listing(), None, None
+    funcs.refs, funcs.public = {}, set()
+    code = None
     for line in asm.splitlines():
+        m = re.match(r'^PUBLIC\s+(\S+)', line)
+        if m:
+            funcs.public.add(m.group(1))
+            continue
         m = re.match(r'^(\S+)\s+PROC NEAR(.*)$', line)
         if m:
             cur = m.group(1)
-            funcs[cur] = {'comdat': 'COMDAT' in m.group(2), 'calls': [], 'desc': m.group(2).strip(' ;\t')}
+            funcs[cur] = {'comdat': 'COMDAT' in m.group(2), 'calls': [], 'desc': m.group(2).strip(' ;\t'),
+                          'line': None}
             body = hashlib.sha1()
+            code = []
             continue
         if re.match(r'^\S+\s+ENDP', line):
             if cur:
                 funcs[cur]['h'] = body.hexdigest()[:16]
+                funcs[cur]['code'] = code
             cur = None
             continue
         if cur:
             body.update(_norm_line(line).encode('latin1') + b'\n')
+            ml = re.match(r'^;\s*(\d+)\s*:', line)
+            if ml and funcs[cur]['line'] is None:
+                funcs[cur]['line'] = int(ml.group(1))
+            ins = line.split(';')[0].strip()
+            if ins:
+                code.append(ins)
             m = re.match(r'^\s+(call|jmp)\s+(?:DWORD PTR\s+)?(\?\S+|_\w\S*)', line)
             if m and not m.group(2).startswith('__imp_'):
                 funcs[cur]['calls'].append(m.group(2))
+        for s in re.findall(r'(?:\bcall\s+(?:DWORD PTR\s+)?|\bjmp\s+|OFFSET FLAT:|\bDD\s+(?:FLAT:)?)(\?[^\s,;]+|_\w[^\s,;]*)',
+                            line.split(';')[0]):
+            funcs.refs[s] = funcs.refs.get(s, 0) + 1
+    for name, f in funcs.items():
+        f['tails'] = tail_flags(f.get('code', []), funcs, ret_kind(name))
     return funcs
+
+
+# ----------------------------------------------------------------------------- tail position
+# Measured (tools/inline_rules.py `tail`, both compilers, /O2 /Ob2): a call site from which only the function exit follows
+# is inlined whatever its cost (it escapes the budget). What may follow it: `return;`, the end of an if/else arm or a
+# switch case, dead local stores, `return <its own result>` (also through a local: `int r = f(); return r;`), and calls
+# of inline functions without code (an empty `pend()`). Not tail: loops (`while(x) f();`), `return 0;` after a void
+# call, a struct returned by value, any store or real call after it, a local's destructor at scope end. The /Od listing
+# shows exactly this: after the call, nothing but stack cleanup, local stores, reloads of the result, jumps and the
+# epilogue.
+
+_LOCAL = r'(?:(?:BYTE|WORD|DWORD|QWORD|TBYTE) PTR )?[\w$+-]*\[ebp(?:[+-]\d+)?\]'     # the frame: locals, temporaries, parameters
+_EPILOGUE = re.compile(r'^(pop\s+\w+|mov\s+esp, ebp|leave)$')
+
+
+def _empty_fn(name, funcs, depth=0):
+    """True for a function of the listing whose code has no effect (no stores outside its frame, no calls except of
+    other empty functions): an inlined copy of it leaves no code, so a site before it is still in tail position."""
+    f = funcs.get(name)
+    if f is None or depth > 4 or not f.get('comdat'):
+        return False
+    for ins in f.get('code', []):
+        op = ins.split()[0]
+        if op == 'call':
+            t = ins.split()[-1]
+            if not _empty_fn(t, funcs, depth + 1):
+                return False
+        elif op in ('mov', 'fstp', 'fst', 'fistp', 'movsd', 'movsb', 'rep', 'inc', 'dec', 'add', 'sub', 'and', 'or',
+                    'xor', 'shl', 'shr', 'sar', 'neg', 'not'):
+            args = ins[len(op):].strip()
+            dst = args.split(',')[0].strip()
+            if 'PTR' in dst or '[' in dst:
+                if not re.match(_LOCAL + '$', dst) and not re.search(r'\[ebp', dst):
+                    return False
+            elif op in ('rep', 'movsd', 'movsb'):
+                return False
+    return True
+
+
+def ret_kind(mangled):
+    """How a function returns (from its undecorated signature): 'void' (also ctors/dtors and unknown), 'eax'
+    (scalars, pointers, references), 'st0' (float/double) or 'struct' (a class by value)."""
+    sig = undecorate(mangled, UND_FULL) if mangled.startswith('?') else ''
+    m = re.match(r'^(?:(?:public|protected|private): )?(?:static |virtual )?(.*?)(?:__thiscall|__cdecl|__stdcall|__fastcall) ',
+                 sig)
+    ret = re.sub(r'\b(class|struct|union|enum) ', '', (m.group(1) if m else '')).strip()
+    ret = re.sub(r'\bconst\b', '', ret).strip()
+    if ret in ('', 'void'):
+        return 'void'
+    if ret.endswith('*') or ret.endswith('&'):
+        return 'eax'
+    if ret in ('float', 'double', 'long double'):
+        return 'st0'
+    if any(ret.startswith(x) or (' ' + x) in (' ' + ret) for x in SCALARS):
+        return 'eax'
+    return 'struct'
+
+
+def is_tail(code, i, funcs=None, kind='void'):
+    """Is the call at code[i] (an /Od listing's instructions, labels included) in tail position of a function that
+    returns `kind` (ret_kind)?"""
+    if kind == 'struct':
+        return False
+    labels = {}
+    for j, ins in enumerate(code):
+        m = re.match(r'^(\$?\w+):$', ins)
+        if m:
+            labels[m.group(1)] = j
+    res = set()               # locals holding the call's result
+    eax_ok = st0_ok = True    # the register still holds the call's result
+    seen = set()
+    j = i + 1
+    while j < len(code):
+        ins = code[j]
+        j += 1
+        if ins.endswith(':'):
+            continue
+        parts = ins.split(None, 1)
+        op, args = parts[0], (parts[1] if len(parts) > 1 else '').strip()
+        if op == 'ret':
+            return kind == 'void' or (eax_ok if kind == 'eax' else st0_ok)
+        if op == 'jmp':
+            t = args.replace('SHORT ', '').strip()
+            if t not in labels or t in seen:
+                return False
+            seen.add(t)
+            j = labels[t] + 1
+            continue
+        if _EPILOGUE.match(ins) or op == 'add' and args.startswith('esp,'):
+            continue
+        if op == 'push':
+            continue
+        if op == 'lea':
+            if args.startswith('eax'):
+                eax_ok = False
+            continue
+        if op == 'call':
+            if funcs is not None and _empty_fn(args, funcs):
+                eax_ok = False
+                continue
+            return False
+        if op in ('fstp', 'fst'):
+            if re.match(_LOCAL + '$', args):
+                if st0_ok:
+                    res.add(args)
+                else:
+                    res.discard(args)
+                if op == 'fstp':
+                    st0_ok = False
+                continue
+            if args == 'ST(0)':
+                st0_ok = False
+                continue
+            return False
+        if op == 'fld':
+            st0_ok = args in res
+            continue
+        if op == 'mov':
+            dst, _, src = args.partition(',')
+            dst, src = dst.strip(), src.strip()
+            if re.match(_LOCAL + '$', dst) or dst.startswith('DWORD PTR fs:'):
+                if src == 'eax' and eax_ok:
+                    res.add(dst)
+                else:
+                    res.discard(dst)
+                continue
+            if dst == 'eax':
+                eax_ok = src in res
+                continue
+            if dst in ('ecx', 'edx', 'esi', 'edi', 'ebx'):
+                continue
+            return False
+        return False
+    return False
+
+
+def tail_flags(code, funcs=None, kind='void'):
+    """[tail?] for every call/jmp-to-symbol of a function's code (parallel to parse_listing's 'calls')."""
+    out = []
+    for i, ins in enumerate(code):
+        m = re.match(r'^(call|jmp)\s+(?:DWORD PTR\s+)?(\?\S+|_\w\S*)', ins)
+        if m and not m.group(2).startswith('__imp_'):
+            out.append(is_tail(code, i, funcs, kind))
+    return out
 
 
 def _norm_line(line):
@@ -287,7 +489,7 @@ def fn_symbol(listing, unit_ann_name, mangled=None):
 
 # ----------------------------------------------------------------------------- probes
 
-PROBE_DATA = 'int __ib_g[8000];\nvoid *__ib_p;\n'
+PROBE_DATA = 'int __ib_g[8000];\nvoid *__ib_p;\nvoid __ib_x();\n'
 
 
 def fine_body(W, arr='__ib_g', base=0):
@@ -475,7 +677,7 @@ def _load_all():
         return {}
 
 
-PROBE_VERSION = 'w8.2'      # bump when call_expr or the probe layout changes: every cached entry is re-measured
+PROBE_VERSION = 'w9.1'      # bump when call_expr or the probe layout changes: every cached entry is re-measured
 
 
 def cost_key(unit, mangled, body_hash):
@@ -513,10 +715,14 @@ BW_STORES = 500                   # wrapper ballast: B(W) = 2*(12 + 6*500 + 4) =
 BW = 2 * (12 + 6 * BW_STORES + 4)
 
 
-def measure_costs(unit, text, callees, hashes=None, log=print, jobs=6):
+def measure_costs(unit, text, callees, hashes=None, log=print, jobs=6, kinds=None, lst=None):
     """{mangled: cost} for callees, via wrappers appended to the unit. hashes: {mangled: hash of the callee's /Od
-    listing} (parse_listing's 'h'); the cache is keyed by cost_key(name, that hash, unit flags)."""
+    listing} (parse_listing's 'h'); the cache is keyed by cost_key(name, that hash, unit flags). kinds: {callee: site
+    kind}; an 'auto'/'once' callee the wrapper never inlines is over the auto-inline cap (R12): its own size is measured
+    with measure_own_sizes (needs `lst`, the /Od listing) and it is marked over_cap."""
     hashes = hashes or {}
+    kinds = kinds or {}
+    over = []
     keyof = {c: cost_key(unit, c, hashes.get(c, '?')) for c in callees}
     stored = load_costs(unit)
     cache = {c: stored[keyof[c]] for c in callees if keyof[c] in stored}
@@ -546,8 +752,10 @@ def measure_costs(unit, text, callees, hashes=None, log=print, jobs=6):
         t = head[0] + text + tail
         for i, c in enumerate(exprs):
             if c in Ws:
-                t += 'inline void __ib_R%d() {\n%s\t%s\n}\nvoid __ib_W%d() {\n%s\t__ib_R%d();\n}\n' % (
-                    i, fine_body(Ws[c]), exprs[c], i, lift, i)
+                # R() comes first in W, before the lift stores: in tail position (R11) R and the callee would be
+                # inlined whatever their cost, and every callee whose call is a statement would read as free
+                t += 'inline void __ib_R%d() {\n%s\t%s\n}\nvoid __ib_W%d() {\n\t__ib_R%d();\n%s}\n' % (
+                    i, fine_body(Ws[c]), exprs[c], i, i, lift)
             if c in Wp:
                 t += probe_def('__ib_Q%d' % i, Wp[c])
                 t += 'void __ib_S%d() {\n\t__ib_Q%d();\n%s\t%s\n}\n' % (i, i, lift, exprs[c])
@@ -612,6 +820,9 @@ def measure_costs(unit, text, callees, hashes=None, log=print, jobs=6):
             for f in fe:
                 we.update(f.result())
         for c in keys:
+            if wc.get(c) is None and kinds.get(c) in ('auto', 'once') and lst is not None:
+                over.append(c)          # R12: over the auto-inline cap; its size is measured below
+                continue
             if wc.get(c) is None or we.get(c) is None:
                 cache[c] = {'cost': None, 'why': 'never inlined'}
                 continue
@@ -623,59 +834,243 @@ def measure_costs(unit, text, callees, hashes=None, log=print, jobs=6):
             if wc[c] >= BW - 42 or cost <= FREE:       # inlined with a limit <= 30u: free (or __forceinline)
                 cache[c]['cost'] = min(int(round(cost)), FREE)
                 cache[c]['free'] = True
+    if over:
+        log('measuring the size of %d non-inline callees over the %du auto-inline cap ...' % (len(over), AUTO_CAP))
+        sizes = measure_own_sizes(unit, text, lst, over)
+        for c in over:
+            sz = sizes.get(c)
+            cache[c] = {'cost': None if sz is None else int(round(sz)), 'over_cap': True,
+                        'why': 'over the %du auto-inline cap%s' % (AUTO_CAP, '' if sz is not None else '; size not measurable')}
     save_costs(unit, {keyof[c]: cache[c] for c in callees if c in cache and c not in FIXED_COSTS and c in hashes})
     return {c: cache[c] for c in callees}
+
+
+OWN_LIFT = 100      # stores put at the start of a measured function: B = 2 x (size + 4 + 6 x OWN_LIFT) > 1000 for any size
+
+
+def measure_own_sizes(unit, text, lst, names):
+    """{name: size(F) in u} of functions defined in the unit (non-inline ones over the auto-inline cap, which the wrapper
+    probe cannot inline): a probe call plus OWN_LIFT stores go first in each body, B(F) is measured as measure_B does and
+    size(F) = B / 2 - 4 - 6 x OWN_LIFT.  `#pragma auto_inline(off)` keeps each one out of line (an inline probe still
+    expands into it).  The body is found from the /Od listing's first source line (`lst`); a function whose line does not
+    lead to its body is left out."""
+    pos = {}
+    for n in names:
+        ln = (lst.get(n) or {}).get('line')
+        if not ln:
+            continue
+        try:
+            p = body_start(text, ln)
+        except ValueError:
+            continue
+        # the '{' must be on the listing's line or the next few (a header's line numbers point elsewhere in the unit)
+        if text.count('\n', sum(len(l) + 1 for l in text.split('\n')[:ln - 1]), p) > 3:
+            continue
+        pos[n] = p
+    if not pos:
+        return {}
+    idx = {n: i for i, n in enumerate(pos)}
+    lift = ''.join('\t__ib_g[%d]=%d;\n' % (6000 + i, i + 1) for i in range(OWN_LIFT))
+    order = sorted(pos, key=lambda n: -pos[n])
+
+    def src(ws):
+        t = text
+        for n in order:
+            t = t[:pos[n]] + '\n\t__ib_P%d();\n%s' % (idx[n], lift) + t[pos[n]:]
+        return (PROBE_DATA + ''.join(probe_def('__ib_P%d' % idx[n], ws.get(n, 0)) for n in pos) +
+                '#pragma auto_inline(off)\n' + t)
+
+    def rnd(ws):
+        try:
+            out = parse_listing(compile_asm(unit, src(ws)))
+        except CompileError:
+            return {n: False for n in ws}
+        return {n: n in out and '?__ib_P%d@@YAXXZ' % idx[n] not in out[n]['calls'] for n in ws}
+    r = bsearch_parallel(list(pos), 0, 30000, rnd)
+    return {n: (w + 12) / 2.0 - 4 - 6 * OWN_LIFT for n, w in r.items() if w is not None and w < 30000}
 
 # ----------------------------------------------------------------------------- the model
 
 class Site:
-    def __init__(self, callee, depth):
+    def __init__(self, callee, depth, kind='inline', tail=False):
         self.callee, self.depth = callee, depth
+        self.kind = kind           # 'inline' (inline/class-body/template: a COMDAT), 'auto' (a non-inline function of the unit,
+                                   # /Ob2: auto-inlined up to AUTO_CAP), 'once' (static, one reference: full budget like inline)
+        self.tail = tail           # in tail position of the compiled function (R11)
         self.children = []
         self.cost = None
         self.limit = None
-        self.decision = None       # 'inline' / 'free' / 'force' / 'refused' / 'depth' / 'unknown'
+        self.decision = None       # 'inline' / 'free' / 'refused' / 'depth' / 'unknown' / 'tail' (R11) / 'cap' (R12)
         self.pending = 0
         self.margin = None         # limit - cost for a charged (> 40u) site: >= 0 inlined, < 0 refused
 
 
-def build_tree(lst, root, depth=0, stack=()):
+def ob_level(flags):
+    """The inline-expansion level the flags give (the last of /Od /O1 /O2 /Ox /Ob<n> wins; none: 0).  In VC6 /O1, /O2 and
+    /Ox all imply /Ob1 (measured: a 1-store extern helper is not auto-inlined under plain /O2 and is under /O2 /Ob2;
+    later compilers made /O2 imply /Ob2), so the engine's plain /O2 units have no R12 auto-inlining and the
+    renderer's /O2 /Ob2 units do."""
+    lvl = 0
+    for f in flags:
+        f = f.replace('-', '/', 1) if f.startswith('-') else f
+        if f == '/Od':
+            lvl = 0
+        elif f in ('/O1', '/O2', '/Ox'):
+            lvl = 1
+        elif re.match(r'^/Ob[012]$', f):
+            lvl = int(f[3])
+    return lvl
+
+
+def size_opt(flags):
+    """True when the flags optimise for size (/O1, or /Os after the last /O2 /Ox)."""
+    so = False
+    for f in flags:
+        f = f.replace('-', '/', 1) if f.startswith('-') else f
+        if f in ('/O1', '/Os'):
+            so = True
+        elif f in ('/O2', '/Ox', '/Ot', '/Od'):
+            so = False
+    return so
+
+
+def mark_static_inline(lst, text):
+    """A `static inline` function is no COMDAT (it has internal linkage), so the listing shows it like a plain static one:
+    mark it ('static_inline') from its definition in the unit's text.  A static function whose definition is not in
+    the text (a header's line numbers) is taken as `static inline` too, the only usual form of a static function in a
+    header."""
+    lines = text.split('\n')
+    public = getattr(lst, 'public', None) or set()
+    for name, f in lst.items():
+        if f['comdat'] or name in public or not f.get('line'):
+            continue
+        short_name = re.sub(r'\(.*$', '', undecorate(name)).split('::')[-1].strip() if name.startswith('?') \
+            else name.lstrip('_')
+        i = f['line'] - 1
+        head = []
+        for j in range(i, max(-1, i - 8), -1):
+            if j >= len(lines):
+                break
+            l = lines[j].split('//')[0]
+            if j < i and (l.rstrip().endswith(';') or l.rstrip().endswith('}')):
+                break
+            head.insert(0, l)
+        decl = ' '.join(head)
+        m = re.search(r'\b%s\s*\(' % re.escape(short_name), decl) if short_name else None
+        if not m:
+            f['static_inline'] = True             # not defined in the unit's own text
+        elif re.search(r'\b(inline|__inline|__forceinline)\b', decl[:m.start()]):
+            f['static_inline'] = True
+
+
+def site_kind(lst, c, auto=True):
+    """How a call of `c` (a listing symbol) is an inline candidate: 'inline', 'auto', 'once', or None (not one)."""
+    f = lst.get(c)
+    if f is None:
+        return None
+    if f['comdat']:
+        return 'inline' if (not c.startswith('??_') or c in FIXED_COSTS or c.startswith('??_G')) else None   # ??_H, ??_G
+    if f.get('static_inline'):
+        return 'inline'
+    if not auto or c.startswith('??_') or c.startswith('_$E'):
+        return None
+    refs = getattr(lst, 'refs', None) or {}
+    if c not in (getattr(lst, 'public', None) or ()) and refs.get(c, 0) == 1:
+        return 'once'
+    return 'auto'
+
+
+_REG_TYPES = re.compile(r'(\*|&)$|^(unsigned |signed )?(char|short|int|long|bool|enum \w+)$|^enum ')
+
+
+def stack_args(mangled):
+    """Does a call of `mangled` pass arguments on the stack?  R11 exempts a tail site only when it does not: no parameters,
+    `this` only (__thiscall, in ecx), or __fastcall with at most two integral/pointer parameters (ecx, edx).  Measured: a
+    tail `h(3)` (cdecl/stdcall), `gc.m(3)`, a third fastcall argument or a float one keep the budget."""
+    if mangled.startswith('_') and '@' in mangled:          # C __stdcall/__fastcall: _f@8, @f@8
+        return not mangled.endswith('@0')
+    if not mangled.startswith('?'):
+        return False
+    sig = re.sub(r'\b(class|struct|union) ', '', undecorate(mangled, UND_FULL))
+    m = re.search(r'(__thiscall|__cdecl|__stdcall|__fastcall) .*?\((.*)\)(const)?$', sig)
+    if not m:
+        return False
+    params = m.group(2).strip()
+    params = [] if params in ('', 'void') else split_params(params)
+    if not params:
+        return False
+    if m.group(1) != '__fastcall' or len(params) > 2:
+        return True
+    return not all(_REG_TYPES.search(re.sub(r'\bconst\b', '', q).strip()) for q in params)
+
+
+def build_tree(lst, root, depth=0, stack=(), auto=True, tail=True):
+    """The site tree of `root` from an /Od /Ob0 listing. auto: /Ob2 (non-inline functions of the unit are candidates
+    too, R12). tail: `root` itself is in tail position of the compiled function."""
     sites = []
     if depth >= 12:
         return sites
-    for c in lst[root]['calls']:
-        if c in lst and lst[c]['comdat'] and (not c.startswith('??_') or c in FIXED_COSTS or
-                                                    c.startswith('??_G')):   # helpers: ??_H, ??_G
-            s = Site(c, depth + 1)
-            if c not in stack:
-                s.children = build_tree(lst, c, depth + 1, stack + (c,))
-            sites.append(s)
+    tails = lst[root].get('tails') or [False] * len(lst[root]['calls'])
+    for c, t in zip(lst[root]['calls'], tails):
+        k = site_kind(lst, c, auto)
+        if k is None:
+            continue
+        s = Site(c, depth + 1, k, tail and t and not stack_args(c))
+        if c not in stack:
+            s.children = build_tree(lst, c, depth + 1, stack + (c,), auto, s.tail)
+        sites.append(s)
     return sites
 
 
-def simulate(sites, limit, costs, depth=1):
+def over_cap(s, costs):
+    """R12: an auto-inline candidate (a non-inline function with external linkage, or a static one referenced more than
+    once) bigger than AUTO_CAP is no candidate at all: never inlined (unless in tail position) and not a pending site."""
+    if s.kind != 'auto':
+        return False
+    info = costs.get(s.callee) or {}
+    c = info.get('cost')
+    return bool(info.get('over_cap')) or (c is not None and c > AUTO_CAP)
+
+
+def simulate(sites, limit, costs, depth=1, unlimited=False):
+    """Replay R5-R12 over a site list; returns the charges. unlimited: inside the expansion of a tail site that did not
+    fit its limit (R11: its whole subtree is inlined without budget)."""
     used = 0
+    cand = [not over_cap(s, costs) for s in sites]
     for i, s in enumerate(sites):
-        avail = limit - used
-        s.pending = len(sites) - i - 1
+        avail = float('inf') if unlimited else limit - used
+        s.pending = sum(cand[i + 1:])
         s.limit = avail
         info = costs.get(s.callee) or {}
         cost = info.get('cost')
         s.cost = cost
-        s.margin = (avail - cost) if cost is not None and cost > FREE else None
+        s.margin = (avail - cost) if cost is not None and cost > FREE and not unlimited else None
         if depth > MAXDEPTH:
             s.decision = 'depth'
             continue
-        if cost is None:
+        free_ride = False
+        if not cand[i]:
+            if not s.tail:
+                s.decision, s.margin = 'cap', None
+                continue
+            s.decision, charge, free_ride, s.margin = 'tail', 0, True, None
+        elif unlimited:
+            s.decision, charge, free_ride = ('free' if cost is not None and cost <= FREE else 'inline'), 0, True
+        elif cost is None:
             s.decision, charge = 'unknown', 0
         elif cost <= FREE:
             s.decision, charge = 'free', 0
         elif cost <= avail:
             s.decision, charge = 'inline', cost
+        elif s.tail:
+            s.decision, charge, free_ride = 'tail', 0, True
         else:
             s.decision = 'refused'
             continue
         used += charge
+        if free_ride:
+            simulate(s.children, 0, costs, depth + 1, unlimited=True)
+            continue
         child = (avail - charge) / (1.0 + s.pending)
         if INTDIV:
             child = int(child)
@@ -683,10 +1078,13 @@ def simulate(sites, limit, costs, depth=1):
     return used
 
 
+OUT_OF_LINE = ('refused', 'depth', 'cap')
+
+
 def refused_multiset(sites, out=None):
     out = {} if out is None else out
     for s in sites:
-        if s.decision in ('refused', 'depth'):
+        if s.decision in OUT_OF_LINE:
             out[s.callee] = out.get(s.callee, 0) + 1
         elif s.decision != 'unknown':
             refused_multiset(s.children, out)
@@ -697,6 +1095,8 @@ def undecided(s):
     """A decision within the model's error (ERR u: B and costs are exact to ~1u, shares are fractions): a charged
     site within ERR of its limit, or a site whose cost is within ERR of the 40u free threshold and whose limit
     would refuse it if it were charged."""
+    if s.kind == 'auto' and s.cost is not None and abs(s.cost - (AUTO_CAP + 0.5)) <= ERR and not s.tail:
+        return True
     if s.cost is not None and s.limit is not None and abs(s.cost - (FREE + 0.5)) <= ERR and s.cost > s.limit:
         return s.decision in ('free', 'refused')
     return s.margin is not None and s.decision in ('inline', 'refused') and -ERR <= s.margin <= ERR
@@ -705,7 +1105,7 @@ def undecided(s):
 def walk(sites):
     for s in sites:
         yield s
-        if s.decision not in ('refused', 'depth'):
+        if s.decision not in OUT_OF_LINE:
             for x in walk(s.children):
                 yield x
 
@@ -834,7 +1234,8 @@ def emit_copies(unit, text, callees, log=print):
             # charged (> 40u) callee is refused and emitted. (`#pragma inline_depth(0)` would also emit them, but
             # it changes the code of compiler-generated members like an implicit operator=.)
             t = head + text + '\n#pragma inline_depth()\n' + PROBE_DATA + probe_def('__ib_X', FLOOR - 24)
-            return t + ''.join('void __ib_E%d() {\n\t__ib_X();\n\t%s\n}\n' % (i, ex[c]) for i, c in enumerate(ex))
+            # __ib_x() after the call keeps it out of tail position (R11: a tail site is inlined whatever its cost)
+            return t + ''.join('void __ib_E%d() {\n\t__ib_X();\n\t%s\n\t__ib_x();\n}\n' % (i, ex[c]) for i, c in enumerate(ex))
         ok, res = _prune(unit, exprs, text_for, 'E', log, {c: list(a) for c, a in alts.items()})
         if res:
             break
@@ -991,6 +1392,14 @@ def header_body(unit, ann, text):
     return last(undecorate(ann.mangled)) != last(ann.name)
 
 
+O1_REFUSAL = ('refused: the flags %s optimise for size (/O1) or do not inline at all.  The model is calibrated for /O2 (/Ob1, the '
+              'engine) and /O2 /Ob2 (the renderer) only; /O1 (also /O1 /Ob2) decides differently (measured, tools/inline_rules.py '
+              '--flags /O1, both compilers: no cumulative budget - every site is judged alone; other size weights - a body of 6 '
+              'global stores inlines and 7 do not, 3 ext() calls inline and 4 do not, 57 empty blocks inline; tail sites still '
+              'escape).  Its costs and B are /O2 measurements, so a /O1 prediction would be meaningless.  --flags "/O2 /Ob2" gives '
+              'an /O2 what-if only.')
+
+
 def analyse(key, verbose=False, use_exe=True, sweep=False, costs_on=True, jobs=6, quiet=False, variant=None,
             solve=False, icf=True, summary=False):
     log = (lambda *a: None) if quiet else print
@@ -1009,17 +1418,16 @@ def analyse(key, verbose=False, use_exe=True, sweep=False, costs_on=True, jobs=6
                                         ' [--flags override]' if FLAGS_OVERRIDE else '',
                                         '  [body in a header: B from its own cost]' if hdr else ''))
     log('compiler: %s%s' % (VC6CL, '' if modcfg.NAME == 'lithtech' else '  (module %s, DX8INC=%s)' % (modcfg.NAME, modcfg.CL_ENV.get('DX8INC'))))
-    if not any(re.match(r'^/O[2x]$|^/Ob2$', f) for f in effective_flags(unit)):
-        log('NOTE: these flags give inline expansion /Ob1 (only functions declared inline and class-body functions; /O1 implies /Ob1, '
-            '/O2 and /Ox imply /Ob2).  B(F) is measured with the real flags of the unit (a /O1 unit has a budget of ~53u for every function); callee costs '
-            '(front-end sizes) are measured with /O2 /Ob2, the only setting the probe harness is calibrated for; the 1000u floor and B = 2 x size '
-            'of the model were measured for /O2 only.')
+    if ob_level(effective_flags(unit)) < 1 or size_opt(effective_flags(unit)):
+        raise SystemExit(O1_REFUSAL % ' '.join(effective_flags(unit)))
+    auto = ob_level(effective_flags(unit)) >= 2      # /Ob2: non-inline functions of the unit are candidates too (R12)
     # our /O2 build and the /Od /Ob0 tree, in parallel with B
     with concurrent.futures.ThreadPoolExecutor(3) as ex:
         f_o2 = ex.submit(compile_asm, unit, text)
         f_tree = ex.submit(compile_asm, unit, text, tree_flags(unit))
         f_B = None if hdr else ex.submit(measure_B, unit, ann, text)
         o2, tl = parse_listing(f_o2.result()), parse_listing(f_tree.result())
+        mark_static_inline(tl, text)
         B = None if hdr else f_B.result()
         if B and BCORR and B > FLOOR:      # experiment: B without the probe's own call
             B = max(FLOOR, B - BCORR)
@@ -1034,13 +1442,14 @@ def analyse(key, verbose=False, use_exe=True, sweep=False, costs_on=True, jobs=6
         if own.get('cost') is None:
             raise SystemExit('size of %s not measurable: %s' % (ann.name, own.get('why')))
         B = max(FLOOR, 2 * (own['cost'] + 4)) if not own.get('free') else FLOOR
-    sites = build_tree(tl, root)
+    sites = build_tree(tl, root, auto=auto)
     callees = sorted({s.callee for s in walk_all(sites)})
     size = None if B is None or B <= FLOOR else B / 2.0 - 4
     log('B(F) = %s u  -> size(F) = %s u%s' % (B, size if size is not None else '<= %d' % (FLOOR // 2 - 4),
                                                 '' if size is not None else ' (budget at the 1000u floor)'))
+    kinds = {s.callee: s.kind for s in walk_all(sites)}
     costs = measure_costs(unit, text, callees, {c: tl[c].get('h') for c in callees}, log=log,
-                          jobs=jobs) if costs_on else {}
+                          jobs=jobs, kinds=kinds, lst=tl) if costs_on else {}
     for k, v in COST_OVERRIDES.items():           # --cost: what-if costs (mangled or undecorated name)
         for c in callees:
             if c == k or undecorate(c) == k:
@@ -1048,7 +1457,7 @@ def analyse(key, verbose=False, use_exe=True, sweep=False, costs_on=True, jobs=6
                 log('cost override: %s = %d' % (short(c), v))
     simulate(sites, B if B else FLOOR, costs)
     pred = refused_multiset(sites)
-    ours = {k: v for k, v in count(o2[root_o2]['calls']).items() if k in tl and tl[k]['comdat'] or k in pred}
+    ours = {k: v for k, v in count(o2[root_o2]['calls']).items() if site_kind(tl, k, auto) or k in pred}
     res = {'name': ann.name, 'va': ann.va, 'B': B, 'size': size, 'pred': pred, 'ours': ours, 'sites': sites,
            'costs': costs, 'canon': {}, 'icf': []}
     if use_exe:
@@ -1059,7 +1468,7 @@ def analyse(key, verbose=False, use_exe=True, sweep=False, costs_on=True, jobs=6
             canon = icf_classes(copies, list(ours) + [c for c in pred if c not in ours] +
                                 [s.callee for s in walk(sites) if s.decision in ('inline', 'refused')])
             res['canon'] = {k: v for k, v in canon.items() if k != v}
-            direct = [c for c in o2[root_o2]['calls'] if not (c in tl and tl[c]['comdat'])]
+            direct = [c for c in o2[root_o2]['calls'] if not site_kind(tl, c, auto)]
             res['exe'], res['icf'] = map_exe_icf(ex_list, callees, copies, canon, st, direct)
     if not quiet:
         report(res, verbose)
@@ -1067,9 +1476,73 @@ def analyse(key, verbose=False, use_exe=True, sweep=False, costs_on=True, jobs=6
         do_sweep(res, sites, costs, B)
     if solve and 'exe' in res:
         do_solve(res, sites, costs, B)
+        do_cost_solve(res, sites, costs, B)
     if summary and 'exe' in res:
         print('SUMMARY ' + json.dumps(summarize(res)), flush=True)
     return res
+
+
+def do_cost_solve(res, sites, costs, B, quiet=False, top=3000):
+    """What-if per callee: the cost (= the callee's own size, R4) at which the model gives the exe's number of out-of-line
+    calls of that callee, everything else unchanged (all of its sites move together: a change of the callee's body, or of
+    a helper level above it).  An 'auto' callee over AUTO_CAP stops being a candidate (R12).  Then all the nearest
+    changes together.  Returns [(callee, current cost, [lo, hi] of the nearest reproducing range or None)]."""
+    want = res['exe']
+    canon = res.get('canon', {})
+    B = B or FLOOR
+    base = _model(sites, B, costs, canon)
+    keys = sorted(k for k in set(base) | set(want) if base.get(k, 0) != want.get(k, 0))
+    in_tree = {canon.get(s.callee, s.callee) for s in walk_all(sites)}
+    out, joint = [], dict(costs)
+    for k in keys:
+        members = [c for c in costs if canon.get(c, c) == k] or ([k] if k in in_tree else [])
+        if not members:
+            out.append((k, None, None, 'no site of it in our source: the original calls it where we do not'))
+            continue
+        cur = (costs.get(members[0]) or {}).get('cost')
+        ok = []
+        for v in range(0, top + 1):
+            trial = dict(costs)
+            for c in members:
+                trial[c] = dict(trial.get(c) or {}, cost=v, over_cap=False)
+            if _model(sites, B, trial, canon).get(k, 0) == want.get(k, 0):
+                ok.append(v)
+        rngs = []
+        for v in ok:
+            if rngs and v == rngs[-1][1] + 1:
+                rngs[-1][1] = v
+            else:
+                rngs.append([v, v])
+        ref = cur if cur is not None else AUTO_CAP + 1
+        near = min(rngs, key=lambda r: 0 if r[0] <= ref <= r[1] else min(abs(r[0] - ref), abs(r[1] - ref))) if rngs else None
+        if near:
+            v = near[0] if ref < near[0] else near[1] if ref > near[1] else ref
+            for c in members:
+                joint[c] = dict(joint.get(c) or {}, cost=v, over_cap=False)
+        out.append((k, cur, near, None))
+    simulate(sites, B, costs)
+    if quiet:
+        return out
+    if not keys:
+        return out
+    print('cost solve: the size each differing callee would need for the exe\'s out-of-line count (all its sites move):')
+    for k, cur, near, why in out:
+        if why:
+            print('  %-60s %s' % (short(k)[:60], why))
+        elif near is None:
+            print('  %-60s cost %s: no cost in [0, %d] gives the exe\'s count (budget/pending, not its size)' % (
+                short(k)[:60], cur, top))
+        else:
+            ref = cur if cur is not None else AUTO_CAP + 1
+            d = 0 if near[0] <= ref <= near[1] else (near[0] - ref if ref < near[0] else near[1] - ref)
+            print('  %-60s cost %s -> %d..%d  (%+du)%s' % (short(k)[:60], cur, near[0], near[1], d,
+                                                        '  [auto: over the %du cap = out of line]' % AUTO_CAP
+                                                        if near[0] > AUTO_CAP and any(s.kind == 'auto' and canon.get(s.callee, s.callee) == k
+                                                                                     for s in walk_all(sites)) else ''))
+    miss = _miss(_model(sites, B, joint, canon), want)
+    simulate(sites, B, costs)
+    print('  all of them together: %d out-of-line calls still differ from the exe' % miss)
+    return out
 
 
 def _model(sites, b, costs, canon):
@@ -1170,13 +1643,14 @@ def site_label(s):
 def report(res, verbose):
     def show(sites, ind=0):
         for s in sites:
-            interesting = verbose or s.depth == 1 or s.decision in ('refused', 'depth', 'unknown') or undecided(s)
+            interesting = verbose or s.depth == 1 or s.decision in OUT_OF_LINE + ('unknown', 'tail') or undecided(s)
             if interesting:
                 print('%s%-9s %-55s cost %5s  limit %7.1f  pending %d%s' % (
-                    '  ' * (s.depth - 1), site_label(s), short(s.callee)[:55], s.cost, s.limit, s.pending,
+                    '  ' * (s.depth - 1), site_label(s), (('[T] ' if s.tail else '') + ('[%s] ' % s.kind if s.kind != 'inline' else '')
+                                                          + short(s.callee))[:55], s.cost, s.limit, s.pending,
                     '  margin %+.1f' % s.margin if s.margin is not None and s.decision in ('inline', 'refused')
                     else ''))
-            if s.decision not in ('refused', 'depth'):
+            if s.decision not in OUT_OF_LINE:
                 show(s.children, ind + 1)
     show(res['sites'])
     canon = res.get('canon', {}) if 'exe' in res else {}
@@ -1277,7 +1751,7 @@ def summarize(res):
     names = count([short(k) for k in keys])
     where = {}
     for s in walk(sites):
-        if s.decision in ('inline', 'refused', 'depth'):
+        if s.decision in ('inline', 'tail') + OUT_OF_LINE:
             where.setdefault(canon.get(s.callee, s.callee), []).append(
                 [s.depth, s.decision, s.cost, round(s.limit, 1), None if s.margin is None else round(s.margin, 1)])
     diffs = [{'callee': label(k, names)[:150], 'model': pred.get(k, 0), 'build': ours.get(k, 0), 'exe': want.get(k, 0),
@@ -1375,50 +1849,155 @@ def run_variants(key, path, jobs, sweep, solve=False):
             do_solve(r, r['sites'], r['costs'], r['B'])
 
 
+class Score:
+    """--validate's tally: the model's out-of-line calls vs our build's, per function (sites predicted = sites minus the
+    differing out-of-line counts)."""
+    def __init__(self):
+        self.tot = self.good = self.exact = self.n = 0
+        self.und_bad = self.und_all = self.unknown = self.skipped = 0
+        self.tails = self.caps = 0
+        self.alt = {}    # budget offset -> mispredicted sites (is the measured B, which includes the probe's call, right?)
+
+    def add(self, label, r, show=True):
+        sites = list(walk(r['sites']))
+        keys = set(r['pred']) | set(r['ours'])
+        nsite = len(sites)
+        bad = sum(abs(r['pred'].get(k, 0) - r['ours'].get(k, 0)) for k in keys)
+        self.n += 1
+        self.tot += nsite
+        self.good += max(0, nsite - bad)
+        self.exact += (bad == 0)
+        und = {s.callee for s in sites if undecided(s)}
+        badk = {k for k in keys if r['pred'].get(k, 0) != r['ours'].get(k, 0)}
+        self.und_all += len(und)
+        self.und_bad += len(und & badk)
+        unk = sum(1 for s in sites if s.decision == 'unknown')
+        self.unknown += unk
+        nt = sum(1 for s in sites if s.decision == 'tail')
+        nc = sum(1 for s in sites if s.decision == 'cap')
+        self.tails += nt
+        self.caps += nc
+        if r['B'] is not None:
+            for d in (-8, -4, 4):
+                b2 = max(FLOOR, (r['B'] or FLOOR) + d) if (r['B'] or FLOOR) > FLOOR else FLOOR
+                simulate(r['sites'], b2, r['costs'])
+                self.alt[d] = self.alt.get(d, 0) + _miss(refused_multiset(r['sites']), r['ours'])
+            simulate(r['sites'], r['B'] or FLOOR, r['costs'])
+        if show or bad:
+            print('%-32s B=%-6s sites %3d  mispredicted %d%s%s%s%s' % (
+                label[:32], r['B'], nsite, bad, '' if bad == 0 else '  ' + ', '.join(
+                    '%s %d/%d%s' % (short(k)[:30], r['pred'].get(k, 0), r['ours'].get(k, 0), ' (undecided)' if k in und
+                                    else '') for k in sorted(badk)),
+                '  [%d undecided]' % len(und) if und else '', '  [%d cost unknown]' % unk if unk else '',
+                '  [%d tail-exempt, %d over the auto cap]' % (nt, nc) if nt or nc else ''), flush=True)
+
+    def report(self):
+        print('\n%d of %d sites predicted (%.1f%%); %d of %d functions exact; %d sites cost unknown%s' % (
+            self.good, self.tot, 100.0 * self.good / max(self.tot, 1), self.exact, self.n, self.unknown,
+            '; %d skipped' % self.skipped if self.skipped else ''))
+        print('sites decided by R11 (tail, over its limit): %d; by R12 (over the %du auto-inline cap): %d' % (
+            self.tails, AUTO_CAP, self.caps))
+        print('undecided callees (a site within %gu of its limit): %d, of which mispredicted: %d' % (
+            ERR, self.und_all, self.und_bad))
+        if self.alt:
+            print('mispredicted sites with B changed by %s (B > 1000 only): %s  (as measured: %d)' % (
+                '/'.join('%+d' % d for d in sorted(self.alt)), '/'.join(str(self.alt[d]) for d in sorted(self.alt)),
+                self.tot - self.good))
+
+
 def validate(names, jobs):
-    tot = good = 0
-    exact = 0
-    und_bad = und_all = unknown = 0
-    alt = {}         # budget offset -> mispredicted sites (is the measured B, which includes the probe's call, right?)
+    sc = Score()
     for n in names:
         try:
             r = analyse(n, use_exe=False, jobs=jobs, quiet=True)
         except SystemExit as e:
-            print('%-32s skipped: %s' % (n, e))
+            print('%-32s skipped: %s' % (n, str(e)[:160]))
+            sc.skipped += 1
             continue
         except CompileError as e:
             print('%-32s compile error: %s' % (n, e.args[0][:2]))
+            sc.skipped += 1
             continue
-        sites = list(walk(r['sites']))
-        # per-site agreement: predicted refusals vs our build's out-of-line counts, by callee
-        keys = set(r['pred']) | set(r['ours'])
-        nsite = len(sites)
-        bad = sum(abs(r['pred'].get(k, 0) - r['ours'].get(k, 0)) for k in keys)
-        tot += nsite
-        good += max(0, nsite - bad)
-        exact += (bad == 0)
-        und = {s.callee for s in sites if undecided(s)}
-        badk = {k for k in keys if r['pred'].get(k, 0) != r['ours'].get(k, 0)}
-        und_all += len(und)
-        und_bad += len(und & badk)
-        unk = sum(1 for s in sites if s.decision == 'unknown')
-        unknown += unk
-        for d in (-8, -4, 4):
-            b2 = max(FLOOR, (r['B'] or FLOOR) + d) if (r['B'] or FLOOR) > FLOOR else FLOOR
-            simulate(r['sites'], b2, r['costs'])
-            p2 = refused_multiset(r['sites'])
-            alt[d] = alt.get(d, 0) + _miss(p2, r['ours'])
-        simulate(r['sites'], r['B'] or FLOOR, r['costs'])
-        print('%-32s B=%-6s sites %3d  mispredicted %d%s%s%s' % (
-            n, r['B'], nsite, bad, '' if bad == 0 else '  ' + ', '.join(
-                '%s %d/%d%s' % (short(k)[:30], r['pred'].get(k, 0), r['ours'].get(k, 0), ' (undecided)' if k in und
-                                else '') for k in sorted(badk)),
-            '  [%d undecided]' % len(und) if und else '', '  [%d cost unknown]' % unk if unk else ''), flush=True)
-    print('\n%d of %d sites predicted (%.1f%%); %d of %d functions exact; %d sites cost unknown' % (
-        good, tot, 100.0 * good / max(tot, 1), exact, len(names), unknown))
-    print('undecided callees (a site within %gu of its limit): %d, of which mispredicted: %d' % (ERR, und_all, und_bad))
-    print('mispredicted sites with B changed by %s (B > 1000 only): %s  (as measured: %d)' % (
-        '/'.join('%+d' % d for d in sorted(alt)), '/'.join(str(alt[d]) for d in sorted(alt)), tot - good))
+        sc.add(n, r)
+    sc.report()
+
+
+def validate_module(jobs, unit_filter=None, verbose=False):
+    """--validate --all: every FUNCTION (matched) annotation of the module's /O2 units, one unit at a time: one /Od tree
+    and one /O2 listing per unit, the costs of all the unit's callees in one measurement, and B(F) measured only for the
+    functions with a charged (> 40u) site (B cannot change a tree of free sites).  /O1 units are refused (O1_REFUSAL) and
+    counted as skipped."""
+    sc = Score()
+    o1 = 0
+    for unit in build.find_units():
+        if os.path.basename(unit.path).startswith('__ib_') or unit_filter and unit_filter not in unit.rel:
+            continue
+        anns = [a for a in unit.annots if a.kind == 'FUNCTION' and a.name]
+        if not anns:
+            continue
+        fl = effective_flags(unit)
+        if ob_level(fl) < 1 or size_opt(fl):
+            o1 += len(anns)
+            continue
+        auto = ob_level(fl) >= 2
+        text = open(unit.path, encoding='latin1').read()
+        try:
+            with concurrent.futures.ThreadPoolExecutor(2) as ex:
+                f_o2 = ex.submit(compile_asm, unit, text)
+                f_tl = ex.submit(compile_asm, unit, text, tree_flags(unit))
+                o2, tl = parse_listing(f_o2.result()), parse_listing(f_tl.result())
+                mark_static_inline(tl, text)
+        except CompileError as e:
+            print('%s: compile error %s' % (unit.rel, e.args[0][:2]))
+            sc.skipped += len(anns)
+            continue
+        work = []
+        for a in anns:
+            if header_body(unit, a, text):
+                continue
+            root, root_o2 = fn_symbol(tl, a.name, a.mangled), fn_symbol(o2, a.name, a.mangled)
+            if root is None or root_o2 is None:
+                continue
+            sites = build_tree(tl, root, auto=auto)
+            if not sites:
+                continue
+            work.append((a, root, root_o2, sites))
+        if not work:
+            continue
+        callees = sorted({s.callee for _, _, _, st in work for s in walk_all(st)})
+        kinds = {s.callee: s.kind for _, _, _, st in work for s in walk_all(st)}
+        print('%s: %d functions with sites, %d callees' % (unit.rel, len(work), len(callees)), flush=True)
+        try:
+            costs = measure_costs(unit, text, callees, {c: tl[c].get('h') for c in callees}, log=lambda *x: None,
+                                  jobs=jobs, kinds=kinds, lst=tl)
+        except CompileError as e:
+            print('%s: cost probes do not compile: %s' % (unit.rel, e.args[0][:2]))
+            sc.skipped += len(work)
+            continue
+
+        def charged(sites):
+            return any((costs.get(s.callee) or {}).get('cost') is not None and costs[s.callee]['cost'] > FREE
+                       for s in walk_all(sites))
+        need_b = [w for w in work if charged(w[3])]
+        Bs = {}
+        with concurrent.futures.ThreadPoolExecutor(max(1, jobs)) as ex:
+            fut = {ex.submit(measure_B, unit, a, text): a.va for a, _, _, _ in need_b}
+            for f, va in fut.items():
+                try:
+                    Bs[va] = f.result()
+                except CompileError:
+                    Bs[va] = None
+        for a, root, root_o2, sites in work:
+            B = Bs.get(a.va, FLOOR) or FLOOR
+            simulate(sites, B, costs)
+            pred = refused_multiset(sites)
+            ours = {k: v for k, v in count(o2[root_o2]['calls']).items() if site_kind(tl, k, auto) or k in pred}
+            sc.add('%08x %s' % (a.va, a.name), {'sites': sites, 'pred': pred, 'ours': ours,
+                                                'B': B if a.va in Bs else None, 'costs': costs}, show=verbose)
+    sc.skipped += o1
+    sc.report()
+    if o1:
+        print('%d functions of /O1 units refused (the model is /O2 only)' % o1)
 
 
 def main(argv):
@@ -1442,7 +2021,11 @@ def main(argv):
         FLAGS_OVERRIDE[:] = argv[i + 1].split()
         del argv[i:i + 2]
     if argv and argv[0] == '--validate':
-        validate(argv[1:] or VALIDATE, jobs)
+        rest = [a for a in argv[1:] if a not in ('--all', '-v')]
+        if '--all' in argv or not rest and modcfg.NAME != 'lithtech':
+            validate_module(jobs, rest[0] if rest else None, verbose='-v' in argv)
+        else:
+            validate(rest or VALIDATE, jobs)
         return
     if argv and argv[0] == '--variants':
         run_variants(argv[1], argv[2], jobs, '--sweep' in argv, '--solve' in argv)
