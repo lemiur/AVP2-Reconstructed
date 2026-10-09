@@ -10,6 +10,7 @@
 #include "d3dren/lightmap.h"		// RenderContext
 #include "pixelformat.h"			// PFormat
 #include "d3dren/common_init.h"		// g_ScreenPixelFormat
+#include "d3dren/polydraw.h"		// g_u8FogColorR/G/B
 
 // ---- callees in other units (prototypes until their owners publish headers) -------------------------------------------------
 int PageInLightmaps(RenderContext *pContext);		// W9 (lightmap): page the lightmaps in, 0 = failed
@@ -58,12 +59,6 @@ float g_fLastFogNearZ;			// guess: fog near z last sent
 float g_fLastDeviceFogFarZ;			// guess: fog far z last sent
 // GLOBAL: D3DREN 0x100582e0
 int g_nLastTableFog;			// guess: TableFog last sent
-// GLOBAL: D3DREN 0x10058040
-uint8 g_u8FogColorR;			// guess: fog colour byte R (clamped), also read by the draw code
-// GLOBAL: D3DREN 0x10058041
-uint8 g_u8FogColorG;			// guess: fog colour byte G
-// GLOBAL: D3DREN 0x10058042
-uint8 g_u8FogColorB;			// guess: fog colour byte B
 // GLOBAL: D3DREN 0x100579e0
 float g_fCenteredFogRed;			// guess: 2 * (fog colour R - 128)
 // GLOBAL: D3DREN 0x100579e4
@@ -84,9 +79,11 @@ int g_bTextureFilterStateInitialized;			// guess: the filter states have been se
 // NAME: d3d_ReadExtraConsoleVariables: Jupiter d3d_init.cpp (fog from the console variables: FogNearZ == FogFarZ disables fog
 // ("This handles a TNT bug"), SetRenderState FOGCOLOR/FOGSTART/FOGEND/FOGENABLE, DITHERENABLE, anisotropic/bilinear/trilinear
 // filter states); the D3D7 original caches what it sent and only updates when a value changed.
-// STUB diagnosis: 1104 of 1104 bytes (same size), 587 differ after reordering ten independent scalar stores following the fog-state calls.
-//   The target keeps the clamp limit 0xff in eax for all three fog colour comparisons; this source still compares with the immediate, and byte
-//   channel reads/register choices and the remaining call/state schedule differ.  The ten store right-hand sides and API call order are unchanged.
+// STUB diagnosis: the three clamped fog colour bytes (0x10058040..42) are not defined in this object (its own definitions made VC6 load
+//   the first one as a masked dword; the bytes sit between common_stuff's console mirrors).  Byte-exact (MATCH, all relocations) once
+//   they are one 3-byte object `uint8 g_u8FogColor[3]` ([0] r, [1] g, [2] b) in polydraw.h: as three separate externs VC6 keeps 0xff
+//   as an immediate and schedules the FOGCOLOR packing differently (16 aligned mismatches).  The rename touches the readers in
+//   unk/10007930, unk/100098d0 and unk/10022bc5 (all still match with it); the cache stores below are in the order that matches.
 // STUB: D3DREN 0x1001a400
 void d3d_ReadExtraConsoleVariables()
 {
@@ -128,13 +125,13 @@ void d3d_ReadExtraConsoleVariables()
 			g_fCenteredFogRed = (float)(g_u8FogColorR - 0x80) * 2.0f;
 			g_fCenteredFogGreen = (float)(g_u8FogColorG - 0x80) * 2.0f;
 			g_fCenteredFogBlue = (float)(g_u8FogColorB - 0x80) * 2.0f;
-			g_bFogStateInitialized = 1;
-			g_fLastFogNearZ = g_FogNearZ;
-			g_fLastDeviceFogFarZ = g_FogFarZ;
+			g_nLastDeviceFogEnable = g_FogEnable;
+			g_nLastDeviceFogRed = g_FogR;
 			g_nLastDeviceFogGreen = g_FogG;
 			g_nLastFogBlue = g_FogB;
-			g_nLastDeviceFogRed = g_FogR;
-			g_nLastDeviceFogEnable = g_FogEnable;
+			g_fLastFogNearZ = g_FogNearZ;
+			g_fLastDeviceFogFarZ = g_FogFarZ;
+			g_bFogStateInitialized = 1;
 		}
 
 		if (!g_bDitherStateInitialized || g_nLastDeviceDither != g_Dither)
