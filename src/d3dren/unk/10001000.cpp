@@ -1175,10 +1175,12 @@ void ModelDraw::SelectPieceDrawCallbacks(int a1)
 // guess: skins, lights and projects the vertices of one piece into pDest (TL vertices), calls the per-vertex generator,
 // accumulates the vertex colours into pLighting and (bBounds) the min/max of the projected positions into pMin/pMax.
 // With the LOD blend enabled (m_bLODBlend) every vertex is the m_fLODBlend blend of the vertex of pLOD and its replacement in pLOD2.
-// Not matching (4240 vs 4256 bytes; frame and ebp slots as the exe): register allocation.  The exe keeps `this` in ebx (spilled to
-// [ebp-4] where the first skin loop of the blend copies needs ebx for pTransforms), computes the replacement vertex before the skin
-// loop and walks pVert from +0x18; ours keeps `this` in edi and computes pVertB after the loop.  pLighting/pMin/pMax are LTVector*
-// (the exe initialises pMin with Init and pMax through an LTVector temporary).
+// The weight counter is a uint16 like ModelVert::m_nWeights (uint32: 1662 aligned mismatches, 1480 vs 1472 instructions).
+// Not matching (1473 vs 1472 instructions; frame and ebp slots as the exe): register allocation.  The exe keeps `this` in ebx (spilled
+// to [ebp-4] where the skin loops of the blend copies need ebx for pTransforms); ours keeps `this` in edi.  pLighting/pMin/pMax are
+// LTVector* (the exe initialises pMin with Init and pMax through an LTVector temporary).  The permuter (2600 candidates) moves it only
+// with parameter copies, int16/uint8 counters and do/while rewrites of the loops (not source).
+// PARKED: register allocation (`this` in edi, the exe's ebx with an [ebp-4] spill); permuter states are fake
 // STUB: D3DREN 0x10004660
 void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, PFN_GenTexCoords pfnPerVertex, LTMatrix *pTransforms,
 	LTVector *pLighting, char bBounds, LTVector *pMin, LTVector *pMax)
@@ -1190,7 +1192,7 @@ void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVer
 	ModelVert *pVert = pLOD->m_Verts.GetArray();
 	int nVerts = pLOD->m_Verts.GetSize();
 	NewVertexWeight *pWeight;
-	uint32 nWeights;
+	uint16 nWeights;
 
 	if (!bBounds)
 	{
