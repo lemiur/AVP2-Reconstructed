@@ -2060,17 +2060,18 @@ void d3d_TermPolyDrawPools()
 
 // guess: adds the per-vertex colours of the light animation frames (blended by m_PercentBetween) of one poly to the vertex colours of
 // pPolyData (0x18-byte poly vertices, colour bytes at +0x14/+0x15/+0x16); returns 0 when the poly index is outside the animation.
-// STUB diagnosis (W2): now W6's shape of the exe (both frames loaded up front, `if (percent==0) pFrame1=pFrame0; else if (percent==0xff) pFrame0=pFrame1;`, nested LTMIN):
-//   544 of 544 bytes, 376 bytes / 98 aligned mismatches (was 474 / 222).  The prologue and the frame selection match; the nested LTMIN of the two uint8 vertex counts and
-//   nPolyData differs (exe: `mov al,[f0+0x14]; mov dl,[f1+0x14]; cmp al,dl; mov cl,al; jb; mov cl,dl` then the compare with nPolyData against ecx; ours compares per
-//   byte first), which shifts the register allocation of both loops (the exe keeps the count in edi and the table byte reads as `mov dl,[ebx+edx+0x10092168]`).
+// STUB diagnosis: 68 aligned mismatches (61 ignoring stack offsets; was 86).  The vertex data is an SPolyVertex array (m_Color, indexed per
+//   vertex: that gives the exe's first loop exactly), the blend weights are uint8 (inv = 0xff - percent) and the blended term is
+//   Mul[frame1 * 0x100 + percent] + Mul[frame0 * 0x100 + inv].  Remaining: the exe needs no local at all (percent goes to the dead pAnim
+//   slot, pFrame1 to pRef's, pFrame1 lives in ebp from the start) and computes the nested LTMIN of the two uint8 counts in cl without
+//   spilling; ours keeps a 4-byte local for percent and pushes ebp only in the blend branch.
 // STUB: D3DREN 0x100185a0
 int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *pAnim, uint32 *pRef)
 {
 	LAPolyRef *pPolyRef = (LAPolyRef *)pRef;
 	uint8 percent;
 	LAPolyFrame *pFrame0, *pFrame1;
-	uint8 *pColor;
+	SPolyVertex *pVerts = (SPolyVertex *)pPolyData;
 	uint32 i;
 
 	if (pPolyRef->m_iPoly >= pAnim->m_nPolies)
@@ -2086,25 +2087,24 @@ int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *p
 
 	nPolyData = LTMIN(nPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
 
-	pColor = (uint8 *)pPolyData + 0x14;
 	if (pFrame0 == pFrame1)
 	{
-		for (i = 0; i < nPolyData; i++, pColor += 0x18)
+		for (i = 0; i < nPolyData; i++)
 		{
-			pColor[2] = g_ByteSaturatingAddTable.m_Unk00[pColor[2] + pFrame0->m_pVertR[i]];
-			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + pFrame0->m_pVertG[i]];
-			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + pFrame0->m_pVertB[i]];
+			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + pFrame0->m_pVertR[i]];
+			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + pFrame0->m_pVertG[i]];
+			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + pFrame0->m_pVertB[i]];
 		}
 	}
 	else
 	{
-		uint32 inv = (uint8)(-percent - 1);
+		uint8 inv = 0xff - percent;
 
-		for (i = 0; i < nPolyData; i++, pColor += 0x18)
+		for (i = 0; i < nPolyData; i++)
 		{
-			pColor[2] = g_ByteSaturatingAddTable.m_Unk00[pColor[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
-			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
-			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
+			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv]]];
+			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertG[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertG[i] * 0x100 + inv]]];
+			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertB[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertB[i] * 0x100 + inv]]];
 		}
 	}
 	return 1;
