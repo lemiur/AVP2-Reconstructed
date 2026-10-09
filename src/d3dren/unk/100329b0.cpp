@@ -462,8 +462,9 @@ int UpdatePolyAnimatedLightmap(MainWorld *pWorld, WorldPoly *pPoly, int bPageIn)
 // guess: builds the light animation lightmap of a polygon for a shadow map light animation (the frames are 8 bit coverage masks of
 // a point light): blends the two decompressed masks by m_PercentBetween, then lights every texel of the polygon with the light of
 // the animation (position, colour, radius) scaled by the mask: pOut gets the colour as 32 bit texels (0 where unlit).
-// Not matching (size 864 vs 816): first pass (semantics from the disassembly; not yet diffed in detail).  The exe lays out the single-frame
-// path before the blend tests (the `||` of iF0 == iF1 / blend <= 0 jumps back into it) and has one shared failure return.
+// Not matching (864 vs 816 bytes): the frame selection follows the exe (single-frame arms first, each failing on its own).  Open:
+// the exe merges the failure returns into one block, counts the mask blend down, and calls operator- of the texel walk out of
+// line while MagSqr and both operator+ stay inline (tools/inline_budget.py: ours inlines all; no top-level budget gives that mix).
 // STUB: D3DREN 0x100338d0
 int BuildShadowMappedLightAnimTexels(MainWorld *pWorld, WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
 {
