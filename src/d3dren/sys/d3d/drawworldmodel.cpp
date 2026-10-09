@@ -329,12 +329,11 @@ NextPoly:;
 // in the source or an inline function)
 static inline int AddLightAnimVertexColorsInline(void *pPolyData, uint32 nInputPolyData, LightAnim *pAnim, uint32 *pRef)
 {
-	// Preserve the caller count separately from this animation's clamped vertex count.
 	uint32 nPolyData;
 	LAPolyRef *pPolyRef = (LAPolyRef *)pRef;
 	uint8 percent;
 	LAPolyFrame *pFrame0, *pFrame1;
-	uint8 *pColor;
+	SPolyVertex *pVerts = (SPolyVertex *)pPolyData;
 	uint32 i;
 
 	if (pPolyRef->m_iPoly >= pAnim->m_nPolies)
@@ -350,25 +349,24 @@ static inline int AddLightAnimVertexColorsInline(void *pPolyData, uint32 nInputP
 
 	nPolyData = LTMIN(nInputPolyData, LTMIN(pFrame0->m_nVerts, pFrame1->m_nVerts));
 
-	// Green-origin cursor: +1/0/-1 address the same R/G/B bytes at vertex offsets 0x16/0x15/0x14.
 	if (pFrame0 == pFrame1)
 	{
-		for (i = 0, pColor = (uint8 *)pPolyData + 0x15; i < nPolyData; i++, pColor += 0x18)
+		for (i = 0; i < nPolyData; i++)
 		{
-			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + pFrame0->m_pVertR[i]];
-			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + pFrame0->m_pVertG[i]];
-			pColor[-1] = g_ByteSaturatingAddTable.m_Unk00[pColor[-1] + pFrame0->m_pVertB[i]];
+			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + pFrame0->m_pVertR[i]];
+			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + pFrame0->m_pVertG[i]];
+			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + pFrame0->m_pVertB[i]];
 		}
 	}
 	else
 	{
 		uint32 inv = (uint8)(-percent - 1);
 
-		for (i = 0, pColor = (uint8 *)pPolyData + 0x15; i < nPolyData; i++, pColor += 0x18)
+		for (i = 0; i < nPolyData; i++)
 		{
-			pColor[1] = g_ByteSaturatingAddTable.m_Unk00[pColor[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv] + g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent]]];
-			pColor[0] = g_ByteSaturatingAddTable.m_Unk00[pColor[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertG[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertG[i] * 0x100]]];
-			pColor[-1] = g_ByteSaturatingAddTable.m_Unk00[pColor[-1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[percent + pFrame1->m_pVertB[i] * 0x100] + g_ByteMultiplyTable.m_Unk00[inv + pFrame0->m_pVertB[i] * 0x100]]];
+			pVerts[i].m_Color[2] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[2] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertR[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertR[i] * 0x100 + inv]]];
+			pVerts[i].m_Color[1] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[1] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertG[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertG[i] * 0x100 + inv]]];
+			pVerts[i].m_Color[0] = g_ByteSaturatingAddTable.m_Unk00[pVerts[i].m_Color[0] + g_ByteSaturatingAddTable.m_Unk00[g_ByteMultiplyTable.m_Unk00[pFrame1->m_pVertB[i] * 0x100 + percent] + g_ByteMultiplyTable.m_Unk00[pFrame0->m_pVertB[i] * 0x100 + inv]]];
 		}
 	}
 	return 1;
