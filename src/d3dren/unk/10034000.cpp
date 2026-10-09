@@ -202,9 +202,9 @@ int LightmapPage::GetBaseHeight()
 // guess: gives the polygon a place in a lightmap page (marks the cells of the page's bitmap, sets the polygon's
 // lightmap texture coordinates in the page and its page pointer); polygons of unlit surfaces and polygons that are
 // already assigned (or flagged by a light animation, WorldPoly::m_Flags & 0x3f) are left alone.
-// Not matching (13 aligned instruction mismatches, 13 ignoring stack offsets; 189 vs 190 instructions, both frames 0x9c).
-// The behavior audit reports no difference. Remaining codegen differences include the extent checks, occupancy-map pointer access, and
-// one retained x87 intermediate store in the exe.
+// Not matching (3 aligned instruction mismatches; 189 vs 190 instructions, both frames 0x9c).  The page rectangle (rc) gives the
+// exe's extent checks (both sums computed before either compare).  Remaining: the exe keeps the intermediate store of the u
+// coordinate (`fst [m_Unk0c]` before the + x, * scale) that our build drops as dead, and loads m_pWorld one fmul earlier.
 // STUB: D3DREN 0x1003429b
 int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 {
@@ -239,7 +239,12 @@ int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwSize = sizeof(ddsd);
 
-		if (x + pPoly->m_LMWidth > 0x40 || y + pPoly->m_LMHeight > 0x40)
+		RECT rc;
+		rc.left = x;
+		rc.top = y;
+		rc.right = x + pPoly->m_LMWidth;
+		rc.bottom = y + pPoly->m_LMHeight;
+		if (rc.right > 0x40 || rc.bottom > 0x40)
 			return 0;
 
 		for (j = 0; j < pPoly->m_LMHeight; j++)
@@ -267,17 +272,17 @@ int AssignPolyLightmapPage(RenderContext *pContext, WorldPoly *pPoly)
 			fU += P.x * dx;
 			fU += P.z * dz;
 			fU = fU / pContext->m_pWorld->m_LMGridSize + 0.5f;
-			SPOLYVERTEX_UNK0C(pVert) = fU;
-			SPOLYVERTEX_UNK0C(pVert) = (SPOLYVERTEX_UNK0C(pVert) + (float)(int)x) * fScale;
+			pVert->m_Unk0c[0] = fU;
+			pVert->m_Unk0c[0] = (pVert->m_Unk0c[0] + (float)(int)x) * fScale;
 			float fV = Q.z * dz;
 			fV += Q.y * dy;
 			fV += Q.x * dx;
-			SPOLYVERTEX_UNK10(pVert) = (fV / pContext->m_pWorld->m_LMGridSize + (float)(int)y) * fScale + 0.0078125f;
+			pVert->m_Unk0c[1] = (fV / pContext->m_pWorld->m_LMGridSize + (float)(int)y) * fScale + 0.0078125f;
 			pVert++;
 		}
 
-		WORLDPOLY_UNK4E(pPoly) = (uint8)x;
-		WORLDPOLY_UNK4F(pPoly) = (uint8)y;
+		pPoly->m_Unk4e[0] = (uint8)x;
+		pPoly->m_Unk4e[1] = (uint8)y;
 		g_LightmapBytesAssigned += pPoly->m_LMHeight * pPoly->m_LMWidth * 2;
 		pPoly->m_Unk48 = pPage;
 	}

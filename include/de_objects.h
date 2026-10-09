@@ -24,7 +24,7 @@ struct SPolyVertex
 {
 	LTVector	*m_Vec;			// 0x00
 	float		m_U, m_V;		// 0x04 texture coordinates (surface effects keep them current)
-	uint8		m_Pad0C[0x14 - 0xc];
+	float		m_Unk0c[2];	// 0x0c renderer: guess: lightmap texture coordinates (u, v) in the poly's lightmap page (AssignPolyLightmapPage)
 	uint8		m_Color[4];		// 0x14 r, g, b, a (a = 255)
 };
 
@@ -48,7 +48,7 @@ struct WorldPoly
 	void		*m_Unk48;		// 0x48 renderer: LightmapPage* (d3dren/lightmap.h) holding the poly's lightmap, 0 = none
 	uint8		m_LMWidth;		// 0x4c lightmap size in samples
 	uint8		m_LMHeight;		// 0x4d
-	uint8		m_Pad4e[0x50 - 0x4e];
+	uint8		m_Unk4e[2];	// 0x4e renderer: guess: position (x, y) of the lightmap inside its page (texels)
 	SPolyVertex	*m_pVertices;	// 0x50 points at m_Vertices unless the poly grew
 	uint16		m_nVertices;	// 0x54
 	uint16		m_nExtraVertices;	// 0x56 counted only when m_pVertices was reallocated
