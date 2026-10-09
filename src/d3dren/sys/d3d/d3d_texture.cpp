@@ -145,7 +145,8 @@ RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 	IDirectDrawSurface7 *pSurface;
 	RTexture *pRTexture;
 
-	if ((!g_b32BitLightmaps || !(pFormat = g_TextureFormats[FORMAT_32BIT])) && !(pFormat = g_TextureFormats[FORMAT_LIGHTMAP]))
+	pFormat = d3d_GetLightmapTextureFormat();
+	if (!pFormat)
 		return 0;
 
 	memset(&ddsd, 0, sizeof(ddsd));
@@ -280,7 +281,7 @@ void d3d_ReinitLightmapTextureSupport()
 		g_pLightmapScratchSurface->Release();
 		g_pLightmapScratchSurface = 0;
 	}
-	if ((g_b32BitLightmaps && (pFormat = g_TextureFormats[FORMAT_32BIT])) || (pFormat = g_TextureFormats[FORMAT_LIGHTMAP]))
+	if (pFormat = d3d_GetLightmapTextureFormat())
 	{
 		memset(&ddsd, 0, sizeof(ddsd));
 		ddsd.dwHeight = 0x20;
@@ -383,7 +384,7 @@ int CTextureManager_Init()
 			g_pLightmapScratchSurface->Release();
 			g_pLightmapScratchSurface = 0;
 		}
-		if ((g_b32BitLightmaps && (pLightmapFormat = g_TextureFormats[FORMAT_32BIT])) || (pLightmapFormat = g_TextureFormats[FORMAT_LIGHTMAP]))
+		if (pLightmapFormat = d3d_GetLightmapTextureFormat())
 		{
 			memset(&ddsd, 0, sizeof(ddsd));
 			ddsd.dwHeight = 0x20;
