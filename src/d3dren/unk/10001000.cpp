@@ -624,6 +624,10 @@ static inline LTBOOL IsFrontFacing(TLVertex *pV0, TLVertex *pV1, TLVertex *pV2)
 void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 
 // guess: the "really close" variant (instances with FLAG_REALLYCLOSE): the z row uses z + g_CV_NearZ (ProjectPositionWithDepthBias).
+// Not matching (same size, frame and slots): the load order of the three vertex indices (the exe loads 0, 1, 2 into edx/ebx/ebp; the
+// declaration order 0, 2, 1 gives the registers but loads 0, 2, 1) and the x87 term order of the expanded projections (x/y swapped).
+// Open: the exe expands ProjectPositionWithDepthBias at the unclipped vertices but calls it for the clipped polygon; an inline
+// definition visible here inlines all four sites (no budget reaches the fourth), so the expanded copies are a separate helper here.
 // STUB: D3DREN 0x10002050
 int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -774,6 +778,8 @@ Skip:
 // is built in a local vertex array and clipped by m_Unk600 against that plane and the ones not yet tested; the clipped polygon is
 // back face tested, projected in place and drawn as a fan.  A triangle inside every plane is back face tested and projected
 // straight into the pool.
+// Not matching (same size): the vertex index load order (see DrawPieceClippedReallyClose), the x87 term order of ProjectVertex (as in
+// DrawPieceProjected) and the store order of the first clip vertex copy.
 // STUB: D3DREN 0x10002bc0
 int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -917,7 +923,7 @@ Skip:
 }
 
 // guess: the callback for pieces that need no clipping: projects the vertices in software (matrix g_ViewParams.m_DeviceTimesProjection.m[0][0]) and draws.
-// Not matching (same size): frame one slot smaller than the exe's, the loop-exit `test`, and the projection term order (exe z-y-x for the
+// Not matching (same size): frame one slot smaller than the exe's and the projection term order (exe z-y-x for the
 // w/x/y rows, x-z-y for z; ours and the SDK MatVMul_H give z-x-y; source term order does not move VC6's choice).
 // STUB: D3DREN 0x100036d0
 int ModelDraw::DrawPieceProjected(PieceLOD *pLOD, TLVertex *pVerts)
@@ -982,8 +988,9 @@ Skip:
 }
 
 // guess: the default draw callback: copies the transformed vertices of each (front facing) triangle into the pool
-// Not matching (100 bytes, 17 aligned ignoring stack offsets): the exe's frame is 0x14 (ours 0xc) with the triangle count in the dead
-// pLOD argument home and a `test eax,eax` after the loop-counter decrement; same residue as DrawPieceProjected/Untransformed.
+// Not matching (same size, 2 aligned ignoring stack offsets): the exe's frame is 0x14 (ours 0xc) with the triangle count in the dead
+// pLOD argument home; same frame residue as DrawPieceProjected/Untransformed.  The count is decremented before the cursor step
+// (the exe's `test eax,eax` after the `dec`).
 // STUB: D3DREN 0x10003b60
 int ModelDraw::DrawPieceTransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -1042,7 +1049,7 @@ Skip:
 
 // guess: the untransformed variant of DrawPieceTransformed: writes XYZ + diffuse + specular vertices (stride m_Unk5f8 - 4) so that
 // Direct3D transforms them; the back face test (m_Unk8b4) is done on the model-space x/y of the vertices.
-// Not matching (1056 vs 1072 bytes): the stack-frame/loop-exit residue of DrawPieceTransformed.
+// Not matching (1056 vs 1072 bytes): the stack-frame residue of DrawPieceTransformed.
 // STUB: D3DREN 0x10003e00
 int ModelDraw::DrawPieceUntransformed(PieceLOD *pLOD, TLVertex *pVerts)
 {
@@ -1353,6 +1360,10 @@ void ModelDraw::SelectPieceDrawCallbacks(int a1)
 // guess: skins, lights and projects the vertices of one piece into pDest (TL vertices), calls the per-vertex generator,
 // accumulates the vertex colours into pLighting and (bBounds) the min/max of the projected positions into pMin/pMax.
 // With the LOD blend enabled (m_bLODBlend) every vertex is the m_fLODBlend blend of the vertex of pLOD and its replacement in pLOD2.
+// Not matching (4240 vs 4256 bytes; frame and ebp slots as the exe): register allocation.  The exe keeps `this` in ebx (spilled to
+// [ebp-4] where the first skin loop of the blend copies needs ebx for pTransforms), computes the replacement vertex before the skin
+// loop and walks pVert from +0x18; ours keeps `this` in edi and computes pVertB after the loop.  pLighting/pMin/pMax are LTVector* in
+// the original (the exe initialises pMax through an LTVector temporary; drawmodelshadows passes &v.x): kept float* here.
 // STUB: D3DREN 0x10004660
 void ModelDraw::SkinAndLightPieceVertices(PieceLOD *pLOD, PieceLOD *pLOD2, TLVertex *pDest, PFN_GenTexCoords pfnPerVertex, LTMatrix *pTransforms,
 	float *pLighting, char bBounds, float *pMin, float *pMax)
