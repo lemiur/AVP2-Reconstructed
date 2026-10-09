@@ -230,7 +230,6 @@ extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left pl
 // STUB: D3DREN 0x10001530
 int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 {
-	TLVertex *pOut = g_pClipScratchVerts;
 	if (g_CV_UseD3DClip.m_IntVal)	// guess: when set, only the near plane is clipped (flag bit 1)
 	{
 		flags &= 1;
@@ -238,10 +237,10 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 			return 1;
 	}
 
+	TLVertex *pOut = g_pClipScratchVerts;
 	TLVertex *pVerts = *ppVerts;
 	int nVerts = *pnVerts;
 	char bUnused0, bUnused1, bUnused2, bUnused3;
-	float t;
 
 	if (flags & 1)
 	{
@@ -249,6 +248,7 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 		int *pInside;
 		TLVertex *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
+		float t;
 
 		g_nPlaneClipTests++;
 		pInside = g_ClipNearInsideFlagsTLVertex;
@@ -294,6 +294,7 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 		int *pInside;
 		TLVertex *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
+		float t;
 
 		g_nPlaneClipTests++;
 		pInside = g_ClipLeftInsideFlagsTLVertex;
@@ -351,7 +352,6 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 // STUB: D3DREN 0x10001b30
 int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts)
 {
-	UnkType_TLVertex40 *pOut = (UnkType_TLVertex40 *)g_pClipScratchVerts;
 	if (g_CV_UseD3DClip.m_IntVal)	// guess: when set, only the near plane is clipped (flag bit 1)
 	{
 		flags &= 1;
@@ -359,10 +359,10 @@ int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, in
 			return 1;
 	}
 
+	UnkType_TLVertex40 *pOut = (UnkType_TLVertex40 *)g_pClipScratchVerts;
 	UnkType_TLVertex40 *pVerts = *ppVerts;
 	int nVerts = *pnVerts;
 	char bUnused0, bUnused1, bUnused2, bUnused3;
-	float t;
 
 	if (flags & 1)
 	{
@@ -370,6 +370,7 @@ int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, in
 		int *pInside;
 		UnkType_TLVertex40 *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
+		float t;
 
 		g_nPlaneClipTests++;
 		pInside = g_ClipNearInsideFlagsVertex40;
@@ -415,6 +416,7 @@ int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, in
 		int *pInside;
 		UnkType_TLVertex40 *pPrev, *pCur, *pEnd, *pOldOut;
 		int iPrev, iCur;
+		float t;
 
 		g_nPlaneClipTests++;
 		pInside = g_ClipLeftInsideFlagsVertex40;
