@@ -232,10 +232,27 @@ static inline void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex 
 // NAME: d3d_ClipSprite: Jupiter drawsprite.cpp template d3d_ClipSprite<T>(pInstance, hPoly, ppPoints, pnPoints, pOut), here the TLVertex
 // instance (names_proposal.csv, high): the viewer must be in front of the clipper poly (hPoly); the sprite polygon is clipped on every
 // edge plane of that poly (Jupiter polyclip.h expanded once per edge: CLIPTEST = DistTo(point) > 0, DOCLIP = plane intersection)
-// STUB diagnosis (W6): 1120 bytes like the exe, same instruction sequence in the loops (396 vs 413 instructions: the exe has four copies
-// of the `return 0` epilogue, one after each guarding branch, ours merges them into one block at the end); the template/inline
-// forms, bool return and a nested-if form of the lookup were tried.  The bytes differ throughout only through that layout (every
-// branch displacement).
+// STUB diagnosis: 1120 bytes like the exe, 412 vs 413 instructions.  The poly lookup is an inline helper returning NULL (the
+// renderer's form of the engine's cm_GetPolyFromHPoly, clientde_impl.cpp): both failures then share the `!pPoly` return and the exe's
+// separate return epilogues after each guard come out.  The clip loop counters are signed (jle/jl).  Left: register and frame-slot
+// allocation (the exe keeps pPoly in esi with its home at [ebp-0x24], ours edi / [ebp-0x68]) and the schedule of the edge-plane code.
+// guess: d3d_GetPolyFromHPoly (invented name, after the engine's cm_GetPolyFromHPoly).
+static inline WorldPoly *d3d_GetPolyFromHPoly(MainWorld *pWorld, HPOLY hPoly)
+{
+	uint32 iModel;
+	WorldData *pWorldData;
+
+	iModel = hPoly >> 16;
+	if (iModel >= pWorld->m_WorldModels.GetSize())
+		return LTNULL;
+
+	pWorldData = pWorld->m_WorldModels[iModel];
+	if (!pWorldData)
+		return LTNULL;
+
+	return pWorldData->m_pOriginalBsp->GetPolyFromHPoly(hPoly);
+}
+
 // STUB: D3DREN 0x1002ebb0
 int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, uint32 *pnPoints, TLVertex *pOut)
 {
@@ -244,17 +261,14 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 	SPolyVertex *pPrevPoint, *pCurPoint, *pEndPoint;
 	LTVector vecTo;
 	TLVertex *pVerts;
-	uint32 nVerts;
+	int nVerts;
 	WorldPoly *pPoly;
 
 	if (!g_pFrameMainWorld)
 		return 0;
 
 	// Get the correct poly.
-	if ((hPoly >> 16) < g_pFrameMainWorld->m_WorldModels.GetSize() && g_pFrameMainWorld->m_WorldModels[hPoly >> 16])
-		pPoly = g_pFrameMainWorld->m_WorldModels[hPoly >> 16]->m_pOriginalBsp->GetPolyFromHPoly(hPoly);
-	else
-		return 0;
+	pPoly = d3d_GetPolyFromHPoly(g_pFrameMainWorld, hPoly);
 	if (!pPoly)
 		return 0;
 
@@ -281,7 +295,7 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 			int bInside[50], *pInside;
 			uint32 nInside = 0;
 			TLVertex *pPrev, *pCur, *pEnd, *pOldOut;
-			uint32 iPrev, iCur;
+			int iPrev, iCur;
 			float t;
 
 			pCur = pVerts;
