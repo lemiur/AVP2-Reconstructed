@@ -154,11 +154,10 @@ LTRESULT r_LoadSystemTexture(SharedTexture *pSharedTexture, TextureData **ppText
 	{
 		ref.m_FileType = FILE_CLIENTFILE;
 		ref.m_pFilename = parse.m_Args[1];
-		volatile uint32 *pType = (volatile uint32 *)&pSharedTexture->m_eTexType;
+		uint32 *pType = &pSharedTexture->m_eTexType;
 		pLinked = cm_AddSharedTexture(pClientMgr, &ref);
 		*pType = 2;
 		pSharedTexture->m_pLinkedTexture = pLinked;
-		return LT_OK;
 	}
 
 	return LT_OK;
