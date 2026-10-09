@@ -1712,6 +1712,16 @@ void d3d_DrawTerrainSectionBounds(MainWorld *pWorld)
 	g_pD3DDevice->SetRenderState(saved.m_Type, saved.m_Val);
 }
 
+// NAME: d3d_DrawWorldTree: Jupiter d3d_draw.cpp (renders the WorldTree nodes to the given depth; z test on, no texture).  Expanded into
+// d3d_RenderScene by the exe, so the recursion's first level is inline and its own recursive call is not.
+static void d3d_DrawWorldTree(WorldTree *pTree, uint32 nMaxDepth)
+{
+	StateSet ssZEnable(D3DRENDERSTATE_ZENABLE, TRUE);
+
+	d3d_DisableTexture(g_NormalTextureStage);
+	d3d_DrawWorldTree_R(pTree->GetRootNode(), 0, nMaxDepth);
+}
+
 // ---- d3d_RenderScene ------------------------------------------------------------------------------------------------------------------
 // GLOBAL: D3DREN 0x1005a378
 int g_nLastRenderToFront;				// guess: the RenderToFront value the surfaces were last swapped for (0 after the module init)
@@ -1782,13 +1792,10 @@ static inline void BuildColorTable(uint8 *pTable, float fStep)
 // NAME: d3d_RenderScene: RenderStruct::RenderScene (include/renderstruct.h, set by RenderDLLSetup); the d3d_ prefix is Jupiter's (names_proposal medium).
 // guess: the frame: swaps the surfaces when RenderToFront changed, sets up the environment/fog/light tables, d3d_InitFrame, d3d_FullDrawScene
 // with the mirror hook installed, the statistics consoles, the world tree wireframe and the warble phase.
-// STUB diagnosis (W2): first transcription from the disassembly, 2624 of 2640 bytes (1358 differ, the exe's order of calls, strings, constants and branches is
-//   the same).  Known differences: (1) our frame is 0x5044, the exe's 0x5040: the exe shares the 12-byte temporary of `-g_pStruct->m_GlobalLightDir` and the
-//   8-byte saved ZENABLE state, ours does not; (2) the DrawPortals / CanDrawPortals block: the exe keeps the constant 1 in edi (`mov edi,1` before the call,
-//   `mov [g_bPortalsEnabled],edi`) and loads g_CV_DrawPortals into eax first; (3) the three light scale compares: the exe branches on a<b (`fld a; fcomp b; test ah,1`),
-//   fabsf gives fabs, and a hand-written a<b / b<=a helper inflates the function to 2720 bytes; the rest follows from these shifts.  The strings
-//   "ShowTexInfo ----------------------------" (28 dashes) and "ModelProfile: %d clipped, %d unclipped" were checked against the DLL's bytes (file offsets 0x48e0c / 0x48e38).
-// STUB: D3DREN 0x10017aa0
+// The world tree block is Jupiter's d3d_DrawWorldTree (StateSet, d3d_DisableTexture, the root through d3d_DrawWorldTree_R) expanded
+// here, the light scale compares are the SDK's LTDIFF, the portal flag is one `&&` expression, and the ShowTexInfo strings carry the
+// exe's column padding.
+// FUNCTION: D3DREN 0x10017aa0
 int d3d_RenderScene(SceneDesc *pDesc)
 {
 	Counter cCounter;
@@ -1816,16 +1823,7 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		g_nLastRenderToFront = g_CV_RenderToFront.m_IntVal;
 	}
 
-	if (g_CV_DrawPortals.m_IntVal)
-	{
-		int bPortals = CanDrawPortals();
-
-		g_bPortalsEnabled = 1;
-		if (!bPortals)
-			g_bPortalsEnabled = 0;
-	}
-	else
-		g_bPortalsEnabled = 0;
+	g_bPortalsEnabled = g_CV_DrawPortals.m_IntVal && CanDrawPortals();
 
 	if (!g_bLightFalloffTableInitialized || g_LightSaturate != g_fLightFalloffTableSaturation)
 	{
@@ -1835,9 +1833,9 @@ int d3d_RenderScene(SceneDesc *pDesc)
 	}
 
 	g_fEnvPanUOffset = g_EnvPanSpeed * pDesc->m_Pos.x + 0.5f;
+	g_fEnvPanVOffset = g_EnvPanSpeed * pDesc->m_Pos.z + 0.5f;
 	g_nUnclippedModelsDrawn = 0;
 	g_nClippedModelsDrawn = 0;
-	g_fEnvPanVOffset = g_EnvPanSpeed * pDesc->m_Pos.z + 0.5f;
 	g_fEnvMapUScale = (1.0f / g_EnvScale) * 0.5f;
 	g_fEnvMapVScale = g_fEnvMapUScale;
 	g_vNegatedGlobalLightDirection = -g_pStruct->m_GlobalLightDir;
@@ -1861,9 +1859,9 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		else
 			g_pfnCalcFogAlpha = d3d_CalcDistanceFogAlpha;
 
-		if (fabsf(g_GlobalLightScale.x - g_vLastColorTableLightScale.x) > 0.001f ||
-			fabsf(g_GlobalLightScale.y - g_vLastColorTableLightScale.y) > 0.001f ||
-			fabsf(g_GlobalLightScale.z - g_vLastColorTableLightScale.z) > 0.001f ||
+		if (LTDIFF(g_GlobalLightScale.x, g_vLastColorTableLightScale.x) > 0.001f ||
+			LTDIFF(g_GlobalLightScale.y, g_vLastColorTableLightScale.y) > 0.001f ||
+			LTDIFF(g_GlobalLightScale.z, g_vLastColorTableLightScale.z) > 0.001f ||
 			*(uint32 *)&g_GlobalVertexTintColor != (uint32)g_nLastColorTableVertexTint)
 		{
 			if (g_Saturate)
@@ -1930,7 +1928,7 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		if (g_ShowFillInfo)
 		{
 			g_pStruct->ConsolePrint("Tri area drawn: %.3f", g_fScreenTriangleArea);
-			g_pStruct->ConsolePrint("Overdraw: %.3f", g_fScreenTriangleArea / (float)((g_ViewParams.m_Rect.bottom - g_ViewParams.m_Rect.top) * (g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left)));
+			g_pStruct->ConsolePrint("Overdraw: %.3f", g_fScreenTriangleArea / (float)((g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left) * (g_ViewParams.m_Rect.bottom - g_ViewParams.m_Rect.top)));
 		}
 
 		if (g_CV_ShowTexInfo.m_IntVal)
@@ -1939,43 +1937,22 @@ int d3d_RenderScene(SceneDesc *pDesc)
 
 			g_pD3DDevice->GetInfo(D3DDEVINFOID_TEXTUREMANAGER, &info, sizeof(info));
 			dsi_ConsolePrint("ShowTexInfo ----------------------------");
-			dsi_ConsolePrint("bThrashing - %d", info.bThrashing);
-			dsi_ConsolePrint("dwNumEvicts - %d", info.dwNumEvicts);
-			dsi_ConsolePrint("dwNumVidCreates - %d", info.dwNumVidCreates);
+			dsi_ConsolePrint("bThrashing        - %d", info.bThrashing);
+			dsi_ConsolePrint("dwNumEvicts       - %d", info.dwNumEvicts);
+			dsi_ConsolePrint("dwNumVidCreates   - %d", info.dwNumVidCreates);
 			dsi_ConsolePrint("dwNumTexturesUsed - %d", info.dwNumTexturesUsed);
 			dsi_ConsolePrint("dwNumUsedTexInVid - %d", info.dwNumUsedTexInVid);
-			dsi_ConsolePrint("dwWorkingSet - %d", info.dwWorkingSet);
+			dsi_ConsolePrint("dwWorkingSet      - %d", info.dwWorkingSet);
 			dsi_ConsolePrint("dwWorkingSetBytes - %d", info.dwWorkingSetBytes);
-			dsi_ConsolePrint("dwTotalManaged - %d", info.dwTotalManaged);
-			dsi_ConsolePrint("dwTotalBytes - %d", info.dwTotalBytes);
-			dsi_ConsolePrint("dwLastPri - %d", info.dwLastPri);
+			dsi_ConsolePrint("dwTotalManaged    - %d", info.dwTotalManaged);
+			dsi_ConsolePrint("dwTotalBytes      - %d", info.dwTotalBytes);
+			dsi_ConsolePrint("dwLastPri         - %d", info.dwLastPri);
 		}
 	}
 
 	// Draw the world tree?
 	if ((int)g_CV_DrawWorldTree.m_IntVal > -1 && g_pFrameMainWorld)
-	{
-		int nDepth = g_CV_DrawWorldTree.m_IntVal;
-		WorldTreeNode *pTree = g_pFrameMainWorld->m_WorldTree.GetRootNode();
-		struct { D3DRENDERSTATETYPE m_Type; DWORD m_Val; } saved;
-		uint32 i;
-
-		saved.m_Type = D3DRENDERSTATE_ZENABLE;
-		g_pD3DDevice->GetRenderState(D3DRENDERSTATE_ZENABLE, &saved.m_Val);
-		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ZENABLE, 1);
-		if (g_pBoundTextures[g_NormalTextureStage])
-		{
-			g_pD3DDevice->SetTexture(g_NormalTextureStage, 0);
-			g_pBoundTextures[g_NormalTextureStage] = 0;
-		}
-		d3d_DrawWireframeBox(pTree->m_BBoxMin, pTree->m_BBoxMax, 0xffffffff);
-		if (pTree->HasChildren())
-		{
-			for (i = 0; i < MAX_WTNODE_CHILDREN; i++)
-				d3d_DrawWorldTree_R(pTree->m_Children[i], 1, nDepth);
-		}
-		g_pD3DDevice->SetRenderState(saved.m_Type, saved.m_Val);
-	}
+		d3d_DrawWorldTree(&g_pFrameMainWorld->m_WorldTree, g_CV_DrawWorldTree.m_IntVal);
 
 	if (g_CV_DrawTerrainSections.m_IntVal && g_pFrameMainWorld)
 		d3d_DrawTerrainSectionBounds(g_pFrameMainWorld);
