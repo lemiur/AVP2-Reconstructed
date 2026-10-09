@@ -719,16 +719,10 @@ void d3d_DrawSingleTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a
 // coordinates are the (rotated and scaled) detail coordinates of the poly, or, for an environment map texture, the sphere map
 // coordinates computed from the viewer position; each poly is clipped and drawn as a 0x28-byte vertex fan.  a2 gives the nodes
 // back to the pool; the third argument is not used.
-// Not matching: 958 of 955 bytes, 307 vs 307 instructions, the body after the prologue (alpha/saturate/fog state switching, both
-// vertex branches, the sphere map branch, the epilogue block) has the same instructions as the exe; the difference is the frame
-// layout of the prologue.  The exe has 7 scalar slots ([ebp-4]..[ebp-0x1c], aTexMat at [ebp-0x2c]..[ebp-0x1d], the 0x28-byte
-// vertex array below) and keeps the x87 temporaries of the matrix setup as `fld S; fld st(0); fmul K0; fld K1; fmul st(2);
-// fstp [ebp-0x18]` (reproduced by `K0 * S`); K1*S is spilled to a slot that the loop later reuses for pNext, ours to the slot
-// bSaturate reuses, and the frame is 4 bytes smaller (sub esp,0xcac vs 0xcb0: the exe has one more scalar slot), which shifts every
-// local after it.  Tried: S in a local, no local, fU/fV as locals / scoped / inlined into the four stores, 6 orders of the stores,
-// bAlphaBlend/bSaturate/pNode before the matrix (28 aligned ignoring stack, 56 exact), pPoly at function scope (no change), the
-// statement permuter (3000 candidates, best 80 aligned mismatches).
-// STUB: D3DREN 0x1000a8c0
+// Codegen notes: the detail scale is a float[2] (u stays on the x87 stack, its slot stays unused, v's slot is reused for pNext);
+// nVerts is one function-scope count shared by both branches; the queued-vertex loop counts its own copy (read first, then
+// copied into nVerts); the keep-colour branch comes first and both vertex-source arms set pSrc before the count.
+// FUNCTION: D3DREN 0x1000a8c0
 void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 {
 	UnkType_TLVertex40 aVerts[80];
@@ -781,8 +775,8 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 			{
 				TLVertex *pSrc = g_pQueuedWorldPolyVertices + pNode->m_Unk04;
 				UnkType_TLVertex40 *pDest = aVerts;
-				nVerts = pNode->m_Unk08;
-				int i = nVerts;
+				int i = pNode->m_Unk08;
+				nVerts = i;
 				while (i--)
 				{
 					*(TLVertex *)pDest = *pSrc;
@@ -806,8 +800,8 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 				}
 				else
 				{
+					pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 					nVerts = pPoly->m_nVertices;
-					pSrc = (UnkType_PolyVertex *)(pPoly + 1);
 				}
 				UnkType_TLVertex40 *pDest = aVerts;
 				for (int i = nVerts; i != 0; i--)
