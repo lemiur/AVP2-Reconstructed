@@ -288,8 +288,8 @@ int d3d_ClipSprite(SpriteInstance *pInstance, HPOLY hPoly, TLVertex **ppPoints, 
 		VEC_SUB(vecTo, *pCurPoint->m_Vec, *pPrevPoint->m_Vec);
 		VEC_CROSS(thePlane.m_Normal, vecTo, pPoly->GetPlane()->m_Normal);
 		VEC_NORM(thePlane.m_Normal);
-		g_nPlaneClipTests++;
 		thePlane.m_Dist = VEC_DOT(thePlane.m_Normal, *pCurPoint->m_Vec);
+		g_nPlaneClipTests++;
 
 		{
 			int bInside[50], *pInside;
