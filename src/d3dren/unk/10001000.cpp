@@ -197,9 +197,9 @@ extern int g_ClipNearInsideFlagsTLVertex[56];	// guess: Jupiter polyclip.h bInsi
 // GLOBAL: D3DREN 0x10094ec0
 extern int g_ClipLeftInsideFlagsTLVertex[56];	// guess: bInside[] of the left plane
 
-float IntersectNearClipPlane(float *p1, float *p2, float *pOut);
+float IntersectNearClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);
 int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, int *pnVerts);
-float IntersectLeftClipPlane(float *p1, float *p2, float *pOut);
+float IntersectLeftClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut);
 void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 
 // Plane clippers for the remaining planes (flag bits 8, 0x10, 0x20, 2); the first argument is unused by them.
@@ -224,10 +224,9 @@ extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left pl
 // polyclip.h expanded twice for the near and left plane, ClipLineZ/ClipExtra called out of line, then ClipPolyTop/10006670/
 // 10006900/10006ba0 for flags 8/0x10/0x20/2).  The exe keeps flags and ppVerts in spill slots [esp+0x24]/[esp+0x34], pInside/
 // nInside at [esp+0x28]/[esp+0x20] and the loop end pointer in esi; `mov eax,[g_CV]` is hoisted above the pushes.
-// Inline/call set: the exe calls IntersectNearClipPlane/IntersectLeftClipPlane out of line (here and in ClipModelPolygon40); our /Ob2
-// build inlines both (the unit needs /Ob2, flagscan; the budget probe leaves the full 1530u before the call).  With the two helpers
-// kept out of line (auto_inline experiment, not kept) this function drops from 385 to 164 aligned mismatches and ClipModelPolygon40
-// from 213 to 50: the original's reason for the out-of-line calls is the open question.
+// Inline/call set: the exe calls IntersectNearClipPlane/IntersectLeftClipPlane out of line (here and in ClipModelPolygon40).  They are
+// extern, so /Ob2 auto-inlines them only up to the 174u cap: the LTVector & parameters indexed through LTVector::operator[] (the
+// p[i] spelling of the bodies) weigh 197u/226u on the front end and keep both out of line with unchanged code (float * indexing: 137u/151u).
 // STUB: D3DREN 0x10001530
 int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts)
 {
@@ -276,7 +275,7 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 					*pOut++ = *pPrev;
 				if (g_ClipNearInsideFlagsTLVertex[iPrev] != g_ClipNearInsideFlagsTLVertex[iCur])
 				{
-					t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					t = IntersectNearClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
 					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
@@ -321,7 +320,7 @@ int __fastcall ClipModelPolygon32(uint32 flags, TLVertex **ppVerts, int *pnVerts
 					*pOut++ = *pPrev;
 				if (g_ClipLeftInsideFlagsTLVertex[iPrev] != g_ClipLeftInsideFlagsTLVertex[iCur])
 				{
-					t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					t = IntersectLeftClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
 					TLVertex_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
@@ -397,7 +396,7 @@ int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, in
 					*pOut++ = *pPrev;
 				if (g_ClipNearInsideFlagsVertex40[iPrev] != g_ClipNearInsideFlagsVertex40[iCur])
 				{
-					t = IntersectNearClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					t = IntersectNearClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
 					TLVertex40_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
@@ -442,7 +441,7 @@ int __fastcall ClipModelPolygon40(uint32 flags, UnkType_TLVertex40 **ppVerts, in
 					*pOut++ = *pPrev;
 				if (g_ClipLeftInsideFlagsVertex40[iPrev] != g_ClipLeftInsideFlagsVertex40[iCur])
 				{
-					t = IntersectLeftClipPlane(&pPrev->m_Vec.x, &pCur->m_Vec.x, &pOut->m_Vec.x);
+					t = IntersectLeftClipPlane(pPrev->m_Vec, pCur->m_Vec, pOut->m_Vec);
 					TLVertex40_ClipExtra(pPrev, pCur, pOut, t);
 					++pOut;
 				}
@@ -485,9 +484,10 @@ void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t
 // Same epsilon as Jupiter 3d_ops.h CLIP_EPSILON (0.00001f): the two constants at 0x100461c4 / 0x100461c8 are +-1e-5.
 #define CLIP_EPSILON	0.00001f
 
-// guess: intersection with the near plane z == g_ViewParams.m_NearZ; returns t, the parameter along p1->p2.
+// guess: intersection with the near plane z == g_ViewParams.m_NearZ; returns t, the parameter along p1->p2.  The coordinates are read
+// through LTVector::operator[]: its inline calls are what puts both intersection helpers over the extern auto-inline cap.
 // FUNCTION: D3DREN 0x10001a50
-float IntersectNearClipPlane(float *p1, float *p2, float *pOut)
+float IntersectNearClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut)
 {
 	float t;
 	float dz = p2[2] - p1[2];
@@ -504,7 +504,7 @@ float IntersectNearClipPlane(float *p1, float *p2, float *pOut)
 // guess: intersection with the plane x + z == 0 (left frustum plane); returns t.  The z of the second vertex goes through a named
 // float first (as in the bottom plane clipper ClipPolyBottom): that is what puts p1[0] before p1[2] in the numerator.
 // FUNCTION: D3DREN 0x10001ac0
-float IntersectLeftClipPlane(float *p1, float *p2, float *pOut)
+float IntersectLeftClipPlane(LTVector &p1, LTVector &p2, LTVector &pOut)
 {
 	float fCz = p2[2];
 	float d = ((p2[0] - p1[0]) + fCz) - p1[2];
