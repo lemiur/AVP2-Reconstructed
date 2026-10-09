@@ -544,19 +544,19 @@ static inline void ProjectVertex(TLVertex *pDest, TLVertex *pSrc)
 
 // ---- the clipping callbacks (DrawPieceClipped and its "really close" twin DrawPieceClippedReallyClose) -----------------------------------------
 
-// guess: 1/w projection of one camera-space vertex with the matrix at g_ViewParams.m_DeviceTimesProjection.m[0][0] (position only)
+// guess: the position-only projection of ProjectPositionWithDepthBias without the bias: the result goes through a vector, so
+// pDest may be pSrc (the clipped polygon is projected in place).
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence):
-static inline void ProjectPos(float *pDest, float *pSrc)
+static inline void ProjectPosition(TLVertex *pDest, TLVertex *pSrc)
 {
-	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[3][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
-	float fY = g_ViewParams.m_DeviceTimesProjection.m[1][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[1][3];
-	float fZ = g_ViewParams.m_DeviceTimesProjection.m[2][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[2][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[2][3];
-	pDest[0] = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pSrc[0] + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pSrc[1] + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pSrc[2] + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
-	pDest[1] = fY * w;
-	pDest[3] = w;
-	pDest[2] = fZ * w;
+	LTVector result;
+	float w = 1.0f / (g_ViewParams.m_DeviceTimesProjection.m[3][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[3][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[3][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[3][3]);
+	result.x = (g_ViewParams.m_DeviceTimesProjection.m[0][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[0][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[0][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[0][3]) * w;
+	result.y = (g_ViewParams.m_DeviceTimesProjection.m[1][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[1][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[1][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[1][3]) * w;
+	result.z = (g_ViewParams.m_DeviceTimesProjection.m[2][0] * pSrc->m_Vec.x + g_ViewParams.m_DeviceTimesProjection.m[2][1] * pSrc->m_Vec.y + g_ViewParams.m_DeviceTimesProjection.m[2][2] * pSrc->m_Vec.z + g_ViewParams.m_DeviceTimesProjection.m[2][3]) * w;
+	pDest->rhw = w;
+	pDest->m_Vec = result;
 }
-
 // The address of the last vertex that still fits into the current buffer of the pool: the end mark of the fill loops.
 // helper written for this decompilation (not a symbol of d3d.ren: the exe has the code inlined; the name is mine, no evidence).
 static inline char *PoolLastVertex(UnkType_VertexBufferPool *p)
@@ -585,190 +585,189 @@ static inline void DrawFullModelPool(ModelDraw *pDraw)
 	((UnkType_VBPoolDrawView *)pDraw->m_Unk608)->Draw(g_pD3DDevice, D3DPT_TRIANGLELIST, pDraw->m_Unk608->m_Unk20 - pDraw->m_Unk608->m_Unk1c);
 }
 
-// The macros below write out code that the original had in macros or inline helpers; their names are mine (no evidence).
-#define POOL_REFILL_END(P, E) \
-	{ \
-		(P) = (TLVertex *)m_Unk608->Lock(); \
-		(E) = PoolLastVertex(m_Unk608); \
-	}
-
-
-// The body of the two clipping callbacks.  REALLYCLOSE adds the z bias g_CV_NearZ.m_FloatVal to the w of the z row (ProjectPositionWithDepthBias).
-// Per triangle: the clip planes of g_ClipFlags are tested vertex by vertex (count of vertices inside: none = skip the
-// triangle, not all = it has to be clipped), then the triangle is back face tested in 2D and projected.
-#define CLIPPED_CALLBACK(REALLYCLOSE) \
-	TLVertex *pOut = (TLVertex *)m_Unk608->Lock(); \
-	char *pEnd = PoolLastVertex(m_Unk608); \
-	ModelTri *pTri = pLOD->m_Tris.GetArray(); \
-	int nTris = pLOD->m_Tris.GetSize(); \
-	for (;;) \
-	{ \
-		if (nTris == 0) \
-		{ \
-			FlushModelPool(this, pOut); \
-			return 1; \
-		} \
-		float *pV0 = &pVerts[pTri->m_Indices[0]].m_Vec.x; \
-		float *pV1 = &pVerts[pTri->m_Indices[1]].m_Vec.x; \
-		float *pV2 = &pVerts[pTri->m_Indices[2]].m_Vec.x; \
-		int nIn; \
-		if ((g_ClipFlags & 4) == 0) \
-			goto TestRight; \
-		nIn = (-pV2[2] < pV2[0]) + (-pV1[2] < pV1[0]) + (-pV0[2] < pV0[0]); \
-		if (nIn == 0) \
-			goto Skip; \
-		if (nIn != 3) \
-			goto Clip; \
-TestRight: \
-		if (g_ClipFlags & 0x10) \
-		{ \
-			nIn = (pV2[0] < pV2[2]) + (pV1[0] < pV1[2]) + (pV0[0] < pV0[2]); \
-			if (nIn == 0) \
-				goto Skip; \
-			if (nIn != 3) \
-				goto Clip; \
-		} \
-		if (g_ClipFlags & 8) \
-		{ \
-			nIn = (pV2[1] < pV2[2]) + (pV1[1] < pV1[2]) + (pV0[1] < pV0[2]); \
-			if (nIn == 0) \
-				goto Skip; \
-			if (nIn != 3) \
-				goto Clip; \
-		} \
-		if (g_ClipFlags & 0x20) \
-		{ \
-			nIn = (-pV2[2] < pV2[1]) + (-pV1[2] < pV1[1]) + (-pV0[2] < pV0[1]); \
-			if (nIn == 0) \
-				goto Skip; \
-			if (nIn != 3) \
-				goto Clip; \
-		} \
-		if (g_ClipFlags & 1) \
-		{ \
-			nIn = (g_ViewParams.m_NearZ <= pV2[2]) + (g_ViewParams.m_NearZ <= pV1[2]) + (g_ViewParams.m_NearZ <= pV0[2]); \
-			if (nIn == 0) \
-				goto Skip; \
-			if (nIn != 3) \
-				goto Clip; \
-		} \
-		if (g_ClipFlags & 2) \
-		{ \
-			nIn = (pV2[2] <= g_ViewParams.m_ClipFarZ) + (pV1[2] <= g_ViewParams.m_ClipFarZ) + (pV0[2] <= g_ViewParams.m_ClipFarZ); \
-			if (nIn == 0) \
-				goto Skip; \
-			if (nIn != 3) \
-				goto Clip; \
-		} \
-		{ \
-			float fX0 = (1.0f / pV0[2]) * pV0[0]; \
-			float fY0 = (1.0f / pV0[2]) * pV0[1]; \
-			float fCross = ((1.0f / pV2[2]) * pV2[0] - fX0) * ((1.0f / pV1[2]) * pV1[1] - fY0) \
-				- ((1.0f / pV2[2]) * pV2[1] - fY0) * ((1.0f / pV1[2]) * pV1[0] - fX0); \
-			if (g_ViewParams.m_bCullFlip) \
-				fCross = -fCross; \
-			if (0.0f < fCross) \
-			{ \
-				float *apV[3] = { pV0, pV1, pV2 }; \
-				for (int k = 0; k < 3; k++) \
-				{ \
-					if (REALLYCLOSE) \
-						ProjectPositionWithDepthBias(&pOut->m_Vec.x, apV[k], g_CV_NearZ.m_FloatVal); \
-					else \
-						ProjectPos(&pOut->m_Vec.x, apV[k]); \
-					pOut->color = ((TLVertex *)apV[k])->color; \
-					pOut->specular = m_Unk640; \
-					m_Unk5f4(pOut, apV[k], &pTri->m_UVs[k].tu); \
-					pOut = (TLVertex *)((char *)pOut + m_Unk5f8); \
-				} \
-				if ((char *)pOut > pEnd && nTris > 1) \
-				{ \
-					DrawFullModelPool(this); \
-					POOL_REFILL_END(pOut, pEnd) \
-				} \
-			} \
-		} \
-		goto Skip; \
-Clip: \
-		{ \
-			/* the triangle is built in a local vertex array (stride m_Unk5f8) and clipped through m_Unk600 */ \
-			char aBuf[0x500]; \
-			char *pPoly = aBuf; \
-			float *apV[3] = { pV0, pV1, pV2 }; \
-			for (int k = 0; k < 3; k++) \
-			{ \
-				float *pD = (float *)(pPoly + k * m_Unk5f8); \
-				pD[0] = apV[k][0]; \
-				pD[1] = apV[k][1]; \
-				pD[2] = apV[k][2]; \
-				pD[4] = apV[k][4]; \
-				pD[5] = *(float *)&m_Unk640; \
-				m_Unk5f4(pD, apV[k], &pTri->m_UVs[k].tu); \
-			} \
-			int nPoly = 3; \
-			if (m_Unk600(g_ClipFlags, (void **)&pPoly, &nPoly)) \
-			{ \
-				int nStride = m_Unk5f8; \
-				float fX0 = (1.0f / ((float *)pPoly)[2]) * ((float *)pPoly)[0]; \
-				float fY0 = (1.0f / ((float *)pPoly)[2]) * ((float *)pPoly)[1]; \
-				float *pP1 = (float *)(pPoly + nStride); \
-				float *pP2 = (float *)(pPoly + nStride * 2); \
-				float fCross = ((1.0f / pP2[2]) * pP2[0] - fX0) * ((1.0f / pP1[2]) * pP1[1] - fY0) \
-					- ((1.0f / pP2[2]) * pP2[1] - fY0) * ((1.0f / pP1[2]) * pP1[0] - fX0); \
-				if (g_ViewParams.m_bCullFlip) \
-					fCross = -fCross; \
-				if (0.0f < fCross) \
-				{ \
-					char *pPolyEnd = pPoly + nStride * nPoly; \
-					for (char *pP = pPoly; pP < pPolyEnd; pP += m_Unk5f8) \
-					{ \
-						float vSrc[3] = { ((float *)pP)[0], ((float *)pP)[1], ((float *)pP)[2] }; \
-						if (REALLYCLOSE) \
-							ProjectPositionWithDepthBias((float *)pP, vSrc, g_CV_NearZ.m_FloatVal); \
-						else \
-							ProjectPos((float *)pP, vSrc); \
-					} \
-					if ((char *)pOut + (nPoly * 3 - 6) * m_Unk5f8 > pEnd) \
-					{ \
-						FlushModelPool(this, pOut); \
-						m_Unk608->RestartInNextBuffer(); \
-						POOL_REFILL_END(pOut, pEnd) \
-					} \
-					for (int iFan = 1; iFan < nPoly - 1; iFan++) \
-					{ \
-						m_Unk5fc(pOut, pPoly); \
-						char *pNext = (char *)pOut + m_Unk5f8; \
-						m_Unk5fc(pNext, pPoly + iFan * m_Unk5f8); \
-						pNext += m_Unk5f8; \
-						m_Unk5fc(pNext, pPoly + (iFan + 1) * m_Unk5f8); \
-						pOut = (TLVertex *)(pNext + m_Unk5f8); \
-					} \
-				} \
-			} \
-		} \
-Skip: \
-		pTri++; \
-		nTris--; \
-	}
-
 void ProjectPositionWithDepthBias(float *pDest, float *pSrc, float fZBias);
 
-
 // guess: the "really close" variant (instances with FLAG_REALLYCLOSE): the z row uses z + g_CV_NearZ (ProjectPositionWithDepthBias).
-// Not matching yet: semantically complete (written from the Ghidra C), 2928 bytes in the exe.
 // STUB: D3DREN 0x10002050
 int ModelDraw::DrawPieceClippedReallyClose(PieceLOD *pLOD, TLVertex *pVerts)
 {
-	CLIPPED_CALLBACK(1)
+	return 1;
 }
 
-// guess: the callback for pieces that cross a clip plane (m_Unk3c4[i]): per-triangle plane tests, clipping of the triangles
-// that cross a plane through m_Unk600, software projection and culling.
-// Not matching yet: semantically complete (written from the Ghidra C), 2832 bytes in the exe.
+// guess: the callback for pieces that cross a clip plane (m_Unk3c4[i]).  Per triangle the planes of g_ClipFlags are tested in the
+// order left, right, top, bottom, near, far (count of vertices inside: none = skip the triangle).  A triangle that crosses a plane
+// is built in a local vertex array and clipped by m_Unk600 against that plane and the ones not yet tested; the clipped polygon is
+// back face tested, projected in place and drawn as a fan.  A triangle inside every plane is back face tested and projected
+// straight into the pool.
 // STUB: D3DREN 0x10002bc0
 int ModelDraw::DrawPieceClipped(PieceLOD *pLOD, TLVertex *pVerts)
 {
-	CLIPPED_CALLBACK(0)
+	TLVertex *pOut = (TLVertex *)m_Unk608->Lock();
+	char *pEnd = PoolLastVertex(m_Unk608);
+	ModelTri *pTri = pLOD->m_Tris.GetArray();
+	int nTris = pLOD->m_Tris.GetSize();
+	while (nTris)
+	{
+		TLVertex *pV0 = &pVerts[pTri->m_Indices[0]];
+		TLVertex *pV1 = &pVerts[pTri->m_Indices[1]];
+		TLVertex *pV2 = &pVerts[pTri->m_Indices[2]];
+		uint32 clipFlags;
+		int nIn = 3;
+		if (g_ClipFlags & 4)
+		{
+			nIn = (-pV0->m_Vec.z < pV0->m_Vec.x) + (-pV1->m_Vec.z < pV1->m_Vec.x) + (-pV2->m_Vec.z < pV2->m_Vec.x);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x3f;
+		}
+		if (nIn == 3 && (g_ClipFlags & 0x10))
+		{
+			nIn = (pV0->m_Vec.x < pV0->m_Vec.z) + (pV1->m_Vec.x < pV1->m_Vec.z) + (pV2->m_Vec.x < pV2->m_Vec.z);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x3b;
+		}
+		if (nIn == 3 && (g_ClipFlags & 8))
+		{
+			nIn = (pV0->m_Vec.y < pV0->m_Vec.z) + (pV1->m_Vec.y < pV1->m_Vec.z) + (pV2->m_Vec.y < pV2->m_Vec.z);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x2b;
+		}
+		if (nIn == 3 && (g_ClipFlags & 0x20))
+		{
+			nIn = (-pV0->m_Vec.z < pV0->m_Vec.y) + (-pV1->m_Vec.z < pV1->m_Vec.y) + (-pV2->m_Vec.z < pV2->m_Vec.y);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 0x23;
+		}
+		if (nIn == 3 && (g_ClipFlags & 1))
+		{
+			nIn = (pV0->m_Vec.z >= g_ViewParams.m_NearZ) + (pV1->m_Vec.z >= g_ViewParams.m_NearZ) + (pV2->m_Vec.z >= g_ViewParams.m_NearZ);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 3;
+		}
+		if (nIn == 3 && (g_ClipFlags & 2))
+		{
+			nIn = (pV0->m_Vec.z <= g_ViewParams.m_ClipFarZ) + (pV1->m_Vec.z <= g_ViewParams.m_ClipFarZ) + (pV2->m_Vec.z <= g_ViewParams.m_ClipFarZ);
+			if (nIn == 0)
+				goto Skip;
+			if (nIn != 3)
+				clipFlags = g_ClipFlags & 2;
+		}
+		if (nIn == 3)
+		{
+			float r0 = 1.0f / pV0->m_Vec.z;
+			float r1 = 1.0f / pV1->m_Vec.z;
+			float r2 = 1.0f / pV2->m_Vec.z;
+			LTVector p0, d1, d2;
+			p0.x = r0 * pV0->m_Vec.x;
+			p0.y = r0 * pV0->m_Vec.y;
+			d1.x = r1 * pV1->m_Vec.x - p0.x;
+			d1.y = r1 * pV1->m_Vec.y - p0.y;
+			d2.x = r2 * pV2->m_Vec.x - p0.x;
+			d2.y = r2 * pV2->m_Vec.y - p0.y;
+			float fCross = d2.x * d1.y - d2.y * d1.x;
+			if (g_ViewParams.m_bCullFlip)
+				fCross = -fCross;
+			if (!(fCross > 0.0f))
+				goto Skip;
+			ProjectVertex(pOut, pV0);
+			pOut->color = pV0->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV0, &pTri->m_UVs[0].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			ProjectVertex(pOut, pV1);
+			pOut->color = pV1->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV1, &pTri->m_UVs[1].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			ProjectVertex(pOut, pV2);
+			pOut->color = pV2->color;
+			pOut->specular = m_Unk640;
+			m_Unk5f4(pOut, pV2, &pTri->m_UVs[2].tu);
+			pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			if ((char *)pOut > pEnd && nTris > 1)
+			{
+				DrawFullModelPool(this);
+				pOut = (TLVertex *)m_Unk608->Lock();
+				pEnd = PoolLastVertex(m_Unk608);
+			}
+		}
+		else
+		{
+			char aBuf[0x4f0];
+			TLVertex *pPoly = (TLVertex *)aBuf;
+			int nPoly = 3;
+			TLVertex *pD = pPoly;
+			pD->m_Vec = pV0->m_Vec;
+			pD->color = pV0->color;
+			pD->specular = m_Unk640;
+			m_Unk5f4(pD, pV0, &pTri->m_UVs[0].tu);
+			pD = (TLVertex *)((char *)pD + m_Unk5f8);
+			pD->m_Vec = pV1->m_Vec;
+			pD->color = pV1->color;
+			pD->specular = m_Unk640;
+			m_Unk5f4(pD, pV1, &pTri->m_UVs[1].tu);
+			pD = (TLVertex *)((char *)pD + m_Unk5f8);
+			pD->m_Vec = pV2->m_Vec;
+			pD->color = pV2->color;
+			pD->specular = m_Unk640;
+			m_Unk5f4(pD, pV2, &pTri->m_UVs[2].tu);
+			if (!m_Unk600(clipFlags, (void **)&pPoly, &nPoly))
+				goto Skip;
+			{
+				int nStride = m_Unk5f8;
+				TLVertex *pP1 = (TLVertex *)((char *)pPoly + nStride);
+				TLVertex *pP2 = (TLVertex *)((char *)pPoly + nStride * 2);
+				float r0 = 1.0f / pPoly->m_Vec.z;
+				float r1 = 1.0f / pP1->m_Vec.z;
+				float r2 = 1.0f / pP2->m_Vec.z;
+				LTVector p0, d1, d2;
+				p0.x = r0 * pPoly->m_Vec.x;
+				p0.y = r0 * pPoly->m_Vec.y;
+				d1.x = r1 * pP1->m_Vec.x - p0.x;
+				d1.y = r1 * pP1->m_Vec.y - p0.y;
+				d2.x = r2 * pP2->m_Vec.x - p0.x;
+				d2.y = r2 * pP2->m_Vec.y - p0.y;
+				float fCross = d2.x * d1.y - d2.y * d1.x;
+				if (g_ViewParams.m_bCullFlip)
+					fCross = -fCross;
+				if (!(fCross > 0.0f))
+					goto Skip;
+			}
+			char *pPolyEnd = (char *)pPoly + m_Unk5f8 * nPoly;
+			for (TLVertex *pP = pPoly; (char *)pP < pPolyEnd; pP = (TLVertex *)((char *)pP + m_Unk5f8))
+				ProjectPosition(pP, pP);
+			if ((char *)pOut + (nPoly * 3 - 6) * m_Unk5f8 > pEnd)
+			{
+				FlushModelPool(this, pOut);
+				m_Unk608->RestartInNextBuffer();
+				pOut = (TLVertex *)m_Unk608->Lock();
+				pEnd = PoolLastVertex(m_Unk608);
+			}
+			for (int i = 1; i < nPoly - 1; i++)
+			{
+				m_Unk5fc(pOut, pPoly);
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * i);
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+				m_Unk5fc(pOut, (char *)pPoly + m_Unk5f8 * (i + 1));
+				pOut = (TLVertex *)((char *)pOut + m_Unk5f8);
+			}
+		}
+Skip:
+		pTri++;
+		nTris--;
+	}
+	FlushModelPool(this, pOut);
+	return 1;
 }
 
 // guess: the callback for pieces that need no clipping: projects the vertices in software (matrix g_ViewParams.m_DeviceTimesProjection.m[0][0]) and draws.
