@@ -132,10 +132,12 @@ void InitLightColorClampTable()
 }
 
 // guess: sets up the context of one dynamic light for a polygon's lightmap: pDest/pitch/w/h = the locked lightmap
-// Not matching (163 vs 166 instructions, 51 aligned mismatches ignoring stack offsets): the exe does not fold the colour terms: it emits
-// `mov edi,0xff0000; shl ecx,16; sub edi,ecx; sub ecx,edi` for (r << 16) - (0xff0000 - (r << 16)), where our compiler folds the same
-// source to `shl ecx,17; sub ecx,0xff0000` (locals, casts and a separate difference variable tried: no change), and the exe orders the
-// two |P|, |Q| normalisations (fsqrt, fdivr, fmulp) with the P*f / Q*f products interleaved differently.
+// Not matching (163 vs 166 instructions, 48 aligned mismatches ignoring stack offsets): the exe does not fold the colour terms: it
+// emits `mov edi,0xff0000; shl ecx,16; sub edi,ecx; sub ecx,edi` for (r << 16) - (0xff0000 - (r << 16)), where our compiler folds
+// the same source to `shl ecx,17; sub ecx,0xff0000`.  The front end folds any single-statement form (casts, int/uint mixes,
+// (255 - r) << 16, r * 65536, parameter reuse, member self-assignment, inline helpers taking the shifted value or the colour); with
+// the inner difference in its own statement C2 still folds it into `lea ecx,[ecx+ecx-0xff0000]`; no /Op /Oa /Ow /G5 /G6 /Ob1
+// variant keeps it.  The second |Q| normalisation's x87 order follows from the register pressure of the unfolded form.
 // STUB: D3DREN 0x10032a60
 void SetupLightmapLightContext(MainWorld *pWorld, WorldPoly *pPoly, LTVector *pLightPos, uint8 *pDest, long pitch, uint32 w, uint32 h,
 	float fRadius, uint32 r, uint32 g, uint32 b, UnkType_LightCtx *pCtx)
@@ -568,9 +570,12 @@ Lit:
 
 // guess: builds the light animation lightmap of a polygon (plain light animation, 32 bit colour texels): decompresses the frame(s)
 // of the polygon for the animation's current frame pair into pOut (w * h texels) and blends them by m_PercentBetween (0-255).
-// Not matching (512 of 512 bytes): each single-frame case returns on its own (the exe cross-jumps the identical decodes), the
-// channels come from the SDK GETRGB and are clamped one by one.  Residue in the blend loop: the exe merges the output pointer into
-// the source pointer's induction variable (`[ecx+edi-4]`, edi = &buf0[i]); ours walks the sources as a frame offset and pOut apart.
+// Not matching (512 of 512 bytes, 47 aligned mismatches ignoring stack offsets): each single-frame case returns on its own (the exe
+// cross-jumps the identical decodes), the channels come from the SDK GETRGB and are clamped one by one.  Residue in the blend loop:
+// the exe walks one pointer IV over buf0 (buf1 at +0x1000, pOut through a saved pOut - buf0 offset, stored after the increment) with
+// a separate down counter; ours walks a frame offset with pOut apart.  Tried: index forms (i < n, i != n, int/uint, count-down with
+// a separate index), three-pointer forms with a down counter, early increments, a local output cursor, GETR-inline channels;
+// three permuter runs (9000 candidates) without a source-like improvement.
 // STUB: D3DREN 0x10033c00
 int BuildColorLightAnimTexels(WorldPoly *pPoly, LightAnim *pAnim, LAPolyRef *pRef, uint32 *pOut)
 {
