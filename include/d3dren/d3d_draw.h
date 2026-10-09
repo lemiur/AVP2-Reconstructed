@@ -7,6 +7,7 @@
 #include "ltbasedefs.h"
 #include "de_objects.h"
 #include "d3dren/d3ddevice.h"
+#include "d3dren/rendererconsolevars.h"
 #include "../../../build/proj/LT2/lithshared/stdlith/struct_bank.h"
 
 // The prototypes below are the ones the other units already declare locally (decorated names must agree); the definitions are in
@@ -112,5 +113,28 @@ extern uint8 g_VertexTintTableR[256];	// guess: red lighting table
 extern uint8 g_VertexTintTableG[256];
 // GLOBAL: D3DREN 0x1005a204
 extern uint8 g_VertexTintTableB[256];
+
+// The vertical fog zone and density of a height y (VFogMinY/VFogMaxY band, VFogMinYVal/VFogMaxYVal below/above it, linear in between).
+// Inline helpers: ViewParams::SetupFogViewPosition (3d_ops) evaluates both for the viewer, d3d_CalcVerticalFogAlpha for the vertex and
+// the viewer (the three expansions are the exe's; the scale factors multiply in this order).
+inline int d3d_GetVFogZone(float y)
+{
+	if (y >= g_CV_VFogMaxY.m_FloatVal)
+		return 1;
+	else if (y <= g_CV_VFogMinY.m_FloatVal)
+		return 0;
+	else
+		return 2;
+}
+
+inline float d3d_GetVFogDensity(float y)
+{
+	if (y <= g_CV_VFogMinY.m_FloatVal)
+		return g_CV_VFogMinYVal.m_FloatVal;
+	else if (y >= g_CV_VFogMaxY.m_FloatVal)
+		return g_CV_VFogMaxYVal.m_FloatVal;
+	else
+		return (y - g_CV_VFogMinY.m_FloatVal) * g_fVFogValueRange * g_fInvVFogHeightRange + g_CV_VFogMinYVal.m_FloatVal;
+}
 
 #endif

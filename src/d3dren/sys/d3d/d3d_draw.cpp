@@ -174,29 +174,21 @@ void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 	int nZone;
 	float fFog;
 
-	if (pPos->y < g_CV_VFogMaxY.m_FloatVal)
-	{
-		if (g_CV_VFogMinY.m_FloatVal < pPos->y)
-			nZone = 2;
-		else
-			nZone = 0;
-	}
-	else
-		nZone = 1;
+	nZone = d3d_GetVFogZone(pPos->y);
 
 	if (g_ViewParams.m_nVFogViewZone == nZone)
 	{
 		float fDensity;
 
-		if (nZone == 2)
+		if (g_ViewParams.m_nVFogViewZone == 2)
 		{
 			fDensity = (vPos.y - g_CV_VFogMinY.m_FloatVal) * g_fInvVFogHeightRange * g_fVFogValueRange + g_ViewParams.m_fVFogViewDensity + g_CV_VFogMinYVal.m_FloatVal;
-			fFog = (vEye - vPos).Mag() * fDensity * g_fVFogDensityScale;
+			fFog = vEye.Dist(*pPos) * fDensity * g_fVFogDensityScale;
 		}
 		else
 		{
 			fDensity = g_ViewParams.m_fVFogViewDensity;
-			fFog = ((vEye - vPos).Mag() * fDensity + (vEye - vPos).Mag() * fDensity) * g_fVFogDensityScale;
+			fFog = vEye.Dist(*pPos) * fDensity * 2.0f * g_fVFogDensityScale;
 		}
 	}
 	else
@@ -213,28 +205,16 @@ void __fastcall d3d_CalcVerticalFogAlpha(LTVector *pPos, uint32 *pSpecular)
 		{
 			// viewer above VFogMaxY, vertex below: the first part of the ray is at VFogMaxYVal
 			fFogA = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
-			fFogA = (vEye - vCross).Mag() * fFogA * g_fVFogDensityScale;
-			if (vPos.y <= g_CV_VFogMinY.m_FloatVal)
-				fFogB = g_CV_VFogMinYVal.m_FloatVal;
-			else if (vPos.y >= g_CV_VFogMaxY.m_FloatVal)
-				fFogB = g_CV_VFogMaxYVal.m_FloatVal;
-			else
-				fFogB = (vPos.y - g_CV_VFogMinY.m_FloatVal) * g_fInvVFogHeightRange * g_fVFogValueRange + g_CV_VFogMinYVal.m_FloatVal;
-			fFogB = fFogB + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = (vCross - vPos).Mag() * fFogB;
+			fFogA = vEye.Dist(vCross) * fFogA * g_fVFogDensityScale;
+			fFogB = d3d_GetVFogDensity(vPos.y) + g_CV_VFogMaxYVal.m_FloatVal;
+			fFog = vCross.Dist(vPos) * fFogB;
 		}
 		else
 		{
-			if (vEye.y <= g_CV_VFogMinY.m_FloatVal)
-				fFogB = g_CV_VFogMinYVal.m_FloatVal;
-			else if (vEye.y >= g_CV_VFogMaxY.m_FloatVal)
-				fFogB = g_CV_VFogMaxYVal.m_FloatVal;
-			else
-				fFogB = (vEye.y - g_CV_VFogMinY.m_FloatVal) * g_fInvVFogHeightRange * g_fVFogValueRange + g_CV_VFogMinYVal.m_FloatVal;
-			fFogB = fFogB + g_CV_VFogMaxYVal.m_FloatVal;
-			fFogA = (vEye - vCross).Mag() * fFogB * g_fVFogDensityScale;
+			fFogB = d3d_GetVFogDensity(vEye.y) + g_CV_VFogMaxYVal.m_FloatVal;
+			fFogA = vEye.Dist(vCross) * fFogB * g_fVFogDensityScale;
 			fFogB = g_CV_VFogMaxYVal.m_FloatVal + g_CV_VFogMaxYVal.m_FloatVal;
-			fFog = (vCross - vPos).Mag() * fFogB;
+			fFog = vCross.Dist(vPos) * fFogB;
 		}
 		fFog = fFog * g_fVFogDensityScale + fFogA;
 	}

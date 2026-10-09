@@ -30,26 +30,10 @@ ConVar g_CV_ReallyCloseNearZ("ReallyCloseNearZ", 0.01f);
 // FUNCTION: D3DREN 0x1000f1a0
 void ViewParams::SetupFogViewPosition(LTVector vPos)
 {
-	float fFog;
-	int nZone;
-
 	m_FogViewPos = vPos;
 
-	if (g_ViewParams.m_Pos.y <= g_CV_VFogMinY.m_FloatVal)
-		fFog = g_CV_VFogMinYVal.m_FloatVal;
-	else if (g_ViewParams.m_Pos.y >= g_CV_VFogMaxY.m_FloatVal)
-		fFog = g_CV_VFogMaxYVal.m_FloatVal;
-	else
-		fFog = (g_ViewParams.m_Pos.y - g_CV_VFogMinY.m_FloatVal) * g_fVFogValueRange * g_fInvVFogHeightRange + g_CV_VFogMinYVal.m_FloatVal;
-	m_fVFogViewDensity = fFog;
-
-	if (g_ViewParams.m_Pos.y >= g_CV_VFogMaxY.m_FloatVal)
-		nZone = 1;
-	else if (g_ViewParams.m_Pos.y <= g_CV_VFogMinY.m_FloatVal)
-		nZone = 0;
-	else
-		nZone = 2;
-	m_nVFogViewZone = nZone;
+	m_fVFogViewDensity = d3d_GetVFogDensity(g_ViewParams.m_Pos.y);
+	m_nVFogViewZone = d3d_GetVFogZone(g_ViewParams.m_Pos.y);
 }
 
 
