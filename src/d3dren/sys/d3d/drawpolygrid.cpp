@@ -254,6 +254,10 @@ inline void GenerateSignedPolyGridVertices(LTPolyGrid *pGrid, UnkType_TLVertex40
 //  too; the solver wants 60-80u less own size (dB -120..-160) or ~120u more charge between GenerateSigned... and operator*.
 //  Not source-explainable by this author: 1.  2./3. are probably consequences of 1. plus the exact declaration/statement order of the
 //  original; tools/permute.py (30 min, 4 jobs) found nothing better than semantic-breaking mutations.
+//  inline_budget.py --sweep: budgets 3739..3781u reproduce the exe's call set (B = 3900u here, so 60..80u less own size).  Not that
+//  size (the exe has the code): `nStage = bEnvMap ? 1 : 0` (recomputed in ecx), the pTracker->m_pCurFrame->m_pTex chains (re-read
+//  for d3d_SetTexture and the state change), `bClip` (stored); fNegRadius / vPos are neutral.  A d3d_SetTexture helper heavy enough
+//  to refuse d3d_FindRTextureForStage in d3d_DrawRotatableSprite would refuse both searches here, which the exe inlines.
 // FUNCTION: D3DREN 0x1002ce70 ??H?$_CVector@M@@QBE?AV0@V0@@Z
 // FUNCTION: D3DREN 0x1002cec0 ??D?$_CVector@M@@QBE?AV0@M@Z
 // STUB: D3DREN 0x1002aff0
