@@ -119,6 +119,7 @@ int UnkType_RTextureData::GetBaseHeight()
 }
 
 // NAME: names_proposal.csv guess_GetLightmapTextureFormat (low, invented): not used
+inline void d3d_SetUV(RTexture *p, uint32 w, uint32 h) { p->m_Data.m_Unk04 = 1.0f / (float)w; p->m_Data.m_Unk08 = 1.0f / (float)h; }
 // FUNCTION: D3DREN 0x1001e730
 TextureFormat *d3d_GetLightmapTextureFormat()
 {
@@ -133,12 +134,9 @@ TextureFormat *d3d_GetLightmapTextureFormat()
 // Creates a lightmap page texture surface (the DirectDraw surface in the lightmap format, DDSD_TEXTURESTAGE for one-pass lightmapping)
 // and an RTexture for it: the allocator callback the lightmap texture pools use (UnkType_LMTexturePools::CreateTexturePools).
 // NAME: names_proposal.csv guess_CreateLightmapPageTexture (low, invented): not used
-// NOT MATCHING (416 vs 432 bytes): the exe calls the UnkType_RTextureData constructor out of line (0x1001e900, its only caller) inside
-// the expanded RTexture() of ObjectBank::Allocate.  By the budget model (tools/inline_budget.py --solve) that needs two more inline
-// call sites after Allocate (or ~74u more inline cost before it); with two code-free inline calls there (diagnostic only) the size is
-// the exe's and 37 instructions differ (ddsd width/height register choice, float schedule).  The two sites are not identified.
-// PARKED: call-set wall: two inline sites after g_RTextureBank.Allocate() missing (no authentic accessor/helper found)
-// STUB: D3DREN 0x1001e750
+// The RTexture's data is tied to its owner and surface through the UnkType_RTextureData setters: the two inline sites after
+// Allocate leave the UnkType_RTextureData constructor of the expanded RTexture() out of line (0x1001e900, its only caller).
+// FUNCTION: D3DREN 0x1001e750
 RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 {
 	TextureFormat *pFormat;
@@ -151,12 +149,12 @@ RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 		return 0;
 
 	memset(&ddsd, 0, sizeof(ddsd));
-	ddsd.dwHeight = height;
-	ddsd.ddsCaps.dwCaps = flags | DDSCAPS_TEXTURE;
-	ddsd.dwTextureStage = g_LightmapTextureStage;
 	ddsd.dwSize = sizeof(ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_TEXTURESTAGE;
 	ddsd.dwWidth = width;
+	ddsd.ddsCaps.dwCaps = flags | DDSCAPS_TEXTURE;
+	ddsd.dwHeight = height;
+	ddsd.dwTextureStage = g_LightmapTextureStage;
 	ddsd.ddpfPixelFormat = pFormat->m_PF;
 	if (g_pDD->CreateSurface(&ddsd, &pSurface, 0) != 0)
 		return 0;
@@ -168,16 +166,16 @@ RTexture *d3d_CreateLightmapRTexture(uint32 width, uint32 height, uint32 flags)
 		return 0;
 	}
 
-	pRTexture->m_Data.m_Unk04 = 1.0f / (float)width;
-	pRTexture->m_Data.m_Unk08 = 1.0f / (float)height;
-	pRTexture->m_Data.m_pOwner = pRTexture;
-	pRTexture->m_Data.m_pSurface = pSurface;
+	pRTexture->m_Data.SetSurface(pSurface);
+	pRTexture->m_Data.SetOwner(pRTexture);
 	pRTexture->m_BaseHeight = height;
 	pRTexture->m_pSharedTexture = 0;
 	pRTexture->m_Link.m_pData = 0;
 	pRTexture->m_Flags = 0;
 	pRTexture->m_BaseWidth = width;
 	pRTexture->m_Data.m_nTextureFrameCode = 0;
+	pRTexture->m_Data.m_Unk04 = 1.0f / (float)width;
+	pRTexture->m_Data.m_Unk08 = 1.0f / (float)height;
 	return pRTexture;
 }
 
@@ -836,15 +834,6 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 // FUNCTION: D3DREN 0x10020330 ?AddAfter@CheapLTLink@@QAEXPAV1@@Z
 // FUNCTION: D3DREN 0x10020350 ??1UnkType_RTextureData@@UAE@XZ
 // FUNCTION: D3DREN 0x10020fb0 ??4UnkType_RTextureData@@QAEAAV0@ABV0@@Z
-// STANDIN: forces the out-of-line copy of the UnkType_RTextureData constructor 0x1001e900 (d3d_CreateLightmapRTexture's call in the
-// exe; our d3d_CreateLightmapRTexture expands it).  With inline_depth(0) the copy comes out byte-identical to the exe's.
-// (not in d3d.ren)
-#pragma inline_depth(0)
-void StandIn_RTextureInlines()
-{
-	UnkType_RTextureData local;
-}
-#pragma inline_depth()
 
 // Copies the mipmaps of pTextureData that pTexture uses (m_iStartMipmap, m_Unk47 of them) into the surface chain of the texture:
 // per mipmap the surface is locked and filled according to the TextureData's BPPIdent: 32 bit RGBA source converted with
@@ -1194,7 +1183,7 @@ inline int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType
 	pData->m_Unk08 = fV;
 	pData->m_Unk04 = pTextureData->m_Header.GetUIMipmapScale() * fU;
 	pData->m_Unk08 = pTextureData->m_Header.GetUIMipmapScale() * fV;
-	pData->m_pSurface = pSurface;
+	pData->SetSurface(pSurface);
 	return 1;
 }
 
@@ -1301,14 +1290,12 @@ int d3d_EnsureTextureAndGetFlags(SharedTexture *pSharedTexture, uint32 nStageFla
 // The exe expands the inline d3d_GetFirstUsableMipmap and d3d_CreateMipmapTextureSurface here; inside the latter's expansion the
 // helpers IsS3TCFormatSupported (both, under d3d_ShouldUseS3TC), S3TCFormatConv and AdjustAspectRatio stay calls, as does the
 // RTexture constructor inside ObjectBank::Allocate (sb_Allocate is expanded).
-// NOT MATCHING (1760 vs 1744): S3TCFormatConv (79u) is expanded at a share of ~90u; the exe's share is below 79u while
-// ObjectBank::Allocate still gets >= 80u for sb_Allocate.  inline_budget.py --solve: either this function is 53-60u smaller
-// (LTCLAMP/LTMAX spellings of the mipmap clamps give 13u each without changing code), or two more free inline sites sit between
-// d3d_CreateMipmapTextureSurface and Allocate; the size must stay <= ~946u or d3d_CreateAndLoadTexture refuses the
-// UnkType_RTextureData constructor.  With the exe's call set (diagnostic probes) 37 instructions differ (ignoring stack
-// offsets): frame 0x1608 vs 0x1604 (the exe shares the stage-flags temporary with pSurface, keeps AlphaRef in di and bpp on the
-// stack) and the U/V reciprocal float schedule of the expanded surface creation.
-// PARKED: call-set wall: one or two free inline sites between d3d_CreateMipmapTextureSurface and Allocate missing (not identified)
+// The call set is the exe's: m_pOwner goes through UnkType_RTextureData::SetOwner (as in d3d_CreateLightmapRTexture) and the
+// mipmap count through LTCLAMP (Jupiter's spelling), which put S3TCFormatConv out of line and keep sb_Allocate expanded.
+// NOT MATCHING (1728 vs 1744): 37 instructions differ ignoring stack offsets, all inside the expanded d3d_CreateMipmapTextureSurface:
+// the exe computes GetUIMipmapScale() once (float spill at [esp+0x10]) and shares one qword temporary for both U/V conversions,
+// giving it a 0x1604 frame against our 0x1608 (and a different stage-flags/pSurface slot).
+// PARKED: register/schedule wall in the expanded d3d_CreateMipmapTextureSurface U/V scale (that function's own copy matches)
 // STUB: D3DREN 0x10021290 ?CTextureManager_CreateRTexture@@YAPAVRTexture@@PAUUnkType_RTextureBuild@@E@Z
 inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, uint8 bAdditional)
 {
@@ -1370,10 +1357,7 @@ inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, u
 	nAvailable = pTextureData->m_Header.m_nMipmaps - iStartMipmap;
 	if (nAvailable == 0)
 		return 0;
-	if (nMipmaps < 1)
-		nMipmaps = 1;
-	else if (nMipmaps > nAvailable)
-		nMipmaps = nAvailable;
+	nMipmaps = LTCLAMP(nMipmaps, 1, nAvailable);
 
 	if (!d3d_CreateMipmapTextureSurface(pBuild, &data, iStartMipmap, nMipmaps, iFormat))
 		return 0;
@@ -1389,7 +1373,7 @@ inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, u
 	pRTexture->m_Unk49 = bAdditional;
 	pRTexture->m_Unk42 = (uint8)pBuild->m_nFlags;
 	pRTexture->m_Data = data;
-	pRTexture->m_Data.m_pOwner = pRTexture;
+	pRTexture->m_Data.SetOwner(pRTexture);
 	pRTexture->m_iStartMipmap = iStartMipmap;
 	pRTexture->m_Unk47 = nMipmaps;
 	pRTexture->m_Unk48 = iFormat;

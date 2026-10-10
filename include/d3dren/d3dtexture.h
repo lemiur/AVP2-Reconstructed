@@ -83,6 +83,11 @@ public:
 	virtual int		GetBaseWidth();									// 0x1001e710
 	virtual int		GetBaseHeight();								// 0x1001e720
 
+	// NAME: SetOwner, SetSurface: invented (inline, no out-of-line copy): the two inline sites after ObjectBank::Allocate in
+	// d3d_CreateLightmapRTexture and CTextureManager_CreateRTexture that the inline budget needs.
+	void			SetOwner(RTexture *pOwner)				{ m_pOwner = pOwner; }
+	void			SetSurface(IDirectDrawSurface7 *pSurface)	{ m_pSurface = pSurface; }
+
 	float				m_Unk04;			// 0x04 1/width of the texture (u multiplier)
 	float				m_Unk08;			// 0x08 1/height (v multiplier)
 	IDirectDrawSurface7	*m_pSurface;		// 0x0c
