@@ -1,0 +1,98 @@
+// lithtech.exe resources: the Jupiter winbuild/lithtech/lithtech.rc (dialog, version and icon are identical in the
+// retail image) plus the console font IDR_CONFONT that Talon added.  The MFC standard components come from afxres.rc
+// (VC6 MFC include tree), with the same _AFX_NO_* exclusions as Jupiter.
+// Art not in any source tree: lithtech.ico (IDR_MAINFRAME) and confont.pcx (IDR_CONFONT, file name invented) are
+// looked up on the include path (tools/source_link.py passes build/release/art).
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+#include "afxres.h"
+#undef APSTUDIO_READONLY_SYMBOLS
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+IDD_BRAND DIALOG DISCARDABLE  0, 0, 220, 190
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "LithTech v1.0 (alpha)"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDC_KEY,68,139,120,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,52,169,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,118,169,50,14
+    EDITTEXT        IDC_USER,68,58,120,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_CODE,68,73,120,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_EXPIRE,68,88,120,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "To obtain your unlock key, please visit the LithTech website at http://www.lithtech.com.  The website contains instructions on how to register your demo.",
+                    IDC_STATIC,15,19,190,36
+    RTEXT           "Username:",IDC_STATIC,16,60,50,8
+    RTEXT           "Access Code:",IDC_STATIC,16,75,50,8
+    RTEXT           "Key:",IDC_STATIC,16,142,50,8
+    GROUPBOX        "Unlock",IDC_STATIC,7,112,206,48
+    LTEXT           "Enter your key below to unlock LithTech:",IDC_STATIC,15,
+                    124,182,8
+    GROUPBOX        "Info",IDC_STATIC,7,7,206,100
+    RTEXT           "Expiration:",IDC_STATIC,16,90,50,8
+END
+
+
+#ifndef _MAC
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "\0"
+            VALUE "FileDescription", "Client MFC Application\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
+            VALUE "InternalName", "Client\0"
+            VALUE "LegalCopyright", "Copyright (C) 1997\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "Client.EXE\0"
+            VALUE "ProductName", "Client Application\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+#endif    // !_MAC
+
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON    DISCARDABLE     "lithtech.ico"
+
+IDR_CONFONT             12345   DISCARDABLE     "confont.pcx"
+#endif    // English (U.S.) resources
+
+
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#endif
+#include "afxres.rc"         // Standard components
+#endif
