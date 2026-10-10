@@ -834,19 +834,14 @@ ConVar g_CV_ModelShadowProjShow("ModelShadowProjShow", 0.0f);
 // Mag 0x1000e011 call give the exe's frame temporaries, and with them the exe's x87 term order of tu/tv/q and eax=matrix, ebx=vertex);
 // LTVector::Dist() or an unnamed temporary gives other orders. The clip stage has to sit in its own block with its own locals (the exe
 // shares the slots of pClipVerts/nClip with the vertex loop's variables) and counts down (`for (iPlane = 6; iPlane > 0; iPlane--)`).
-// Not matching: 10/692 bytes differ (4 aligned instruction mismatches). The six-plane clip loop now has
-// the target's down-count, delayed clipper store, bottom `test/jne`, and `pop edi` placement. Remaining differences are in the initial
-// vertex-loop register choices and setup ordering. The source-plane pointer is cached without dereferencing it for an empty
-// input, and the output array lives only in the successful draw branch.  The exe loads the plane and spills the vertex cursor after
-// the `nVerts > 0` guard; reading pPoly->m_pPlane inside the loop gives that order but swaps ecx/edx (6 mismatches); pCur/pSrc/index
-// forms of the copy loop and a 3000-candidate permuter run found nothing better than 4.
-// PARKED: complete body; 4-instruction guard/spill schedule residue of the first vertex loop, no source lever or permuter candidate closes it
-// STUB: D3DREN 0x10026d6a
+// The copy loop reads the source vertex through `SPolyVertex *pV = &pSrc[iVert]` and the poly plane inside the loop: VC6 strength-reduces
+// the index into the cursor it spills after the `nVerts > 0` guard and hoists the plane load after the guard (exe order).
+// FUNCTION: D3DREN 0x10026d6a
 void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly, float fDist)
 {
 	int nVerts;
 	int i, iVert, iDraw;
-	SPolyVertex *pSrc, *pCur;
+	SPolyVertex *pSrc;
 	UnkType_Vertex36 *pVerts;
 	UnkType_Vertex36 aVerts[0x80];
 
@@ -867,13 +862,11 @@ void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly
 		return;
 	}
 
-	LTPlane *pSourcePlane = pPoly->m_pPlane;
-	pCur = pSrc;
 	for (iVert = 0; iVert < nVerts; iVert++)
 	{
-		aVerts[iVert].m_Vec = *pCur->m_Vec;
-		aVerts[iVert].m_Vec += pSourcePlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
-		pCur++;
+		SPolyVertex *pV = &pSrc[iVert];
+		aVerts[iVert].m_Vec = *pV->m_Vec;
+		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
 	}
 
 	pVerts = aVerts;
