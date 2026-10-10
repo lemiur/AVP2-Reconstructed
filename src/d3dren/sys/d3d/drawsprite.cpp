@@ -333,16 +333,16 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 
 	if (pInstance->m_Flags2 & FLAG2_SPRITE_TROTATE)
 	{
-		float mRot[4][4];
+		LTMatrix mRot;
 		float fCenterU = (uMin + uMax) * 0.5f;
 		float fCenterV = (vMin + vMax) * 0.5f;
 
-		quat_ConvertToMatrix((float *)&pInstance->m_Rotation, mRot);
+		pInstance->m_Rotation.ConvertToMatrix(mRot);
 		for (i = 0; i < 4; i++)
 		{
 			float fDV = aVerts[i].tv - fCenterV;
 			float fDU = aVerts[i].tu - fCenterU;
-			aVerts[i].SetTCoords(fDV * mRot[1][0] + fDU * mRot[0][0] + fCenterU, fDV * mRot[1][1] + fDU * mRot[0][1] + fCenterV);
+			aVerts[i].SetTCoords(fDV * mRot.m[1][0] + fDU * mRot.m[0][0] + fCenterU, fDV * mRot.m[1][1] + fDU * mRot.m[0][1] + fCenterV);
 		}
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
 	}
