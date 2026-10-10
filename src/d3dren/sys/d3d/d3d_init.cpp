@@ -797,12 +797,12 @@ SurfaceCreationSucceeded:
 			g_DeviceRenderBitDepth = 24;
 		else
 			g_DeviceRenderBitDepth = desc.dwDeviceRenderBitDepth == DDBD_32 ? 32 : -1;
-		g_bDeviceDitherSupported = desc.dpcTriCaps.dwRasterCaps & 1;
-		g_bSrcBlendSrcColorSupported = (desc.dpcTriCaps.dwSrcBlendCaps >> 2) & 1;
 		g_bDestBlendSrcAlphaSupported = (desc.dpcTriCaps.dwDestBlendCaps >> 4) & 1;
+		g_bSrcBlendSrcColorSupported = (desc.dpcTriCaps.dwSrcBlendCaps >> 2) & 1;
 		g_bTextureBlendModulateSupported = (desc.dpcTriCaps.dwTextureBlendCaps >> 1) & 1;
-		g_DeviceFreeVideoMemory = dwTotalVid;
 		g_bTextureBlendAddSupported = (desc.dpcTriCaps.dwTextureBlendCaps >> 7) & 1;
+		g_DeviceFreeVideoMemory = dwTotalVid;
+		g_bDeviceDitherSupported = desc.dpcTriCaps.dwRasterCaps & 1;
 		g_DeviceTotalTextureMemory = dwTotalTex;
 		g_DefaultZEnableState = 1;
 		memcpy(&g_D3DDeviceDesc, &desc, 0x3b * 4);
