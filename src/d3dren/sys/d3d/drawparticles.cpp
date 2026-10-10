@@ -210,8 +210,9 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 			float vx = vCam.x, vy = vCam.y, vz = vCam.z;
 			// The original fmul at 0x100094d1 reads 1.2f from 0x100461e8.
 			float fLimit = vz * 1.2f;
-
-			if (g_ViewParams.m_NearZ < vz && vz < g_ViewParams.m_FarZ && -fLimit < vx && vx < fLimit && vy < fLimit && -fLimit < vy)
+			// The exe compares each coordinate against the limits (fld v; fcomp limit) and keeps -fLimit in its own slot.
+			float fNegLimit = -fLimit;
+			if (vz > g_ViewParams.m_NearZ && vz < g_ViewParams.m_FarZ && vx > fNegLimit && vx < fLimit && vy < fLimit && vy > fNegLimit)
 			{
 				LTVector vScreen;
 				float fW = MatVMul_H(&vScreen, &g_ViewParams.m_DeviceTimesProjection, &vCam);
