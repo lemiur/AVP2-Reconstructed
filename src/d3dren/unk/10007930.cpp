@@ -101,10 +101,7 @@ void FlushWorldTexturePolys(void)
 }
 
 // d3d_SetTexture is the inline of d3d_texture.h; this P object (/O1) calls it out of line from FlushWorldTexturePolys, so it holds the exe's copy.
-// Not matching (4 of 165 bytes): the body (d3d_texture.h) calls the inline d3d_FindRTextureForStage and shares one d3d_BindRTexture
-// between the found-but-not-bound path and both create paths.  Left: when the chain is empty the exe jumps straight to the create
-// block, ours copies the chain head into the search register first (`mov esi,edi` before the `je`).
-// STUB: D3DREN 0x100079e4 ?d3d_SetTexture@@YAHPAUSharedTexture@@KK@Z
+// FUNCTION: D3DREN 0x100079e4 ?d3d_SetTexture@@YAHPAUSharedTexture@@KK@Z
 
 // Mask the device stage explicitly; cache the UV pair and read V before U to preserve the original load/store scheduling.
 // FUNCTION: D3DREN 0x10007a89
