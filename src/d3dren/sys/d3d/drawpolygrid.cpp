@@ -268,32 +268,17 @@ static inline int ClipPolygon40_Inline(uint32 nFlags, UnkType_TLVertex40 **ppVer
 // partial triangles copied and clipped by the 0x28-byte plane clippers, then ProjectPolyGridVertices projection + DrawIndexedPrimitive) or the
 // unclipped path (one combined matrix, DrawIndexedPrimitive) -> StateSet destructors restore the blend states.
 //
-// STUB: best effort, 5376 of 5488 bytes; build.py diff -a: 1331 instruction mismatches, 734 ignoring stack offsets (1406 vs 1378 instructions).  Remaining
-// differences, in order of importance:
-//  1. Inline budget: the exe calls the out-of-line LTMatrix::operator* (0x10016180) for the unclipped path's `mFull = proj * view`, ours
-//     expands it (its nested MatMul stays a call).  tools/inline_budget.py (needs VC6CL=toolsc6cl_d3dren.bat and DX8INC in the
-//     environment) predicts every other out-of-line decision of the exe correctly for this source (B(F) = 3880u, vertex helpers inl1/inl2
-//     inlined with the LTVector operators inside them refused, both MatVMul_InPlace_H calls refused) but leaves 195u at the operator*
-//     site where the exe needs < 43u: the original has 153..195u more charged inline cost (or that much less own size) than this
-//     source and the inline helpers whose bodies the source copies from Jupiter (d3d_GetBlendStates 154u, d3d_SetupTransformation 306u,
-//     d3d_SetTexture 263u) may be sized differently there.  Not fixed with ballast.
-//  2. Register allocation: the exe keeps the constant 0 in edi and nDestBlend in ebx, ours the reverse (ebp = pGrid, esi = nSrcBlend agree),
-//     which shifts every use of both registers; stack frame 0x238 in the exe, smaller here; the StateSet objects sit at 0x58/0x60/0x68/0x70
-//     (FogColor, Dest, Src, Fog) in the exe, in declaration order here.
-//  3. x87 scheduling of the 12 products of the inline MatMul (the exe computes [1][0], [2][0], [0][1].. [2][3] and finally [0][0], [0][3];
-//     the element copies of GetBasisVectors/GetTranslation sit between them) and of the integer stores around the texture coordinate terms.
-//  (w4-ren-draw2) Writing the triangle clip as an inline ClipPolygon40 helper (the unit unk/10007930 copy's body) does take
-//  LTMatrix::operator* out of line, but the helper itself is then refused (cost > the 161u left) and GenerateSignedPolyGridVertices
-//  too; the solver wants 60-80u less own size (dB -120..-160) or ~120u more charge between GenerateSigned... and operator*.
-//  Not source-explainable by this author: 1.  2./3. are probably consequences of 1. plus the exact declaration/statement order of the
-//  original; tools/permute.py (30 min, 4 jobs) found nothing better than semantic-breaking mutations.
-//  inline_budget.py --sweep: budgets 3739..3781u reproduce the exe's call set (B = 3900u here, so 60..80u less own size).  Not that
-//  size (the exe has the code): `nStage = bEnvMap ? 1 : 0` (recomputed in ecx), the pTracker->m_pCurFrame->m_pTex chains (re-read
-//  for d3d_SetTexture and the state change), `bClip` (stored); fNegRadius / vPos are neutral.  A d3d_SetTexture helper heavy enough
-//  to refuse d3d_FindRTextureForStage in d3d_DrawRotatableSprite would refuse both searches here, which the exe inlines.
-//  Helper recovery: LTVector::operator+= for the row/column steps of the vertex generators is refused there (4 out-of-line calls the
-//  exe does not have); code-neutral spellings (compound assignment of the UV scales, unbraced bEnvMap arms, increment in the for
-//  headers) save 18u of the 60..80u.
+// STUB: 5424 of 5488 bytes, 1431 vs 1432 instructions, frame 0x234 vs 0x238; the out-of-line call set is the exe's (inline_budget.py:
+// model, build and exe agree, 8u inside the reproducing budget range 3838..3880u).  What settled it, with the exe's evidence:
+//  - the blend states are written out as in d3d_DrawSprite (matched), not the d3d_GetBlendStates inline;
+//  - the triangle clip is the 0x28-byte clipper dispatch expanded inline (ClipPolygon40_Inline): the exe copies the vertex pointer and
+//    count into the dispatch's own slots and writes them back to the caller's registers after the last plane clipper;
+//  - the three copied triangle vertices (UnkType_TLVertex40[3], copied with rep movsd 10) and mFull have function scope: the exe
+//    gives them disjoint slots (0x190..0x208 and 0x208..0x248).
+// Left: register allocation (the exe keeps the constant 0 in edi and nDestBlend in ebx, ours the reverse; nClipFlags in esi during
+// the frustum loop) and 4 bytes of frame, which shift every stack offset; the x87 order of the bounding-sphere half extents
+// (the exe keeps all three on the stack).  Declaration order / names of the blend locals and the scope of nTriFlags, pIn, nVerts
+// do not move it.
 // FUNCTION: D3DREN 0x1002ce70 ??H?$_CVector@M@@QBE?AV0@V0@@Z
 // FUNCTION: D3DREN 0x1002cec0 ??D?$_CVector@M@@QBE?AV0@M@Z
 // STUB: D3DREN 0x1002aff0
@@ -342,7 +327,7 @@ void d3d_DrawPolyGrid(ViewParams *pParams, LTObject *pObj)
 		return;
 
 	// Cull the grid's bounding sphere against the view frustum.
-	LTVector vHalf((float)pGrid->m_Width * 0.5f * pGrid->m_Scale.x, pGrid->m_Scale.y * 128.0f, (float)pGrid->m_Height * 0.5f * pGrid->m_Scale.z);
+	LTVector vHalf(((float)pGrid->m_Width * 0.5f) * pGrid->m_Scale.x, pGrid->m_Scale.y * 128.0f, ((float)pGrid->m_Height * 0.5f) * pGrid->m_Scale.z);
 	LTVector vPos = pGrid->m_Pos;
 	float fRadius = vHalf.Mag() + 1.0f;
 	float fNegRadius = -fRadius;
