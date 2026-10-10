@@ -1308,6 +1308,7 @@ int d3d_EnsureTextureAndGetFlags(SharedTexture *pSharedTexture, uint32 nStageFla
 // UnkType_RTextureData constructor.  With the exe's call set (diagnostic probes) 37 instructions differ (ignoring stack
 // offsets): frame 0x1608 vs 0x1604 (the exe shares the stage-flags temporary with pSurface, keeps AlphaRef in di and bpp on the
 // stack) and the U/V reciprocal float schedule of the expanded surface creation.
+// PARKED: call-set wall: one or two free inline sites between d3d_CreateMipmapTextureSurface and Allocate missing (not identified)
 // STUB: D3DREN 0x10021290 ?CTextureManager_CreateRTexture@@YAPAVRTexture@@PAUUnkType_RTextureBuild@@E@Z
 inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, uint8 bAdditional)
 {

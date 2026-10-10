@@ -118,6 +118,10 @@ static void d3d_DrawParticles(LTParticleSystem *pSystem, LTMatrix *pMat)
 }
 
 // FUNCTION: D3DREN 0x10009020 ?MatMul@@YAXPAVLTMatrix@@00@Z
+// Checked without effect on the ebx/ebp choice: local declaration order and scopes, a flat Jupiter-style body, the pTexture
+// local, m_nParticles read once or via %, an up-counting batch loop, d3d_DrawParticles argument order, and a restricted
+// permuter run.  An ftype probe (one UV extent zeroed as an int) flips it, so the exe has one more integer-0 store; not found.
+// PARKED: register wall: the exe ranks the constant 0 above pSystem (ebx/ebp); the integer-0 store that tips it is not identified
 // STUB: D3DREN 0x10008ce0
 void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 {
