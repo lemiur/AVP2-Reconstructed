@@ -948,6 +948,10 @@ void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly
 //     GatherRelevantLightSources; static inline helper here is refused outright), accessors, or a smaller own size.  Also unexplained:
 //     in these /O1 /Ob2 objects a function with any statement admits only ~3 `if(0)` ballast statements as a charged inline (budget probe), so
 //     the wave-7 inline_budget.py model (B = max(1000u, 2 x size)) does not describe this compiler and measures B = 53u here.
+//     Measured on the current source: free pending calls before the device restore flip the LATE ctors first (60: the frustum-plane
+//     expressions at +0x1004/+0x10b1; 70: four of them), never this first one; 60 pending calls right after the vDelta statement and
+//     code-free ballast before the light loop change nothing.  So the first site has the widest margin in our source, and the exe's
+//     decision there needs a different site structure around the light search (a deeper nesting of that expression), not a budget shift.
 //  2. Frame layout: frame 0x278c in the exe, 0x2780 ours; most scalars/LTVectors sit at different [ebp-N] (C2 orders frame slots by weighted
 //     reference count and size, and shares dead slots of block locals: in the exe the dead light-distance array shares its slots with the
 //     MakeInverse temporary at -0x4cc, aLightPos/Dir/Atten at -0x5ac/-0x54c/-0x4ec; only the order of the 7 matrices and of the arrays is
