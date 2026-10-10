@@ -44,23 +44,23 @@
   "world/fullintersectline",
   "world/intersect_line"
  ],
- "code_bytes": 169783,
+ "code_bytes": 172466,
  "code_rules": {
   "by_rule": {},
-  "code_bytes": 169783,
-  "functions": 1212,
+  "code_bytes": 172466,
+  "functions": 1214,
   "pending": 0
  },
- "commit": "dbefee7f3e2486f4f70ac581ce5b1ba3530a255d",
+ "commit": "ad72288440f4b79fb8a0d55b211802587171c743",
  "contract": "4248b9357daaaf129a37baf7ad8bf7b3d008344b",
  "control": {
   "differing_bytes": 11,
   "va": "100073b0"
  },
  "data_bytes": 0,
- "date": "2026-10-09 19:34",
+ "date": "2026-10-09 20:07",
  "function_bytes_total": 280674,
- "functions": 1212,
+ "functions": 1214,
  "image": "d3d.ren",
  "match_not_banked": [],
  "module": "d3dren",
@@ -76,8 +76,8 @@
    "units_with_diffs": {}
   }
  ],
- "single_code_bytes": 169783,
- "single_function_count": 1212,
+ "single_code_bytes": 172466,
+ "single_function_count": 1214,
  "single_functions": {
   "kernel/sys/win/counter": [
    "10013215",
@@ -1111,6 +1111,7 @@
    "1000a521",
    "1000a538",
    "1000a70d",
+   "1000a8c0",
    "1000ac7b",
    "1000ac8a",
    "1000ad48",
@@ -1270,6 +1271,7 @@
    "100329d0",
    "10032a30",
    "10033140",
+   "10033210",
    "10033e00"
   ],
   "unk/10034000": [
