@@ -130,7 +130,7 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 		dsi_ConsolePrint("Error: vertex buffer overflow");
 		return;
 	}
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]));
 	pVerts = aVerts;
 	d3d_BuildDualTextureWorldVertices(nSurfFlags, aVerts, pSrcVerts, nVerts);
 	if (g_ClipFlags != 0)
@@ -540,7 +540,7 @@ void d3d_FlushWorldTextureBuckets(void)
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ZERO);
 		g_pD3DDevice->SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_SRCCOLOR);
 	}
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]));
 	UnkType_PoolBucket *pSecondPass = 0;
 	UnkType_PoolBucket *pBucket = g_pTexturedWorldPolyBuckets;
 	while (pBucket)
@@ -609,7 +609,7 @@ StageStateSet::~StageStateSet()
 // FUNCTION: D3DREN 0x1000a538
 void d3d_DrawWorldTextureBucket(UnkType_PoolBucket *pBucket, SharedTexture *pTexture, int a3, int a4)
 {
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]));
 	if (g_bTwoTextureStageBlendValidated != 0 && pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal != 0
 		&& d3d_SetTexture(pTexture->m_pLinkedTexture, 0, 0))
 	{
@@ -674,12 +674,12 @@ void d3d_DrawSingleTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, bAlphaBlend);
 				if (bAlphaBlend == 0)
 				{
-					uint32 dwFogColor = d3d_PackRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
+					uint32 dwFogColor = d3d_PackRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 				else
 				{
-					uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
+					uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 			}
@@ -716,7 +716,7 @@ void d3d_DrawSingleTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a
 		if (bAlphaBlend == 0 || bSaturate == 0)
 		{
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-			uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
+			uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 			if (g_Saturate != 0)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
@@ -761,12 +761,12 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, bAlphaBlend);
 				if (bAlphaBlend == 0)
 				{
-					uint32 dwFogColor = d3d_PackRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
+					uint32 dwFogColor = d3d_PackRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 				else
 				{
-					uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
+					uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]);
 					g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 				}
 			}
@@ -848,7 +848,7 @@ void d3d_DrawDualTextureWorldBucket(UnkType_PoolBucket *pBucket, int a2, int a3)
 		if (bAlphaBlend == 0 || bSaturate == 0)
 		{
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-			uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
+			uint32 dwFogColor = d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 			if (g_Saturate != 0)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_DESTCOLOR);
@@ -871,7 +871,7 @@ void d3d_FlushPendingWorldTextureBuckets(void)
 // FUNCTION: D3DREN 0x1000ac8a
 void d3d_FlushLightmapPageQueues(void)
 {
-	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
+	StateSet tssFogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]));
 	LightmapPage *pPage = g_pQueuedLightmapPageHead;
 	while (pPage)
 	{

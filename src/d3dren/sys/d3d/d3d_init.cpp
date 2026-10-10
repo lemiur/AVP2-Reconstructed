@@ -10,7 +10,7 @@
 #include "d3dren/lightmap.h"		// RenderContext
 #include "pixelformat.h"			// PFormat
 #include "d3dren/common_init.h"		// g_ScreenPixelFormat
-#include "d3dren/polydraw.h"		// g_u8FogColorR/G/B
+#include "d3dren/polydraw.h"		// g_u8FogColor
 
 // ---- callees in other units (prototypes until their owners publish headers) -------------------------------------------------
 int PageInLightmaps(RenderContext *pContext);		// W9 (lightmap): page the lightmaps in, 0 = failed
@@ -79,12 +79,10 @@ int g_bTextureFilterStateInitialized;			// guess: the filter states have been se
 // NAME: d3d_ReadExtraConsoleVariables: Jupiter d3d_init.cpp (fog from the console variables: FogNearZ == FogFarZ disables fog
 // ("This handles a TNT bug"), SetRenderState FOGCOLOR/FOGSTART/FOGEND/FOGENABLE, DITHERENABLE, anisotropic/bilinear/trilinear
 // filter states); the D3D7 original caches what it sent and only updates when a value changed.
-// STUB diagnosis: the three clamped fog colour bytes (0x10058040..42) are not defined in this object (its own definitions made VC6 load
-//   the first one as a masked dword; the bytes sit between common_stuff's console mirrors).  Byte-exact (MATCH, all relocations) once
-//   they are one 3-byte object `uint8 g_u8FogColor[3]` ([0] r, [1] g, [2] b) in polydraw.h: as three separate externs VC6 keeps 0xff
-//   as an immediate and schedules the FOGCOLOR packing differently (16 aligned mismatches).  The rename touches the readers in
-//   unk/10007930, unk/100098d0 and unk/10022bc5 (all still match with it); the cache stores below are in the order that matches.
-// STUB: D3DREN 0x1001a400
+// The clamped fog colour bytes are one 3-byte object defined outside this object (polydraw.h): as three separate globals, or
+// defined here, VC6 keeps 0xff as an immediate and schedules the FOGCOLOR packing differently.  The cache stores are in the order
+// that gives the exe's schedule.
+// FUNCTION: D3DREN 0x1001a400
 void d3d_ReadExtraConsoleVariables()
 {
 	if (g_pD3DDevice)
@@ -99,17 +97,17 @@ void d3d_ReadExtraConsoleVariables()
 			g_nLastTableFog != g_CV_TableFog.m_IntVal)
 		{
 			if (g_FogR < 0)
-				g_u8FogColorR = 0;
+				g_u8FogColor[0] = 0;
 			else
-				g_u8FogColorR = (g_FogR > 255) ? 255 : g_FogR;
+				g_u8FogColor[0] = (g_FogR > 255) ? 255 : g_FogR;
 			if (g_FogG < 0)
-				g_u8FogColorG = 0;
+				g_u8FogColor[1] = 0;
 			else
-				g_u8FogColorG = (g_FogG > 255) ? 255 : g_FogG;
+				g_u8FogColor[1] = (g_FogG > 255) ? 255 : g_FogG;
 			if (g_FogB < 0)
-				g_u8FogColorB = 0;
+				g_u8FogColor[2] = 0;
 			else
-				g_u8FogColorB = (g_FogB > 255) ? 255 : g_FogB;
+				g_u8FogColor[2] = (g_FogB > 255) ? 255 : g_FogB;
 
 			if (g_CV_TableFog.m_IntVal)
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGTABLEMODE, D3DFOG_LINEAR);
@@ -117,14 +115,14 @@ void d3d_ReadExtraConsoleVariables()
 				g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGTABLEMODE, D3DFOG_NONE);
 			g_nLastTableFog = g_CV_TableFog.m_IntVal;
 
-			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, (((g_u8FogColorR << 8) | g_u8FogColorG) << 8) | g_u8FogColorB);
+			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGCOLOR, (((g_u8FogColor[0] << 8) | g_u8FogColor[1]) << 8) | g_u8FogColor[2]);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGSTART, *(DWORD *)&g_FogNearZ);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGEND, *(DWORD *)&g_FogFarZ);
 			g_pD3DDevice->SetRenderState(D3DRENDERSTATE_FOGENABLE, g_FogEnable);
 
-			g_fCenteredFogRed = (float)(g_u8FogColorR - 0x80) * 2.0f;
-			g_fCenteredFogGreen = (float)(g_u8FogColorG - 0x80) * 2.0f;
-			g_fCenteredFogBlue = (float)(g_u8FogColorB - 0x80) * 2.0f;
+			g_fCenteredFogRed = (float)(g_u8FogColor[0] - 0x80) * 2.0f;
+			g_fCenteredFogGreen = (float)(g_u8FogColor[1] - 0x80) * 2.0f;
+			g_fCenteredFogBlue = (float)(g_u8FogColor[2] - 0x80) * 2.0f;
 			g_nLastDeviceFogEnable = g_FogEnable;
 			g_nLastDeviceFogRed = g_FogR;
 			g_nLastDeviceFogGreen = g_FogG;

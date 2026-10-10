@@ -47,7 +47,7 @@ struct UnkType_PolyLight
 #define POLY_LIGHTS(p)	(*(UnkType_PolyLight **)((uint8 *)(p) + 0x30))
 
 // g_pfnCalcFogAlpha, g_nQueuedWorldPolyVertices, g_pQueuedWorldPolyVertices, g_nQueuedWorldPolyVertexCapacity, g_pTexturedWorldPolyBuckets
-// and g_u8FogColorR/G/B: d3dren/polydraw.h; g_VertexTintTableR/G/B: d3dren/d3d_draw.h; g_nPolyVertexAlpha, g_nWorldPolysDrawn and
+// and g_u8FogColor: d3dren/polydraw.h; g_VertexTintTableR/G/B: d3dren/d3d_draw.h; g_nPolyVertexAlpha, g_nWorldPolysDrawn and
 // g_nLightTests: d3dren/common_draw.h.
 
 void DrawPolyDynamicLightmaps(WorldPoly *pPoly, TLVertex *pVerts, int nVerts);
@@ -160,7 +160,7 @@ void DrawWorldTexturePoly(WorldPoly *pPoly)
 	}
 
 	{
-		StateSet fogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB));
+		StateSet fogColor(D3DRENDERSTATE_FOGCOLOR, d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]));
 
 		{
 			UnkType_TLVertex40 *pDest = aVerts;

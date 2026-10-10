@@ -266,7 +266,7 @@ void DrawMultipassGouraudWorldPoly(WorldPoly *pPoly, int bSaturate)
 
 	if (!g_CV_LMFullBright.m_IntVal)
 	{
-		DWORD dwFogColor = d3d_PackSqrtRGB(g_u8FogColorR, g_u8FogColorG, g_u8FogColorB);
+		DWORD dwFogColor = d3d_PackSqrtRGB(g_u8FogColor[0], g_u8FogColor[1], g_u8FogColor[2]);
 		StateSet ssFog(D3DRENDERSTATE_FOGCOLOR, dwFogColor);
 
 		d3d_UnsetTexture(g_NormalTextureStage);

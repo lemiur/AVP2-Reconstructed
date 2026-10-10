@@ -32,11 +32,7 @@ extern void (__fastcall *g_pfnCalcSkyFogAlpha)(LTVector *pPos, uint32 *pSpecular
 // guess: sphere map (environment) texture coordinates of a point seen from pViewPos on a surface with normal pNormal: *pU, *pV.
 void d3d_CalcWorldReflectionUVs(LTVector *pViewPos, LTVector *pPos, LTVector *pNormal, float *pU, float *pV);
 // GLOBAL: D3DREN 0x10058040
-extern uint8 g_u8FogColorR;				// guess: fog colour byte 0 (d3d_PackSqrtRGB / d3d_PackRGB pack three of them)
-// GLOBAL: D3DREN 0x10058041
-extern uint8 g_u8FogColorG;				// guess: fog colour byte 1
-// GLOBAL: D3DREN 0x10058042
-extern uint8 g_u8FogColorB;				// guess: fog colour byte 2
+extern uint8 g_u8FogColor[3];				// guess: the clamped fog colour bytes [0] r, [1] g, [2] b (d3d_PackSqrtRGB / d3d_PackRGB pack them)
 
 // Per-stage texture coordinate scale pair (u, v), indexed by the device stage: [0] = 0x10061810/14 scales the lightmap
 // coordinates, [1] = 0x10061818/1c the detail texture coordinates.  Same type and GLOBAL as unit unk/10007930 (W2) declares
