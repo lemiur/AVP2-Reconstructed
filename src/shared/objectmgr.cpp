@@ -807,7 +807,7 @@ const char* ModelInstance::GetModelFilename()
 	if (GetModelDB())
 		return GetModelDB()->GetFilename();
 
-	return g_EmptyString;
+	return "";
 }
 
 

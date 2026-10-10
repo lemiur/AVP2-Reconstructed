@@ -9,7 +9,7 @@
 
 // The helpers that can't return an LTRESULT just print the error.
 #define CHECK_PARAMS_NORETURN(fnName) \
-	GENERATE_ERROR(2, fnName, LT_INVALIDPARAMS, g_EmptyString)
+	GENERATE_ERROR(2, fnName, LT_INVALIDPARAMS, "")
 
 // FUNCTION: LITHTECH 0x00423a20
 LTRESULT ILTCSBase::WriteToMessageFloat(HMESSAGEWRITE hMessage, float val)

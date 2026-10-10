@@ -85,6 +85,11 @@ uint32 g_PolyFindCount;
 // GLOBAL: LITHTECH 0x004e5dc4
 uint32 g_PolyFindTicks;
 
+// GLOBAL: LITHTECH 0x004e5dc8
+CServerMgr *g_pServerMgr = LTNULL;
+// GLOBAL: LITHTECH 0x004e5dcc
+CClassMgr *g_pClassMgr = LTNULL;
+
 
 
 #define MIN_FRAMETIME		0.01f

@@ -269,7 +269,7 @@ void sm_SaveObjectData(CServerMgr *pServerMgr, LTObject *pObj, ILTStream *pStrea
 	if (pObj->sd->m_hName)
 		pStr = (char*)hs_GetElementKey(pObj->sd->m_hName, LTNULL);
 	else
-		pStr = g_EmptyString;
+		pStr = "";
 
 	pStream->WriteString(pStr);
 

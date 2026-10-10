@@ -127,6 +127,9 @@ uint32 g_Ticks_ClientShell;
 // GLOBAL: LITHTECH 0x004defa8
 uint32 g_Ticks_Render;
 
+// GLOBAL: LITHTECH 0x004defac
+CClientMgr *g_pClientMgr = NULL;
+
 // Only the constructor is used here, but the header's chunk allocators make this object the first to
 // emit CSegment's and CStyle's vector deleting destructors (0x00414750, 0x004147e0). Its six static
 // CLithChunkAllocator members each use up a static-initializer number, so the original included it
@@ -1916,6 +1919,10 @@ LTRESULT cm_OnModelRefRemoved(void *pUser, ClientModelUser *pUser2, LTBOOL bServ
 
 	return LT_OK;
 }
+
+// The client's leech on models (clientmgr.h); the leech calls cm_OnModelRefRemoved.
+// GLOBAL: LITHTECH 0x004d03f8
+LeechDef g_ClientModelLeechDef = {(LTRESULT (*)(Nexus*, Leech*, int, void*))cm_OnModelRefRemoved, &g_BaseLeech};
 
 
 // ------------------------------------------------------------------ //

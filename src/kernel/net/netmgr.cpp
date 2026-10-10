@@ -153,7 +153,7 @@ LTBOOL CNetMgr::Init(char *pPlayerName)
 
 	m_LatentPacketBank.SetCacheSize(256);
 	m_nDroppedPackets = 0;
-	m_pCurPrefix = g_EmptyString;
+	m_pCurPrefix = "";
 
 	strncpy(m_PlayerName, pPlayerName, sizeof(m_PlayerName));
 	m_fLastTime = time_GetTime();
@@ -404,7 +404,7 @@ void CNetMgr::Update(char *pPrefix, float curTime, LTBOOL bAllowTimeout)
 					dsi_ConsolePrint("Connection dead (timed out).");
 
 				RemoveConnFragments(pConn);
-				m_pHandler->SetDisconnectCode(5, g_EmptyString);
+				m_pHandler->SetDisconnectCode(5, "");
 				pConn->m_pDriver->Disconnect(pConn, DISCONNECTREASON_DEAD);
 			}
 		}
@@ -1427,7 +1427,7 @@ LTBOOL CNetMgr::HandleNetMgrPacket(CBaseConn *pSender, CPacket *pPacket)
 		NetDebugOut2(pSender, 1, "Forced disconnect!");
 		RemoveConnFragments(pSender);
 		pSender->m_pDriver->Disconnect(pSender, 4);
-		m_pHandler->SetDisconnectCode(4, g_EmptyString);
+		m_pHandler->SetDisconnectCode(4, "");
 		return TRUE;
 	}
 	else if(subID == NMPACKET_PINGREPLY)

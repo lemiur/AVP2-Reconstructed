@@ -272,5 +272,5 @@ char* sf_GetUsedFilename(ServerFileMgr *pMgr, UsedFile *pFile)
 	if (pFile)
 		return (char*)hs_GetElementKey(pFile->m_hElement, LTNULL);
 	else
-		return g_EmptyString;
+		return "";
 }

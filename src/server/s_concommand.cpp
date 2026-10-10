@@ -210,7 +210,7 @@ static void con_SpawnObject(int argc, char **argv)
 	if (argc >= 2)
 		pSpawnArgs = argv[1];
 	else
-		pSpawnArgs = g_EmptyString;
+		pSpawnArgs = "";
 
 	hClass = g_pServerMgr->m_pServerInterface->GetClass(argv[0]);
 	if (!hClass)

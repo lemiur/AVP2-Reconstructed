@@ -77,8 +77,14 @@ def unit_objects(compile_first=True):
         sys.exit('source_link: no object for ' + ', '.join(missing) + ' (run python tools/build.py)')
     with open(os.path.join(CONFIG, 'units.csv'), newline='') as f:
         rank = {r['unit']: i for i, r in enumerate(csv.DictReader(f))}
-    units.sort(key=lambda u: (rank.get(u.name, len(rank)), u.name))
-    return [u.base_obj for u in units]
+    ordered = sorted((u for u in units if u.name in rank), key=lambda u: rank[u.name])
+    # A unit without code has no config/units.csv row (shared/bdefs): LINK took the objects in file-name order, so it
+    # goes before the first ranked unit whose base name sorts after its own.
+    for u in sorted((u for u in units if u.name not in rank), key=lambda u: u.name):
+        base = os.path.basename(u.name).lower()
+        at = next((i for i, o in enumerate(ordered) if os.path.basename(o.name).lower() > base), len(ordered))
+        ordered.insert(at, u)
+    return [u.base_obj for u in ordered]
 
 
 # ---------------------------------------------------------------- COFF symbol scan

@@ -86,6 +86,10 @@ public:
 // GLOBAL: LITHTECH 0x004e33bc
 CClientConIterator	g_ClientConIterator;
 
+// The client manager the console commands act on (clientmgr.h).
+// GLOBAL: LITHTECH 0x004e33d4
+CClientMgr *g_pCommandClientMgr = LTNULL;
+
 
 // The command handlers are static in the original and referenced from g_LTCommandStructs; they are
 // not static here so the compiler keeps them while the table isn't reconstructed.

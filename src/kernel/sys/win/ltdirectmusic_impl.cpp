@@ -1615,7 +1615,7 @@ LTBOOL CLTDirectMusicMgr::LoadDLSBank(const char* sFileName)
     MULTI_TO_WIDE( wszFileName, sFileName );
 
 	// check if the filename is empty then don't load anything
-	if ( wcscmp(wszFileName, g_wszEmptyString) == 0 )
+	if ( wcscmp(wszFileName, L"") == 0 )
 		return TRUE;
 
 	// create DLSBank
@@ -1643,7 +1643,7 @@ LTBOOL CLTDirectMusicMgr::LoadStyleAndBands(char* sStyleFileName, CControlFileMg
 	CStyle* pStyle;
 
 	// check if the filename is empty then don't load anything
-	if ( wcscmp(wszFileName, g_wszEmptyString) == 0 )
+	if ( wcscmp(wszFileName, L"") == 0 )
 		return TRUE;
 
 	// allocate the style class
@@ -1727,7 +1727,7 @@ LTBOOL CLTDirectMusicMgr::LoadBand(IDirectMusicStyle* pStyle, const char* sBandN
     MULTI_TO_WIDE( wszBandName, sBandName );
 
 	// check if name is empty
-	if ( wcscmp(wszBandName, g_wszEmptyString) != 0 )
+	if ( wcscmp(wszBandName, L"") != 0 )
 	{
 		// load band
 		pStyle->GetBand(wszBandName, &pDMBand);
@@ -2868,7 +2868,7 @@ void CLTDirectMusicMgr::EnactTypeToString(LTDMEnactTypes nType, char* sName)
 		}
 		default :
 		{
-			strcpy(sName, g_EmptyString);
+			strcpy(sName, "");
 			break;
 		}
 	}

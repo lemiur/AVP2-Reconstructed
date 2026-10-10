@@ -18,11 +18,6 @@ void dsi_OnReturnError(LTRESULT err);
 // 0x004351f0 (Ghidra: dsi_PrintToConsole)
 void dsi_ConsolePrint(const char *pMsg, ...);
 
-// Zero-length string at 0x004de2b4, where Jupiter passes "": it lies in the zero-filled
-// (virtual-only) tail of .data, which the checker cannot read as a literal.
-// GLOBAL: LITHTECH 0x004de2b4
-extern char g_EmptyString[];
-
 #define RETURN_ERROR_PARAM(debugLevel, fnName, err, param) { \
 	dsi_OnReturnError(err);\
 	if (g_DebugLevel >= debugLevel) \

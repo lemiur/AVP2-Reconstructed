@@ -42,6 +42,9 @@
 
 // GLOBAL: LITHTECH 0x004deff8
 CClientShell *g_pClientShell;
+// The local server's world (s_client.h).
+// GLOBAL: LITHTECH 0x004deff4
+MainWorld *g_pServerWorld;
 
 // Profiling (named after the PlayDemo profile, demomgr.cpp).
 // GLOBAL: LITHTECH 0x004df000

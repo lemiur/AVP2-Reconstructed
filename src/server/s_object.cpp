@@ -710,3 +710,7 @@ LTRESULT sm_OnModelUnload(void *pUser, ModelUnloadMsg *pMsg, LTRESULT status)
 
 	return LT_OK;
 }
+
+// The server's leech on the models it loads (server_extradata.h).
+// GLOBAL: LITHTECH 0x004d5a30
+LeechDef g_ServerModelLeechDef = {(LTRESULT (*)(Nexus*, Leech*, int, void*))sm_OnModelUnload, &g_BaseLeech};

@@ -1714,7 +1714,7 @@ char* CLTServer::GetObjectName(HOBJECT hObject)
 	if (hObject && hObject->sd->m_hName)
 		return (char*)hs_GetElementKey(hObject->sd->m_hName, LTNULL);
 
-	return g_EmptyString;
+	return "";
 }
 
 // FUNCTION: LITHTECH 0x0047d250 ?GetObjectName@CLTServer@@UAEKPAVLTObject@@PADK@Z
@@ -2029,6 +2029,10 @@ void BoxPolyFindCallback(WorldTreeObj *pObj, void *pUser)
 
 	FindPoliesInBsp(pWorldModel->m_pValidBsp->GetRootNode(), pStruct, pWorldModel->m_pValidBsp);
 }
+
+// The explicit node stack of FindPoliesInBsp: 1000 entries fill the exe's .bss up to servermgr's.
+// GLOBAL: LITHTECH 0x004e4df8
+Node *g_NodeStack[1000];
 
 // FUNCTION: LITHTECH 0x0047dcc0
 void FindPoliesInBsp(Node *pNode, BoxPolyStruct *pStruct, WorldBsp *pBsp)

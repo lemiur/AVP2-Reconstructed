@@ -407,7 +407,7 @@ const char* cf_GetFilename(ClientFileMgr *pMgr, FileRef *pFileRef)
 	ServerFile *pServerFile;
 
 	if (!pMgr)
-		return g_EmptyString;
+		return "";
 
 	if (pFileRef->m_FileType == FILE_SERVERFILE)
 	{
@@ -415,7 +415,7 @@ const char* cf_GetFilename(ClientFileMgr *pMgr, FileRef *pFileRef)
 		if (pServerFile)
 			return pServerFile->m_ClientFilename;
 		else
-			return g_EmptyString;
+			return "";
 	}
 	else
 	{

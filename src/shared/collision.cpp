@@ -60,11 +60,7 @@ LTVector g_BoxMax;
 static LTVector g_P0;
 // GLOBAL: LITHTECH 0x004e2490
 static LTVector g_P1;
-// The box's bounding spheres at the start and end of the movement, g_StartSphere and g_EndSphere (collision.h), lie in
-// this unit's .bss but have no definition here: a PhysicsSphere definition (LTVector member) adds a dynamic-initializer
-// group (_$E) the exe doesn't have, which moves g_BoxFindPlanes' initializer (0x00418380).
-// The box's corners at the start and end of the movement.
-// GLOBAL: LITHTECH 0x004e2cc0
+// The box's corners at the start and end of the movement (defined after g_BoxFindPlanes).
 extern LTVector g_MovePts[2][NUM_BOX_POINTS];
 
 // The sphere enclosing the whole movement, which FindPoliesTouchingBox (serverde_impl) reuses.
@@ -92,6 +88,16 @@ LTPlane g_BoxFindPlanes[6] =
 	LTPlane(0.0f, 0.0f, 1.0f, 0.0f),
 	LTPlane(0.0f, 0.0f, -1.0f, 0.0f)
 };
+
+// The box's bounding spheres at the start and end of the movement (collision.h) and its corners. The exe has no
+// dynamic initializer for them, which these definitions (LTVector members) get: defined after g_BoxFindPlanes, their
+// initializers come after the exe's and keep its _$E numbers.
+// GLOBAL: LITHTECH 0x004e0ca0
+PhysicsSphere g_StartSphere;
+// GLOBAL: LITHTECH 0x004e24b0
+PhysicsSphere g_EndSphere;
+// GLOBAL: LITHTECH 0x004e2cc0
+LTVector g_MovePts[2][NUM_BOX_POINTS];
 
 // The current collision request (CollideWithWorld) and its output.
 // GLOBAL: LITHTECH 0x004e2f7c

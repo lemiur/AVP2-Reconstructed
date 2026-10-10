@@ -393,7 +393,7 @@ LTRESULT OnUpdatePacket(CClientShell *pShell, CPacket *pPacket)
 	if(g_bDebugPackets > 3)
 	{
 		con_WhitePrintf("Update packet with game time %f", pShell->m_GameTime);
-		con_WhitePrintf(g_EmptyString);
+		con_WhitePrintf("");
 	}
 
 	// The grouped sub-packets come first.
@@ -704,7 +704,7 @@ void PrintPacketDebugInfo(LTObject *pObject, uint32 flags)
 {
 	if(g_bDebugPackets == 2)
 	{
-		con_WhitePrintf(g_EmptyString);
+		con_WhitePrintf("");
 		con_WhitePrintf("ObjectID: %d, type %d, flags %d",
 			pObject->m_ObjectID, (char)pObject->m_ObjectType, flags);
 
@@ -721,7 +721,7 @@ void PrintPacketDebugInfo(LTObject *pObject, uint32 flags)
 	{
 		if(flags & CF_NEWOBJECT)
 		{
-			con_WhitePrintf(g_EmptyString);
+			con_WhitePrintf("");
 			con_WhitePrintf("ObjectID: %d, type: %d, flags %d",
 				pObject->m_ObjectID, (char)pObject->m_ObjectType, flags);
 			con_WhitePrintf("CF_NEWOBJECT");

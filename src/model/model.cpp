@@ -10,6 +10,14 @@
 #include "ltanimtracker.h"
 #include "../../build/proj/LT2/lithshared/stdlith/l_allocator.h"
 
+// GLOBAL: LITHTECH 0x004d483c
+char *g_pNoModelFilename = "";
+// GLOBAL: LITHTECH 0x004d4840
+float g_CV_DefaultDrawIndexedDist = 500.0f;
+// Bytes used by all models.
+// GLOBAL: LITHTECH 0x004e4524
+uint32 g_ModelMemory = 0;
+
 // Preserve the original call boundaries for node-array insertion without changing other array types.
 inline void CopyNodeRelation(NodeRelation &dst, const NodeRelation &src)
 {
@@ -149,7 +157,7 @@ const char* ModelStringList::AddString(const char *pString)
 
 	// Quick exit..
 	if(!pString || pString[0] == 0)
-		return g_EmptyString;
+		return "";
 
 	pCur = m_StringList;
 	while(pCur)
@@ -164,7 +172,7 @@ const char* ModelStringList::AddString(const char *pString)
 	dwSize = sizeof(ModelString) - 1 + strlen(pString) + 1;
 	pRet = (ModelString*)GetAlloc()->Alloc(dwSize);
 	if(!pRet)
-		return g_EmptyString;
+		return "";
 
 	pRet->m_AllocSize = dwSize;
 	pRet->m_pNext = m_StringList;
@@ -227,7 +235,7 @@ ModelVert::ModelVert()
 ChildInfo::ChildInfo()
 {
 	m_AnimOffset = 0;
-	m_pFilename = g_EmptyString;
+	m_pFilename = "";
 	m_pModel = LTNULL;
 	m_pParentModel = LTNULL;
 	m_Unknown14 = 0;
@@ -244,7 +252,7 @@ ChildInfo::~ChildInfo()
 void ChildInfo::Term()
 {
 	m_pModel = LTNULL;
-	m_pFilename = g_EmptyString;
+	m_pFilename = "";
 	m_Relation.Term(m_pParentModel->m_pAlloc);
 }
 
@@ -253,7 +261,7 @@ void ChildInfo::Term()
 AnimKeyFrame::AnimKeyFrame()
 {
 	m_Time = 0;
-	m_pString = g_EmptyString;
+	m_pString = "";
 	m_KeyType = KEYTYPE_POSITION;
 	m_Callback = LTNULL;
 	m_pUser = LTNULL;
@@ -381,7 +389,7 @@ Model* AnimNode::GetModel()
 ModelAnim::ModelAnim(Model *pModel)
 {
 	m_pModel = pModel;
-	m_pName = g_EmptyString;
+	m_pName = "";
 	m_AnimNodes = LTNULL;
 	m_Unknown18 = -1;
 	m_InterpolationMS = 200;
@@ -527,7 +535,7 @@ void ModelNode::Term()
 // FUNCTION: LITHTECH 0x0044e6c0
 void ModelNode::Clear()
 {
-	m_pName = g_EmptyString;
+	m_pName = "";
 	m_NodeIndex = 0;
 	m_Flags = 0;
 	m_vOffsetFromParent.Init();
@@ -735,7 +743,7 @@ Model::Model(LAlloc *pAlloc, LAlloc *pDefAlloc) :
 	m_bNormalRef = LTFALSE;
 	m_Transforms = CMoArray<LTMatrix, NoCache>();
 
-	m_CommandString = g_EmptyString;
+	m_CommandString = "";
 	m_pRootNode = &m_RootNode;
 	m_pRootNode->SetModel(this);
 

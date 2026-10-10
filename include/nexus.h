@@ -16,6 +16,9 @@ struct LeechDef
 	LeechDef	*m_pParent;
 };
 
+// The root leech definition (leech.cpp).
+extern LeechDef g_BaseLeech;
+
 class Nexus
 {
 public:

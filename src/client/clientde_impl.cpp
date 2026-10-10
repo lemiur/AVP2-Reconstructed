@@ -396,6 +396,31 @@ public:
 // GLOBAL: LITHTECH 0x004decb4
 CountPercent g_TotalGlobalTimeCounter;
 
+// The frame profile counters around it (Jupiter client_ticks.cpp keeps them together; several names are
+// invented, clientmgr.h / clientshell.h).
+// GLOBAL: LITHTECH 0x004debf4
+uint32 g_Ticks_FrameNet;
+// GLOBAL: LITHTECH 0x004debf8
+uint32 g_Ticks_Render_WorldModels;
+// GLOBAL: LITHTECH 0x004dec3c
+uint32 g_Ticks_Render_Models;
+// GLOBAL: LITHTECH 0x004deca0
+uint32 g_Ticks_SoundUpdate;
+// GLOBAL: LITHTECH 0x004decb0
+uint32 g_Ticks_Render_PolyGrids;
+// GLOBAL: LITHTECH 0x004decf4
+uint32 g_Ticks_FrameServer;
+// GLOBAL: LITHTECH 0x004decf8
+uint32 g_Ticks_Render_ParticleSystems;
+// GLOBAL: LITHTECH 0x004ded00
+uint32 g_Ticks_Render_Sprites;
+// GLOBAL: LITHTECH 0x004ded10
+uint32 g_Ticks_RenderScene;
+// GLOBAL: LITHTECH 0x004ded50
+uint32 g_Ticks_FrameClientShell;
+// GLOBAL: LITHTECH 0x004ded54
+uint32 g_Ticks_Render_Objects;
+
 
 // ------------------------------------------------------------------------ //
 // Light anims.
@@ -2007,7 +2032,7 @@ inline char* CLTClient::GetStringData(HSTRING hString)
 	if(hString)
 		return str_GetStringData(hString);
 	else
-		return g_EmptyString;
+		return "";
 }
 
 // FUNCTION: LITHTECH 0x00407c30
@@ -2815,7 +2840,7 @@ void ci_ShutdownWithMessage(char *pMsg, ...)
 // FUNCTION: LITHTECH 0x00408e70
 void ci_Shutdown()
 {
-	ci_ShutdownWithMessage(g_EmptyString);
+	ci_ShutdownWithMessage("");
 }
 
 // FUNCTION: LITHTECH 0x00408e80

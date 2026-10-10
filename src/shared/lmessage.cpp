@@ -93,7 +93,7 @@ LTRESULT LMessageImpl::ReadHStringFL(HSTRING &hString)
 	{
 		if(len == 0)
 		{
-			hString = str_CreateString((uint8*)g_EmptyString);
+			hString = str_CreateString((uint8*)"");
 		}
 		else
 		{

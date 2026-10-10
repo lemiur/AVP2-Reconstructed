@@ -133,7 +133,7 @@ LTRESULT LoadServerBinaries(CClassMgr *pClassMgr)
 	pClassMgr->m_pServerShell = pClassMgr->m_CreateServerShellFn(pClassMgr->m_pServerMgr->m_pServerInterface);
 	if (!pClassMgr->m_pServerShell)
 	{
-		sm_SetupError(pClassMgr->m_pServerMgr, LT_CANTCREATESERVERSHELL, g_EmptyString);
+		sm_SetupError(pClassMgr->m_pServerMgr, LT_CANTCREATESERVERSHELL, "");
 		RETURN_ERROR(1, LoadServerBinaries, LT_ERROR);
 	}
 

@@ -881,7 +881,7 @@ void CUDPDriver::HandleDriverPacket(CPacket *pPacket, sockaddr_in *pSender)
 			CPacket *pReply = packet_AddRef(packet_Get(MAX_PACKET_LEN, MAX_PACKET_LEN));
 			pReply->m_Data[0] = 0;
 			pReply->WriteType((uint8)TCPSUB_QUERYRESPONSE);
-			pReply->WriteString(m_pSessionName ? m_pSessionName : g_EmptyString);
+			pReply->WriteString(m_pSessionName ? m_pSessionName : "");
 			pReply->WriteType(queryIndex);
 			SendTo(m_Socket, pReply->m_Data.GetArray(), pReply->m_DataLen, pSender);
 			pReply->Release();
@@ -970,7 +970,7 @@ void CUDPDriver::HandleDriverPacket(CPacket *pPacket, sockaddr_in *pSender)
 		}
 
 		if(m_pNetMgr->m_pHandler)
-			m_pNetMgr->m_pHandler->SetDisconnectCode(4, g_EmptyString);
+			m_pNetMgr->m_pHandler->SetDisconnectCode(4, "");
 
 		m_pNetMgr->DisconnectNotify(pConn);
 		m_Connections.RemoveAt(&pConn->m_Link);
@@ -1108,7 +1108,7 @@ LTBOOL CUDPDriver::GetLocalIpAddress(char* sBuffer, uint32 dwBufferSize, uint16 
 
 	if(g_CV_IPDebug)
 	{
-		dsi_ConsolePrint("---- %d IP device%s ----", nDevices, nDevices > 1 ? "s" : g_EmptyString);
+		dsi_ConsolePrint("---- %d IP device%s ----", nDevices, nDevices > 1 ? "s" : "");
 		for(i=0; i < nDevices; i++)
 		{
 			pAddrList = (unsigned char*)pHost->h_addr_list[i];

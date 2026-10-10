@@ -55,6 +55,9 @@ uint32 g_CurRunIteration=0;
 // GLOBAL: LITHTECH 0x004debdc
 uint32 g_EngineStartMS;
 
+// GLOBAL: LITHTECH 0x004de2b8
+ClientGlob g_ClientGlob;
+
 
 ///////////////////////////////////////////////////
 //  Functions.
@@ -78,7 +81,7 @@ char* cl_FindArg(const char *pArgName, int argc, char **argv)
 			if(i < argc-1)
 				return argv[i+1];
 			else
-				return g_EmptyString;
+				return "";
 		}
 	}
 
