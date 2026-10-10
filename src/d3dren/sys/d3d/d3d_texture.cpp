@@ -899,7 +899,8 @@ inline int d3d_ConvertMipToBumpDuDv(TextureData *pTextureData, TextureMipData *p
 // The code layout follows the exe's (the BUMPDUDV / BPP_32 / DXT branch order, the common tiling tail, each failure unlocking and
 // returning in place, which the exe cross-jumps into two tails, the DXT FOURCC through the expanded CTextureManager_S3TCFormatConv).
 // The texel pointer is read from the lock description at each use (the exe re-reads ddsdLock.lpSurface, e.g. 0x100208b0); the bump
-// map conversion is an inline helper (its parameter homes); the temporary DXT surface descriptions are function-scope locals.
+// map conversion is an inline helper (its parameter homes); the temporary DXT surface descriptions are function-scope locals; the
+// BPP_32 conversion request takes the mip size from the TextureMipData (0x1002067c), the mip size locals serve only the tiling.
 // NOT MATCHING (1856 vs 1872): register and frame allocation (frame 0x368 vs 0x36c; the exe keeps pTexture in ebx for the prologue,
 // bpp in esi with a stack copy, and mipHeight rather than mipWidth in a register through the tiling tail).
 // STUB: D3DREN 0x10020360
@@ -968,8 +969,8 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 			DDPFToPFormat(&pFormat->m_PF, cReq.m_pDestFormat);
 			cReq.m_pDest = (uint8 *)ddsdLock.lpSurface;
 			cReq.m_DestPitch = pitch;
-			cReq.m_Width = mipWidth;
-			cReq.m_Height = mipHeight;
+			cReq.m_Width = pMip->m_Width;
+			cReq.m_Height = pMip->m_Height;
 			cReq.m_Flags = 0;
 			if (g_FormatMgr.ConvertPixels(&cReq) != LT_OK)
 			{
