@@ -170,8 +170,10 @@ void d3d_DrawParticleSystem(LTParticleSystem *pSystem)
 // fSize, colour from the system colour and the particle colour / alpha, the texture coordinates clipped together with the quad against the
 // screen rectangle), and draws the quads with DrawIndexedPrimitive; returns the particle after the last one.
 // Recovered from the original: 1.2f view-volume limit, packed uint32 fog/specular colour, and once-per-call UV endpoint loads.
+// The alpha goes through an RGBColor zeroed once per call: its byte is stored and the word ORed into the packed colour (0x10009634,
+// 0x10009683), which also gives the exe its extra frame slot; the UV endpoints are loaded after the colour scales (0x100093b6).
 // The camera and screen transforms are the SDK's MatVMul_H (aligned 435 -> 324).
-// Still not byte-matched: the frame (0x4064 vs 0x4080), spills, the term order of the camera transform's x/y/z rows (the exe's
+// Still not byte-matched: the frame (0x4068 vs 0x4080), spills, the term order of the camera transform's x/y/z rows (the exe's
 // w row is MatVMul_H's) and the vertex-store schedule differ.
 // STUB: D3DREN 0x10009370
 PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize)
@@ -180,18 +182,20 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 	TLVertex *pOut;
 	float fRed, fGreen, fBlue, fAlpha;
 	float fHalfSize, fHalfSizeBase;
-	// Original UV endpoints are loaded once at 0x100093b6..0x10009405.
-	float fBaseU0 = g_fParticleTextureUMin;
-	float fBaseU1 = g_fParticleTextureUMax;
-	float fBaseV0 = g_fParticleTextureVMin;
-	float fBaseV1 = g_fParticleTextureVMax;
+	RGBColor color;
+	float fBaseU0, fBaseU1, fBaseV0, fBaseV1;
 
 
 	pOut = aVerts;
+	color.color = 0;
 	fRed = (float)pSystem->m_ColorR * g_fParticleRedScale;
 	fGreen = (float)pSystem->m_ColorG * g_fParticleGreenScale;
 	fBlue = (float)pSystem->m_ColorB * g_fParticleBlueScale;
 	fAlpha = (float)pSystem->m_ColorA;
+	fBaseU0 = g_fParticleTextureUMin;
+	fBaseU1 = g_fParticleTextureUMax;
+	fBaseV0 = g_fParticleTextureVMin;
+	fBaseV1 = g_fParticleTextureVMax;
 	fHalfSizeBase = (float)(g_ViewParams.m_Rect.right - g_ViewParams.m_Rect.left) * g_ViewParams.m_fFovXScale;
 	fHalfSize = fHalfSizeBase * fSize;
 
@@ -218,8 +222,8 @@ PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pPartic
 				if (fSize == 0.0f)
 					fHalfSize = fHalfSizeBase * pParticle->m_Size;
 				fExtent = fW * fHalfSize;
-				dwColor = ((uint32)RoundFloatToInt(fAlpha * pParticle->m_Alpha) << 24) |
-					(((RoundFloatToInt(fRed * pParticle->m_Color.x) << 8 | RoundFloatToInt(fGreen * pParticle->m_Color.y)) << 8) | RoundFloatToInt(fBlue * pParticle->m_Color.z));
+				color.rgb.a = (uint8)RoundFloatToInt(fAlpha * pParticle->m_Alpha);
+				dwColor = ((RoundFloatToInt(fRed * pParticle->m_Color.x) << 8 | RoundFloatToInt(fGreen * pParticle->m_Color.y)) << 8 | RoundFloatToInt(fBlue * pParticle->m_Color.z)) | color.color;
 				x0 = sx - fExtent;
 				y0 = sy - fExtent;
 				x1 = sx + fExtent;
