@@ -57,18 +57,20 @@
   "functions": 1221,
   "pending": 0
  },
- "commit": "786650572a6917e57b7a54815721c870f7909d95",
+ "commit": "0e4a13d7b1bfa6fd7a7b21c671b60d4534f9b1f4",
  "contract": "4248b9357daaaf129a37baf7ad8bf7b3d008344b",
  "control": {
   "differing_bytes": 11,
   "va": "100073b0"
  },
  "data_bytes": 0,
- "date": "2026-10-09 20:52",
+ "date": "2026-10-09 23:48",
  "function_bytes_total": 280674,
  "functions": 1221,
  "image": "d3d.ren",
- "match_not_banked": [],
+ "match_not_banked": [
+  "sys/d3d/drawpolygrid@1002cc80"
+ ],
  "module": "d3dren",
  "not_banked": {},
  "official": true,
@@ -496,7 +498,8 @@
    "10018dd0",
    "10018f80",
    "100190c0",
-   "10019220"
+   "10019220",
+   "1002cc80"
   ],
   "sys/d3d/d3d_drawsky": [
    "10019350",
@@ -797,7 +800,6 @@
    "1002afd0",
    "1002c560",
    "1002c840",
-   "1002cc80",
    "1002cc90",
    "1002cce0",
    "1002cdc0",
