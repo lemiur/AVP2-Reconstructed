@@ -252,15 +252,15 @@ static inline uint32 SpriteGetColor(SpriteInstance *pInstance)
 // overload: the sprite is a camera facing quad around pPos (m_Pos) of the size of its texture times fScaleX/fScaleY (and the glow
 // factor with FLAG_GLOWSPRITE), lit like the other objects, optionally with its texture coordinates rotated by the object rotation
 // (FLAG2_SPRITE_TROTATE), clipped to the clip mask, projected (with the z bias for FLAG_SPRITEBIAS) and drawn as a fan.
-// STUB diagnosis: 2640 vs 2736 bytes.  The first 0x11c bytes (camera transform, fog, near test) are the exe's; the bias / really close
-// projection loops (ProjectTLVertexWithDepthBias), the projection branch order (SPRITEBIAS, else REALLYCLOSE, else the screen
-// projection), the glow factor (LTCLAMP; file constants loaded from .rdata) and the colour terms have the exe's instruction shape.
-// Wall: inline call set.  The exe calls the LTVector constructor (inside the inlined operator-) and Mag out of line for the
-// unused distance `pInstance->m_Pos.Dist(pParams->m_Pos)` (operator- takes the by-value copy of pParams->m_Pos the exe makes);
-// ours inlines both and drops the dead code, which shifts registers and frame slots of everything after it.  tools/inline_budget.py:
-// Dist's share here is (A - 13) / (1 + pending) = 344u; the exe's decisions need 68..130u, i.e. 15..30 inline call sites after Dist
-// at the top level where this source has 5, at an unchanged budget.  Writing the colour code out (no SpriteGetColor) moves the wrong
-// way (bigger budget).  Open: the original's extra top-level inline sites (accessors?) after the distance.
+// STUB diagnosis: 2736 bytes like the exe, 811 vs 799 instructions; the out-of-line call set is the exe's (LTVector constructor
+// inside the inlined operator- and Mag of the unused distance, both bias projections inline).  It came from the sprite code's own
+// helpers: TLVertex::SetTCoords for every tu/tv pair (also in the texture rotation loop, matched in ModelDraw::DrawFadeSprite),
+// LTVector::Init for the corners, LTRotation::ConvertToMatrix into an LTMatrix for FLAG2_SPRITE_TROTATE, chained colour/specular
+// stores (the exe stores each value to the four vertices in a row), and the base size read as unsigned (fild qword).
+// Left: the frame is 4 bytes smaller (0x104 vs 0x108: vCam at ebp-0x40, the exe -0x44, and the slot order of the distance temporary,
+// lightRGB and the colour terms differs); the exe lays the `create + link` block of the d3d_SetTexture expansion before the `found`
+// compare (an inline search written `while (p) { if (match) return p; ... }` gives that order but breaks d3d_DrawPolyGrid, so the
+// header form stays); the x87 operand order of the third MatVMul term.
 // STUB: D3DREN 0x1002d860
 void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
 {
@@ -426,11 +426,10 @@ static int s_CornerOrderBack[4] = { 3, 2, 1, 0 };
 // refused (the exe expands both); with the colour code also written out Dist and SpriteGetColor fit but B rises to 2078u and
 // TransformVertexPositionsHomogeneous and the search stay inline (closest budget 1224u).  The exe needs roughly 12 more free top-level
 // sites after Dist and 70..95u less own size at once; no helper with evidence in Jupiter or the SDK headers gives both.
-// Structural pass: the vertex is TLVertex (FVF 0x1c4, the type of the matched clip/projection callees); the out-of-line LTVector
-// copies the exe calls (0x1000e06c operator-, 0x1000e011 Mag, 0x1000dfb6 ctor) are this SDK header's, matched in other units, so
-// the vector API is the same and their calls here are budget decisions; no callee is an ICF twin.  Jupiter's TLVertex::SetTCoords
-// for the four tu/tv pairs (with the three helpers as templates) brings Dist to 98u (Mag refused) but not the rest, and any TLVertex
-// member trips the ClipPolyNear40 / ClipPolyLeft40 declaration trap of unit unk/10007930.
+// Structural pass: the vertex is TLVertex (FVF 0x1c4); the out-of-line LTVector copies the exe calls are this SDK header's (matched
+// in other units) and no callee is an ICF twin.  With TLVertex::SetTCoords the model gives Dist 113u (Mag refused, as in the exe) but
+// operator-, d3d_FindRTextureForStage and TransformVertexPositionsHomogeneous stay inline; LTVector::Init corners (as in the camera
+// facing drawer) and the three helpers as templates do not reproduce the exe either (closest budget 1084u: SpriteGetColor refused).
 // STUB: D3DREN 0x1002e310
 void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
 {

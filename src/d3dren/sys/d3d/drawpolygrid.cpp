@@ -71,14 +71,8 @@ extern uint8 g_VertexTintTableG[256];
 extern uint8 g_VertexTintTableB[256];
 
 
-// The 0x28-byte vertex plane clippers / projection of the world polygon code (units unk/10001000 and unk/10007930).
+// The screen projection of the world polygon code (unit unk/10007930); the 0x28-byte plane clippers are declared in d3dren/tlvertex.h.
 void ProjectVertexToScreen(float *pVert, const void *pViewParams);
-int ClipPolyNear40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyLeft40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
 
 // guess: environment map texture coordinates of one vertex (common_draw): from the viewer position, the vertex position and the
 // vertex normal; writes u and v.  (Defined by unit sys/d3d/common_stuff with LTVector arguments; polydraw.h declares it with float *.)
