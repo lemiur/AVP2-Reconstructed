@@ -23,8 +23,6 @@
 #include "d3dren/d3ddevice.h"
 #include "pixelformat.h"
 #include "d3dren/common_init.h"
-// GLOBAL: D3DREN 0x10057b58
-extern int g_nRenderFrameCount;				// guess: frame counter (incremented per d3d_InitFrame, zeroed by d3d_Init)
 
 // ------------------------------------------------------------------ //
 // The lists of polygons touched by dynamic lights (names unknown, shapes in the comments).
@@ -187,11 +185,23 @@ void d3d_Term()
 }
 
 
+// The DirectDraw objects (declared in d3dren/d3ddevice.h).  Their addresses follow this object's own .bss (0x100577c0..0x1005780c)
+// and precede the ConVar block of common_stuff, so this object defines them; the explicit zero initialisers keep them in
+// definition order at the end of the block.  0x10057824 (between g_pZBuffer and g_RenderSurfaceMemoryCaps) is referenced by nothing.
+// GLOBAL: D3DREN 0x10057810
+IDirectDraw7 *g_pDD = NULL;
+// GLOBAL: D3DREN 0x10057814
+IDirectDrawSurface7 *g_pPrimary = NULL;
+// GLOBAL: D3DREN 0x10057818
+IDirectDrawSurface7 *g_pBackBuffer = NULL;
+// GLOBAL: D3DREN 0x1005781c
+IDirectDrawSurface7 *g_pOffscreen = NULL;
+// GLOBAL: D3DREN 0x10057820
+IDirectDrawSurface7 *g_pZBuffer = NULL;
+// GLOBAL: D3DREN 0x10057828
+uint32 g_RenderSurfaceMemoryCaps = 0;
+
 // Globals of d3d_Init.
-// GLOBAL: D3DREN 0x10057e30
-extern int g_nSysMemParameter;				// guess: the "SysMem" console parameter as an int
-int g_nWindowBlitScaleY;				// guess: vertical divisor of the RenderStruct height (1); GLOBAL in common_init.h
-int g_nWindowBlitScaleX;				// guess: horizontal divisor of the RenderStruct width (1)
 // GLOBAL: D3DREN 0x100584e8
 extern int g_bFogStateInitialized;
 // GLOBAL: D3DREN 0x100584ec

@@ -52,7 +52,132 @@ void UppercaseStringInPlace(char *pStr);
 RenderStruct *g_pStruct = NULL;
 
 // d3dren/common_stuff.h
+// GLOBAL: D3DREN 0x10057b58
 int g_nRenderFrameCount;
+
+// ---- the console variable mirrors (declared in d3dren/rendererconsolevars.h) ----
+// Every address below lies inside this object's .bss block (0x1005782c..0x100584f8, the ConVars' block).  The uninitialised ones are
+// placed by the name hash; the explicitly zeroed ones follow g_pStruct at the end of the block in definition order.
+// GLOBAL: D3DREN 0x1005782c
+int g_Bilinear;
+// GLOBAL: D3DREN 0x10057878
+int g_DrawGuns;
+// GLOBAL: D3DREN 0x100578ec
+int g_Saturate;
+// GLOBAL: D3DREN 0x10057994
+int g_NoLMPages;
+// GLOBAL: D3DREN 0x10057a5c
+int g_MaxTexAspectRatio;
+// GLOBAL: D3DREN 0x10057b10
+float g_EnvScale;
+// GLOBAL: D3DREN 0x10057be0
+int g_EnvMapEnable;
+// GLOBAL: D3DREN 0x10057cb8
+int g_OptimizeSurfaces;
+// GLOBAL: D3DREN 0x10057d40
+float g_SkyFogFarZ;
+// NAME: g_TextureGroupOffset (invented after Jupiter engine_vars.cpp `int32 g_CV_TextureGroupOffset[MAX_TEXTURE_GROUPS]`, whose
+// GroupOffset0..9 console variables point at its elements): one array, because d3d_texture indexes it by the texture group.
+// GLOBAL: D3DREN 0x10057d44
+int g_TextureGroupOffset[10];
+// GLOBAL: D3DREN 0x10057dd0
+int g_EnvMapAll;
+// GLOBAL: D3DREN 0x10057e18
+float g_LightSaturate;
+// GLOBAL: D3DREN 0x10057e1c
+float g_WarbleScale;
+// GLOBAL: D3DREN 0x10057e20
+float g_SkyFogNearZ;
+// GLOBAL: D3DREN 0x10057e2c
+int g_32BitTextures;
+// GLOBAL: D3DREN 0x10057f00
+int g_MaxTextureSize;
+// GLOBAL: D3DREN 0x10057f70
+int g_ModelProfile;
+// GLOBAL: D3DREN 0x10057f74
+int g_b32BitLightmaps;
+// GLOBAL: D3DREN 0x10058038
+int g_ShowSkySplits;
+// GLOBAL: D3DREN 0x1005803c
+int g_MaxModelLights;
+// GLOBAL: D3DREN 0x10058118
+int g_FilterOptimized;
+// GLOBAL: D3DREN 0x1005811c
+int g_FixTJunc;
+// GLOBAL: D3DREN 0x10058408
+float g_WarbleSpeed;
+// GLOBAL: D3DREN 0x10058478
+int g_TripleBuffer = 0;
+// GLOBAL: D3DREN 0x1005847c
+int g_InvertHack = 0;
+// GLOBAL: D3DREN 0x10058480
+int g_Force1Pass = 0;
+// GLOBAL: D3DREN 0x10058484
+int g_ModelWarble = 0;
+// GLOBAL: D3DREN 0x10058488
+int g_RGBRast = 0;
+// GLOBAL: D3DREN 0x1005848c
+int g_RefRast = 0;
+// GLOBAL: D3DREN 0x10058490
+int g_MMXRast = 0;
+// GLOBAL: D3DREN 0x10058494
+int g_TnLRast = 0;
+// GLOBAL: D3DREN 0x10058498
+int g_Force2Pass = 0;
+// GLOBAL: D3DREN 0x1005849c
+int g_FogEnable = 0;
+// GLOBAL: D3DREN 0x100584a0
+float g_FogNearZ = 0.0f;
+// GLOBAL: D3DREN 0x100584a4
+int g_LockPVS = 0;
+// GLOBAL: D3DREN 0x100584a8
+int g_ShowFullbriteModels = 0;
+// GLOBAL: D3DREN 0x100584ac
+int g_MipmapOffset = 0;
+// GLOBAL: D3DREN 0x100584b0
+int g_BumpMap = 0;
+// GLOBAL: D3DREN 0x100584b4
+int g_ShowFillInfo = 0;
+// GLOBAL: D3DREN 0x100584b8
+int g_DrawAll = 0;
+// GLOBAL: D3DREN 0x100584bc
+int g_ShowSplits = 0;
+// GLOBAL: D3DREN 0x100584c0
+int g_FastLight = 0;
+// GLOBAL: D3DREN 0x100584c4
+int g_ShowTextureCounts = 0;
+// GLOBAL: D3DREN 0x100584c8
+int g_LodOffset = 0;
+// GLOBAL: D3DREN 0x100584cc
+int g_Wireframe = 0;
+// GLOBAL: D3DREN 0x100584d0
+int g_ModelBoxes = 0;
+// GLOBAL: D3DREN 0x100584d4
+int g_RenderDebug = 0;
+// GLOBAL: D3DREN 0x100584d8
+int g_ShowPolyCounts = 0;
+// GLOBAL: D3DREN 0x100584dc
+int g_DrawFlat = 0;
+// GLOBAL: D3DREN 0x100584e0
+int g_LightmapsOnly = 0;
+
+// ---- other globals whose storage is in this object's .bss block (the device and draw units read and write them) ----
+// GLOBAL: D3DREN 0x10057a10
+int g_bSpecialRenderMode;
+// GLOBAL: D3DREN 0x10057990
+float g_fFogAlphaScale;		// d3dren/d3d_draw.h
+// GLOBAL: D3DREN 0x10057e24
+int g_nWindowBlitScaleX;		// d3dren/common_init.h
+// GLOBAL: D3DREN 0x10057e28
+int g_nWindowBlitScaleY;		// d3dren/common_init.h
+// GLOBAL: D3DREN 0x10057e30
+int g_nSysMemParameter;		// d3dren/common_init.h
+// GLOBAL: D3DREN 0x100584e4
+int g_bWarbleTableInitialized = 0;		// d3dren/common_init.h
+
+// NAME: g_pConVars: Jupiter common_stuff.cpp `BaseConVar* g_pConVars = NULL;` (the head of the console variable list).
+// GLOBAL: D3DREN 0x100584f4
+ConVar *g_pConVars = NULL;
 
 // FUNCTION: D3DREN 0x1001116b _$E2
 // FUNCTION: D3DREN 0x10011170 _$E1
@@ -178,43 +303,43 @@ ConVar g_CV_Gamma("Gamma", 100.0f, 0, &g_Gamma);
 // FUNCTION: D3DREN 0x10011a06 _$E83
 // FUNCTION: D3DREN 0x10011a0b _$E82
 // GLOBAL: D3DREN 0x10058348
-ConVar g_CV_GroupOffset0("GroupOffset0", 0.0f, &g_GroupOffset0);
+ConVar g_CV_GroupOffset0("GroupOffset0", 0.0f, &g_TextureGroupOffset[0]);
 // FUNCTION: D3DREN 0x10011a55 _$E86
 // FUNCTION: D3DREN 0x10011a5a _$E85
 // GLOBAL: D3DREN 0x10058328
-ConVar g_CV_GroupOffset1("GroupOffset1", 0.0f, &g_GroupOffset1);
+ConVar g_CV_GroupOffset1("GroupOffset1", 0.0f, &g_TextureGroupOffset[1]);
 // FUNCTION: D3DREN 0x10011aa4 _$E89
 // FUNCTION: D3DREN 0x10011aa9 _$E88
 // GLOBAL: D3DREN 0x10058308
-ConVar g_CV_GroupOffset2("GroupOffset2", 0.0f, &g_GroupOffset2);
+ConVar g_CV_GroupOffset2("GroupOffset2", 0.0f, &g_TextureGroupOffset[2]);
 // FUNCTION: D3DREN 0x10011af3 _$E92
 // FUNCTION: D3DREN 0x10011af8 _$E91
 // GLOBAL: D3DREN 0x100582e8
-ConVar g_CV_GroupOffset3("GroupOffset3", 0.0f, &g_GroupOffset3);
+ConVar g_CV_GroupOffset3("GroupOffset3", 0.0f, &g_TextureGroupOffset[3]);
 // FUNCTION: D3DREN 0x10011b42 _$E95
 // FUNCTION: D3DREN 0x10011b47 _$E94
 // GLOBAL: D3DREN 0x100581c0
-ConVar g_CV_GroupOffset4("GroupOffset4", 0.0f, &g_GroupOffset4);
+ConVar g_CV_GroupOffset4("GroupOffset4", 0.0f, &g_TextureGroupOffset[4]);
 // FUNCTION: D3DREN 0x10011b91 _$E98
 // FUNCTION: D3DREN 0x10011b96 _$E97
 // GLOBAL: D3DREN 0x100581a0
-ConVar g_CV_GroupOffset5("GroupOffset5", 0.0f, &g_GroupOffset5);
+ConVar g_CV_GroupOffset5("GroupOffset5", 0.0f, &g_TextureGroupOffset[5]);
 // FUNCTION: D3DREN 0x10011be0 _$E101
 // FUNCTION: D3DREN 0x10011be5 _$E100
 // GLOBAL: D3DREN 0x10058160
-ConVar g_CV_GroupOffset6("GroupOffset6", 0.0f, &g_GroupOffset6);
+ConVar g_CV_GroupOffset6("GroupOffset6", 0.0f, &g_TextureGroupOffset[6]);
 // FUNCTION: D3DREN 0x10011c2f _$E104
 // FUNCTION: D3DREN 0x10011c34 _$E103
 // GLOBAL: D3DREN 0x10058140
-ConVar g_CV_GroupOffset7("GroupOffset7", 0.0f, &g_GroupOffset7);
+ConVar g_CV_GroupOffset7("GroupOffset7", 0.0f, &g_TextureGroupOffset[7]);
 // FUNCTION: D3DREN 0x10011c7e _$E107
 // FUNCTION: D3DREN 0x10011c83 _$E106
 // GLOBAL: D3DREN 0x10058220
-ConVar g_CV_GroupOffset8("GroupOffset8", 0.0f, &g_GroupOffset8);
+ConVar g_CV_GroupOffset8("GroupOffset8", 0.0f, &g_TextureGroupOffset[8]);
 // FUNCTION: D3DREN 0x10011ccd _$E110
 // FUNCTION: D3DREN 0x10011cd2 _$E109
 // GLOBAL: D3DREN 0x10058200
-ConVar g_CV_GroupOffset9("GroupOffset9", 0.0f, &g_GroupOffset9);
+ConVar g_CV_GroupOffset9("GroupOffset9", 0.0f, &g_TextureGroupOffset[9]);
 // FUNCTION: D3DREN 0x10011d1c _$E113
 // FUNCTION: D3DREN 0x10011d21 _$E112
 // GLOBAL: D3DREN 0x10058090

@@ -69,7 +69,7 @@ inline void d3d_GetBlendStates(LTObject *pObject, uint32 &srcBlend, uint32 &dest
 // ---- globals of this unit (defined in src/d3dren/sys/d3d/d3d_draw.cpp; every address is in its .bss block) -------------------------
 // Fog: the scales RenderScene sets up each frame for the per-vertex fog hooks.
 // GLOBAL: D3DREN 0x10057990
-extern float g_fFogAlphaScale;		// guess: 255 / (FogFarZ - FogNearZ)
+extern float g_fFogAlphaScale;		// guess: 255 / (FogFarZ - FogNearZ); defined by sys/d3d/common_stuff (its address is in that .bss block)
 // GLOBAL: D3DREN 0x10058620
 extern float g_fSkyFogAlphaScale;		// guess: 255 / (SkyFogFarZ - SkyFogNearZ)
 // GLOBAL: D3DREN 0x100584f8

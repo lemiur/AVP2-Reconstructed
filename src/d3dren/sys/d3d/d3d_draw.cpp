@@ -94,8 +94,13 @@ ConVar g_CV_RenderToFront("RenderToFront", 0.0f);
 // Globals
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-float g_fFogAlphaScale;		// guess: 255 / (FogFarZ - FogNearZ)
 float g_fSkyFogAlphaScale;		// guess: 255 / (SkyFogFarZ - SkyFogNearZ)
+
+// The per-vertex fog hooks RenderScene installs for the frame (d3dren/polydraw.h).
+// GLOBAL: D3DREN 0x1005872c
+void (__fastcall *g_pfnCalcFogAlpha)(LTVector *pPos, uint32 *pSpecular);
+// GLOBAL: D3DREN 0x10058c40
+void (__fastcall *g_pfnCalcSkyFogAlpha)(LTVector *pPos, uint32 *pSpecular);
 
 // guess: the global the exe's static initialiser 0x10013480 sets to (5, 5, 5): the light scale RenderScene last handed to the lightmap
 // colour tables (compared with SceneDesc::m_GlobalLightScale each frame, see d3d_RenderScene).
@@ -359,6 +364,12 @@ void d3d_EndChromaKeyPolyPass(void)
 	d3d_SetChromaKeyPass(0);
 }
 
+// The TL vertex scratch array (d3dren/polydraw.h).
+// GLOBAL: D3DREN 0x100587e4
+uint32 g_nQueuedWorldPolyVertices;
+// GLOBAL: D3DREN 0x100587fc
+TLVertex *g_pQueuedWorldPolyVertices;
+
 // guess: grows the TL vertex scratch array g_pQueuedWorldPolyVertices to nVertices entries (keeping the old ones); 0 when the allocation fails.
 // FUNCTION: D3DREN 0x10013e80
 int d3d_GrowTLVertexBuffer(int nVertices)
@@ -620,10 +631,13 @@ int g_bPolyDrawSetupComplete;	// guess: member of the object at 0x1005872c
 int g_bDrawGouraudFullbritePass;	// guess: draw state flag (Gouraud fullbrites in use)
 UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of ... (head of a list whose nodes come from the pool at 0x10058c98)
 
-extern void (*g_pfnDrawUntexturedWorldPoly)(WorldPoly *pPoly);
-extern void (*g_pfnDrawTexturedWorldPoly)(WorldPoly *pPoly);
+// GLOBAL: D3DREN 0x10058cd8
+PFN_DrawWorldPoly g_pfnDrawUntexturedWorldPoly;
+// GLOBAL: D3DREN 0x100587e8
+PFN_DrawWorldPoly g_pfnDrawTexturedWorldPoly;
 extern void (*g_pfnDrawPanningSkyWorldPoly)(WorldPoly *pPoly);
-extern void (*g_pfnDrawLightmappedWorldPoly)(WorldPoly *pPoly);
+// GLOBAL: D3DREN 0x10058c24
+PFN_DrawWorldPoly g_pfnDrawLightmappedWorldPoly;
 void QueueWorldPolyWithClipFlags(WorldPoly *pPoly);		// 0x10022be4 (unit unk/10021d70): queues the poly under its texture (bucket list g_pMultipassWorldPolyBuckets)
 void QueueLightmappedPoly(WorldPoly *pPoly);		// 0x100356b8 (unit unk/10034000)
 void SetLightmapTextureStageStates();						// 0x100356d5
@@ -1730,6 +1744,11 @@ static void d3d_DrawWorldTree(WorldTree *pTree, uint32 nMaxDepth)
 }
 
 // ---- d3d_RenderScene ------------------------------------------------------------------------------------------------------------------
+// The ModelProfile statistics (d3dren/polydraw.h; setupmodel counts the models).
+// GLOBAL: D3DREN 0x100587e0
+int g_nClippedModelsDrawn;
+// GLOBAL: D3DREN 0x10058cdc
+int g_nUnclippedModelsDrawn;
 // GLOBAL: D3DREN 0x1005a378
 int g_nLastRenderToFront;				// guess: the RenderToFront value the surfaces were last swapped for (0 after the module init)
 // GLOBAL: D3DREN 0x10058474
@@ -1976,6 +1995,10 @@ void d3d_InitLitPolyPools();	// unit sys/d3d/common_stuff: inits the three struc
 void d3d_TermLitPolyPools();	// ... and tears them down
 
 StructBank g_PolyDrawBlockBank;		// guess: the 0x100-byte-element pool
+// GLOBAL: D3DREN 0x10058758
+UnkType_Pool g_WorldPolyNodeBank;
+// GLOBAL: D3DREN 0x10058c98
+UnkType_Pool g_WorldPolyBucketBank;
 uint32 g_PolyDrawPoolResetValue;
 
 // guess: initialises the pools the poly drawing code allocates its queue nodes and buckets from.

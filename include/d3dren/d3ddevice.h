@@ -24,6 +24,7 @@
 #include "renderstruct.h"
 
 // ---- DirectDraw 7 objects (created by 0x1001acc0) -------------------------------------------------------------------------
+// Defined by sys/d3d/common_init (their addresses are in that object's .bss block, 0x100577c0..0x1005782c).
 // GLOBAL: D3DREN 0x10057810
 extern IDirectDraw7 *g_pDD;			// DirectDrawCreateEx(guid, &it, IID_IDirectDraw7): GetHook("LPDIRECTDRAW")
 // GLOBAL: D3DREN 0x10057814

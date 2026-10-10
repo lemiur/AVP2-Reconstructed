@@ -1336,7 +1336,7 @@ inline RTexture *CTextureManager_CreateRTexture(UnkType_RTextureBuild *pBuild, u
 		int iGroup = pTextureData->m_Header.GetTextureGroup();
 		if (iGroup > 9)
 			iGroup = 9;
-		iStartMipmap = (&g_GroupOffset0)[iGroup] + pTextureData->m_Header.GetUIMipmapOffset() + g_MipmapOffset;
+		iStartMipmap = g_TextureGroupOffset[iGroup] + pTextureData->m_Header.GetUIMipmapOffset() + g_MipmapOffset;
 		if (g_CV_S3TCEnable.m_IntVal == 0)
 			iStartMipmap += pTextureData->m_Header.GetNonS3TCMipmapOffset();
 		if (iStartMipmap < 0)

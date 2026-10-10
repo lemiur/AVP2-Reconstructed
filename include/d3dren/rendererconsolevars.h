@@ -90,26 +90,9 @@ extern int g_MaxTexAspectRatio;
 extern int g_EnvMapEnable;
 // GLOBAL: D3DREN 0x10057cb8
 extern int g_OptimizeSurfaces;
+// The GroupOffset0..9 console variables point at its elements; d3d_texture indexes it by the texture group.
 // GLOBAL: D3DREN 0x10057d44
-extern int g_GroupOffset0;
-// GLOBAL: D3DREN 0x10057d48
-extern int g_GroupOffset1;
-// GLOBAL: D3DREN 0x10057d4c
-extern int g_GroupOffset2;
-// GLOBAL: D3DREN 0x10057d50
-extern int g_GroupOffset3;
-// GLOBAL: D3DREN 0x10057d54
-extern int g_GroupOffset4;
-// GLOBAL: D3DREN 0x10057d58
-extern int g_GroupOffset5;
-// GLOBAL: D3DREN 0x10057d5c
-extern int g_GroupOffset6;
-// GLOBAL: D3DREN 0x10057d60
-extern int g_GroupOffset7;
-// GLOBAL: D3DREN 0x10057d64
-extern int g_GroupOffset8;
-// GLOBAL: D3DREN 0x10057d68
-extern int g_GroupOffset9;
+extern int g_TextureGroupOffset[10];
 // GLOBAL: D3DREN 0x10057dd0
 extern int g_EnvMapAll;
 // GLOBAL: D3DREN 0x10057e2c
