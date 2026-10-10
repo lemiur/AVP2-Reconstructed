@@ -669,100 +669,12 @@ void w_GetLightVal(CLightTable *pTable, LTVector *pPos, LTRGB *pRGB);			// 0x100
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// 0x1001fff0 (d3d_texture): finds or creates the RTexture for the stage
 int d3d_DrawFlatWorldPoly(WorldPoly *pPoly);											// 0x10014100 (W2, unit unk/100132a0): draws a poly flat
 
-// guess: draws one translucent world poly: relights it (WPF_RELIGHT), colours the vertices with the light grid sample at the poly
-// centre plus the ambient colour times the object colour, adds the dynamic lights that touch it, transforms, clips and projects
-// the 0x28-byte vertices and draws them with the base texture (plus the detail texture when it has one) as a triangle fan.
-// NAME: guess_d3d_DrawTranslucentWorldPoly (names_proposal.csv, low)
-// STUB diagnosis (W6): 1952 vs 1888 bytes.  The structure follows the exe block by block (relight, light grid sample, env map test, vertex
-// colour loop, dynamic light loop, transform, clip, project, texture bind with its three outcomes, detail texture, scale loop,
-// DrawPrimitive); differences: pPoly lives in esi (the exe: ebx), the u/v copy of the vertex loop is integer moves where the exe uses
-// x87 loads, the exe calls _CVector<float>::Dot (by value, 0x100187c0) in the dynamic light loop where ours inlines it, and its
-// d3d_SetTexture expansion for the detail texture is a call.  inline_budget.py: Dot, d3d_FindRTextureForStage and the second
-// d3d_SetTexture go out of line only with ~2900u less budget left, so the original charges far more inline cost before the light
-// loop than this source.  The relight block here (and loop 2 of DrawWorldModelPolyList) is RelightWorldPolyVertices' body with the
-// light-anim helper refused; declaring RelightWorldPolyVertices `inline` and calling it here reproduces this block, but then
-// DrawWorldModelPolyList's out-of-line call inlines too (and the nested helper must be d3d_draw's shared inline to keep the
-// referent), so that change waits for the light-anim helper to move into a header.
-// STUB: D3DREN 0x10030370
-void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
+static inline void FillTranslucentPolyVertices(WorldPoly *pPoly, UnkType_TLVertex40 *aVerts, UnkType_PolyVertex *pSrc, int nVerts, LTRGB &lightRGB, int bEnvMap)
 {
-	UnkType_TLVertex40 aVerts[0x80];
-	UnkType_PolyVertex *pSrc;
-	UnkType_TLVertex40 *pDest;
-	UnkType_TLVertex40 *pVerts;
-	LTRGB lightRGB;
-	int nVerts;
-	int bEnvMap;
 	uint32 nR, nG, nB;
 	int nObjR, nObjG, nObjB;
 	int i;
-
-	bEnvMap = 0;
-	if (WORLDPOLY_FRAMECODE(pPoly) == g_CurFrameCode + 1)
-		return;
-	WORLDPOLY_FRAMECODE(pPoly) = g_CurFrameCode + 1;
-
-	if (pPoly->m_Flags & 0x4000)
-	{
-		MainWorld *pWorld = g_pFrameMainWorld;
-		UnkType_PolyVertex *pRelightVerts;
-		uint32 nRelightVerts;
-		uint32 j;
-
-		if (g_FixTJunc)
-		{
-			pRelightVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
-			nRelightVerts = pPoly->m_nExtraVertices;
-		}
-		else
-		{
-			pRelightVerts = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
-			nRelightVerts = pPoly->m_nVertices;
-		}
-
-		for (j = 0; j < nRelightVerts; j++)
-			*(uint32 *)pRelightVerts[j].m_Color = 0;
-
-		for (j = 0; j < pPoly->m_nLMAnimRefs; j++)
-		{
-			uint16 *pRef = (uint16 *)&pPoly->m_pLMAnimRefs[j];
-			if (pRef[0] < pWorld->m_LightAnims.GetSize())
-			{
-				LightAnim *pAnim = &pWorld->m_LightAnims[pRef[0]];
-				if (pAnim->m_iFrames[0] != 0xffffffff && pAnim->m_fBlendPercent >= 0.02f)
-					d3d_AddLightAnimVertexColors(pRelightVerts, nRelightVerts, pAnim, (uint32 *)pRef);
-			}
-		}
-
-		pPoly->m_Flags &= 0xbfff;
-	}
-
-	w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &pPoly->m_Center, &lightRGB);
-
-	if (POLY_SURFACE(pPoly)->m_pTexture)
-	{
-		if (POLY_SURFACE(pPoly)->m_pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal)
-			bEnvMap = 1;
-		else
-			bEnvMap = 0;
-	}
-
-	if (g_FixTJunc)
-	{
-		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
-		nVerts = pPoly->m_nExtraVertices;
-	}
-	else
-	{
-		pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
-		nVerts = pPoly->m_nVertices;
-	}
-
-	if (nVerts > 0x80)
-	{
-		dsi_ConsolePrint("Error: vertex buffer overflow");
-		return;
-	}
+	UnkType_TLVertex40 *pDest;
 
 	nR = g_GlobalModelDirAdd2Color.r + lightRGB.r;
 	nG = g_GlobalModelDirAdd2Color.g + lightRGB.g;
@@ -797,6 +709,42 @@ void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
 		pDest++;
 	}
 
+}
+
+static inline void RelightTranslucentPoly(MainWorld *pWorld, WorldPoly *pPoly)
+{
+	UnkType_PolyVertex *pRelightVerts;
+	uint32 nRelightVerts;
+	uint32 j;
+
+	if (g_FixTJunc)
+	{
+		pRelightVerts = (UnkType_PolyVertex *)pPoly->m_pVertices;
+		nRelightVerts = pPoly->m_nExtraVertices;
+	}
+	else
+	{
+		pRelightVerts = (UnkType_PolyVertex *)pPoly->m_Vertices;
+		nRelightVerts = pPoly->m_nVertices;
+	}
+
+	for (j = 0; j < nRelightVerts; j++)
+		*(uint32 *)pRelightVerts[j].m_Color = 0;
+
+	for (j = 0; j < pPoly->m_nLMAnimRefs; j++)
+	{
+		uint16 *pRef = (uint16 *)&pPoly->m_pLMAnimRefs[j];
+		if (pRef[0] < pWorld->m_LightAnims.GetSize())
+		{
+			LightAnim *pAnim = &pWorld->m_LightAnims[pRef[0]];
+			if (pAnim->m_iFrames[0] != 0xffffffff && pAnim->m_fBlendPercent >= 0.02f)
+				d3d_AddLightAnimVertexColors(pRelightVerts, nRelightVerts, pAnim, (uint32 *)pRef);
+		}
+	}
+}
+
+static inline void AddTranslucentPolyDynamicLights(WorldPoly *pPoly, UnkType_TLVertex40 *aVerts)
+{
 	for (UnkType_PolyLightRef *pRef = WORLDPOLY_LIGHTS(pPoly); pRef; pRef = pRef->m_pNext)
 	{
 		DynamicLight *pLight = pRef->m_pLight;
@@ -860,6 +808,78 @@ void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
 			}
 		}
 	}
+
+}
+
+// guess: draws one translucent world poly: relights it (WPF_RELIGHT), colours the vertices with the light grid sample at the poly
+// centre plus the ambient colour times the object colour, adds the dynamic lights that touch it, transforms, clips and projects
+// the 0x28-byte vertices and draws them with the base texture (plus the detail texture when it has one) as a triangle fan.
+// NAME: guess_d3d_DrawTranslucentWorldPoly (names_proposal.csv, low)
+// STUB diagnosis (W6): 1952 vs 1888 bytes.  The structure follows the exe block by block (relight, light grid sample, env map test, vertex
+// colour loop, dynamic light loop, transform, clip, project, texture bind with its three outcomes, detail texture, scale loop,
+// DrawPrimitive); differences: pPoly lives in esi (the exe: ebx), the u/v copy of the vertex loop is integer moves where the exe uses
+// x87 loads, the exe calls _CVector<float>::Dot (by value, 0x100187c0) in the dynamic light loop where ours inlines it, and its
+// d3d_SetTexture expansion for the detail texture is a call.  inline_budget.py: Dot, d3d_FindRTextureForStage and the second
+// d3d_SetTexture go out of line only with ~2900u less budget left, so the original charges far more inline cost before the light
+// loop than this source.  The relight block here (and loop 2 of DrawWorldModelPolyList) is RelightWorldPolyVertices' body with the
+// light-anim helper refused; declaring RelightWorldPolyVertices `inline` and calling it here reproduces this block, but then
+// DrawWorldModelPolyList's out-of-line call inlines too (and the nested helper must be d3d_draw's shared inline to keep the
+// referent), so that change waits for the light-anim helper to move into a header.
+// STUB: D3DREN 0x10030370
+void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
+{
+	UnkType_TLVertex40 aVerts[0x80];
+	UnkType_PolyVertex *pSrc;
+	UnkType_TLVertex40 *pDest;
+	UnkType_TLVertex40 *pVerts;
+	LTRGB lightRGB;
+	int nVerts;
+	int bEnvMap;
+	uint32 nR, nG, nB;
+	int nObjR, nObjG, nObjB;
+	int i;
+
+	bEnvMap = 0;
+	if (WORLDPOLY_FRAMECODE(pPoly) == g_CurFrameCode + 1)
+		return;
+	WORLDPOLY_FRAMECODE(pPoly) = g_CurFrameCode + 1;
+
+	if (pPoly->m_Flags & 0x4000)
+	{
+		RelightTranslucentPoly(g_pFrameMainWorld, pPoly);
+		pPoly->m_Flags &= 0xbfff;
+	}
+
+	w_GetLightVal(&g_pFrameMainWorld->m_LightTable, &pPoly->m_Center, &lightRGB);
+
+	if (POLY_SURFACE(pPoly)->m_pTexture)
+	{
+		if (POLY_SURFACE(pPoly)->m_pTexture->m_eTexType != 0 && g_CV_EnvMapWorld.m_IntVal)
+			bEnvMap = 1;
+		else
+			bEnvMap = 0;
+	}
+
+	if (g_FixTJunc)
+	{
+		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
+		nVerts = pPoly->m_nExtraVertices;
+	}
+	else
+	{
+		pSrc = (UnkType_PolyVertex *)((uint8 *)pPoly + 0x58);
+		nVerts = pPoly->m_nVertices;
+	}
+
+	if (nVerts > 0x80)
+	{
+		dsi_ConsolePrint("Error: vertex buffer overflow");
+		return;
+	}
+
+	FillTranslucentPolyVertices(pPoly, aVerts, pSrc, nVerts, lightRGB, bEnvMap);
+
+	AddTranslucentPolyDynamicLights(pPoly, aVerts);
 
 	g_ClipFlags = 0x3f;
 	pVerts = aVerts;
