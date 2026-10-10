@@ -841,12 +841,67 @@ RTexture *d3d_CreateAndLoadTexture(SharedTexture *pSharedTexture, uint32 nStageF
 // temporary system memory DXT surface and BltFast'ed); for the bump map format (DDPF_BUMPDUDV, 16 bit) the 8 bit luminance of the
 // source is turned into signed (du, dv) pairs.  A mipmap smaller than the surface level is tiled to fill it.  Returns 0 on failure.
 // NAME: r_TransferTexture: Ghidra / names_proposal.csv (high; Jupiter d3d_texture.cpp r_TransferTexture)
+// Converts one mipmap's 8 bit luminance into the signed (du, dv) pairs of a 16 bit DDPF_BUMPDUDV surface level (pBits/pitch: the
+// locked level).  Returns 0 when the temporary buffer or the format conversion fails.  An inline helper of r_TransferTexture: the
+// exe copies the lock's pitch and texel pointer into the helper's own parameter homes before the FMConvertRequest constructor.
+// NAME: d3d_ConvertMipToBumpDuDv: invented (no out-of-line copy in d3d.ren)
+inline int d3d_ConvertMipToBumpDuDv(TextureData *pTextureData, TextureMipData *pMip, uint8 *pBits, long pitch)
+{
+	FMConvertRequest cReq;
+	uint8 *pTemp;
+	uint8 *pDst;
+	uint32 y, x;
+
+	pTemp = (uint8 *)operator new(pMip->m_Width * pMip->m_Height);
+	if (!pTemp)
+		return 0;
+	pTextureData->SetupPFormat(cReq.m_pSrcFormat);
+	cReq.m_pSrc = pMip->m_Data;
+	cReq.m_SrcPitch = pMip->m_Pitch;
+	cReq.m_pDestFormat->Init(BPP_8, 0xff, 0, 0, 0);
+	cReq.m_Height = pMip->m_Height;
+	cReq.m_pDest = pTemp;
+	cReq.m_DestPitch = pMip->m_Width;
+	cReq.m_Width = pMip->m_Width;
+	if (g_FormatMgr.ConvertPixels(&cReq) != LT_OK)
+	{
+		operator delete(pTemp);
+		return 0;
+	}
+
+	memset(pBits, 0, pMip->m_Width * 2);
+	pDst = pBits;
+	for (y = pMip->m_Height; y; y--)
+	{
+		*(uint16 *)pDst = 0;
+		pDst += pitch;
+	}
+	pDst = pBits;
+	for (y = 1; y < pMip->m_Height; y++)
+	{
+		uint8 *pSrc = pTemp + pMip->m_Width * y + 1;
+		uint8 *pOut = pDst;
+
+		for (x = 1; x < pMip->m_Width; x++)
+		{
+			uint32 cur = *pSrc;
+			uint32 up = pSrc[-(int)pMip->m_Width];
+			*pOut++ = (char)((int)(cur - pSrc[-1]) >> 1);
+			*pOut++ = (char)((int)(cur - up) >> 1);
+			pSrc++;
+		}
+		pDst += pitch;
+	}
+	operator delete(pTemp);
+	return 1;
+}
+
 // The code layout follows the exe's (the BUMPDUDV / BPP_32 / DXT branch order, the common tiling tail, each failure unlocking and
 // returning in place, which the exe cross-jumps into two tails, the DXT FOURCC through the expanded CTextureManager_S3TCFormatConv).
-// The texel pointer is read from the lock description at each use (the exe re-reads ddsdLock.lpSurface, e.g. 0x100208b0), which
-// gives the exe's 1872 bytes.  NOT MATCHING: register and frame allocation (frame 0x368 vs 0x36c; the exe keeps pTexture/pTextureData
-// in ebx/ebp only for the prologue, bpp in esi with a stack copy, and has the lock description below the temporary DXT surface
-// description on the stack).
+// The texel pointer is read from the lock description at each use (the exe re-reads ddsdLock.lpSurface, e.g. 0x100208b0); the bump
+// map conversion is an inline helper (its parameter homes); the temporary DXT surface descriptions are function-scope locals.
+// NOT MATCHING (1856 vs 1872): register and frame allocation (frame 0x368 vs 0x36c; the exe keeps pTexture in ebx for the prologue,
+// bpp in esi with a stack copy, and mipHeight rather than mipWidth in a register through the tiling tail).
 // STUB: D3DREN 0x10020360
 int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 {
@@ -854,6 +909,10 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 	DDSURFACEDESC2 ddsdSurf;
 	DDSURFACEDESC2 ddsdLock;
 	IDirectDrawSurface7 *pSurface;
+	DDSURFACEDESC2 ddsdTemp;
+	DDSURFACEDESC2 ddsdTempLock;
+	IDirectDrawSurface7 *pTemp;
+	HRESULT hr;
 	TextureFormat *pFormat;
 	TextureMipData *pMip;
 	uint32 bpp, i, surfWidth, surfHeight;
@@ -894,63 +953,12 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 
 		if (ddsdLock.ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV)
 		{
-			FMConvertRequest cReqBump;
-			uint8 *pTemp;
-			uint8 *pDst;
-			uint32 y, x;
-
-			if (ddsdLock.ddpfPixelFormat.dwRGBBitCount != 16)
+			if (ddsdLock.ddpfPixelFormat.dwRGBBitCount != 16 ||
+				!d3d_ConvertMipToBumpDuDv(pTextureData, pMip, (uint8 *)ddsdLock.lpSurface, pitch))
 			{
 				pSurface->Unlock(0);
 				return 0;
 			}
-			pTemp = (uint8 *)operator new(pMip->m_Width * pMip->m_Height);
-			if (!pTemp)
-			{
-				pSurface->Unlock(0);
-				return 0;
-			}
-			pTextureData->SetupPFormat(cReqBump.m_pSrcFormat);
-			cReqBump.m_pSrc = pMip->m_Data;
-			cReqBump.m_SrcPitch = pMip->m_Pitch;
-			cReqBump.m_pDestFormat->Init(BPP_8, 0xff, 0, 0, 0);
-			cReqBump.m_Height = pMip->m_Height;
-			cReqBump.m_pDest = pTemp;
-			cReqBump.m_DestPitch = pMip->m_Width;
-			cReqBump.m_Width = pMip->m_Width;
-			if (g_FormatMgr.ConvertPixels(&cReqBump) != LT_OK)
-			{
-				operator delete(pTemp);
-			{
-				pSurface->Unlock(0);
-				return 0;
-			}
-			}
-
-			memset((uint8 *)ddsdLock.lpSurface, 0, pMip->m_Width * 2);
-			pDst = (uint8 *)ddsdLock.lpSurface;
-			for (y = pMip->m_Height; y; y--)
-			{
-				*(uint16 *)pDst = 0;
-				pDst += pitch;
-			}
-			pDst = (uint8 *)ddsdLock.lpSurface;
-			for (y = 1; y < pMip->m_Height; y++)
-			{
-				uint8 *pSrc = pTemp + pMip->m_Width * y + 1;
-				uint8 *pOut = pDst;
-
-				for (x = 1; x < pMip->m_Width; x++)
-				{
-					uint32 cur = *pSrc;
-					uint32 up = pSrc[-(int)pMip->m_Width];
-					*pOut++ = (char)((int)(cur - pSrc[-1]) >> 1);
-					*pOut++ = (char)((int)(cur - up) >> 1);
-					pSrc++;
-				}
-				pDst += pitch;
-			}
-			operator delete(pTemp);
 		}
 		else if (bpp == BPP_32)
 		{
@@ -991,11 +999,6 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 			}
 			else
 			{
-				IDirectDrawSurface7 *pTemp;
-				DDSURFACEDESC2 ddsdTemp;
-				DDSURFACEDESC2 ddsdTempLock;
-				HRESULT hr;
-
 				pSurface->Unlock(0);
 				memset(&ddsdTemp, 0, sizeof(ddsdTemp));
 				ddsdTemp.dwSize = sizeof(ddsdTemp);
