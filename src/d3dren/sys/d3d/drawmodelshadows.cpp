@@ -948,6 +948,14 @@ void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly
 //     The light position is transformed with the SDK's MatVMul_InPlace (ltmatrix.h): the exe copies the light into a local, calls
 //     MatVMul into a temporary and copies the result back into that local, which the light arrays then read; the vertex loop below uses
 //     it the same way.  Pending calls after the subtraction still change nothing on that base.
+//     Nesting test: putting only the subtraction one inline level deeper (any small inline wrapper, returning the LTVector or
+//     writing an out reference) makes exactly this ctor out of line and reproduces the exe's first-loop instructions (only slots
+//     differ); a wrapper around the whole per-light computation keeps it inline, and the whole light search as an inline function is
+//     refused (called out of line).  So the original computed the light-to-model vector through a small inline helper whose identity
+//     is not known (no SDK, Jupiter or other renderer function fits); none is invented here.
+//     Frame: the exe overlays the light-distance array (-0x4ac) on the upper half of the MakeInverse result (-0x4cc, 64 bytes), so the
+//     light-search block has another 0x20 bytes below that array that the code never touches; the 8-byte frame shortfall sits between
+//     -0x54 and the vDims slot (exe -0x3c0, ours -0x3b8), and the exe puts oldTSS above oldRS with 0x1c bytes between them.
 //  2. Frame layout: frame 0x278c in the exe, 0x2780 ours; most scalars/LTVectors sit at different [ebp-N] (C2 orders frame slots by weighted
 //     reference count and size, and shares dead slots of block locals: in the exe the dead light-distance array shares its slots with the
 //     MakeInverse temporary at -0x4cc, aLightPos/Dir/Atten at -0x5ac/-0x54c/-0x4ec; only the order of the 7 matrices and of the arrays is
