@@ -41,12 +41,16 @@
 // FUNCTION: D3DREN 0x1000f3a0 _$E2
 LTVector g_vSceneClientVectorPrimary;
 // FUNCTION: D3DREN 0x1000f3a1 _$E5
+// GLOBAL: D3DREN 0x100566a0
 LTVector g_vSceneClientVectorSecondary;
 // FUNCTION: D3DREN 0x1000f3a2 _$E8
+// GLOBAL: D3DREN 0x100561f8
 LTVector g_GlobalLightScale;
 // FUNCTION: D3DREN 0x1000f3a3 _$E11
+// GLOBAL: D3DREN 0x10055ce8
 LTVector g_GlobalVertexTint;
 // FUNCTION: D3DREN 0x1000f3a4 _$E14
+// GLOBAL: D3DREN 0x10056260
 LTVector g_vGlobalModelDirAdd2;
 
 // The renderer's view state (the LTRect member's inline constructor zeroes m_Rect: the whole static initialiser).
@@ -486,33 +490,64 @@ void d3d_SetupSkyStuff()
 // roles: d3dren/common_draw.h (g_vSceneClientVector*, g_GlobalLightScale, g_GlobalVertexTint and g_vGlobalModelDirAdd2 are defined at the top).
 uint16 g_CurFrameCode;
 uint32 g_CurObjectFrameCode;
+// GLOBAL: D3DREN 0x100566d0
 DynamicLight *g_ObjectDynamicLights[MAX_VISIBLE_LIGHTS];
+// GLOBAL: D3DREN 0x10056218
 uint32 g_nNumObjectDynamicLights;
+// GLOBAL: D3DREN 0x10056770
 MainWorld *g_pFrameMainWorld;
+// GLOBAL: D3DREN 0x1005625c
 int g_nInitFrameArgument;
+// GLOBAL: D3DREN 0x10055ce0
 GlobalPanInfo *g_pGlobalPanInfo;
+// GLOBAL: D3DREN 0x10056284
 RenderContext *g_pFrameRenderContext;
 uint16 g_CurTextureFrameCode;
+// GLOBAL: D3DREN 0x10056698
 TLRGB g_GlobalLightScaleColor;
 uint8 g_nPolyVertexAlpha;
+// GLOBAL: D3DREN 0x100566bc
 RGBColor g_GlobalVertexTintColor;
 TLRGB g_GlobalModelDirAdd2Color;
+// GLOBAL: D3DREN 0x10056694
 float g_fScreenTriangleArea;
+// GLOBAL: D3DREN 0x10056688
 int g_nWorldPolysProcessed;
+// GLOBAL: D3DREN 0x100566ac
 int g_nWorldPolysDrawn;
+// GLOBAL: D3DREN 0x10055cd8
 int g_nParticlesDrawn;
 int g_nReservedFrameStatistic;
+// GLOBAL: D3DREN 0x100566cc
 int g_nLightTests;
+// GLOBAL: D3DREN 0x10056690
 int g_nRejectedPolyLightTests;
+// GLOBAL: D3DREN 0x100566b8
 int g_nSkyPortals;
+// GLOBAL: D3DREN 0x10056270
 int g_nSkyPolyFragments;
+// GLOBAL: D3DREN 0x100566b0
 int g_nPolygonTriangles;
+// GLOBAL: D3DREN 0x10055cf4
 int g_nVisibleLeaves;
+// GLOBAL: D3DREN 0x10056280
 int g_nTextureUploads;
 int g_nTextureChanges;
+// GLOBAL: D3DREN 0x10056278
 int g_nDynamicLightmapsRefreshed;
+// GLOBAL: D3DREN 0x10055cdc
 int g_nTextureUploadSaves;
-// g_nModelTrianglesDrawn, g_nPlaneClipTests, g_ClipFlags, g_pClipScratchVerts: include/d3dren/viewparams.h
+// Declarations: d3dren/viewparams.h (the clip state and two of the statistics) and d3dren/scenedesc.h.
+// GLOBAL: D3DREN 0x100566b4
+SceneDesc *g_pSceneDesc;
+// GLOBAL: D3DREN 0x1005626c
+int g_nModelTrianglesDrawn;
+// GLOBAL: D3DREN 0x1005668c
+int g_nPlaneClipTests;
+// GLOBAL: D3DREN 0x10056274
+uint32 g_ClipFlags;
+// GLOBAL: D3DREN 0x1005627c
+TLVertex *g_pClipScratchVerts;
 
 // NAME: d3d_SetFPState: Jupiter common_draw.h (same body).
 inline void d3d_SetFPState()

@@ -31,6 +31,18 @@
 // g_TextureStageTexelSizes, g_fGlobalPan*, g_WorldPolyNodeBank, g_WorldPolyBucketBank and g_pDeferredGlobalPanPolys: d3dren/polydraw.h;
 // g_pGlobalPanInfo, g_nTextureChanges and g_CurTextureFrameCode: d3dren/common_draw.h; g_Textures: d3dren/d3dtexture.h.
 
+// The world texture coordinate scales/offsets of the current global pan texture and the deferred global-pan poly list.
+// GLOBAL: D3DREN 0x1004eba8
+float g_fGlobalPanUScale;
+// GLOBAL: D3DREN 0x1004ebac
+float g_fGlobalPanVScale;
+// GLOBAL: D3DREN 0x1004ffb0
+float g_fGlobalPanUOffset;
+// GLOBAL: D3DREN 0x1004ffb4
+float g_fGlobalPanVOffset;
+// GLOBAL: D3DREN 0x1004ffb8
+UnkType_PoolNode *g_pDeferredGlobalPanPolys;
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The poly vertex fed to the TL vertex array, the dynamic light list of a poly and the callees of other units
 // ---------------------------------------------------------------------------------------------------------------------------------

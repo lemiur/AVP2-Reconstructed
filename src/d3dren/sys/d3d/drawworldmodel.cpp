@@ -23,6 +23,7 @@
 #include "d3dren/fixedpoint.h"
 #include "de_mainworld.h"
 #include "d3dren/polydraw.h"
+#include "d3dren/common_draw.h"
 #include "d3dren/tlvertex.h"
 #include "ltmatrix.h"
 
@@ -654,8 +655,6 @@ NextNode:
 
 // GLOBAL: D3DREN 0x10057798
 extern TLRGB g_GlobalModelDirAdd2Color;		// guess: the ambient world colour added to the light grid sample of a translucent world poly
-// GLOBAL: D3DREN 0x100566cc
-extern int g_nLightTests;		// guess: the number of light tests this frame ("Num Light Tests")
 // GLOBAL: D3DREN 0x100577b8
 extern uint16 g_CurTextureFrameCode;		// guess: the frame code a texture is stamped with when it is used (SharedTexture::m_Unknown30)
 // NAME: SetUV: the shape of the vertex fillers of unit unk/10001000 (arguments evaluated right to left stay on the x87 stack)

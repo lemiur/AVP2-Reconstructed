@@ -189,6 +189,23 @@ extern int g_nUnclippedModelsDrawn;		// guess: models drawn without clipping thi
 // ---- particle drawing (units sys/d3d/drawparticles, sys/d3d/drawparticles_a) ----
 // GLOBAL: D3DREN 0x1006d1b8
 extern uint16 g_ParticleQuadIndices[0x300];	// the index list of the particle quads (0 1 2 0 2 3 ...), built by d3d_InitParticleQuadIndices
+// The per-system drawing state of unit sys/d3d/drawparticles (d3d_DrawParticleSystem sets it, d3d_DrawParticleBatch reads it).
+// GLOBAL: D3DREN 0x1004ffc0
+extern float g_fParticleRedScale;		// guess: colour scale (1/255) of the particle red channel; g_fParticleGreenScale: green, g_fParticleBlueScale: blue
+// GLOBAL: D3DREN 0x1004ffc4
+extern float g_fParticleGreenScale;
+// GLOBAL: D3DREN 0x1004ffc8
+extern float g_fParticleBlueScale;
+// GLOBAL: D3DREN 0x1004ffcc
+extern float g_fParticleTextureUMin;		// guess: u of the left texel edge of the particle texture, g_fParticleTextureUMax: u of the right edge
+// GLOBAL: D3DREN 0x1004ffd0
+extern float g_fParticleTextureUMax;
+// GLOBAL: D3DREN 0x1004ffd4
+extern uint32 g_dwParticleFogSpecular;		// packed fog/specular colour: callback writes uint32; original 0x100097b0 copies the bits
+// GLOBAL: D3DREN 0x1004ffd8
+extern float g_fParticleTextureVMin;		// guess: v of the top texel edge, g_fParticleTextureVMax: v of the bottom edge
+// GLOBAL: D3DREN 0x100513dc
+extern float g_fParticleTextureVMax;
 
 // ---- globals of unit unk/10007930 (the deferred global-pan poly list and the 0x28-byte near/left clippers) ----
 // GLOBAL: D3DREN 0x1004ffb8

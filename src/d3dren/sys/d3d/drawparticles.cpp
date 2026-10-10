@@ -20,6 +20,7 @@
 #include "d3dren/scenedesc.h"
 #include "d3dren/tlvertex.h"
 #include "d3dren/polydraw.h"
+#include "d3dren/common_draw.h"
 #include "d3dren/fixedpoint.h"
 #include "d3dren/d3dtexture.h"
 #include "de_objects.h"
@@ -62,24 +63,23 @@ inline void *d3d_FindRTextureForStage(void *pChain, uint8 nStage)
 void d3d_BindRTexture(RTexture *pRTexture);											// unit unk/10007930 (pool.h): binds the RTexture on its stage
 RTexture *d3d_CreateAndLoadTexture(SharedTexture *pTexture, uint32 nStage, uint8 bChild);		// unit sys/d3d/d3d_texture
 extern uint16 g_CurTextureFrameCode;		// guess: current texture frame code (declared by unit unk/10007930)
+// The particle drawing state of this object (declarations: d3dren/polydraw.h; g_nParticlesDrawn: d3dren/common_draw.h).
 // GLOBAL: D3DREN 0x1004ffc0
-extern float g_fParticleRedScale;		// guess: colour scale (1/255) of the particle red channel; g_fParticleGreenScale: green, g_fParticleBlueScale: blue
+float g_fParticleRedScale;
 // GLOBAL: D3DREN 0x1004ffc4
-extern float g_fParticleGreenScale;
+float g_fParticleGreenScale;
 // GLOBAL: D3DREN 0x1004ffc8
-extern float g_fParticleBlueScale;
+float g_fParticleBlueScale;
 // GLOBAL: D3DREN 0x1004ffcc
-extern float g_fParticleTextureUMin;		// guess: u of the left texel edge of the particle texture, g_fParticleTextureUMax: u of the right edge
+float g_fParticleTextureUMin;
 // GLOBAL: D3DREN 0x1004ffd0
-extern float g_fParticleTextureUMax;
+float g_fParticleTextureUMax;
 // GLOBAL: D3DREN 0x1004ffd4
-extern uint32 g_dwParticleFogSpecular;		// packed fog/specular colour: callback writes uint32; original 0x100097b0 copies the bits
+uint32 g_dwParticleFogSpecular;
 // GLOBAL: D3DREN 0x1004ffd8
-extern float g_fParticleTextureVMin;		// guess: v of the top texel edge, g_fParticleTextureVMax: v of the bottom edge
+float g_fParticleTextureVMin;
 // GLOBAL: D3DREN 0x100513dc
-extern float g_fParticleTextureVMax;
-// GLOBAL: D3DREN 0x10055cd8
-extern int g_nParticlesDrawn;		// guess: statistics: particles (quads) drawn this frame
+float g_fParticleTextureVMax;
 PSParticle *d3d_DrawParticleBatch(LTParticleSystem *pSystem, PSParticle *pParticle, int nCount, LTMatrix *pMat, int nMode, float fSize);
 
 // guess: draws a particle system: binds its texture (the inlined texture binding with the per-stage record search d3d_FindRTextureForStage), builds

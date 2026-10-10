@@ -65,6 +65,18 @@ ConVar g_CV_EnvMapWorld("EnvMapWorld", 1.0f);
 // GLOBAL: D3DREN 0x10051468
 ConVar g_CV_LMAnim("LMAnim", 1.0f);
 
+// ---- globals of the world polygon code (declarations: d3dren/polydraw.h, d3dren/d3dstate.h) ------------------------------------
+// GLOBAL: D3DREN 0x100514a8
+float g_WorldDetailTextureScale;
+// GLOBAL: D3DREN 0x100518d0
+float g_WorldDetailTextureAngleCos;
+// GLOBAL: D3DREN 0x100513e0
+float g_WorldDetailTextureAngleSin;
+// GLOBAL: D3DREN 0x100528d4
+LightmapPage *g_pQueuedLightmapPageHead;
+// GLOBAL: D3DREN 0x100528d8
+int g_bChromaKeyPass;
+
 // guess: setter/getter pair for a global the draw code reads (name unknown).
 // FUNCTION: D3DREN 0x100099a9
 void d3d_SetChromaKeyPass(int nValue)
