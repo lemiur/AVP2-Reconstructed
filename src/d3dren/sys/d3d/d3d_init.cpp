@@ -900,7 +900,7 @@ SurfaceCreationSucceeded:
 	g_pD3DDevice->SetRenderState(D3DRENDERSTATE_EXTENTS, 0);
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+	g_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
 	{
 		uint32 aState[4];
 		DWORD dwPasses;

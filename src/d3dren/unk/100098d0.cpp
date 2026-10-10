@@ -97,7 +97,7 @@ int d3d_GetChromaKeyPass(void)
 // when the device allows) and queued for the second pass / detail texture batches (g_pTexturedWorldPolyBuckets).
 // Not matching: 1223 of 1223 bytes, 30 aligned mismatches ignoring stack offsets (424 vs 426 instructions).  The env-map tests are
 // nested inside the clip / project tests, the vertex count is copied in both vertex-source arms, the chroma-key and normal paths
-// each count the poly, and the env-map draw is the else arm (permuter-guided, two runs, cleaned of probes).  Remaining: register
+// each count the poly; an env-map poly (not projected above) goes through d3d_DrawClippedTriangleFan, the others are drawn directly.  Remaining: register
 // allocation: the exe keeps nSurfFlags in edi and nTotalVerts in memory; ours swaps them (nSurfFlags declared before/after the
 // env-map test, through a Surface local, int/uint types: no change), and the zero / pPoly registers follow from that.
 // STUB: D3DREN 0x100099b9
@@ -277,7 +277,7 @@ void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 				return;
 			}
 		}
-		if (!bEnvMap)
+		if (bEnvMap)
 			d3d_DrawClippedTriangleFan(pDest, nVerts, &g_ViewParams, 0x1c4);
 		else
 			g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pDest, nVerts, 0);
