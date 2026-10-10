@@ -32,6 +32,7 @@
   "sys/d3d/drawmodel",
   "sys/d3d/drawparticles_a",
   "sys/d3d/drawsky",
+  "sys/d3d/setupmodel",
   "sys/d3d/tagnodes",
   "unk/10019b10",
   "unk/10021d70",
@@ -44,23 +45,23 @@
   "world/fullintersectline",
   "world/intersect_line"
  ],
- "code_bytes": 172466,
+ "code_bytes": 174105,
  "code_rules": {
   "by_rule": {},
-  "code_bytes": 172466,
-  "functions": 1214,
+  "code_bytes": 174105,
+  "functions": 1215,
   "pending": 0
  },
- "commit": "ad72288440f4b79fb8a0d55b211802587171c743",
+ "commit": "de241032cd574602c63f92d249673bff730ca12d",
  "contract": "4248b9357daaaf129a37baf7ad8bf7b3d008344b",
  "control": {
   "differing_bytes": 11,
   "va": "100073b0"
  },
  "data_bytes": 0,
- "date": "2026-10-09 20:07",
+ "date": "2026-10-09 20:09",
  "function_bytes_total": 280674,
- "functions": 1214,
+ "functions": 1215,
  "image": "d3d.ren",
  "match_not_banked": [],
  "module": "d3dren",
@@ -76,8 +77,8 @@
    "units_with_diffs": {}
   }
  ],
- "single_code_bytes": 172466,
- "single_function_count": 1214,
+ "single_code_bytes": 174105,
+ "single_function_count": 1215,
  "single_functions": {
   "kernel/sys/win/counter": [
    "10013215",
@@ -890,6 +891,7 @@
    "1000c790",
    "1000c823",
    "1000c860",
+   "1000ccd9",
    "1000d340",
    "1000d35f",
    "1000d3a7",
