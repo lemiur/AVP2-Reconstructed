@@ -20,6 +20,7 @@ addr,note,names
 1001e4c6,"CMoArray<unsigned long>::Remove2 + CMoArray<IDirect3DVertexBuffer7*>::Remove2 (182 bytes)"
 1001e57c,"CMoArray<T>::_DeleteAndDestroyArray (32 bytes): T = unsigned short / unsigned long / IDirect3DVertexBuffer7* / QVert / TLVertex / LTMatrix / UnkType_VBCacheEntry"
 10029d5a,"DllMain stdcall entry and folded DrawPolyMgr callback: both independently verify the same six bytes","_DllMain@12;?FUN_10029d5a@DrawPolyMgr@@QAEHPAUWorldPoly@@HH@Z"
+1002cc80,"d3d_NullPreFrameCallback (empty void f(), PreFrame slot) + d3d_NullFogAlpha (empty fastcall fog hook): 1 byte, ret","?d3d_NullPreFrameCallback@@YAXXZ;?d3d_NullFogAlpha@@YIXPAV?$_CVector@M@@PAK@Z"
 1003451a,"vq_DefaultFn1 + vq_DefaultFn2 (empty void f(), 1 byte: ret)"
 1003a640,"BaseDelete<WorldPoly*> + BaseDelete<ObjectDrawer> (32 bytes; the function-template mangling has no template arguments)"
 1003b034,"CMoArray<unsigned long>::Init + CMoArray<IDirect3DVertexBuffer7*>::Init (53 bytes)"

@@ -54,7 +54,7 @@ int d3d_SetTexture(SharedTexture *pTexture, uint32 nStage, uint32 dwMaxLOD);		//
 // +0x30, stage word +0x42), or 0.  An inline of this header (d3d_SetTexture expands it); the exe's out-of-line copy is 0x10009350,
 // defined in sys/d3d/drawparticles, which defines D3DREN_FINDRTEXTURE_EXTERN before including this header.
 #ifdef D3DREN_FINDRTEXTURE_EXTERN
-void *d3d_FindRTextureForStage(void *pChain, uint8 nStage);		// 0x10009350
+inline void *d3d_FindRTextureForStage(void *pChain, uint8 nStage);		// 0x10009350
 #else
 inline void *d3d_FindRTextureForStage(void *pChain, uint8 nStage)
 {

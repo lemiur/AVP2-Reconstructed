@@ -45,7 +45,7 @@ void (*g_pfnSetupTransformation)(const LTVector *, float *, LTVector *, LTMatrix
 // guess: finds the record whose stage word (+0x42) equals nStage in the chain linked through +0x30 (the per-texture stage
 // records of a SharedTexture: see d3d_CreateAndLoadTexture); returns 0 when there is none.
 // FUNCTION: D3DREN 0x10009350
-void *d3d_FindRTextureForStage(void *pChain, uint8 nStage)
+inline void *d3d_FindRTextureForStage(void *pChain, uint8 nStage)
 {
 	uint8 *pRec = (uint8 *)pChain;
 	while (pRec)

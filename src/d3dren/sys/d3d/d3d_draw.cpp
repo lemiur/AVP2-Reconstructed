@@ -111,6 +111,13 @@ void d3d_EmptyDrawGlobalInitializer()
 {
 }
 
+// The no-op fog hook RenderScene installs when table fog is on (invented name).  It is a lone `ret`, so the linker folded it into
+// the copy at 0x1002cc80 together with the empty PreFrame callback of drawpolygrid.
+// FUNCTION: D3DREN 0x1002cc80 ?d3d_NullFogAlpha@@YIXPAV?$_CVector@M@@PAK@Z
+void __fastcall d3d_NullFogAlpha(LTVector *pPos, uint32 *pSpecular)
+{
+}
+
 // FUNCTION: D3DREN 0x100134b0
 void __fastcall d3d_CalcDistanceFogAlpha(LTVector *pPos, uint32 *pSpecular)
 {
@@ -1753,7 +1760,6 @@ uint8 g_VertexTintTableG[256];
 uint8 g_VertexTintTableB[256];
 // GLOBAL: D3DREN 0x1006cd70
 extern void (*g_pfnDrawVisibleReflections)();	// guess: optional callback run after the solid objects (RenderScene sets it)
-void __fastcall d3d_NullPreFrameCallback(LTVector *pPos, uint32 *pSpecular);	// 0x1002cc80: the table fog hook
 int CanDrawPortals();
 void d3d_DrawVisibleReflections();
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk);
@@ -1835,7 +1841,7 @@ int d3d_RenderScene(SceneDesc *pDesc)
 		g_fFogAlphaScale = (1.0f / g_fFogDepthRange) * 255.0f;
 
 		if (g_CV_TableFog.m_IntVal)
-			g_pfnCalcFogAlpha = d3d_NullPreFrameCallback;
+			g_pfnCalcFogAlpha = d3d_NullFogAlpha;
 		else if (g_CV_VFog.m_IntVal)
 		{
 			g_fVFogValueRange = g_CV_VFogMaxYVal.m_FloatVal - g_CV_VFogMinYVal.m_FloatVal;
