@@ -673,12 +673,12 @@ static inline void FillTranslucentPolyVertices(WorldPoly *pPoly, UnkType_TLVerte
 {
 	uint32 nR, nG, nB;
 	int nObjR, nObjG, nObjB;
-	int i;
+	uint32 i;
 	UnkType_TLVertex40 *pDest;
 
-	nR = g_GlobalModelDirAdd2Color.r + lightRGB.r;
-	nG = g_GlobalModelDirAdd2Color.g + lightRGB.g;
 	nB = g_GlobalModelDirAdd2Color.b + lightRGB.b;
+	nG = g_GlobalModelDirAdd2Color.g + lightRGB.g;
+	nR = g_GlobalModelDirAdd2Color.r + lightRGB.r;
 	nObjR = (int)(g_WorldModelObjectColor.x * 255.0f);
 	nObjG = (int)(g_WorldModelObjectColor.y * 255.0f);
 	nObjB = (int)(g_WorldModelObjectColor.z * 255.0f);
@@ -815,16 +815,15 @@ static inline void AddTranslucentPolyDynamicLights(WorldPoly *pPoly, UnkType_TLV
 // centre plus the ambient colour times the object colour, adds the dynamic lights that touch it, transforms, clips and projects
 // the 0x28-byte vertices and draws them with the base texture (plus the detail texture when it has one) as a triangle fan.
 // NAME: guess_d3d_DrawTranslucentWorldPoly (names_proposal.csv, low)
-// STUB diagnosis (W6): 1952 vs 1888 bytes.  The structure follows the exe block by block (relight, light grid sample, env map test, vertex
-// colour loop, dynamic light loop, transform, clip, project, texture bind with its three outcomes, detail texture, scale loop,
-// DrawPrimitive); differences: pPoly lives in esi (the exe: ebx), the u/v copy of the vertex loop is integer moves where the exe uses
-// x87 loads, the exe calls _CVector<float>::Dot (by value, 0x100187c0) in the dynamic light loop where ours inlines it, and its
-// d3d_SetTexture expansion for the detail texture is a call.  inline_budget.py: Dot, d3d_FindRTextureForStage and the second
-// d3d_SetTexture go out of line only with ~2900u less budget left, so the original charges far more inline cost before the light
-// loop than this source.  The relight block here (and loop 2 of DrawWorldModelPolyList) is RelightWorldPolyVertices' body with the
-// light-anim helper refused; declaring RelightWorldPolyVertices `inline` and calling it here reproduces this block, but then
-// DrawWorldModelPolyList's out-of-line call inlines too (and the nested helper must be d3d_draw's shared inline to keep the
-// referent), so that change waits for the light-anim helper to move into a header.
+// STUB diagnosis: 1920 vs 1888 bytes, 162 aligned mismatches ignoring stack offsets.  Budget evidence: the exe calls Dot (inside
+// LTPlane::DistTo), d3d_FindRTextureForStage (inside the first d3d_SetTexture) and the second d3d_SetTexture out of line, which
+// tools/inline_budget.py reproduces only when most of the body is inline helpers (a small own size, i.e. B near the 1000u floor,
+// and their costs charged before the texture binding): the relight body, the vertex fill and the dynamic-light loop are inline
+// helpers here, the relight flag test stays in the caller (as in DrawWorldModelPolyList).  The call sequence is now the exe's.
+// The relight body is RelightWorldPolyVertices' body with d3d_AddLightAnimVertexColors called out of line; in the original it is
+// presumably RelightWorldPolyVertices itself as an inline whose nested light-anim inline is refused here, which needs
+// d3d_AddLightAnimVertexColors as a header inline (it lives in d3d_draw.cpp).  Helper names are invented.  Remaining: pPoly in ebx
+// (ours esi), the fill helper's parameter/loop shapes, and 32 bytes of size.
 // STUB: D3DREN 0x10030370
 void DrawTranslucentWorldModelPoly(WorldPoly *pPoly)
 {
