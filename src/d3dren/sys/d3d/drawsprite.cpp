@@ -270,7 +270,6 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 	TLVertex aVerts[4];
 	TLVertex *pVerts;
 	int nVerts;
-	RTexture *pBound;
 	float fWidth, fHeight, fHalfX, fHalfY;
 	float uMin, uMax, vMin, vMax;
 	uint32 nColor;
@@ -297,9 +296,8 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 	if (!d3d_SetTexture(pTexture, g_NormalTextureStage, 0))
 		return;
 
-	pBound = (RTexture *)g_pBoundTextures[g_NormalTextureStage];
-	fWidth = (float)pBound->m_Data.GetBaseWidth();
-	fHeight = (float)pBound->m_Data.GetBaseHeight();
+	fWidth = (float)(uint32)g_pBoundTextures[g_NormalTextureStage]->GetBaseWidth();
+	fHeight = (float)(uint32)g_pBoundTextures[g_NormalTextureStage]->GetBaseHeight();
 	uMin = g_TextureStageTexelSizes[0].m_Unk00 + g_TextureStageTexelSizes[0].m_Unk00;
 	uMax = (fWidth - 2.0f) * g_TextureStageTexelSizes[0].m_Unk00;
 	vMin = g_TextureStageTexelSizes[0].m_Unk04 + g_TextureStageTexelSizes[0].m_Unk04;
