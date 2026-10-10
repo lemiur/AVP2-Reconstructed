@@ -852,10 +852,12 @@ void StandIn_RTextureInlines()
 // temporary system memory DXT surface and BltFast'ed); for the bump map format (DDPF_BUMPDUDV, 16 bit) the 8 bit luminance of the
 // source is turned into signed (du, dv) pairs.  A mipmap smaller than the surface level is tiled to fill it.  Returns 0 on failure.
 // NAME: r_TransferTexture: Ghidra / names_proposal.csv (high; Jupiter d3d_texture.cpp r_TransferTexture)
-// NOT MATCHING (1840 vs 1872 bytes): the code layout follows the exe's (the BUMPDUDV / BPP_32 / DXT branch order, the common tiling
-// tail, each failure unlocking and returning in place, which the exe cross-jumps into two tails, the DXT FOURCC through the expanded
-// CTextureManager_S3TCFormatConv).  Open: the exe keeps bpp in esi and has the lock description below the temporary DXT surface
-// description on the stack (declaration order and names do not move them), and the tail-merge grouping.
+// The code layout follows the exe's (the BUMPDUDV / BPP_32 / DXT branch order, the common tiling tail, each failure unlocking and
+// returning in place, which the exe cross-jumps into two tails, the DXT FOURCC through the expanded CTextureManager_S3TCFormatConv).
+// The texel pointer is read from the lock description at each use (the exe re-reads ddsdLock.lpSurface, e.g. 0x100208b0), which
+// gives the exe's 1872 bytes.  NOT MATCHING: register and frame allocation (frame 0x368 vs 0x36c; the exe keeps pTexture/pTextureData
+// in ebx/ebp only for the prologue, bpp in esi with a stack copy, and has the lock description below the temporary DXT surface
+// description on the stack).
 // STUB: D3DREN 0x10020360
 int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 {
@@ -889,7 +891,6 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 		pMip = &pTextureData->m_Mips[i];
 		uint32 mipWidth, mipHeight;
 		long pitch;
-		uint8 *pBits;
 		DDSCAPS2 caps;
 
 		if (!pSurface)
@@ -901,7 +902,6 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 		if (pSurface->Lock(0, &ddsdLock, DDLOCK_WRITEONLY, 0) != 0)
 			return 0;
 		pitch = ddsdLock.lPitch;
-		pBits = (uint8 *)ddsdLock.lpSurface;
 
 		if (ddsdLock.ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV)
 		{
@@ -938,14 +938,14 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 			}
 			}
 
-			memset(pBits, 0, pMip->m_Width * 2);
-			pDst = pBits;
+			memset((uint8 *)ddsdLock.lpSurface, 0, pMip->m_Width * 2);
+			pDst = (uint8 *)ddsdLock.lpSurface;
 			for (y = pMip->m_Height; y; y--)
 			{
 				*(uint16 *)pDst = 0;
 				pDst += pitch;
 			}
-			pDst = pBits;
+			pDst = (uint8 *)ddsdLock.lpSurface;
 			for (y = 1; y < pMip->m_Height; y++)
 			{
 				uint8 *pSrc = pTemp + pMip->m_Width * y + 1;
@@ -969,7 +969,7 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 			cReq.m_pSrc = pMip->m_Data;
 			cReq.m_SrcPitch = pMip->m_Pitch;
 			DDPFToPFormat(&pFormat->m_PF, cReq.m_pDestFormat);
-			cReq.m_pDest = pBits;
+			cReq.m_pDest = (uint8 *)ddsdLock.lpSurface;
 			cReq.m_DestPitch = pitch;
 			cReq.m_Width = mipWidth;
 			cReq.m_Height = mipHeight;
@@ -1057,8 +1057,8 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 
 			for (k = 1; k < (int)nTilesX; k++)
 			{
-				uint8 *pSrcRow = pBits;
-				uint8 *pDstRow = pBits + pFormat->m_BytesPP * k * mipWidth;
+				uint8 *pSrcRow = (uint8 *)ddsdLock.lpSurface;
+				uint8 *pDstRow = (uint8 *)ddsdLock.lpSurface + pFormat->m_BytesPP * k * mipWidth;
 				uint32 row;
 
 				for (row = mipHeight; row; row--)
@@ -1078,8 +1078,8 @@ int r_TransferTexture(RTexture *pTexture, TextureData *pTextureData)
 
 				do
 				{
-					uint8 *pSrcRow = pBits;
-					uint8 *pDstRow = pBits + nNext;
+					uint8 *pSrcRow = (uint8 *)ddsdLock.lpSurface;
+					uint8 *pDstRow = (uint8 *)ddsdLock.lpSurface + nNext;
 					uint32 row;
 
 					for (row = mipHeight; row; row--)
