@@ -22,7 +22,7 @@ struct LightmapPage;
 struct WorldPoly;
 
 // GLOBAL: D3DREN 0x100617d8
-extern RTextureBase *g_pBoundTextures[8];	// the texture (RTexture or lightmap page) currently bound on each device stage
+extern RTextureBase *g_pBoundTextures[4];	// the texture (RTexture or lightmap page) currently bound on each device stage (CTextureManager_Init clears 4)
 
 // Binds pPoly's lightmap page on device stage nStage unless it is already there; returns 0 when the poly has no page.
 int d3d_SetLightmapTexture(WorldPoly *pPoly, int nStage);

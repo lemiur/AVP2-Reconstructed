@@ -542,6 +542,13 @@ void ProjectVertexToScreen(float *pVert, const void *pViewParams)
 	pV[2] = (pView->m_fProjZScale * pV[2] + pView->m_fProjZOffset) * rhw;
 }
 
+// The inside[] arrays of the two 0x28-byte clippers below: function-local statics of the original polyclip.h expansion (the exe
+// has them with the other clipper statics at the end of .bss); this unit holds the out-of-line copies.
+// GLOBAL: D3DREN 0x10094c20
+int g_ClipNearInsideFlagsVertex40[56];
+// GLOBAL: D3DREN 0x10094d00
+int g_ClipLeftInsideFlagsVertex40[56];
+
 // guess: Jupiter polyclip.h expanded out of line for the 0x28-byte vertex: clips *ppVerts (*pnVerts vertices) against the near plane z >= g_ViewParams.m_NearZ.
 // FUNCTION: D3DREN 0x100088ec
 int ClipPolyNear40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut)

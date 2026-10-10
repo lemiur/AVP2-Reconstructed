@@ -72,6 +72,10 @@ IDirectDrawSurface7 *g_pLightmapScratchSurface;
 IDirectDrawSurface7 *g_pShadowBlobTexture;
 IDirectDrawSurface7 *g_pSpecularTexture;
 float g_fSpecularTexturePower;
+// GLOBAL: D3DREN 0x100617d8
+RTextureBase *g_pBoundTextures[4];
+// GLOBAL: D3DREN 0x10061810
+UnkType_StageUV g_TextureStageTexelSizes[8];
 
 // FUNCTION: D3DREN 0x1001e690
 RTexture::RTexture()

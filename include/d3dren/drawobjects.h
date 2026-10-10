@@ -55,6 +55,8 @@ public:
 class ObjectDrawList;
 // GLOBAL: D3DREN 0x1006b934
 extern ObjectDrawList *g_pTranslucentObjectDrawList;	// &d3d_FlushObjectQueues::s_TransObjList: set by the list's constructor
+// GLOBAL: D3DREN 0x1006cd70
+extern void (*g_pfnDrawVisibleReflections)();	// guess: optional callback run after the solid objects (d3d_RenderScene sets it)
 
 // Mixed-object rendering list for sorting translucent objects in Z order (Jupiter: a priority_queue member; Talon:
 // the array of the CMoArray base plus a count of the queued entries at +0x14, sorted in place by SortByViewDistance).

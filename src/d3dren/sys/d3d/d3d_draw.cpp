@@ -1276,7 +1276,6 @@ void d3d_DrawMirrorSurfaceOverlay(WorldPoly *pPoly, LTMatrix *pMatrix)
 	}
 }
 
-extern void (*g_pfnDrawVisibleReflections)();
 void d3d_IncrementFrameCode(RenderContext *pContext);
 void d3d_InitViewBox2(ViewBoxDef *pDef, float nearZ, float farZ,
 	const ViewParams &prevParams, float minX, float minY, float maxX, float maxY);
@@ -1788,8 +1787,6 @@ uint8 g_VertexTintTableR[256];	// guess: red lighting table
 uint8 g_VertexTintTableG[256];
 // GLOBAL: D3DREN 0x1005a204
 uint8 g_VertexTintTableB[256];
-// GLOBAL: D3DREN 0x1006cd70
-extern void (*g_pfnDrawVisibleReflections)();	// guess: optional callback run after the solid objects (RenderScene sets it)
 int CanDrawPortals();
 void d3d_DrawVisibleReflections();
 LTBOOL d3d_InitFrame(SceneDesc *pDesc, TLVertex *pScratchVerts, int nUnk);

@@ -428,7 +428,7 @@ extern uint8 g_nPolyVertexAlpha;		// guess: the alpha byte of the vertex colours
 // guess: the current object colour (0..1 per channel: the object's colour bytes times the global light colour), set by the draw
 // functions of the unit before the polys are drawn
 // GLOBAL: D3DREN 0x100756d0
-extern LTVector g_WorldModelObjectColor;
+LTVector g_WorldModelObjectColor;
 
 // guess: sets the current object colour (g_WorldModelObjectColor: the colour bytes scaled to 0..1 and multiplied by the global light colour) and
 // the vertex alpha for the polys of a world model.  An inline function of the original (the compiler's inline budget decides that

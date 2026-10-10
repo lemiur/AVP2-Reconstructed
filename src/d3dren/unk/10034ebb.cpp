@@ -458,6 +458,10 @@ void QueueLightmappedPoly(WorldPoly *pPoly)
 	AllocateTexturePolyNode(pPoly, &g_pTexturedWorldPolyBuckets, 0)->m_Unk0c = g_ClipFlags;
 }
 
+// Read by SetLightmapTextureStageStates only; nothing in d3d.ren stores to it.
+// GLOBAL: D3DREN 0x1007d424
+int g_bLightmapModulate2X;
+
 // guess: sets the texture stage states of the lightmap passes: stage 0 modulates the diffuse colour with the base texture,
 // stage 1 (unless g_LightmapsOnly) modulates the lightmap with it (add when g_bLightmapModulate2X).
 // The stage 1 setup calls are written out in both branches and the compiler tail-merges the two shared ones; written as a

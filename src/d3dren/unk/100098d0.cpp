@@ -1039,6 +1039,13 @@ Exit:
 	return bResult;
 }
 
+// The inside[] arrays of ClipPolyNear / ClipPolyLeft: function-local statics of the original polyclip.h expansion (the exe has
+// them with the other clipper statics at the end of .bss); this unit holds the out-of-line copies.
+// GLOBAL: D3DREN 0x10094de0
+int g_ClipNearInsideFlagsTLVertex[56];
+// GLOBAL: D3DREN 0x10094ec0
+int g_ClipLeftInsideFlagsTLVertex[56];
+
 // guess: Jupiter polyclip.h expanded for the near plane (z >= g_ViewParams.m_NearZ) on 0x20-byte vertices: *ppVerts / *pnVerts are the
 // polygon (replaced by the clipped copy built at *ppOut, which advances); returns 0 when nothing is inside.  The first
 // argument is unused.  Its inside[] array is a function-local static of the original (0x10094de0), shared with the copy

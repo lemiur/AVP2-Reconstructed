@@ -19,6 +19,9 @@ ConVar g_CV_SortProfile("SortProfile", 0.0f);
 // GLOBAL: D3DREN 0x1006b910
 ConVar g_CV_DrawSorted("DrawSorted", 1.0f);
 
+// GLOBAL: D3DREN 0x1006b934
+ObjectDrawList *g_pTranslucentObjectDrawList;
+
 // Handlers of other units (module init/term, per-frame and per-object functions).  Ghidra names; the `guess_` names of
 // names_proposal.csv are not used (no evidence).
 extern void d3d_ModelModuleInit();					// OT_MODEL ModuleInit
@@ -133,7 +136,7 @@ extern void d3d_DrawNoZSprites();				// 0x1002ea90
 extern void d3d_UnsetTranslucentObjectStates(int bChangeZ);	// 0x10013df0
 
 // GLOBAL: D3DREN 0x1006cd70
-extern void (*g_pfnDrawVisibleReflections)();		// guess: optional callback run after the solid objects (RenderScene sets it)
+void (*g_pfnDrawVisibleReflections)();
 // The native draw loop reuses one DWORD flags value for its visible and portal-visible tests.
 // Keep the accessor/getter inline sites while reading the same fully constructed LTObject member.
 static inline uint32 GetDrawerObjectFlags(const ObjectDrawer &d)
