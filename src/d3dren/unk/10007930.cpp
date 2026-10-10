@@ -64,12 +64,7 @@ int BuildDynamicLightmapPixels(UnkType_DynLMSetup *pSetup, WorldPoly *pPoly, Unk
 
 // g_ClipNearInsideFlagsVertex40, g_ClipLeftInsideFlagsVertex40: d3dren/polydraw.h.
 
-// ClipPolyTop40, ClipPolyRight40, ClipPolyBottom40, ClipPolyFar40: the 0x28-byte clippers of unit unk/10001000 (top, right, bottom, far).
-int ClipPolyTop40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyRight40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyBottom40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-int ClipPolyFar40(char *pUnused, UnkType_TLVertex40 **ppVerts, int *pnVerts, UnkType_TLVertex40 **ppOut);
-void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t);
+// The 0x28-byte clippers (ClipPolyNear40 .. ClipPolyFar40) and TLVertex40_ClipExtra: d3dren/tlvertex.h.
 
 // FUNCTION: D3DREN 0x10007930
 void SetupWorldTextureCoordinates(void)
