@@ -172,6 +172,8 @@ int g_nWindowBlitScaleX;		// d3dren/common_init.h
 int g_nWindowBlitScaleY;		// d3dren/common_init.h
 // GLOBAL: D3DREN 0x10057e30
 int g_nSysMemParameter;		// d3dren/common_init.h
+// GLOBAL: D3DREN 0x10058040
+uint8 g_u8FogColor[3];		// d3dren/polydraw.h
 // GLOBAL: D3DREN 0x100584e4
 int g_bWarbleTableInitialized = 0;		// d3dren/common_init.h
 
