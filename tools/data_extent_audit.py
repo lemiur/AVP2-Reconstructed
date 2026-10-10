@@ -122,10 +122,42 @@ def link_objects(mapfile):
     return out
 
 
-def add_static_data(syms, mapfile, odata):
-    """The map lists no static data. Locate every .data/.bss section of the link's objects (from a public symbol of
-    the section, else right after the preceding contribution of the same object or link order when it fits before
-    the next located one) and add its static symbols. Returns the added symbols and the located sections."""
+def code_located_sections(co, oname, pub, img):
+    """{section index: base va} of co's non-COMDAT .data/.bss sections, read from the linked image: every DIR32
+    relocation of a located code section of co that targets such a section gives base = image dword - addend -
+    symbol value (majority over all of them). Exact where code references the section; works without base relocations."""
+    from collections import Counter
+    from coffobj import REL_DIR32
+    votes = defaultdict(Counter)
+    for sec in co.sections:
+        if not sec.name.startswith('.text'):
+            continue
+        sbase = None
+        for x in sec.syms:
+            if x.cls in (2, 3) and not x.is_section_symbol and (oname, x.name) in pub:
+                sbase = pub[(oname, x.name)] - x.value
+                break
+        if sbase is None:
+            continue
+        for off, si, typ in sec.relocs:
+            if typ != REL_DIR32 or off + 4 > len(sec.data):
+                continue
+            t = co.symbols.get(si)
+            if t is None or not (0 < t.secno <= len(co.sections)):
+                continue
+            tsec = co.sections[t.secno - 1]
+            if tsec.name not in ('.data', '.bss') or tsec.flags & 0x1000:
+                continue
+            addend = struct.unpack_from('<I', sec.data, off)[0]
+            votes[t.secno][(img.dword(sbase + off) - addend - t.value) & 0xffffffff] += 1
+    return {k: v.most_common(1)[0][0] for k, v in votes.items()}
+
+
+def add_static_data(syms, mapfile, odata, img=None):
+    """The map lists no static data. Locate every .data/.bss section of the link's objects (with the linked image:
+    from the code relocations that reach it, see code_located_sections; else from a public symbol of the section,
+    else right after the preceding contribution of the same object or link order when it fits before the next
+    located one) and add its static symbols. Returns the added symbols and the located sections."""
     from coffobj import CoffObj
     pub = {}
     for va, n, f, o in syms:
@@ -142,11 +174,12 @@ def add_static_data(syms, mapfile, odata):
             co = CoffObj(path)
         except (OSError, ValueError):
             continue
+        exact = code_located_sections(co, oname, pub, img) if img is not None else {}
         for s in co.sections:
             if s.name not in ('.data', '.bss') or s.flags & 0x1000:      # COMDAT literals: public, in the map
                 continue
-            base = None
-            for x in s.syms:
+            base = exact.get(s.index)
+            for x in ([] if base is not None else s.syms):
                 if x.cls == 2 and (oname, x.name) in pub:
                     base = pub[(oname, x.name)] - x.value
                     break
@@ -235,7 +268,7 @@ class Audit:
         self.R, self.O = Image(retail), Image(ours)
         self.syms = parse_map(mapfile)
         lo, vsz, _ = self.O.secs[data_sec]
-        self.syms += add_static_data(self.syms, mapfile, (lo, lo + vsz))
+        self.syms += add_static_data(self.syms, mapfile, (lo, lo + vsz), self.O)
         self.md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
         self.md.detail = True
         lo, vsz, _ = self.O.secs[data_sec]
