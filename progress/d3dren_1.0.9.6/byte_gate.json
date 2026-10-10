@@ -1,5 +1,10 @@
 {
  "asm_helper_callers": {
+  "sys/d3d/common_draw": {
+   "100103c2": [
+    "d3d_SetFPState"
+   ]
+  },
   "unk/100329b0": {
    "10033140": [
     "MulHigh"
@@ -45,23 +50,23 @@
   "world/fullintersectline",
   "world/intersect_line"
  ],
- "code_bytes": 175794,
+ "code_bytes": 176743,
  "code_rules": {
   "by_rule": {},
-  "code_bytes": 175794,
-  "functions": 1218,
+  "code_bytes": 176743,
+  "functions": 1219,
   "pending": 0
  },
- "commit": "da46902faf40c8275de4fb9aa10693d2a820d72e",
+ "commit": "d3416e185f2ec2bba434634e7048bd5d74f9a481",
  "contract": "4248b9357daaaf129a37baf7ad8bf7b3d008344b",
  "control": {
   "differing_bytes": 11,
   "va": "100073b0"
  },
  "data_bytes": 0,
- "date": "2026-10-09 20:27",
+ "date": "2026-10-09 20:41",
  "function_bytes_total": 280674,
- "functions": 1218,
+ "functions": 1219,
  "image": "d3d.ren",
  "match_not_banked": [],
  "module": "d3dren",
@@ -77,8 +82,8 @@
    "units_with_diffs": {}
   }
  ],
- "single_code_bytes": 175794,
- "single_function_count": 1218,
+ "single_code_bytes": 176743,
+ "single_function_count": 1219,
  "single_functions": {
   "kernel/sys/win/counter": [
    "10013215",
@@ -204,6 +209,7 @@
    "10010222",
    "10010281",
    "100102b9",
+   "100103c2",
    "10010777",
    "100107c3",
    "100107fb",
@@ -1406,9 +1412,5 @@
  "single_not_banked": {},
  "unit_code_bytes": 0,
  "unit_functions": 0,
- "verbatim": {
-  "sys/d3d/common_draw": [
-   "100103c2"
-  ]
- }
+ "verbatim": {}
 }
