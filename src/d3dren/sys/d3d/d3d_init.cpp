@@ -562,12 +562,6 @@ void RestoreStageOneAdditiveStates(UnkType_SavedStage1 *pState);	// the matching
 void SetLightmapTextureStageStates();							// W9 (lightmap): guess: lightmap texture formats set-up for one-pass lightmapping
 int CTextureManager_Init();								// d3d_texture (CTextureManager::Init), also declared by d3dtexture.h
 
-// GLOBAL: D3DREN 0x1005c878
-extern D3DDEVICEDESC7 g_D3DDeviceDesc;		// copy of the device's D3DDEVICEDESC7 (wMaxSimultaneousTextures at +0xba is 0x1005c932)
-extern int g_bOnePassLightmappingEnabled;				// one-pass lightmapping enabled (declared by unit unk/100132a0)
-extern uint32 g_DefaultZEnableState;				// the device's normal D3DRENDERSTATE_ZENABLE value (declared by unit unk/1002d080)
-// GLOBAL: D3DREN 0x1005de1c
-extern float g_ModelHalfTexelScale;				// guess: 0.5f set when the device is up
 void d3d_SetModulateAlphaTextureStates();					// stage 0 texture blend (modulate), d3d_draw.h
 void d3d_SetDetailTextureStates(void);				// d3dstate.h: stage 1 colour op = add-signed / modulate
 void d3d_UnsetDetailTexture(void);				// d3dstate.h: disable stage 1 colour op and unbind its texture

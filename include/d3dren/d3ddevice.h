@@ -81,6 +81,8 @@ extern int g_bGouraudFullbriteCapable;					// "Gouraud fullbrites"
 extern DDPIXELFORMAT g_ChosenZBufferPixelFormat;			// pixel format of the chosen z-buffer (copied by 0x1001aa70); +0x10 is g_ChosenZBufferStencilBitDepth
 // GLOBAL: D3DREN 0x1005cde0
 extern uint32 g_ChosenZBufferStencilBitDepth;					// DDPIXELFORMAT::dwStencilBitDepth of the chosen z-buffer ("Portals" = this > 0); see 0x1001a850
+// GLOBAL: D3DREN 0x1005c878
+extern D3DDEVICEDESC7 g_D3DDeviceDesc;			// copy of the device's D3DDEVICEDESC7 (wMaxSimultaneousTextures at +0xba is 0x1005c932)
 // GLOBAL: D3DREN 0x1005c964
 extern D3DPRIMCAPS g_DeviceTriangleCaps;			// copy of the device's dpcTriCaps (0x38 bytes): +8 dwRasterCaps = 0x1005c96c, +0x10 dwSrcBlendCaps
 											// = 0x1005c974, +0x14 dwDestBlendCaps = 0x1005c978, +0x20 dwTextureCaps = 0x1005c984,
