@@ -945,6 +945,9 @@ void ModelDraw::DrawProjectedShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly
 //     expressions at +0x1004/+0x10b1; 70: four of them), never this first one; 60 pending calls right after the vDelta statement and
 //     code-free ballast before the light loop change nothing.  So the first site has the widest margin in our source, and the exe's
 //     decision there needs a different site structure around the light search (a deeper nesting of that expression), not a budget shift.
+//     The light position is transformed with the SDK's MatVMul_InPlace (ltmatrix.h): the exe copies the light into a local, calls
+//     MatVMul into a temporary and copies the result back into that local, which the light arrays then read; the vertex loop below uses
+//     it the same way.  Pending calls after the subtraction still change nothing on that base.
 //  2. Frame layout: frame 0x278c in the exe, 0x2780 ours; most scalars/LTVectors sit at different [ebp-N] (C2 orders frame slots by weighted
 //     reference count and size, and shares dead slots of block locals: in the exe the dead light-distance array shares its slots with the
 //     MakeInverse temporary at -0x4cc, aLightPos/Dir/Atten at -0x5ac/-0x54c/-0x4ec; only the order of the 7 matrices and of the arrays is
@@ -972,9 +975,8 @@ void ModelDraw::DrawProjectedModelShadows(uint32 nMaxShadows)
 		{
 			UnkType_ModelLight *pLight = &m_Unk3c[i];
 			LTVector vLight = pLight->m_Unk00;
-			LTVector vLightW;
-			MatVMul(&vLightW, &m_ModelTransform, &vLight);
-			LTVector vDelta = vModelPos - vLightW;
+			MatVMul_InPlace(&m_ModelTransform, &vLight);
+			LTVector vDelta = vModelPos - vLight;
 			float fDist = vDelta.Mag();
 			LTVector vDir = vDelta;
 			vDir.Norm(1.0f);
@@ -990,9 +992,9 @@ void ModelDraw::DrawProjectedModelShadows(uint32 nMaxShadows)
 			}
 			if (slot != nMaxShadows)
 			{
-				aLightPos[slot][0] = vLightW.x;
-				aLightPos[slot][1] = vLightW.y;
-				aLightPos[slot][2] = vLightW.z;
+				aLightPos[slot][0] = vLight.x;
+				aLightPos[slot][1] = vLight.y;
+				aLightPos[slot][2] = vLight.z;
 				aLightDir[slot][0] = vDir.x;
 				aLightDir[slot][1] = vDir.y;
 				aLightDir[slot][2] = vDir.z;
@@ -1142,9 +1144,7 @@ void ModelDraw::DrawProjectedModelShadows(uint32 nMaxShadows)
 						float fScale = fRes / fRadius;
 						for (j = 0; j < nVerts; j++)
 						{
-							LTVector vWorld;
-							MatVMul(&vWorld, &mInvView, &pV->m_Vec);
-							pV->m_Vec = vWorld;
+							MatVMul_InPlace(&mInvView, &pV->m_Vec);
 							LTVector vRel = pV->m_Vec - vModelPos;
 							pV->m_Vec.x = (vRight.x * vRel.x + vRight.y * vRel.y + vRight.z * vRel.z) * fScale * 0.5f;
 							pV->m_Vec.y = (vUp.x * vRel.x + vUp.y * vRel.y + vUp.z * vRel.z) * fScale * 0.5f;
