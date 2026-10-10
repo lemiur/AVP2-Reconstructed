@@ -445,6 +445,11 @@ static int s_CornerOrderBack[4] = { 3, 2, 1, 0 };
 // refused (the exe expands both); with the colour code also written out Dist and SpriteGetColor fit but B rises to 2078u and
 // TransformVertexPositionsHomogeneous and the search stay inline (closest budget 1224u).  The exe needs roughly 12 more free top-level
 // sites after Dist and 70..95u less own size at once; no helper with evidence in Jupiter or the SDK headers gives both.
+// Structural pass: the vertex is TLVertex (FVF 0x1c4, the type of the matched clip/projection callees); the out-of-line LTVector
+// copies the exe calls (0x1000e06c operator-, 0x1000e011 Mag, 0x1000dfb6 ctor) are this SDK header's, matched in other units, so
+// the vector API is the same and their calls here are budget decisions; no callee is an ICF twin.  Jupiter's TLVertex::SetTCoords
+// for the four tu/tv pairs (with the three helpers as templates) brings Dist to 98u (Mag refused) but not the rest, and any TLVertex
+// member trips the ClipPolyNear40 / ClipPolyLeft40 declaration trap of unit unk/10007930.
 // STUB: D3DREN 0x1002e310
 void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTVector *pPos, float fScaleX, float fScaleY, SharedTexture *pTexture)
 {
