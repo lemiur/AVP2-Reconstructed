@@ -52,7 +52,7 @@ extern LTVector g_GlobalVertexTint;			// guess: the global vertex tint (SceneDes
 extern LTVector g_vGlobalModelDirAdd2;			// guess: SceneDesc +0x68
 // TODO(identity): the object has only five empty static initialisers (0x1000f3a0-0x1000f3a4, the five LTVector definitions in
 // common_draw.cpp), but seven 12-byte vectors in its .bss; these two derived ones are therefore not LTVectors with the SDK's empty
-// constructor (a constructor-less vector type?).  Their definitions are left out until the type is known.
+// constructor in the original (a constructor-less vector type?).  common_draw.cpp defines them as LTVector after g_ViewParams.
 // GLOBAL: D3DREN 0x10056208
 extern LTVector g_GlobalLightScale255;			// guess: g_GlobalLightScale * 255
 // GLOBAL: D3DREN 0x100566c0

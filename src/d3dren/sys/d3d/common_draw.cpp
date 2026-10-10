@@ -57,6 +57,16 @@ LTVector g_vGlobalModelDirAdd2;
 // FUNCTION: D3DREN 0x1000f3a5 _$E17
 ViewParams g_ViewParams;
 
+// The two derived light-scale vectors d3d_InitFrame writes (declarations: d3dren/common_draw.h).
+// TODO(identity): the exe's object has only the six static initialisers above, so in the original these two (12 bytes each,
+// written whole by d3d_InitFrame, never read) are not of a type with the SDK's empty constructor; LTVector is the closest
+// type that takes the assignments.  Defined after g_ViewParams so the _$E numbers above stay; each adds one empty
+// initialiser (one `ret`) that the exe does not have.
+// GLOBAL: D3DREN 0x10056208
+LTVector g_GlobalLightScale255;
+// GLOBAL: D3DREN 0x100566c0
+LTVector g_vGlobalLightScalePerByte;
+
 // FUNCTION: D3DREN 0x1000f3af ??0ViewParams@@QAE@XZ
 
 void d3d_ClearWorldBspFrameCodes(WorldBsp *pBsp);
