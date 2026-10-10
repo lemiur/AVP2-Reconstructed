@@ -33,6 +33,11 @@ static uint32 g_Optimized2DColor = 0xFFFFFFFF;
 // GLOBAL: D3DREN 0x1004b4dc
 static float fSub = 0.51f;
 
+// NAME: g_OldFogEnable: Jupiter d3d_optimizedsurface.cpp `static uint32 g_OldFogEnable` (fog enable saved by StartOptimized2D);
+// external here because d3dren/d3ddevice.h declares it.
+// GLOBAL: D3DREN 0x1005de48
+int g_OldFogEnable;
+
 // NAME: g_Optimized2DBlend: names_proposal.csv (high, Jupiter `static LTSurfaceBlend g_Optimized2DBlend(LTSURFACEBLEND_ALPHA)`)
 // GLOBAL: D3DREN 0x1005f24c
 static LTSurfaceBlend g_Optimized2DBlend;
@@ -298,7 +303,7 @@ LTBOOL d3d_OptimizeSurface(HLTBUFFER hBuffer, PValue transparentColor)
 
 	RSurface *pSurface = (RSurface *)hBuffer;
 
-	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
+	if (g_DeviceTriangleCaps.dwTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 		return LTFALSE;
 
 	// Do we have a texture format we can use?
@@ -342,7 +347,7 @@ LTBOOL d3d_OptimizeSurface(HLTBUFFER hBuffer, PValue transparentColor)
 				SurfaceTile *pTile = &pSurface->m_pTiles->m_Tiles[y * nTilesX + x];
 
 				// handle square textures
-				if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
+				if (g_DeviceTriangleCaps.dwTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 				{
 					pTile->m_nTileWidth = LTMAX(tileXSize, tileYSize);
 					pTile->m_nTileHeight = LTMAX(tileXSize, tileYSize);

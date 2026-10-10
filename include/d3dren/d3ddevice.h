@@ -79,11 +79,9 @@ extern int g_bLightAddPolyCapable;					// "Light add poly"
 // GLOBAL: D3DREN 0x1005cdf0
 extern int g_bGouraudFullbriteCapable;					// "Gouraud fullbrites"
 // GLOBAL: D3DREN 0x1005cdd0
-extern DDPIXELFORMAT g_ChosenZBufferPixelFormat;			// pixel format of the chosen z-buffer (copied by 0x1001aa70); +0x10 is g_ChosenZBufferStencilBitDepth
-// GLOBAL: D3DREN 0x1005cde0
-extern uint32 g_ChosenZBufferStencilBitDepth;					// DDPIXELFORMAT::dwStencilBitDepth of the chosen z-buffer ("Portals" = this > 0); see 0x1001a850
+extern DDPIXELFORMAT g_ChosenZBufferPixelFormat;			// pixel format of the chosen z-buffer (copied by 0x1001aa70); dwStencilBitDepth (+0x10) > 0 = "Portals" (0x1001a850)
 // GLOBAL: D3DREN 0x1005c878
-extern D3DDEVICEDESC7 g_D3DDeviceDesc;			// copy of the device's D3DDEVICEDESC7 (wMaxSimultaneousTextures at +0xba is 0x1005c932)
+extern D3DDEVICEDESC7 g_D3DDeviceDesc;			// copy of the device's D3DDEVICEDESC7 (wMaxSimultaneousTextures at +0xba is 0x1005c932, dwMaxTextureWidth/Height at +0x84/+0x88)
 // GLOBAL: D3DREN 0x1005c964
 extern D3DPRIMCAPS g_DeviceTriangleCaps;			// copy of the device's dpcTriCaps (0x38 bytes): +8 dwRasterCaps = 0x1005c96c, +0x10 dwSrcBlendCaps
 											// = 0x1005c974, +0x14 dwDestBlendCaps = 0x1005c978, +0x20 dwTextureCaps = 0x1005c984,
@@ -117,10 +115,6 @@ extern int g_DeviceTotalTextureMemory;					// "Texture Memory" (0x4000 set by th
 extern int g_DeviceFreeVideoMemory;					// "Video Memory" (free video memory from GetAvailableVidMem)
 // GLOBAL: D3DREN 0x1005c874
 extern int g_bSurfacesLargerThanScreenSupported;					// "Surfaces larger than screen"
-// GLOBAL: D3DREN 0x1005c8fc
-extern uint32 g_DeviceMaxTextureWidth;					// maximum texture width  (D3DDEVICEDESC7::dwMaxTextureWidth of the GetCaps copy at 0x1005c878)
-// GLOBAL: D3DREN 0x1005c900
-extern uint32 g_DeviceMaxTextureHeight;					// maximum texture height (D3DDEVICEDESC7::dwMaxTextureHeight)
 
 // ---- the enumerated DirectDraw devices (0x10031d18 fills the list in unit unk/10030bb0; common_stuff walks it) ---------------------
 // One node per enumerated DirectDraw device (0xec bytes, dalloc'ed by the enumeration callback 0x10031d82), linked with the
@@ -185,7 +179,7 @@ extern UnkType_StateRestorer g_TextureStateRestorer;
 // sample: a switch over DDERR_/D3DERR_ codes returning text); not verified against a file on disk.
 char *D3DAppErrorToString(HRESULT hr);							// 0x10019b10
 // NAME: CanDrawPortals: Jupiter CD3D_Device::CanDrawPortals() (returns the stencil capability); d3d.ren has it as a free function.
-int CanDrawPortals();											// 0x1001a850 (returns g_ChosenZBufferStencilBitDepth != 0)
+int CanDrawPortals();											// 0x1001a850 (returns g_ChosenZBufferPixelFormat.dwStencilBitDepth != 0)
 void d3d_ReadExtraConsoleVariables();							// 0x1001a400 (declared in common_stuff.h as well)
 
 #endif

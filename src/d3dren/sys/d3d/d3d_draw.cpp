@@ -369,6 +369,8 @@ void d3d_EndChromaKeyPolyPass(void)
 uint32 g_nQueuedWorldPolyVertices;
 // GLOBAL: D3DREN 0x100587fc
 TLVertex *g_pQueuedWorldPolyVertices;
+// GLOBAL: D3DREN 0x1005a368
+uint32 g_nQueuedWorldPolyVertexCapacity;
 
 // guess: grows the TL vertex scratch array g_pQueuedWorldPolyVertices to nVertices entries (keeping the old ones); 0 when the allocation fails.
 // FUNCTION: D3DREN 0x10013e80
@@ -625,17 +627,19 @@ int d3d_DrawFlatWorldPoly(WorldPoly *pPoly)
 }
 
 // ---- the poly draw callbacks (selected per frame by d3d_SelectWorldPolyDrawCallbacks) and the world poly flush -------------------------------------
-int g_bOnePassLightmappingEnabled;	// guess: one-pass lightmapping enabled (set from the g_Force1Pass console variable unless the device cannot do it)
 int g_bPolyDrawModeOne;	// guess: member of the object at 0x1005872c (the fog alpha hook g_pfnCalcFogAlpha is its first member)
 int g_bPolyDrawSetupComplete;	// guess: member of the object at 0x1005872c
 int g_bDrawGouraudFullbritePass;	// guess: draw state flag (Gouraud fullbrites in use)
+// GLOBAL: D3DREN 0x1005a308
+UnkType_PoolBucket *g_pTexturedWorldPolyBuckets;
 UnkType_PoolBucket *g_pMultipassWorldPolyBuckets;	// guess: list of ... (head of a list whose nodes come from the pool at 0x10058c98)
 
 // GLOBAL: D3DREN 0x10058cd8
 PFN_DrawWorldPoly g_pfnDrawUntexturedWorldPoly;
 // GLOBAL: D3DREN 0x100587e8
 PFN_DrawWorldPoly g_pfnDrawTexturedWorldPoly;
-extern void (*g_pfnDrawPanningSkyWorldPoly)(WorldPoly *pPoly);
+// GLOBAL: D3DREN 0x1005a304
+PFN_DrawWorldPoly g_pfnDrawPanningSkyWorldPoly;
 // GLOBAL: D3DREN 0x10058c24
 PFN_DrawWorldPoly g_pfnDrawLightmappedWorldPoly;
 void QueueWorldPolyWithClipFlags(WorldPoly *pPoly);		// 0x10022be4 (unit unk/10021d70): queues the poly under its texture (bucket list g_pMultipassWorldPolyBuckets)
@@ -1770,12 +1774,19 @@ float g_fFogDepthRange;				// guess: FogFarZ - FogNearZ
 // GLOBAL: D3DREN 0x10057a58
 float g_fWarbleTableScale;				// guess: the warble value the warble table was built for
 
+// GLOBAL: D3DREN 0x1005a330
 int g_nLastColorTableVertexTint;
+// GLOBAL: D3DREN 0x10059d04
 uint8 g_MultipassVertexTintTableR[256];	// guess: red lighting table (multipass / dynamic light pass); the next two are green and blue
+// GLOBAL: D3DREN 0x10059e04
 uint8 g_MultipassVertexTintTableG[256];
+// GLOBAL: D3DREN 0x10059f04
 uint8 g_MultipassVertexTintTableB[256];
+// GLOBAL: D3DREN 0x1005a004
 uint8 g_VertexTintTableR[256];	// guess: red lighting table
+// GLOBAL: D3DREN 0x1005a104
 uint8 g_VertexTintTableG[256];
+// GLOBAL: D3DREN 0x1005a204
 uint8 g_VertexTintTableB[256];
 // GLOBAL: D3DREN 0x1006cd70
 extern void (*g_pfnDrawVisibleReflections)();	// guess: optional callback run after the solid objects (RenderScene sets it)

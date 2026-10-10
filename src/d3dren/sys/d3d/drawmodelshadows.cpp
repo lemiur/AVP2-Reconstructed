@@ -69,13 +69,20 @@ ConVar g_CV_ModelShadowProj("ModelShadowProj", 0.0f);
 // Same epsilon as Jupiter 3d_ops.h CLIP_EPSILON.
 #define CLIP_EPSILON	0.00001f
 
-// bInside[] arrays of the polygon clippers below (declarations and GLOBAL annotations: d3dren/modelshadow.h).
+// bInside[] arrays of the polygon clippers below (declarations: d3dren/modelshadow.h).
+// GLOBAL: D3DREN 0x10094440
 int g_ShadowClipPlaneInsideFlags[56];
+// GLOBAL: D3DREN 0x10093f00
 int g_ShadowClipFarInsideFlags[56];
+// GLOBAL: D3DREN 0x10093fe0
 int g_ShadowClipBottomInsideFlags[56];
+// GLOBAL: D3DREN 0x100940c0
 int g_ShadowClipRightInsideFlags[56];
+// GLOBAL: D3DREN 0x100941a0
 int g_ShadowClipTopInsideFlags[56];
+// GLOBAL: D3DREN 0x10094280
 int g_ShadowClipLeftInsideFlags[56];
+// GLOBAL: D3DREN 0x10094360
 int g_ShadowClipNearInsideFlags[56];
 
 // The edge/plane intersection helpers (IntersectNear/Left/Top/Right/Bottom/FarClipPlane, return t in st(0)) are declared in pool.h.

@@ -62,14 +62,6 @@ static float g_PolyGridAlphaScale;
 
 // Per-stage texture coordinate scale pair (u, v), indexed by the device stage (set by the texture binding code).
 
-// The gamma / colour correction tables the vertex colours are looked up in (one byte per input level).
-// GLOBAL: D3DREN 0x1005a004
-extern uint8 g_VertexTintTableR[256];
-// GLOBAL: D3DREN 0x1005a104
-extern uint8 g_VertexTintTableG[256];
-// GLOBAL: D3DREN 0x1005a204
-extern uint8 g_VertexTintTableB[256];
-
 
 // The screen projection of the world polygon code (unit unk/10007930); the 0x28-byte plane clippers are declared in d3dren/tlvertex.h.
 void ProjectVertexToScreen(float *pVert, const void *pViewParams);

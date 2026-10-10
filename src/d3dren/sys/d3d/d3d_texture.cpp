@@ -1199,8 +1199,8 @@ inline int d3d_CreateMipmapTextureSurface(UnkType_RTextureBuild *pBuild, UnkType
 // FUNCTION: D3DREN 0x10020f20 ?d3d_GetFirstUsableMipmap@@YAHPAVTextureData@@@Z
 inline int d3d_GetFirstUsableMipmap(TextureData *pTexture)
 {
-	uint32 maxWidth = LTMIN((uint32)g_MaxTextureSize, g_DeviceMaxTextureWidth);
-	uint32 maxHeight = LTMIN((uint32)g_MaxTextureSize, g_DeviceMaxTextureHeight);
+	uint32 maxWidth = LTMIN((uint32)g_MaxTextureSize, g_D3DDeviceDesc.dwMaxTextureWidth);
+	uint32 maxHeight = LTMIN((uint32)g_MaxTextureSize, g_D3DDeviceDesc.dwMaxTextureHeight);
 	if (!maxWidth)
 		maxWidth = 256;
 	if (!maxHeight)
@@ -1430,7 +1430,7 @@ int CTextureManager_S3TCFormatConv(BPPIdent bpp, uint32 *pFourCC)
 // FUNCTION: D3DREN 0x100219b0
 void AdjustAspectRatio(uint32 width, uint32 height, uint32 *outWidth, uint32 *outHeight)
 {
-	if (g_DeviceTriangleTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
+	if (g_DeviceTriangleCaps.dwTextureCaps & D3DPTEXTURECAPS_SQUAREONLY)
 	{
 		width = height = LTMAX(width, height);
 	}

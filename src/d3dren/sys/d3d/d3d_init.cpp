@@ -43,6 +43,83 @@ ConVar g_CV_Trilinear("Trilinear", 0.0f);
 // GLOBAL: D3DREN 0x1005c9a8
 ConVar g_CV_Anisotropic("Anisotropic", 0.0f);
 
+// ---- device objects, state flags and capabilities (declarations: d3dren/d3ddevice.h) ---------------------------------------
+// GLOBAL: D3DREN 0x1005de30
+IDirect3DDevice7 *g_pD3DDevice;
+// GLOBAL: D3DREN 0x1005de34
+IDirect3D7 *g_pD3D;
+// GLOBAL: D3DREN 0x1005de38
+IDirectDrawClipper *g_pClipper;
+// GLOBAL: D3DREN 0x1005de28
+uint32 g_NormalTextureStage;
+// GLOBAL: D3DREN 0x1005de40
+int g_bIn3D;
+// GLOBAL: D3DREN 0x1005de44
+int g_bInOptimized2D;
+// GLOBAL: D3DREN 0x1005de20
+int g_bLightmapCapable;
+// GLOBAL: D3DREN 0x1005de2c
+int g_bTwoTextureStageBlendValidated;
+// GLOBAL: D3DREN 0x1005de3c
+int g_bLoadWholeLightmapSurface;
+// GLOBAL: D3DREN 0x1005c808
+int g_bModelFullbriteCapable;
+// GLOBAL: D3DREN 0x1005c80c
+int g_bModelSpecularBlendValidated;
+// GLOBAL: D3DREN 0x1005c810
+int g_bModelShadowsSupported;
+// GLOBAL: D3DREN 0x1005c814
+int g_bPowerVRWorkaround;
+// GLOBAL: D3DREN 0x1005c838
+int g_LightmapTextureStage;
+// GLOBAL: D3DREN 0x1005cdc8
+int g_bLightAddPolyCapable;
+// GLOBAL: D3DREN 0x1005cdf0
+int g_bGouraudFullbriteCapable;
+// GLOBAL: D3DREN 0x1005cdd0
+DDPIXELFORMAT g_ChosenZBufferPixelFormat;
+// GLOBAL: D3DREN 0x1005c878
+D3DDEVICEDESC7 g_D3DDeviceDesc;
+// GLOBAL: D3DREN 0x1005c964
+D3DPRIMCAPS g_DeviceTriangleCaps;
+// GLOBAL: D3DREN 0x1005c840
+int g_bSrcBlendSrcColorSupported;
+// GLOBAL: D3DREN 0x1005c844
+int g_bDestBlendSrcAlphaSupported;
+// GLOBAL: D3DREN 0x1005c848
+int g_bTextureBlendAddSupported;
+// GLOBAL: D3DREN 0x1005c84c
+int g_bTextureBlendModulateSupported;
+// GLOBAL: D3DREN 0x1005c850
+int g_bDeviceDitherSupported;
+// GLOBAL: D3DREN 0x1005c854
+int g_bDeviceDrawPrimitiveSupported;
+// GLOBAL: D3DREN 0x1005c858
+int g_bVideoMemoryTexturesSupported;
+// GLOBAL: D3DREN 0x1005c85c
+int g_bSystemMemoryTexturesSupported;
+// GLOBAL: D3DREN 0x1005c860
+int g_bAGPMemoryTexturesSupported;
+// GLOBAL: D3DREN 0x1005c864
+int g_DeviceZBufferBitDepth;
+// GLOBAL: D3DREN 0x1005c868
+int g_DeviceRenderBitDepth;
+// GLOBAL: D3DREN 0x1005c86c
+int g_DeviceTotalTextureMemory;
+// GLOBAL: D3DREN 0x1005c870
+int g_DeviceFreeVideoMemory;
+// GLOBAL: D3DREN 0x1005c874
+int g_bSurfacesLargerThanScreenSupported;
+// Device-dependent switches declared in d3dren/d3d_draw.h and d3dren/polydraw.h (set by the device creation code below).
+// GLOBAL: D3DREN 0x1005c7e0
+int g_bOnePassLightmappingEnabled;
+// GLOBAL: D3DREN 0x1005ce18
+int g_bPortalsEnabled;
+// GLOBAL: D3DREN 0x1005c9a0
+uint32 g_DefaultZEnableState;
+// GLOBAL: D3DREN 0x1005de1c
+float g_ModelHalfTexelScale;
+
 // ---- extra console variables (fog, dither, texture filtering) ---------------------------------------------------------------
 // State caches of d3d_ReadExtraConsoleVariables: the values last sent to the device (names unknown).
 // GLOBAL: D3DREN 0x10057ac8
@@ -181,7 +258,7 @@ DDPIXELFORMAT *g_pEnumeratedZBufferFormats;
 // FUNCTION: D3DREN 0x1001a850
 int CanDrawPortals()
 {
-	return g_ChosenZBufferStencilBitDepth > 0;
+	return g_ChosenZBufferPixelFormat.dwStencilBitDepth > 0;
 }
 
 // NAME: d3d_EnumZBufferFormatsCallback: LPD3DENUMPIXELFORMATSCALLBACK (DirectX SDK type); name from names_proposal.csv (medium).
@@ -930,7 +1007,7 @@ void d3d_RenderCommand(int argc, char **argv)
 					g_pStruct->ConsolePrint("---------------------------------------------------------------");
 				}
 			}
-			g_pStruct->ConsolePrint("Portals: %s", (g_ChosenZBufferStencilBitDepth > 0) ? "Yes" : "No");
+			g_pStruct->ConsolePrint("Portals: %s", (g_ChosenZBufferPixelFormat.dwStencilBitDepth > 0) ? "Yes" : "No");
 			g_pStruct->ConsolePrint("Model fullbrites: %s, Gouraud fullbrites: %s", g_bModelFullbriteCapable ? "Yes" : "No", g_bGouraudFullbriteCapable ? "Yes" : "No");
 			g_pStruct->ConsolePrint("Lightmap capable: %s, Light add poly: %s", g_bLightmapCapable ? "Yes" : "No", g_bLightAddPolyCapable ? "Yes" : "No");
 			g_pStruct->ConsolePrint("DrawPrim: %s, Dither: %s", g_bDeviceDrawPrimitiveSupported ? "Yes" : "No", g_bDeviceDitherSupported ? "Yes" : "No");
@@ -943,7 +1020,7 @@ void d3d_RenderCommand(int argc, char **argv)
 			g_pStruct->ConsolePrint("ZBuffer Depth: %d, Device Depth: %d", g_DeviceZBufferBitDepth, g_DeviceRenderBitDepth);
 			g_pStruct->ConsolePrint("Z-test: %s, Table fog: %s, Palette alpha: %s", (g_DeviceTriangleCaps.dwRasterCaps & D3DPRASTERCAPS_ZTEST) ? "Yes" : "No",
 				(g_DeviceTriangleCaps.dwRasterCaps & D3DPRASTERCAPS_FOGTABLE) ? "Yes" : "No", (g_DeviceTriangleCaps.dwTextureCaps & D3DPTEXTURECAPS_ALPHAPALETTE) ? "Yes" : "No");
-			g_pStruct->ConsolePrint("Max texture size: (%d x %d)", g_DeviceMaxTextureWidth, g_DeviceMaxTextureHeight);
+			g_pStruct->ConsolePrint("Max texture size: (%d x %d)", g_D3DDeviceDesc.dwMaxTextureWidth, g_D3DDeviceDesc.dwMaxTextureHeight);
 			g_pStruct->ConsolePrint("Surfaces larger than screen: %s", g_bSurfacesLargerThanScreenSupported ? "Yes" : "No");
 			return;
 		}

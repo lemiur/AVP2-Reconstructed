@@ -139,8 +139,6 @@ extern LTLink g_Textures;		// LRU list of the RTextures (RTexture::m_Link, m_pDa
 // (Jupiter renderstruct.h; the lightmap pages count here too).  m_Unk48 / m_Unk4c are the per-frame texture / lightmap byte counters.
 #define RENDERSTRUCT_TEXMEM(p)			((p)->m_SystemTextureMemory)
 
-// GLOBAL: D3DREN 0x1005c984
-extern uint32 g_DeviceTriangleTextureCaps;			// D3DPRIMCAPS.dwTextureCaps copy of the device caps (0x20 = D3DPTEXTURECAPS_SQUAREONLY); W7's optsurface.cpp declares it too
 // DXT support flags, set by 0x1001f600 from the enumerated formats (Jupiter m_bSupportsDXT1/3/5).
 // GLOBAL: D3DREN 0x10062854
 extern int g_bDXT1Supported;			// DXT1 supported
