@@ -12,14 +12,7 @@
 #include "d3dren/viewparams.h"
 #include "d3dren/pool.h"		// IntersectNearClipPlane, IntersectLeftClipPlane
 
-// GLOBAL: D3DREN 0x10094de0
-extern int g_ClipNearInsideFlagsTLVertex[56];	// guess: Jupiter polyclip.h bInside[] of the near plane (static here)
-// GLOBAL: D3DREN 0x10094ec0
-extern int g_ClipLeftInsideFlagsTLVertex[56];	// guess: bInside[] of the left plane
-// GLOBAL: D3DREN 0x10094c20
-extern int g_ClipNearInsideFlagsVertex40[56];	// guess: bInside[] of the near plane, 0x28-byte vertices
-// GLOBAL: D3DREN 0x10094d00
-extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left plane, 0x28-byte vertices
+#include "d3dren/clipinside.h"	// the inside[] arrays
 
 void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 void TLVertex40_ClipExtra(UnkType_TLVertex40 *pPrev, UnkType_TLVertex40 *pCur, UnkType_TLVertex40 *pOut, float t);

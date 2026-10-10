@@ -110,10 +110,7 @@ struct UnkType_PolyVertex
 // ---- the 0x20-byte vertex clip helpers (unit unk/10001000 and this one) --------------------------------------------------------
 // The inside[] arrays of the polyclip.h expansions are function-local statics of the original that the near/left plane code
 // here shares with ClipModelPolygon32.
-// GLOBAL: D3DREN 0x10094de0
-extern int g_ClipNearInsideFlagsTLVertex[56];	// guess: inside flags of the near plane clip
-// GLOBAL: D3DREN 0x10094ec0
-extern int g_ClipLeftInsideFlagsTLVertex[56];	// guess: inside flags of the left plane clip
+#include "d3dren/clipinside.h"	// g_ClipNearInsideFlagsTLVertex, g_ClipLeftInsideFlagsTLVertex (and the 0x28-byte vertex pair)
 void TLVertex_ClipExtra(TLVertex *pPrev, TLVertex *pCur, TLVertex *pOut, float t);
 // Plane clippers for the flag bits 8, 0x10, 0x20, 2 (unit unk/10001000); the first argument is unused.
 int ClipPolyTop(char *pUnused, TLVertex **ppVerts, int *pnVerts, TLVertex **ppOut);
@@ -196,9 +193,6 @@ extern uint16 g_ParticleQuadIndices[0x300];	// the index list of the particle qu
 // ---- globals of unit unk/10007930 (the deferred global-pan poly list and the 0x28-byte near/left clippers) ----
 // GLOBAL: D3DREN 0x1004ffb8
 extern UnkType_PoolNode *g_pDeferredGlobalPanPolys;	// head of the deferred draw list
-// GLOBAL: D3DREN 0x10094c20
-extern int g_ClipNearInsideFlagsVertex40[56];	// guess: Jupiter polyclip.h bInside[] of the near plane clipper for 0x28-byte vertices
-// GLOBAL: D3DREN 0x10094d00
-extern int g_ClipLeftInsideFlagsVertex40[56];	// guess: bInside[] of the left plane clipper
+// (the inside[] arrays of the 0x28-byte near/left clippers: d3dren/clipinside.h)
 
 #endif
