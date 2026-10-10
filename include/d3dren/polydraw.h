@@ -42,7 +42,7 @@ struct UnkType_StageUV
 	float	m_Unk00;
 	float	m_Unk04;
 };
-extern UnkType_StageUV g_TextureStageTexelSizes[8];
+extern UnkType_StageUV g_TextureStageTexelSizes[4];	// one per device stage, like g_pBoundTextures (retail: 0x20 bytes, unnamed .bss follows at 0x10061830)
 
 // Detail texture state shared by d3d_DrawWorldTextureBucket / d3d_DrawDualTextureWorldBucket: the scale and the cos / sin of the angle of the current detail texture.
 // GLOBAL: D3DREN 0x100514a8
