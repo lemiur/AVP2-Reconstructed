@@ -490,3 +490,12 @@ void ILTCSBase::SetupRotationAroundPoint(LTMatrix *pMat, LTRotation *pRot, LTVec
 
 	CHECK_PARAMS_NORETURN(ILTCSBase::SetupRotationAroundPoint);
 }
+
+// Talon reuses WriteToMessageObject's name in the error report, so both bodies are identical.
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x00423e80 (ILTCSBase::WriteToMessageObject).
+LTRESULT ILTCSBase::WriteToLoadSaveMessageObject(HMESSAGEWRITE hMessage, HOBJECT hObj)
+{
+	CHECK_PARAMS(hMessage, ILTCSBase::WriteToMessageObject);
+	return hMessage->WriteObject(hObj);
+}
+

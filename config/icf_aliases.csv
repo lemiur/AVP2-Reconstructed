@@ -1,0 +1,36 @@
+# Names the original linker folded (/OPT:ICF) into an identical function that our source defines once.
+# tools/source_link.py turns each row into a weak external (name -> folded_into). Identity TODO: Talon
+# declares CLTMessage_Stream's methods in a base it shares with LMessageImpl (game_serialize.cpp), which
+# this decomp does not have yet; once it does, these rows go away.
+name,folded_into,va
+?IsInvalid@CLTMessage_Stream@@UAEIXZ,?IsMoveable@LTObject@@UAEIXZ,004668a0
+?ReadByteFL@CLTMessage_Stream@@UAEKAAE@Z,?ReadByteFL@LMessageImpl@@UAEKAAE@Z,00445830
+?ReadCompPosFL@CLTMessage_Stream@@UAEKAAV?$_CVector@M@@@Z,?ReadCompPosFL@LMessageImpl@@UAEKAAV?$_CVector@M@@@Z,00445c10
+?ReadCompRotationFL@CLTMessage_Stream@@UAEKAAVLTRotation@@@Z,?ReadCompRotationFL@LMessageImpl@@UAEKAAVLTRotation@@@Z,00445ca0
+?ReadCompVectorFL@CLTMessage_Stream@@UAEKAAV?$_CVector@M@@@Z,?ReadCompVectorFL@LMessageImpl@@UAEKAAV?$_CVector@M@@@Z,00445af0
+?ReadDWordFL@CLTMessage_Stream@@UAEKAAK@Z,?ReadDWordFL@LMessageImpl@@UAEKAAK@Z,00445850
+?ReadFloatFL@CLTMessage_Stream@@UAEKAAM@Z,?ReadDWordFL@LMessageImpl@@UAEKAAK@Z,00445850
+?ReadHStringAsStringFL@CLTMessage_Stream@@UAEKPADK@Z,?ReadHStringAsStringFL@LMessageImpl@@UAEKPADK@Z,004459b0
+?ReadHStringFL@CLTMessage_Stream@@UAEKAAPAUHSTRING_t@@@Z,?ReadHStringFL@LMessageImpl@@UAEKAAPAUHSTRING_t@@@Z,00445900
+?ReadMessageFL@CLTMessage_Stream@@UAEKAAPAVILTMessage@@@Z,?ReadMessageFL@LMessageImpl@@UAEKAAPAVILTMessage@@@Z,00445cc0
+?ReadObjectFL@CLTMessage_Stream@@UAEKAAPAVLTObject@@@Z,?ReadObjectFL@LMessageImpl@@UAEKAAPAVLTObject@@@Z,00445a80
+?ReadRotationFL@CLTMessage_Stream@@UAEKAAVLTRotation@@@Z,?ReadRotationFL@LMessageImpl@@UAEKAAVLTRotation@@@Z,00445c40
+?ReadStringFL@CLTMessage_Stream@@UAEKPADK@Z,?ReadStringFL@LMessageImpl@@UAEKPADK@Z,00445860
+?ReadVectorFL@CLTMessage_Stream@@UAEKAAV?$_CVector@M@@@Z,?ReadVectorFL@LMessageImpl@@UAEKAAV?$_CVector@M@@@Z,00445aa0
+?ReadWordFL@CLTMessage_Stream@@UAEKAAG@Z,?ReadWordFL@LMessageImpl@@UAEKAAG@Z,00445840
+?WriteByte@CLTMessage_Stream@@UAEKE@Z,?WriteByte@LMessageImpl@@UAEKE@Z,00445d80
+?WriteCompPos@CLTMessage_Stream@@UAEKAAV?$_CVector@M@@@Z,?WriteCompPos@LMessageImpl@@UAEKAAV?$_CVector@M@@@Z,00445e60
+?WriteCompRotation@CLTMessage_Stream@@UAEKAAVLTRotation@@@Z,?WriteCompRotation@LMessageImpl@@UAEKAAVLTRotation@@@Z,00445ed0
+?WriteCompVector@CLTMessage_Stream@@UAEKAAV?$_CVector@M@@@Z,?WriteCompVector@LMessageImpl@@UAEKAAV?$_CVector@M@@@Z,00445e40
+?WriteDWord@CLTMessage_Stream@@UAEKK@Z,?WriteDWord@LMessageImpl@@UAEKK@Z,00445da0
+?WriteFloat@CLTMessage_Stream@@UAEKM@Z,?WriteDWord@LMessageImpl@@UAEKK@Z,00445da0
+?WriteHString@CLTMessage_Stream@@UAEKPAUHSTRING_t@@@Z,?WriteHString@LMessageImpl@@UAEKPAUHSTRING_t@@@Z,00445fa0
+?WriteHStringArgList@CLTMessage_Stream@@UAEKHPAPAD@Z,?WriteHStringArgList@LMessageImpl@@UAEKHPAPAD@Z,00446010
+?WriteHStringFormatted@CLTMessage_Stream@@UAAKHZZ,?WriteHStringFormatted@LMessageImpl@@UAAKHZZ,00445ff0
+?WriteMessage@CLTMessage_Stream@@UAEKAAVILTMessage@@@Z,?WriteMessage@LMessageImpl@@UAEKAAVILTMessage@@@Z,00445ef0
+?WriteObject@CLTMessage_Stream@@UAEKPAVLTObject@@@Z,?WriteObject@LMessageImpl@@UAEKPAVLTObject@@@Z,00445df0
+?WriteRotation@CLTMessage_Stream@@UAEKAAVLTRotation@@@Z,?WriteRotation@LMessageImpl@@UAEKAAVLTRotation@@@Z,00445e90
+?WriteString@CLTMessage_Stream@@UAEKPAD@Z,?WriteString@LMessageImpl@@UAEKPAD@Z,00445db0
+?WriteStringAsHString@CLTMessage_Stream@@UAEKPAD@Z,?WriteStringAsHString@LMessageImpl@@UAEKPAD@Z,00446030
+?WriteVector@CLTMessage_Stream@@UAEKAAV?$_CVector@M@@@Z,?WriteVector@LMessageImpl@@UAEKAAV?$_CVector@M@@@Z,00445e10
+?WriteWord@CLTMessage_Stream@@UAEKG@Z,?WriteWord@LMessageImpl@@UAEKG@Z,00445d90

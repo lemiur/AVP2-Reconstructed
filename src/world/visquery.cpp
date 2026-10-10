@@ -283,3 +283,21 @@ void wb_Unknown49e330(void *p)
 		}
 	}
 }
+
+// The default visibility query callbacks (world_tree.h).
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004a4ad0 (the empty destructors).
+void vq_DefaultFn1()
+{
+}
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004a4ad0 (the empty destructors).
+void vq_DefaultFn2()
+{
+}
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004668a0 (LTObject::IsMoveable).
+LTBOOL vq_DefaultBoolFn()
+{
+	return LTTRUE;
+}
+

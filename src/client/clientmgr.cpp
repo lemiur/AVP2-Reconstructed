@@ -2004,6 +2004,22 @@ LTRESULT cm_OnModelRefRemoved(void *pUser, ClientModelUser *pUser2, LTBOOL bServ
 // FUNCTION: LITHTECH 0x00414720 ?_DeleteAndDestroyArray@?$CMoArray@ULAPolyRef@@VDefaultCache@@@@AAEXPAVLAlloc@@K@Z
 // CLithChunkAllocator<T>::Term's delete[] (called from CLTDirectMusicMgr::Term); the copies come from here
 // because this object links before ltdirectmusic_impl.
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004359b0 (the empty callbacks).
+void cm_OnMemoryFailure(void *pUser)
+{
+}
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x00473ac0 (the empty void functions).
+void cm_OnTextureBound(CClientMgr *pClientMgr)
+{
+}
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x00473ac0 (the empty void functions).
+void cm_ShowLoadProgress(CClientMgr *pClientMgr)
+{
+}
+
 // FUNCTION: LITHTECH 0x00414750 ??_ECSegment@CLTDirectMusicMgr@@QAEPAXI@Z
 // FUNCTION: LITHTECH 0x004147e0 ??_ECStyle@CLTDirectMusicMgr@@QAEPAXI@Z
 // FUNCTION: LITHTECH 0x00414860 ?BaseNew@@YAPAPAUWorldPoly@@PAVLAlloc@@PAPAU1@K@Z

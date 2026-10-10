@@ -220,7 +220,7 @@ def icf_aliases():
     if not os.path.exists(path):
         return None, 0
     with open(path, newline='') as f:
-        pairs = [(r['name'], r['folded_into']) for r in csv.DictReader(f)]
+        pairs = [(r['name'], r['folded_into']) for r in csv.DictReader(l for l in f if not l.startswith('#'))]
     if not pairs:
         return None, 0
     obj = os.path.join(OUT, 'icf_aliases.obj')

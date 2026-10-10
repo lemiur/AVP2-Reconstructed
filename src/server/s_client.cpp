@@ -2015,6 +2015,13 @@ void sm_SetLightAnimChanged(CServerMgr *pServerMgr, uint32 iLightAnim, uint32 fl
 
 // Out-of-line copies of inline functions (inline budget); they follow the first function that calls
 // them out of line.
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004a02b0 (DefaultNodeFilterFn).
+int sm_FTCantOpenFileFn(FTServ *hServ, char *pFilename)
+{
+	return TODO_REMOVEFILE;
+}
+
 // FUNCTION: LITHTECH 0x00470b50 ?AddAfter@CheapLTLink@@QAEXPAV1@@Z
 // FUNCTION: LITHTECH 0x00470b70 ?Term@ClientPacketBuf@@QAEXXZ
 // FUNCTION: LITHTECH 0x00470ba0 ??0ClientPacketBuf@@QAE@XZ

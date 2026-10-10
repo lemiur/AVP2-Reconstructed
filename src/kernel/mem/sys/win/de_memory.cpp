@@ -199,3 +199,17 @@ void dfree(void *ptr)
 		free(ptr);
 	}
 }
+
+// StdLith's base allocators (STDLITH_ALLOC_OVERRIDE).
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004235e0 (operator new).
+void* DefStdlithAlloc(uint32 size)
+{
+	return dalloc(size);
+}
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004235f0 (operator delete).
+void DefStdlithFree(void *ptr)
+{
+	dfree(ptr);
+}
+

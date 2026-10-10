@@ -119,3 +119,9 @@ ClassDef* cb_IsClassFlagSet(ClassBindModule *hModule, ClassDef *pClass, const ui
 
 	return LTNULL;
 }
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004359b0 (the empty callbacks).
+void cb_ModuleLoaded(ClassBindModule *pModule)
+{
+}
+

@@ -2784,6 +2784,12 @@ void SharedTexture::SetCommandLine(const char *pCommandLine)
 // FUNCTION: LITHTECH 0x0042fdb0 ??_GTerrainSection@@QAEPAXI@Z
 
 // STLport code first instantiated here (w_AddStaticLights' vector<string>).
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x004359b0 (the empty callbacks).
+void w_NullProgressFn(uint32 param)
+{
+}
+
 // FUNCTION: LITHTECH 0x0042aa90 ?_Atomic_swap@_STL@@YAKPAKK@Z
 // FUNCTION: LITHTECH 0x0042e8f0 ?_M_deallocate_block@?$_String_base@DV?$allocator@D@_STL@@@_STL@@QAEXXZ
 // FUNCTION: LITHTECH 0x0042ea40 ?deallocate@?$_STL_alloc_proxy@PADDV?$allocator@D@_STL@@@_STL@@QAEXPADI@Z

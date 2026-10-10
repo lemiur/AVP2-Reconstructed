@@ -493,3 +493,10 @@ LTRESULT LMessageImpl::GetStatus(uint32 &flags)
 
 	return LT_OK;
 }
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x0043dac0 (ic_EndCounter).
+LTBOOL LMessageImpl::IsInvalid()
+{
+	return LTFALSE;
+}
+

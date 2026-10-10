@@ -187,3 +187,11 @@ void CLoaderThread::LoadModel(FileIdentifier *pIdent)
 	msg.m_Data[2].m_pData = pModel;
 	m_Outgoing.PostMessage(msg);
 }
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x0048eb80 (CServerLoaderThread::Init).
+LTBOOL CLoaderThread::Init(CClientMgr *pClientMgr)
+{
+	m_pClientMgr = pClientMgr;
+	return LTTRUE;
+}
+

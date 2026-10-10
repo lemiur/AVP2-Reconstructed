@@ -3,6 +3,7 @@
 // instead of holders, the world is the client manager's MainWorld, world textures can be sprites
 // (SurfaceSprite) and surface effects animate texture coordinates every frame.
 #include <windows.h>
+#undef PlaySound
 #include <string.h>
 #include "bdefs.h"
 #include "clientshell.h"

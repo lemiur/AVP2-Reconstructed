@@ -3080,6 +3080,12 @@ void CServerMgr::OnPeerToPeerAuthPacket(Client *pClient, CPacket *pPacket)
 
 // Template code this object instantiated first (STLport string/map/set nodes of the child model
 // link map and of sm_UncacheModels).
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x00473ac0 (the empty void functions).
+void sm_TermDebug()
+{
+}
+
 // FUNCTION: LITHTECH 0x004873c0 ??0?$basic_string@DV?$char_traits@D@_STL@@V?$allocator@D@2@@_STL@@QAE@XZ
 // FUNCTION: LITHTECH 0x00487400 ??1?$pair@$$CBV?$basic_string@DV?$char_traits@D@_STL@@V?$allocator@D@2@@_STL@@V?$map@V?$basic_string@DV?$char_traits@D@_STL@@V?$allocator@D@2@@_STL@@V12@U?$less@V?$basic_string@DV?$char_traits@D@_STL@@V?$allocator@D@2@@_STL@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DV?$char_traits@D@_STL@@V?$allocator@D@2@@_STL@@V12@@_STL@@@2@@2@@_STL@@QAE@XZ
 // FUNCTION: LITHTECH 0x004874c0 ??1?$pair@$$CBV?$basic_string@DV?$char_traits@D@_STL@@V?$allocator@D@2@@_STL@@V12@@_STL@@QAE@XZ

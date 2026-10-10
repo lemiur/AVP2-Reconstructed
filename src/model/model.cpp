@@ -1382,6 +1382,13 @@ ModelSocket* Model::FindSocket(const char *pName, uint32 *index)
 // FUNCTION: LITHTECH 0x00450c60 ?GenGetAt@?$CMoArray@VNodeRelation@@VDefaultCache@@@@UBE?AVNodeRelation@@AAVGenListPos@@@Z
 // VC6 keeps the NodeRelation copy used by this specialization out of line; the other array instantiations
 // inline their copies. Keep Insert2 specialized so its copy sites retain that compiler decision.
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x0046c290 (PFormat::GetType).
+char* Model::GetFilename()
+{
+	return m_pFilename;
+}
+
 // FUNCTION: LITHTECH 0x00450cb0 ?GenAppend@?$CMoArray@VNodeRelation@@VDefaultCache@@@@UAEHAAVNodeRelation@@@Z
 // FUNCTION: LITHTECH 0x00450ea0 ?GenRemoveAt@?$CMoArray@VNodeRelation@@VDefaultCache@@@@UAEXVGenListPos@@@Z
 // FUNCTION: LITHTECH 0x00451040 ?GenRemoveAll@?$CMoArray@VNodeRelation@@VDefaultCache@@@@UAEXXZ

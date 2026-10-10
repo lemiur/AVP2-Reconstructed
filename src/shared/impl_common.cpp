@@ -720,4 +720,18 @@ float ic_Random(float min, float max)
 	return min + (max - min) * randNum;
 }
 
+// Counters are compiled out of this build.
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x00473ac0 (the empty void functions).
+void ic_StartCounter(LTCounter *pCounter)
+{
+}
+
+LTBOOL cp_Parse(char *pCommand, const char **pNewCommandPos, char *argBuffer, char **argPointers, int *nArgs);	// 0x004202e0
+
+// No annotation: the linker folded this body (/OPT:ICF) into the identical function at 0x0040c3d0 (ci_Parse).
+int ic_Parse(char *pCommand, char **pNewCommandPos, char *argBuffer, char **argPointers, int *nArgs)
+{
+	return cp_Parse(pCommand, (const char**)pNewCommandPos, argBuffer, argPointers, nArgs);
+}
+
 // FUNCTION: LITHTECH 0x0043eb30 ?Cross@?$_CVector@M@@QBE?AV1@V1@@Z
