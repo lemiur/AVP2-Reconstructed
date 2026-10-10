@@ -318,34 +318,18 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 
 	nColor = SpriteGetColor(pInstance);
 
-	aVerts[0].m_Vec.x = vCam.x - fHalfX;
-	aVerts[0].m_Vec.y = vCam.y + fHalfY;
-	aVerts[0].m_Vec.z = vCam.z;
-	aVerts[0].color = nColor;
-	aVerts[0].specular = nSpecular;
-	aVerts[0].tu = uMin;
-	aVerts[0].tv = vMin;
-	aVerts[1].m_Vec.x = vCam.x + fHalfX;
-	aVerts[1].m_Vec.y = vCam.y + fHalfY;
-	aVerts[1].m_Vec.z = vCam.z;
-	aVerts[1].color = nColor;
-	aVerts[1].specular = nSpecular;
-	aVerts[1].tu = uMax;
-	aVerts[1].tv = vMin;
-	aVerts[2].m_Vec.x = vCam.x + fHalfX;
-	aVerts[2].m_Vec.y = vCam.y - fHalfY;
-	aVerts[2].m_Vec.z = vCam.z;
-	aVerts[2].color = nColor;
-	aVerts[2].specular = nSpecular;
-	aVerts[2].tu = uMax;
-	aVerts[2].tv = vMax;
-	aVerts[3].m_Vec.x = vCam.x - fHalfX;
-	aVerts[3].m_Vec.y = vCam.y - fHalfY;
-	aVerts[3].m_Vec.z = vCam.z;
-	aVerts[3].color = nColor;
-	aVerts[3].specular = nSpecular;
-	aVerts[3].tu = uMin;
-	aVerts[3].tv = vMax;
+	aVerts[0].m_Vec.Init(vCam.x - fHalfX, vCam.y + fHalfY, vCam.z);
+	aVerts[1].m_Vec.Init(vCam.x + fHalfX, vCam.y + fHalfY, vCam.z);
+	aVerts[2].m_Vec.Init(vCam.x + fHalfX, vCam.y - fHalfY, vCam.z);
+	aVerts[3].m_Vec.Init(vCam.x - fHalfX, vCam.y - fHalfY, vCam.z);
+
+	aVerts[0].SetTCoords(uMin, vMin);
+	aVerts[1].SetTCoords(uMax, vMin);
+	aVerts[2].SetTCoords(uMax, vMax);
+	aVerts[3].SetTCoords(uMin, vMax);
+
+	aVerts[0].color = aVerts[1].color = aVerts[2].color = aVerts[3].color = nColor;
+	aVerts[0].specular = aVerts[1].specular = aVerts[2].specular = aVerts[3].specular = nSpecular;
 
 	if (pInstance->m_Flags2 & FLAG2_SPRITE_TROTATE)
 	{
@@ -358,8 +342,7 @@ void d3d_DrawSprite_NonRotatable(ViewParams *pParams, SpriteInstance *pInstance,
 		{
 			float fDV = aVerts[i].tv - fCenterV;
 			float fDU = aVerts[i].tu - fCenterU;
-			aVerts[i].tu = fDV * mRot[1][0] + fDU * mRot[0][0] + fCenterU;
-			aVerts[i].tv = fDV * mRot[1][1] + fDU * mRot[0][1] + fCenterV;
+			aVerts[i].SetTCoords(fDV * mRot[1][0] + fDU * mRot[0][0] + fCenterU, fDV * mRot[1][1] + fDU * mRot[0][1] + fCenterV);
 		}
 		g_pD3DDevice->SetTextureStageState(0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP);
 	}
@@ -502,8 +485,7 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 	pVert->m_Vec.z = 0.0f;
 	pVert->color = nColor;
 	pVert->specular = nSpecular;
-	pVert->tu = uMin;
-	pVert->tv = vMin;
+	pVert->SetTCoords(uMin, vMin);
 
 	pVert = &aVerts[pOrder[1]];
 	pVert->m_Vec.x = -fWidth;
@@ -511,8 +493,7 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 	pVert->m_Vec.z = 0.0f;
 	pVert->color = nColor;
 	pVert->specular = nSpecular;
-	pVert->tu = uMax;
-	pVert->tv = vMin;
+	pVert->SetTCoords(uMax, vMin);
 
 	pVert = &aVerts[pOrder[2]];
 	pVert->m_Vec.x = -fWidth;
@@ -520,8 +501,7 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 	pVert->m_Vec.z = 0.0f;
 	pVert->color = nColor;
 	pVert->specular = nSpecular;
-	pVert->tu = uMax;
-	pVert->tv = vMax;
+	pVert->SetTCoords(uMax, vMax);
 
 	pVert = &aVerts[pOrder[3]];
 	pVert->m_Vec.x = fWidth;
@@ -529,8 +509,7 @@ void d3d_DrawRotatableSprite(ViewParams *pParams, SpriteInstance *pInstance, LTV
 	pVert->m_Vec.z = 0.0f;
 	pVert->color = nColor;
 	pVert->specular = nSpecular;
-	pVert->tu = uMin;
-	pVert->tv = vMax;
+	pVert->SetTCoords(uMin, vMax);
 
 	TransformVertexPositionsHomogeneous(aVerts, 4, &mRotation);
 
