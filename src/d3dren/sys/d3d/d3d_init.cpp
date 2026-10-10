@@ -579,11 +579,12 @@ void d3d_UnsetDetailTexture(void);				// d3dstate.h: disable stage 1 colour op a
 // the viewport, the capability flags the dump (LISTDEVICECAPS) prints, the default render states, the two-stage validation and the lightmap mode).
 // Low confidence for the name (the strings are Talon's own); roles: pNode is the enumerated device node (UnkType_DeviceNode), pInit the mode
 // the engine asked for.  Returns 1 on success.
-// STUB diagnosis: the large local frame differs (exe: ddsd at esp+0x58, desc +0xd4, bltfx +0x1c0, DDCAPS hal +0x224 / hel +0x3a0, viewport +0x38;
-//   ours ddsd at +0x48; frame size 0x50c matches once the 16-byte state object is a function-scope local and the caps/free-memory DWORDs sit in an
-//   inner scope).  The initial flipping-surface failure and windowed primary-surface failure now share the primary-surface message/cleanup label,
-//   matching the exe's `jne 0x1001aff3`; the retry failure keeps its separate message push at 0x1001af72.  The reference-rasterizer,
-//   QueryInterface, and Force1Pass diagnostic literals now match the exe's strings at 0x1004b094, 0x1004aff8, and 0x1004aebc.
+// STUB diagnosis: same size and instruction count, 42 aligned mismatches (28 ignoring stack offsets).  The frame (0x50c) and every
+//   aggregate match.  Left: the small address-taken scalars: the exe puts the VIDEOMEMORY call's free/total words in the guid/state slot
+//   (-0x50c) and next to the second dwPasses (-0x4fc), the TEXTURE total at -0x4e8 below the viewport (-0x4e4), and the Force1Pass
+//   dwPasses above the viewport (-0x4cc); this build swaps the two totals and puts the viewport 4 bytes higher.  Scope/placement
+//   variants tried (caps, the four DWORDs, both dwPasses and the state object at function or block scope, all declaration orders)
+//   reproduce parts but not all of it.  The rest follows from the slots (the ecx/edx alternation of the vtable loads and one push).
 // STUB: D3DREN 0x1001acc0
 int d3d_CreateDevice(UnkType_DeviceNode *pNode, RenderStructInit *pInit)
 {
