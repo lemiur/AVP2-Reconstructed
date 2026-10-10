@@ -83,15 +83,11 @@ int d3d_GetChromaKeyPass(void)
 // guess: draws one lightmapped world polygon: the 0x28-byte vertices carry the base coordinates and the lightmap coordinates;
 // clipped and projected as the clip mask g_ClipFlags asks, then drawn as a triangle fan with the lightmap page (single pass
 // when the device allows) and queued for the second pass / detail texture batches (g_pTexturedWorldPolyBuckets).
-// Not matching: 1221 of 1223 bytes, the same 424 instructions in the same order with the same frame layout (locals at
-// [ebp-4]..[ebp-0x38], 0x28-byte vertex array at [ebp-0x1438]), same calls and branches; only the register allocation differs.
-// The exe keeps the surface flag bits (nSurfFlags) in edi from the start until d3d_BuildLightmappedWorldVertices, the constant 0 in esi (before the
-// fog StateSet), then in ebx (after d3d_BuildDualTextureWorldVertices), the poly in esi; ours gives esi to nSurfFlags, edi to the zero and ebx to the
-// poly (so the exe has `push edi`/`cmp [..],ebx` where ours has `push esi`/`cmp [..],edi`).  Tried: nSurfFlags before/after the
-// environment map test (before: frame matches, after: spilled to the stack), pTexture/pSurface locals or none, copy loops as
-// pointer do-while loops (needed: dword copies of tu/tv instead of fld/fstp), flag if/else polarity, statement permuter
-// (build/permute/100099b9; a second run of 3000 candidates did not get below 107 aligned mismatches, the start was 120).  Source-shape
-// problem (the original probably has two more/other named locals of the zero flag, which decide the register webs).
+// Not matching: 1223 of 1223 bytes, 30 aligned mismatches ignoring stack offsets (424 vs 426 instructions).  The env-map tests are
+// nested inside the clip / project tests, the vertex count is copied in both vertex-source arms, the chroma-key and normal paths
+// each count the poly, and the env-map draw is the else arm (permuter-guided, two runs, cleaned of probes).  Remaining: register
+// allocation: the exe keeps nSurfFlags in edi and nTotalVerts in memory; ours swaps them (nSurfFlags declared before/after the
+// env-map test, through a Surface local, int/uint types: no change), and the zero / pPoly registers follow from that.
 // STUB: D3DREN 0x100099b9
 void DrawLightmappedWorldPoly(WorldPoly *pPoly)
 {
