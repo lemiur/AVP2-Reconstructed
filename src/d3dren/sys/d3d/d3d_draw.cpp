@@ -57,10 +57,7 @@ ConVar g_CV_ShowTexInfo("ShowTexInfo", 0.0f);
 // GLOBAL: D3DREN 0x10058780
 ConVar g_CV_RenderToFront("RenderToFront", 0.0f);
 
-// (the plain inline d3d_SetTexture of d3d_texture.h was tried for this object: the vector destructors of d3d_DrawMirrorSurfaceOverlay come out of line but the node allocator
-//  deallocate copy 0x10018f80 is no longer emitted separately, see the diagnosis of d3d_DrawMirrorSurfaceOverlay; D3DREN_SETTEXTURE_EXTERN keeps the out-of-line call)
 #define D3DREN_STATERESTORER_FULL	// d3ddevice.h: the real vector<RenderState>/vector<TextureState> members of UnkType_StateRestorer
-#define D3DREN_SETTEXTURE_EXTERN	// d3d_texture.h: the plain inline changes the STLport node allocator copies at the end of the object
 #include <windows.h>
 #include <math.h>
 #include "ltbasedefs.h"
@@ -1188,70 +1185,69 @@ void d3d_DrawLightScalePoly(const LTVector &vScale)
 // atexit destructor stub of the static vertex array of d3d_DrawLightScalePoly.
 // FUNCTION: D3DREN 0x100155a0 _$E59
 
+// NAME: SetUV: the shape of the vertex fillers of unit unk/10001000 (arguments evaluated right to left stay on the x87 stack)
+static inline void SetUV(TLVertex *pVertex, float u, float v)
+{
+	pVertex->tu = u;
+	pVertex->tv = v;
+}
+
 // guess: draws the mirror poly itself (pPoly, a world poly with the mirror surface) over the reflected view: ALPHABLENDENABLE on through a state saver,
 // every vertex projected with the matrix handed in (MatVMul_H, the 1/w it returns is dropped), white diffuse, the stage 0 texture scale applied to the
 // vertex uv, the per-vertex fog hook for the specular alpha, clipped with the plane mask 0x3f and drawn as a triangle fan.  Only called by the mirror pass
 // when the surface has the overlay bit.  The exe expands the inline d3d_SetTexture here; the call below is the out-of-line one.
-// STUB diagnosis: 560 of 624 bytes, 181 aligned mismatches.  Measured (not applied, see below): with the inline d3d_SetTexture (no
-//   D3DREN_SETTEXTURE_EXTERN in this object), the vertex loop as a TLVertex walk (pDest++/pSrc++, count down with `!= 0`), SetUV(pDest,
-//   texel0 * u, texel1 * v) (the exe's tv-then-tu x87 order), d3d_GetWorldPolyVertices(pPoly, &pSrc, &nVerts) (auto-inlined: the exe's
-//   vertex/count load) and no explicit saver.RestoreAllStates() (the exe calls it once, from the inline ~UnkType_StateRestorer) the body is
-//   117 aligned (624 bytes).  Left: (1) inline budget: the exe refuses both ~vector sites inside ~UnkType_StateRestorer (calls 0x10018aa0 /
-//   0x100188e0) and inlines the vector<TextureState> constructor inside the saver constructor; this build inlines ~vector and refuses that
-//   constructor (needs ~60u more charged after the saver constructor without an extra pending site; 10-12 if(0)-store ballast before the
-//   clip reproduces the destructors); (2) the exe keeps 0 in ebx for the whole function and threads the inline texture search's known-null
-//   exits (all inline d3d_SetTexture sites in the DLL are STUBs).  Not applied because the out-of-line STLport copies of this object
-//   (0x10018a90 _Vector_base ctor, 0x10018f80 __node_alloc::deallocate) are only emitted by the current, wrong expansion here.
+// STUB diagnosis: 608 of 624 bytes, 122 aligned mismatches.  The inline d3d_SetTexture, the vertex walk, the vector constructor calls
+//   (0x10018a90 twice) and the single RestoreAllStates are the exe's.  Left: (1) inline budget: the exe refuses the ~vector sites inside
+//   ~UnkType_StateRestorer (calls 0x10018aa0 / 0x100188e0) where this build refuses one level lower (~_Vector_base); about 60u more
+//   charge after the saver constructor without an extra pending site reproduces it (an if(0)-ballast probe), not yet explained (the
+//   d3d_GetWorldPolyVertices call adds the charge but also a pending site, which then refuses the vector<TextureState> constructor);
+//   (2) the exe keeps 0 in ebx for the whole function and threads the inline texture search's known-null exits; (3) MatVMul_H's x87
+//   term order.  The node allocator's deallocate (0x10018f80) is a COMDAT of this object that nothing here calls out of line any
+//   more: the stand-in below forces it.
 // STUB: D3DREN 0x100155b0
 void d3d_DrawMirrorSurfaceOverlay(WorldPoly *pPoly, LTMatrix *pMatrix)
 {
-	D3DTLVERTEX aVerts[0x80];
-	UnkType_PolyVert *pSrc;
-	D3DTLVERTEX *pVerts;
+	TLVertex aVerts[0x80];
+	UnkType_PolyVertex *pSrc;
+	TLVertex *pVerts;
+	TLVertex *pDest;
 	int nVerts;
 	int i;
 
 	if (!d3d_SetTexture(((Surface *)pPoly->m_pSurface)->m_pTexture, g_NormalTextureStage, 0))
 		return;
 
-	{
 	UnkType_StateRestorer saver;
-	RenderState rsBlend(D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-
-	saver.ApplyRenderState(rsBlend);
+	saver.ApplyRenderState(RenderState(D3DRENDERSTATE_ALPHABLENDENABLE, 1));
 
 	if (g_FixTJunc)
 	{
-		pSrc = (UnkType_PolyVert *)pPoly->m_pVertices;
+		pSrc = (UnkType_PolyVertex *)pPoly->m_pVertices;
 		nVerts = pPoly->m_nExtraVertices;
 	}
 	else
 	{
-		pSrc = (UnkType_PolyVert *)pPoly->m_Vertices;
+		pSrc = (UnkType_PolyVertex *)pPoly->m_Vertices;
 		nVerts = pPoly->m_nVertices;
 	}
 
-	pVerts = aVerts;
-	for (i = nVerts; i > 0; i--)
+	pDest = aVerts;
+	for (i = nVerts; i != 0; i--)
 	{
-		LTVector *pPos = pSrc->m_pPos;
-		TLVertex *pDest = (TLVertex *)&pVerts[nVerts - i];
-
-		MatVMul_H((LTVector *)&pDest->m_Vec, pMatrix, pPos);
+		MatVMul_H(&pDest->m_Vec, pMatrix, pSrc->m_Vec);
 		pDest->color = 0xffffffff;
-		pDest->tu = g_TextureStageTexelSizes[0].m_Unk00 * pSrc->m_Unk04;
-		pDest->tv = g_TextureStageTexelSizes[0].m_Unk04 * pSrc->m_Unk08;
-		g_pfnCalcFogAlpha(pPos, &pDest->specular);
+		SetUV(pDest, g_TextureStageTexelSizes[0].m_Unk00 * pSrc->m_U, g_TextureStageTexelSizes[0].m_Unk04 * pSrc->m_V);
+		g_pfnCalcFogAlpha(pSrc->m_Vec, &pDest->specular);
+		pDest++;
 		pSrc++;
 	}
 
+	pVerts = aVerts;
 	g_ClipFlags = 0x3f;
-	if (d3d_ClipAndProjectTLVertices((TLVertex **)&pVerts, &nVerts, &g_ViewParams, 0))
+	if (d3d_ClipAndProjectTLVertices(&pVerts, &nVerts, &g_ViewParams, 0))
 	{
 		g_nPolygonTriangles += nVerts - 2;
 		g_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLEFAN, 0x1c4, pVerts, nVerts, 0);
-	}
-	saver.RestoreAllStates();
 	}
 }
 
@@ -2083,10 +2079,11 @@ int d3d_AddLightAnimVertexColors(void *pPolyData, uint32 nPolyData, LightAnim *p
 // The current StateChange users expand both vector destructors.  Force the separately linked SDK/STLport copies
 // without changing those callers; remove this stand-in once a recovered caller emits them naturally.
 #pragma inline_depth(0)
-// STANDIN: forces the out-of-line RenderState/TextureState vector destructors (not in d3d.ren).
+// STANDIN: forces the out-of-line RenderState/TextureState vector destructors and the node allocator's deallocate (not in d3d.ren).
 void EmitStateVectorDestructors(std::vector<RenderState> *pRenderStates, std::vector<TextureState> *pTextureStates)
 {
 	pRenderStates->~vector();
 	pTextureStates->~vector();
+	_STL::__node_alloc<true, 0>::deallocate(pRenderStates, sizeof(*pRenderStates));
 }
 #pragma inline_depth()
