@@ -85,26 +85,29 @@ int g_ShadowClipNearInsideFlags[56];
 // normal, clips it against the six shadow frustum planes (pInfo->m_FrustumPlanes), gives every vertex the ModelShadowAlpha colour and
 // the texture coordinates of the 4x4 at pInfo+0x60 (rows 0, 1, 3 = tu, tv, q), then transforms/projects it (TransformClipAndProjectShadowPolygon) and draws it
 // as a TRIANGLEFAN of 0x20-byte TL vertices with tu/q, tv/q.  `this` is not used.
-// The vertex copy loop reads the source vertices by index (`pSrc[iVert]`, strength-reduced by VC6 into the cursor that is spilled to
-// [ebp-4] after the `nVerts > 0` guard) and the poly plane inside the loop (`pPoly->m_pPlane`, hoisted after the guard): that gives
-// the exe's guard/spill order (a cached plane pointer or a pCur cursor puts the spill before the guard).
-// Not matching (46 bytes; the call set, the CFG and the copy loop agree).  Remaining:
+// The polygon preparation (copy + offset, the six-plane clip, the copy back) is written like the sibling 0x10026d6a, which compiles
+// byte-identical to the exe with this same copy loop (`SPolyVertex *pV = &pSrc[iVert]` and the poly plane read inside the loop:
+// VC6 strength-reduces the index into the cursor it spills to [ebp-4] after the `nVerts > 0` guard and hoists the plane load after
+// the guard), the clip block and the output array declared in the draw branch.
+// Not matching (63 bytes; the call set, the CFG, the copy loop and the frame agree).  Remaining:
 //  (1) the x87 operand order of the three matrix expressions: the exe has tu = z(V,M) x(V,M) y(M,V) and tv = q = x(V,M) z(M,V) y(M,V)
-//      (V = vertex field as `fld`, M = matrix element as `fmul`); ours has tu = z(M,V) x(M,V) y and tv = q = z(V,M) x(M,V) y.  Source
-//      operand and statement order do not change it (VC6 canonicalises the commutative terms); it follows the value numbering of the
-//      whole function (it moved with the copy-loop change above).
+//      (V = vertex field as `fld`, M = matrix element as `fmul`).  VC6 canonicalises the commutative terms (all 6 term orders x V*M/M*V
+//      and the 6-statement orders of the loop body compile to the same or worse code); the order follows the value numbering of the
+//      whole function: it moves with the copy-loop spelling (index / pCur / pV forms all give different orders, none the exe's), and
+//      a 20-minute permuter run only reached it with junk (parameter copies, references to the vertex).
 //  (2) the clip stage's slots: the exe keeps pClipVerts in the dead pInfo parameter slot [ebp+8] and the plane counter at [ebp-8]
-//      (the vertex loop counter's slot); we swap the two.  Declaration order of the clip block's locals and reusing i/iVert/iDraw as the
-//      plane counter do not change it; an up-counting plane loop loses the exe's down-count.
+//      (the vertex loop counter's slot); we swap the two (the sibling keeps its counter in edi).  Names, types and declaration order
+//      of the clip block's locals, the declaration count of the unit, an up-counting loop (counter in ebx) and moving the memcpy test
+//      into the block do not change it.
+// PARKED: complete body; x87 operand-order and clip-counter slot residue (value numbering / slot packing), no source lever or permuter candidate closes it
 // STUB: D3DREN 0x10025078
 void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPoly)
 {
-	UnkType_Vertex36 aVerts[0x80];
-	TLVertex aOut[0x80];
-	UnkType_Vertex36 *pVerts;
-	SPolyVertex *pSrc;
 	int nVerts;
 	int i, iVert, iDraw;
+	SPolyVertex *pSrc;
+	UnkType_Vertex36 *pVerts;
+	UnkType_Vertex36 aVerts[0x80];
 
 	if (g_FixTJunc)
 	{
@@ -125,7 +128,8 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 
 	for (iVert = 0; iVert < nVerts; iVert++)
 	{
-		aVerts[iVert].m_Vec = *pSrc[iVert].m_Vec;
+		SPolyVertex *pV = &pSrc[iVert];
+		aVerts[iVert].m_Vec = *pV->m_Vec;
 		aVerts[iVert].m_Vec += pPoly->m_pPlane->m_Normal * g_CV_ModelShadowOffset.m_FloatVal;
 	}
 
@@ -170,6 +174,7 @@ void ModelDraw::DrawBlobShadowOnWorldPoly(ShadowLightInfo *pInfo, WorldPoly *pPo
 	g_ClipFlags = 0x3f;
 	if (TransformClipAndProjectShadowPolygon(&pVerts, &nVerts, &g_ViewParams, 0))
 	{
+		TLVertex aOut[0x80];
 		for (iDraw = 0; iDraw < nVerts; iDraw++)
 		{
 			aOut[iDraw].m_Vec = pVerts[iDraw].m_Vec;
