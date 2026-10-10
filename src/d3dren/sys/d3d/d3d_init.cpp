@@ -756,6 +756,7 @@ SurfaceCreationSucceeded:
 		return 0;
 	}
 
+	IDirect3DDevice7 *pDevice = g_pD3DDevice;
 	memset(&ddcapsHel, 0, sizeof(ddcapsHel));
 	memset(&ddcapsHal, 0, sizeof(ddcapsHal));
 	ddcapsHal.dwSize = sizeof(DDCAPS);
@@ -764,7 +765,7 @@ SurfaceCreationSucceeded:
 	g_bSurfacesLargerThanScreenSupported = (ddcapsHal.dwCaps2 >> 12) & 1;
 
 	memset(&desc, 0, sizeof(desc));
-	g_pD3DDevice->GetCaps(&desc);
+	pDevice->GetCaps(&desc);
 
 	{
 		DWORD dwTotalTex, dwFreeTex, dwTotalVid, dwFreeVid;
