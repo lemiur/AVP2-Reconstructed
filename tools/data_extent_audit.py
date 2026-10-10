@@ -1,10 +1,14 @@
 r"""Audit data extents: which retail .data/.bss bytes have no source-defined counterpart, and does code reach into them?
 
-  python tools/data_extent_audit.py [--module d3dren] [--map build/release/scratch/d3d.map] [--image <linked image>]
+  python tools/data_extent_audit.py [--module d3dren] [--map <link map>] [--image <linked image>]
                                     [--min 0x10] [--json out.json] [--hole 0x1004ebb0]
 
 Read-only. Inputs: the retail image (modcfg.IMAGE, or --retail), the source-only link (its map and image: for d3dren
-`python tools/source_link_d3dren.py`), the source annotations and config/<module>/symbols.csv.
+`python tools/source_link_d3dren.py` -> build/release/d3d.ren + scratch/d3d.map; for the engine `python tools/build.py
+release` -> build/release/lithtech.exe + lithtech.map), the source annotations and config/<module>/symbols.csv.
+Images without base relocations (the /FIXED engine) are paired operand by operand instead of by relocation; data-to-data
+pairing and the relocation scan then have nothing to read, so the engine report is coarser.
+VC6 keeps unreferenced file-static data and emits no symbol for it: such storage shows up as a hole with no reference.
 
 1. Every data symbol of the source link gets a retail address:
    * from its `// GLOBAL:` annotation (source unit or include/ header), else
@@ -287,25 +291,69 @@ class Audit:
         rb, ob = self.R.read(rva, n), self.O.read(ova, n + 16)
         ri = list(self.md.disasm(rb, rva))
         oi = list(self.md.disasm(ob, ova))
+        use_relocs = bool(self.R.relocs) and bool(self.O.relocs)
         for a, b in zip(ri, oi):
             if a.size != b.size or a.id != b.id:
                 return
-            ra = set(range(a.address, a.address + a.size))
-            rrel = [x for x in self.R.relocs_in(a.address, a.address + a.size)]
-            orel = [x for x in self.O.relocs_in(b.address, b.address + b.size)]
-            if [x - a.address for x in rrel] != [x - b.address for x in orel]:
+            pairs = self.operand_pairs(a, b) if not use_relocs else self.reloc_pairs(a, b)
+            if pairs is None:
                 return
-            mask = set()
-            for x in rrel:
-                mask.update(range(x - a.address, x - a.address + 4))
-            if a.group(capstone.CS_GRP_JUMP) or a.group(capstone.CS_GRP_CALL):
-                if a.operands and a.operands[0].type == cx.X86_OP_IMM:
-                    mask.update(range(a.size - 4 if a.size >= 5 else a.size - 1, a.size))
-            if any(a.bytes[k] != b.bytes[k] for k in range(a.size) if k not in mask):
-                return
-            for x, y in zip(rrel, orel):
-                self.observe(self.O.dword(y), self.R.dword(x), '%s+%x' % (label, a.address - rva))
-            del ra
+            for ours, theirs in pairs:
+                self.observe(ours, theirs, '%s+%x' % (label, a.address - rva))
+
+    def reloc_pairs(self, a, b):
+        """(our target, retail target) of the relocated fields of two instructions, None when they differ."""
+        rrel = self.R.relocs_in(a.address, a.address + a.size)
+        orel = self.O.relocs_in(b.address, b.address + b.size)
+        if [x - a.address for x in rrel] != [x - b.address for x in orel]:
+            return None
+        mask = set()
+        for x in rrel:
+            mask.update(range(x - a.address, x - a.address + 4))
+        if a.group(capstone.CS_GRP_JUMP) or a.group(capstone.CS_GRP_CALL):
+            if a.operands and a.operands[0].type == cx.X86_OP_IMM:
+                mask.update(range(a.size - 4 if a.size >= 5 else a.size - 1, a.size))
+        if any(a.bytes[k] != b.bytes[k] for k in range(a.size) if k not in mask):
+            return None
+        return [(self.O.dword(y), self.R.dword(x)) for x, y in zip(rrel, orel)]
+
+    def operand_pairs(self, a, b):
+        """Images without base relocations (a /FIXED exe): operands must agree except image addresses."""
+        if a.group(capstone.CS_GRP_JUMP) or a.group(capstone.CS_GRP_CALL):
+            if a.operands and a.operands[0].type == cx.X86_OP_IMM:
+                return []
+        if len(a.operands) != len(b.operands):
+            return None
+        out = []
+        for x, y in zip(a.operands, b.operands):
+            if x.type != y.type:
+                return None
+            if x.type == cx.X86_OP_REG:
+                if x.reg != y.reg:
+                    return None
+            elif x.type == cx.X86_OP_MEM:
+                if (x.mem.base, x.mem.index, x.mem.scale, x.mem.segment) != (y.mem.base, y.mem.index, y.mem.scale, y.mem.segment):
+                    return None
+                dx, dy = x.mem.disp & 0xffffffff, y.mem.disp & 0xffffffff
+                if dx != dy:
+                    if not (self.r_image(dx) and self.o_image(dy)):
+                        return None
+                    out.append((dy, dx))
+                elif self.r_image(dx):
+                    out.append((dy, dx))
+            elif x.type == cx.X86_OP_IMM:
+                vx, vy = x.imm & 0xffffffff, y.imm & 0xffffffff
+                if vx != vy:
+                    if not (self.r_image(vx) and self.o_image(vy)):
+                        return None
+                    out.append((vy, vx))
+        return out
+
+    def r_image(self, v):
+        return self.R.base + 0x1000 <= v < self.rdata[1]
+
+    def o_image(self, v):
+        return self.O.base + 0x1000 <= v < self.odata[1]
 
     def pair_code(self, annots, rfuncs):
         by_name = defaultdict(list)
@@ -452,7 +500,7 @@ class Audit:
                             self.refs.append((t, i.address, fva, kind, op.mem.scale, '%s %s' % (i.mnemonic, i.op_str), k))
                     elif op.type == cx.X86_OP_IMM:
                         t = op.imm & 0xffffffff
-                        if lo <= t < hi and self.R.relocs_in(i.address, i.address + i.size):
+                        if lo <= t < hi and (not self.R.relocs or self.R.relocs_in(i.address, i.address + i.size)):
                             self.refs.append((t, i.address, fva, 'address', 0, '%s %s' % (i.mnemonic, i.op_str), k))
         self.refs.sort()
         self.ref_vas = [r[0] for r in self.refs]
@@ -560,7 +608,7 @@ def main(argv=None):
     ap.add_argument('--retail', default=modcfg.IMAGE)
     rel = os.path.join(ROOT, 'build', 'release')
     ap.add_argument('--image', default=os.path.join(rel, 'd3d.ren' if modcfg.NAME == 'd3dren' else 'lithtech.exe'))
-    ap.add_argument('--map', default=os.path.join(rel, 'scratch', 'd3d.map' if modcfg.NAME == 'd3dren' else 'lithtech.map'))
+    ap.add_argument('--map', default=os.path.join(rel, 'scratch', 'd3d.map') if modcfg.NAME == 'd3dren' else os.path.join(rel, 'lithtech.map'))
     ap.add_argument('--min', type=lambda x: int(x, 0), default=0x10, help='smallest hole reported (default 0x10)')
     ap.add_argument('--hole', type=lambda x: int(x, 16), help='only the hole containing this address')
     ap.add_argument('--json', help='write the full report as JSON')
