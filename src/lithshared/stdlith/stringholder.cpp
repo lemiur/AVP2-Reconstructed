@@ -176,3 +176,6 @@ void CStringHolder::ClearStrings()
 // FUNCTION: LITHTECH 0x004b2ff0 ?GenAppendList@?$CMoArray@VSBank@@VDefaultCache@@@@UAEHABV?$GenList@VSBank@@@@@Z
 // FUNCTION: LITHTECH 0x004b30d0 ?GenSetCacheSize@?$CMoArray@VSBank@@VDefaultCache@@@@UAEXK@Z
 // FUNCTION: LITHTECH 0x004b30e0 ?Insert2@?$CMoArray@VSBank@@VDefaultCache@@@@QAEHKABVSBank@@PAVLAlloc@@@Z
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).

@@ -197,3 +197,23 @@ Requires Python 3 with `capstone` and `pefile`, and `objdiff-cli`.
 This is an independent preservation and research project. It contains no game assets and no part of the original
 binary; you need a legally obtained copy of the game to build or compare anything. Aliens
 versus Predator 2 and LithTech are trademarks of their respective owners.
+
+## License
+
+Except for the files listed below, this repository's contents are dedicated to the public domain under
+[CC0 1.0 Universal](LICENSE), to the extent the contributors hold rights in them. That covers the reconstructed
+source, headers, tools, configuration and progress data.
+
+These files are copies of, or derived from, the LithTech Jupiter Ex engine source, which was published under the
+GNU General Public License. They are licensed under the
+[GNU General Public License, version 2 or (at your option) any later version](LICENSES/GPL-2.0-or-later.txt).
+The release names no GPL version, so the GPL lets you choose any version. Each file is marked
+`SPDX-License-Identifier: GPL-2.0-or-later`.
+
+- `src/lithshared/lith/baselist.cpp`
+- `src/lithshared/lith/virtlist.cpp`
+- `src/lithshared/stdlith/helpers.cpp`
+- `src/lithshared/stdlith/stringholder.cpp`
+- `src/server/server_extradata.cpp`
+
+The CC0 dedication does not cover the trademarks named above, or any rights held by third parties.

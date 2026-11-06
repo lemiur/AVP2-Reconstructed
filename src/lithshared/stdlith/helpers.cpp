@@ -186,3 +186,6 @@ char* CHelpers::GetNextDirName( char *pIn, char *pOut )
 	pOut[outPos] = 0;
 	return &pIn[inPos];
 }
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).

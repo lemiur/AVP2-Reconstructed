@@ -72,3 +72,6 @@ void CBaseList::Delete(CBaseListItem* pItem) {
 	pItem->m_pPrev = NULL;
 #endif
 };
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).
