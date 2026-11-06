@@ -856,3 +856,6 @@ BOOL CControlFileMgr::FileEOF()
 
 // FUNCTION: LITHTECH 0x004b38c0 ??1CControlFileWord@@QAE@XZ
 // FUNCTION: LITHTECH 0x004b42c0 ??1?$CLithSimpAry@D@@QAE@XZ
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).

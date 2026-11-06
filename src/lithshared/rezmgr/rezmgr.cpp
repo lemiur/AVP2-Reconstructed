@@ -1947,3 +1947,6 @@ void CRezMgr::SetUserTitle(const char* sUserTitle)
 // Out-of-line hash table destructor (rezhash.h inline, ICF-shared by the other table types; the surviving copy sits after
 // CRezDir::CRezDir, so it is the CRezDirHashTable one):
 // FUNCTION: LITHTECH 0x004b0170 ??1CRezDirHashTable@@QAE@XZ
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).

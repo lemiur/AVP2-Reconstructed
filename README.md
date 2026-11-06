@@ -210,10 +210,17 @@ GNU General Public License. They are licensed under the
 The release names no GPL version, so the GPL lets you choose any version. Each file is marked
 `SPDX-License-Identifier: GPL-2.0-or-later`.
 
+- `src/lithshared/controlfilemgr/controlfilemgr.cpp`
+- `src/lithshared/lith/basehash.cpp`
 - `src/lithshared/lith/baselist.cpp`
 - `src/lithshared/lith/virtlist.cpp`
+- `src/lithshared/rezmgr/rezhash.cpp`
+- `src/lithshared/rezmgr/rezmgr.cpp`
+- `src/lithshared/stdlith/dynarray.cpp`
 - `src/lithshared/stdlith/helpers.cpp`
+- `src/lithshared/stdlith/l_allocator.cpp`
 - `src/lithshared/stdlith/stringholder.cpp`
+- `src/lithshared/stdlith/struct_bank.cpp`
 - `src/server/server_extradata.cpp`
 
 The CC0 dedication does not cover the trademarks named above, or any rights held by third parties.

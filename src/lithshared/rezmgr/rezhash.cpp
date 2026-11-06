@@ -138,3 +138,6 @@ CRezItm* CRezItmHashTableByName::Find(REZCNAME sName, BOOL bIgnoreCase) {
   }
   return NULL;
 };
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).

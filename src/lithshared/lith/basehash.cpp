@@ -101,3 +101,6 @@ CBaseHashItem*  CBaseHash::GetFirstInBin(unsigned int Bin) {
   ASSERT(Bin < m_nNumBins);
   return (CBaseHashItem*)m_pBinAry[Bin].m_lstItems.GetFirst();
 };
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).

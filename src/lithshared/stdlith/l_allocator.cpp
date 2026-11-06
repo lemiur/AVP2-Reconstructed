@@ -164,3 +164,6 @@ void LAllocSimpleBlock::Clear()
 	m_CurBlockPos = 0;
 	m_BlockSize = 0;
 }
+
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Derived from the GPL release of the LithTech Jupiter Ex engine; see README.md (License).
